@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "WebFetch(domain:help.figma.com)",
+      "Bash(claude mcp add:*)",
+      "Bash(lsof:*)",
+      "Bash(open:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(bash -c 'grep -r \"\"fontSize\\\\s*:\"\" /Users/ermac/Desktop/jumpers/src/components --include=\"\"*.jsx\"\" | grep -v \"\"Dashboard.jsx\"\" | wc -l')",
+      "Bash(node:*)",
+      "Bash(wc:*)",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+      "Bash(for id in golden_ticket ticket_tout the_network best_of_friends the_dossier formation_roulette inverted_wingers moneyball lazy_sunday sweat_equity nom_de_guerre the_dugout one_more_year guard_of_honour not_a_dry_eye instant_impact lazarus made_it_his_own comeback_season absentee_landlord)",
+      "Bash(do)",
+      "Bash(if grep -q \"id: \"\"$id\"\"\" /Users/ermac/Desktop/jumpers/src/data/achievements.js)",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(xxd:*)",
+      "Bash(sort:*)"
+    ]
+  }
+}

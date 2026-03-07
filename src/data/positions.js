@@ -1,0 +1,9 @@
+export const STARTING_XI_POSITIONS = ["GK", "CB", "CB", "LB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
+export const EXTRA_POOL = ["GK", "CB", "CB", "LB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
+export const POSITION_TYPES = { GK: "GK", CB: "DEF", LB: "DEF", RB: "DEF", CM: "MID", AM: "MID", LW: "FWD", RW: "FWD", ST: "FWD" };
+export const POS_GROUP = { GK: 0, CB: 1, LB: 1, RB: 1, CM: 2, AM: 2, LW: 3, RW: 3, ST: 3 };
+export const POSITION_ORDER = { GK: 0, CB: 1, LB: 2, RB: 3, CM: 4, AM: 5, LW: 6, RW: 7, ST: 8 };
+export const POS_COLORS = { GK: "#f59e0b", CB: "#3b82f6", LB: "#3b82f6", RB: "#3b82f6", CM: "#22c55e", AM: "#a855f7", LW: "#ef4444", RW: "#ef4444", ST: "#ef4444" };
+export const ALL_POSITIONS = ["GK","CB","LB","RB","CM","AM","LW","RW","ST"];
+export const SUB_COLOR = "#60a5fa"; // blue for sub chips
+export const TOTAL_SLOTS = 16; // 11 formation + 5 subs
