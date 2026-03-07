@@ -246,6 +246,7 @@ function FootballManager() {
   const [tradesMadeInWindow, setTradesMadeInWindow] = useState(0); // trades in current transfer window
   const [tradedWithClubs, setTradedWithClubs] = useState(new Set()); // clubs traded with (for Old Boys Network)
   const [startingXI, setStartingXI] = useState([]);
+  const [showLineupWarning, setShowLineupWarning] = useState(false);
   const [bench, setBench] = useState([]);
   const [dragPlayer, setDragPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth <= 768);
@@ -4278,6 +4279,11 @@ function FootballManager() {
               {matchPending ? (
                 <button
                   onClick={() => {
+                    // Starting XI warning: block if no lineup assigned
+                    if (!startingXI || startingXI.length === 0) {
+                      setShowLineupWarning(true);
+                      return;
+                    }
                     // Altitude Trials: enforce minimum ATK players
                     const atkMod = getModifier(leagueTier);
                     if (atkMod.minAtkPlayers) {
@@ -4413,7 +4419,15 @@ function FootballManager() {
                 </button>
               ) : (
                 <button
-                  onClick={advanceWeek}
+                  onClick={() => {
+                    const nextEntry = seasonCalendar?.[calendarIndex + 1];
+                    const nextIsMatch = nextEntry && ["league", "cup", "dynasty", "mini"].includes(nextEntry.type);
+                    if (nextIsMatch && (!startingXI || startingXI.length === 0)) {
+                      setShowLineupWarning(true);
+                      return;
+                    }
+                    advanceWeek();
+                  }}
                   disabled={isDisabled}
                   style={{
                     background: isDisabled ? "rgba(30,41,59,0.5)" : "linear-gradient(180deg, #166534, #14532d)",
@@ -6830,6 +6844,18 @@ function FootballManager() {
         ultimatumTarget={ultimatumTarget}
         ultimatumGamesLeft={ultimatumGamesLeft}
         gameMode={gameMode}
+        showLineupWarning={showLineupWarning}
+        onDismissLineupWarning={() => setShowLineupWarning(false)}
+        onLineupWarningGoToSquad={() => {
+          setShowLineupWarning(false);
+          setShowAchievements(false); setShowTable(false); setShowCalendar(false);
+          setShowCup(false); setShowTransfers(false); setShowLegends(false);
+          setShowSquad(true);
+        }}
+        onLineupWarningPlayAnyway={() => {
+          setShowLineupWarning(false);
+          advanceWeek();
+        }}
       />
       )}
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, MODAL } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getEffectiveSlots, detectFormationName } from "../../utils/formation.js";
@@ -19,6 +19,7 @@ export function Dashboard({
   fanSentiment = 50, boardSentiment = 50,
   ultimatumActive = false, ultimatumPtsEarned = 0, ultimatumTarget = 0, ultimatumGamesLeft = 0,
   gameMode = "casual",
+  showLineupWarning = false, onDismissLineupWarning, onLineupWarningGoToSquad, onLineupWarningPlayAnyway,
 }) {
   const mob = isMobile;
 
@@ -836,6 +837,64 @@ export function Dashboard({
         </div>
       </div>
       </div>{/* end newspaper frame */}
+
+      {/* ═══ LINEUP WARNING MODAL ═══ */}
+      {showLineupWarning && (
+        <div style={{ ...MODAL.backdrop, zIndex: Z.confirm }}>
+          <div style={{
+            ...MODAL.box,
+            border: `3px solid ${C.amber}`,
+            padding: mob ? "30px 20px" : "40px 44px",
+            width: mob ? "90%" : "auto",
+            boxShadow: "0 0 50px rgba(251,191,36,0.25), inset 0 0 80px rgba(0,0,0,0.6)",
+          }}>
+            <div style={{
+              fontSize: mob ? F.md : F.lg,
+              color: C.amber,
+              marginBottom: 18,
+              letterSpacing: 2,
+            }}>
+              ⚠️ NO LINEUP SET
+            </div>
+            <div style={{
+              fontSize: mob ? F.xs : F.sm,
+              color: C.text,
+              lineHeight: 1.8,
+              marginBottom: 28,
+            }}>
+              You haven't selected your starting lineup!
+              <br />
+              Go to Squad to assign players.
+            </div>
+            <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={onLineupWarningGoToSquad} style={{
+                padding: mob ? "12px 20px" : "15px 30px",
+                fontSize: mob ? F.xs : F.md,
+                fontFamily: FONT,
+                background: "rgba(74,222,128,0.15)",
+                border: `2px solid ${C.green}`,
+                color: C.green,
+                cursor: "pointer",
+                letterSpacing: 1,
+              }}>
+                GO TO SQUAD
+              </button>
+              <button onClick={onLineupWarningPlayAnyway} style={{
+                padding: mob ? "12px 20px" : "15px 30px",
+                fontSize: mob ? F.xs : F.md,
+                fontFamily: FONT,
+                background: "rgba(239,68,68,0.1)",
+                border: `2px solid ${C.red}`,
+                color: C.red,
+                cursor: "pointer",
+                letterSpacing: 1,
+              }}>
+                PLAY ANYWAY
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ RESULTS TICKER (fixed bottom) ═══ */}
       <div style={{
