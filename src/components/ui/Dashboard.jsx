@@ -3,6 +3,7 @@ import { F, C, FONT, Z, MODAL } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getEffectiveSlots, detectFormationName } from "../../utils/formation.js";
+import { isMessageVisible } from "../../utils/messageUtils.js";
 
 export function Dashboard({
   inboxMessages, week, seasonNumber,
@@ -43,7 +44,7 @@ export function Dashboard({
   const visibleMessages = useMemo(() => {
     if (!inboxMessages) return [];
     return [...inboxMessages]
-      .filter(m => !m.pendingUntilWeek || (week || 1) >= m.pendingUntilWeek)
+      .filter(m => isMessageVisible(m, week || 1))
       .sort((a, b) => {
         if ((b.season || 1) !== (a.season || 1)) return (b.season || 1) - (a.season || 1);
         return (b.week || 1) - (a.week || 1);
@@ -52,7 +53,7 @@ export function Dashboard({
 
   const unreadCount = useMemo(() => {
     if (!inboxMessages) return 0;
-    return inboxMessages.filter(m => !m.read && (!m.pendingUntilWeek || (week || 1) >= m.pendingUntilWeek)).length;
+    return inboxMessages.filter(m => !m.read && isMessageVisible(m, week || 1)).length;
   }, [inboxMessages, week]);
 
   // League table
