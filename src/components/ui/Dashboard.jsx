@@ -244,8 +244,8 @@ export function Dashboard({
   // Cup info
   const cupInfo = useMemo(() => {
     if (!cup) return null;
+    const roundNames = ["Round of 32", "Round of 16", "QF", "SF", "Final"];
     if (cup.playerEliminated) {
-      const roundNames = ["Round of 32", "Round of 16", "QF", "SF", "Final"];
       const elimRound = cup.rounds?.findIndex((r, i) => {
         const match = (r.matches || r).find(m => m.home?.isPlayer || m.away?.isPlayer);
         if (!match) return false;
@@ -261,7 +261,6 @@ export function Dashboard({
     // Active
     const pm = cup.pendingPlayerMatch;
     const oppName = pm ? (pm.home?.isPlayer ? pm.away?.name : pm.home?.name) : null;
-    const roundNames = ["Round of 32", "Round of 16", "QF", "SF", "Final"];
     const roundName = roundNames[cup.currentRound] || `Round ${cup.currentRound + 1}`;
     return { eliminated: false, name: cup.cupName || "Clubman Cup", roundName, opponent: oppName };
   }, [cup]);
