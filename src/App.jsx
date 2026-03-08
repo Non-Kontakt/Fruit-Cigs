@@ -124,6 +124,11 @@ const NEWSPAPER_TEMPLATES = [
   name => `The ${name} Courier`,
   name => `${name} Evening News`,
 ];
+const REPORTER_FIRST = ["Barry","Colin","Keith","Derek","Malcolm","Terry","Graham","Nigel","Clive","Trevor","Maurice","Dennis","Gordon","Stanley","Frank","Arthur","Les","Norman","Brian","Geoff"];
+const REPORTER_LAST = ["Finch","Partridge","Whittle","Platt","Skinner","Baines","Trotter","Coppell","Duckworth","Bramley","Stokes","Rowntree","Clegg","Hargreaves","Nuttall","Fenton","Craven","Dobson","Pilling","Seddon"];
+function generateReporterName() {
+  return `${REPORTER_FIRST[Math.floor(Math.random() * REPORTER_FIRST.length)]} ${REPORTER_LAST[Math.floor(Math.random() * REPORTER_LAST.length)]}`;
+}
 function generateNewspaperName(teamName) {
   // For multi-word names, pick one word to keep it punchy
   const words = teamName.trim().split(/\s+/);
@@ -136,6 +141,7 @@ function generateNewspaperName(teamName) {
 function FootballManager() {
   const [teamName, setTeamName] = useState(null);
   const [newspaperName, setNewspaperName] = useState(null);
+  const [reporterName, setReporterName] = useState(null);
   const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p) })));
   const [squad, setSquad] = useState(initialSquad);
@@ -600,7 +606,7 @@ function FootballManager() {
     try {
       const saveData = {
         version: 2,
-        teamName, newspaperName, squad, week, league, matchweekIndex,
+        teamName, newspaperName, reporterName, squad, week, league, matchweekIndex,
         startingXI, bench,
         unlockedAchievements: [...unlockedAchievements],
         seasonCards, seasonNumber, leagueWins, leagueTier, prestigeLevel, leagueVersion: 3, lastSeasonMove, matchSpeed,
@@ -736,6 +742,7 @@ function FootballManager() {
       setActiveSaveSlot(slot);
       setTeamName(s.teamName);
       setNewspaperName(s.newspaperName || generateNewspaperName(s.teamName));
+      setReporterName(s.reporterName || generateReporterName());
       // Migrate: add nationality and statProgress to existing players if missing
       const migratedSquad = (s.squad || []).map(p => {
         const migrated = { ...p };
@@ -1468,6 +1475,17 @@ function FootballManager() {
           read: false,
         }]);
       }
+      // Reporter intro — soft onboarding for Story Arcs
+      const rName = reporterName || generateReporterName();
+      if (!reporterName) setReporterName(rName);
+      const pName = newspaperName || generateNewspaperName(teamName);
+      setInboxMessages(prev => [...prev, {
+        id: "msg_reporter_intro", week: 2, season: 1,
+        icon: "📰", color: "#94a3b8",
+        title: `${rName}, ${pName}`,
+        body: `${profileList.find(p => p.id === activeProfileId)?.name || "Gaffer"},\n\n${rName} here — I cover your club for ${pName}. Thought I'd introduce myself now the season's underway.\n\nI've been doing this job long enough to know that the best clubs aren't just built on results. They're built on stories. The captain who drags the team through a crisis. The kid who comes from nowhere. The old pro who gets one last shot.\n\nYou'll find those threads developing in your Boot Room under Story Arcs. Keep an eye on them — the drama tends to write itself, and the payoff can be worth more than any training session.\n\nI'll be watching. Good luck.`,
+        read: false, pendingUntilWeek: 2,
+      }]);
       // Single-fixture opponents announcement (Dynasty / Mini-Tournament tiers)
       if (newLeague.singleFixtureOpponents) {
         const sfo = newLeague.singleFixtureOpponents;
@@ -3922,7 +3940,7 @@ function FootballManager() {
             type="text"
             value={nameInput}
             onChange={e => setNameInput(e.target.value.slice(0, 20))}
-            onKeyDown={e => { if (e.key === "Enter" && nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); } }}
+            onKeyDown={e => { if (e.key === "Enter" && nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); setReporterName(generateReporterName()); } }}
             placeholder="e.g. Denton FC"
             autoFocus
             style={{
@@ -3937,7 +3955,7 @@ function FootballManager() {
             onBlur={e => e.target.style.borderColor = C.bgInput}
           />
           <button
-            onClick={() => { if (nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); } }}
+            onClick={() => { if (nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); setReporterName(generateReporterName()); } }}
             disabled={!nameInput.trim()}
             style={{
               width: "100%", padding: "16px",
@@ -5339,6 +5357,7 @@ function FootballManager() {
             await saveGame();
             setTeamName("");
             setNewspaperName(null);
+            setReporterName(null);
             setActiveSaveSlot(null);
             setLeague(null);
             setShowCalendar(false);
