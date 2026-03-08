@@ -4228,9 +4228,9 @@ function FootballManager() {
             const pm = round?.matches?.find(m => m.home?.isPlayer || m.away?.isPlayer);
             if (pm) {
               const opponent = pm.home?.isPlayer ? pm.away : pm.home;
-              bannerMatch = { type: "cup", opponent, isHome: pm.home?.isPlayer, label: `${cup.name || "Clubman Cup"} ${calEntry.cupRoundName || ""}`.trim() };
+              bannerMatch = { type: "cup", opponent, isHome: pm.home?.isPlayer, label: `${cup.cupName || "Clubman Cup"} ${calEntry.cupRoundName || ""}`.trim() };
             } else {
-              bannerMatch = { type: "cup", opponent: null, isHome: true, label: `${cup.name || "Clubman Cup"} ${calEntry.cupRoundName || ""}`.trim() };
+              bannerMatch = { type: "cup", opponent: null, isHome: true, label: `${cup.cupName || "Clubman Cup"} ${calEntry.cupRoundName || ""}`.trim() };
             }
           } else if (calEntry.type === "dynasty" && dynastyCupBracket && !dynastyCupBracket.playerEliminated) {
             const dRound = calEntry.round;
@@ -6417,7 +6417,7 @@ function FootballManager() {
                       border: showAssignAll ? `1px solid ${C.gold}` : `1px solid ${C.bgInput}`,
                       color: showAssignAll ? C.gold : C.textMuted,
                       fontFamily: FONT,
-                    }}>ASSIGN ALL ▾</button>
+                    }}>TRAIN ALL ▾</button>
                     {showAssignAll && (
                       <div style={{
                         position: "absolute", right: 0, top: "100%", marginTop: 4,

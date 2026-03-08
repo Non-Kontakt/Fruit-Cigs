@@ -159,7 +159,7 @@ export function Dashboard({
     }
 
     const { playerGoals: pg, oppGoals: og, won, draw } = last;
-    const cupName = (cup?.name || "THE CUP").toUpperCase();
+    const cupName = (cup?.cupName || "THE CUP").toUpperCase();
     let main;
 
     if (isCup) {
@@ -244,21 +244,25 @@ export function Dashboard({
   // Cup info
   const cupInfo = useMemo(() => {
     if (!cup) return null;
+    const roundNames = ["Round of 32", "Round of 16", "QF", "SF", "Final"];
     if (cup.playerEliminated) {
       const elimRound = cup.rounds?.findIndex((r, i) => {
         const match = (r.matches || r).find(m => m.home?.isPlayer || m.away?.isPlayer);
         if (!match) return false;
         const pIsHome = match.home?.isPlayer;
-        return pIsHome ? match.homeGoals < match.awayGoals : match.awayGoals < match.homeGoals;
+        const res = match.result;
+        if (!res) return false;
+        return pIsHome ? res.homeGoals < res.awayGoals : res.awayGoals < res.homeGoals;
       });
-      return { eliminated: true, round: elimRound >= 0 ? elimRound : cup.currentRound, name: cup.name || "Clubman Cup" };
+      const elimIdx = elimRound >= 0 ? elimRound : Math.max(0, cup.currentRound - 1);
+      const elimLabel = roundNames[elimIdx] || `Round ${elimIdx + 1}`;
+      return { eliminated: true, round: elimIdx, roundLabel: elimLabel, name: cup.cupName || "Clubman Cup" };
     }
     // Active
     const pm = cup.pendingPlayerMatch;
     const oppName = pm ? (pm.home?.isPlayer ? pm.away?.name : pm.home?.name) : null;
-    const roundNames = ["Round 1", "Round 2", "QF", "SF", "Final"];
     const roundName = roundNames[cup.currentRound] || `Round ${cup.currentRound + 1}`;
-    return { eliminated: false, name: cup.name || "Clubman Cup", roundName, opponent: oppName };
+    return { eliminated: false, name: cup.cupName || "Clubman Cup", roundName, opponent: oppName };
   }, [cup]);
 
   // ─── Newspaper styles ───
@@ -799,7 +803,7 @@ export function Dashboard({
                 <div style={{ color: C.text, marginBottom: 2 }}>{cupInfo.name}</div>
                 {cupInfo.eliminated ? (
                   <div style={{ color: C.red }}>
-                    Eliminated in Round {cupInfo.round + 1}
+                    Eliminated in {cupInfo.roundLabel}
                   </div>
                 ) : (
                   <>
