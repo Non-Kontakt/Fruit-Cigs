@@ -743,13 +743,6 @@ export function checkAchievements(state) {
     if (Object.values(firstCounts).some(c => c >= 3)) newUnlocks.push("first_name_terms");
   }
 
-  // Keeping It In The Family — 3 squad players with same surname
-  if (!unlocked.has("keeping_family") && squad && squad.length > 0) {
-    const lastCounts = {};
-    squad.forEach(p => { const l = getLastName(p.name); if (l) lastCounts[l] = (lastCounts[l] || 0) + 1; });
-    if (Object.values(lastCounts).some(c => c >= 3)) newUnlocks.push("keeping_family");
-  }
-
   // Brothers In Arms — 2 players with same surname both have goals this season
   if (!unlocked.has("brothers_in_arms") && playerSeasonStats && squad) {
     const scorerSurnames = {};
