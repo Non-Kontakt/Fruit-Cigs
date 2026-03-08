@@ -420,13 +420,14 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
 
         {/* Post-match: ratings and continue */}
         {finished && (!penalties || penPhase === "done") && (
-          <div style={{ flexShrink: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
             <button onClick={() => setShowRatings(!showRatings)} style={{
               width: "100%", padding: "10px", marginBottom: showRatings ? 8 : 0,
               background: "rgba(30, 41, 59, 0.3)",
               border: `1px solid ${C.bgInput}`, color: C.textMuted,
               fontFamily: FONT,
               fontSize: F.xs, cursor: "pointer", letterSpacing: 1,
+              flexShrink: 0,
             }}>
               {showRatings ? "HIDE" : "SHOW"} PLAYER RATINGS
             </button>
@@ -474,7 +475,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                 );
               };
               return (
-                <div style={{ maxHeight: 220, overflowY: "auto", marginBottom: 8 }}>
+                <div style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, marginBottom: 8 }}>
                   {starters.map((pr, i) => renderRow(pr, i))}
                   {subs.length > 0 && (
                     <>
@@ -497,6 +498,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               fontFamily: FONT,
               fontSize: F.lg, cursor: "pointer", letterSpacing: 1,
               animation: "glow 2s ease infinite",
+              flexShrink: 0,
             }}>
               CONTINUE ▶
             </button>
