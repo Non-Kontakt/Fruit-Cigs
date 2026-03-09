@@ -2372,7 +2372,7 @@ function FootballManager() {
               const current = newPlayer.attrs[attrKey];
               if (current >= playerCap) return;
 
-              const focusMultiplier = isFocused ? 1.0 : 0.12;
+              const focusMultiplier = isFocused ? 1.0 : 0.35;
               // Unlockable players use an effective age based on their 10-year career arc
               let trainingAge = p.age;
               if (p.isUnlockable && p.unlockableJoinedSeason) {

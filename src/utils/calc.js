@@ -73,11 +73,11 @@ export function getTrainingProgress(currentStat, age, potential, overall, appear
     : normalized <= 10 ? 0.15
     : normalized <= 12 ? 0.11
     : normalized <= 14 ? 0.08
-    : normalized <= 16 ? 0.05
-    : normalized === 17 ? 0.03
-    : normalized === 18 ? 0.02
-    : 0.012;
-  const ageFactor = age < 23 ? 1.3 : age < 28 ? 1.0 : age < 32 ? 0.7 : age < 35 ? 0.4 : 0.2;
+    : normalized <= 16 ? 0.06
+    : normalized === 17 ? 0.04
+    : normalized === 18 ? 0.03
+    : 0.015;
+  const ageFactor = age < 23 ? 1.3 : age < 28 ? 1.0 : age < 32 ? 0.7 : age < 35 ? 0.5 : 0.2;
   const potentialGap = Math.max(0, potential - overall);
   // Potential bonus: gap-based scaling + flat talent bonus for high-ceiling players.
   // Gap bonus: far-from-ceiling players train significantly faster (up to ~2.5× extra).

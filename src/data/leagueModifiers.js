@@ -101,7 +101,7 @@ export const LEAGUE_MODIFIERS = {
   },
   2: {
     id: "world_xi_invitational",
-    trainingDisabled: true,
+    trainingSpeedMult: 0.15,
     fanSentimentMult: 2.5,
     miniTournament: true,
     miniTournamentFixtures: 15,
