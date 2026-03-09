@@ -60,6 +60,7 @@ import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
 import { buildAIFiveASide } from "./components/match/FiveASidePicker.jsx";
 import { listProfiles, createProfile, readProfile, scanProfileSlots, getSaveKey, unlockAchievementToProfile, updateProfileIronmanVersion, syncProfileIronmanVersion, archiveCareerToMuseum, checkIronmanIntegrity, deleteMuseumEntry } from "./utils/profile.js";
+import { useGameStore } from "./store/gameStore.js";
 
 // Storage polyfill: use window.storage (Claude artifacts) or fall back to localStorage
 if (!window.storage) {
@@ -144,13 +145,15 @@ function FootballManager() {
   const [newspaperName, setNewspaperName] = useState(null);
   const [reporterName, setReporterName] = useState(null);
   const [nameInput, setNameInput] = useState("");
-  const [initialSquad] = useState(() => generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p) })));
-  const [squad, setSquad] = useState(initialSquad);
-  const squadRef = useRef(squad);
-  useEffect(() => { squadRef.current = squad; }, [squad]);
-  const [week, setWeek] = useState(1);
-  const weekRef = useRef(1);
-  useEffect(() => { weekRef.current = week; }, [week]);
+  const [initialSquad] = useState(() => {
+    const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p) }));
+    useGameStore.getState().setSquad(sq);
+    return sq;
+  });
+  // --- Zustand store: core 6 states (replaces useState + useRef mirrors) ---
+  const squad = useGameStore(s => s.squad);
+  const week = useGameStore(s => s.week);
+  const { setSquad, setWeek, setLeague, setCup, setMatchPending, setProcessing } = useMemo(() => useGameStore.getState(), []);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
   const [swapTarget, setSwapTarget] = useState(null); // injured player being swapped out
@@ -191,27 +194,9 @@ function FootballManager() {
   const [ovrHistory, setOvrHistory] = useState([]); // [{ w: week, s: season, p: { "Name|Pos": ovr } }]
   const [storyArcs, setStoryArcs] = useState(initStoryArcs());
   const [arcStepQueue, setArcStepQueue] = useState([]); // [{ arcId, stepIdx, type, desc, gains }]
-  const [processing, _setProcessing] = useState(false);
-  const processingRef = useRef(false);
-  const setProcessing = (val) => {
-    processingRef.current = val;
-    _setProcessing(val);
-  };
+  const processing = useGameStore(s => s.processing);
   const [weekTransition, setWeekTransition] = useState(false);
-  const [league, _setLeague] = useState(null);
-  const leagueRef = useRef(null);
-  const setLeague = (val) => {
-    if (typeof val === 'function') {
-      _setLeague(prev => {
-        const next = val(prev);
-        leagueRef.current = next;
-        return next;
-      });
-    } else {
-      leagueRef.current = val;
-      _setLeague(val);
-    }
-  };
+  const league = useGameStore(s => s.league);
   const [matchResult, setMatchResult] = useState(null);
   const [showTable, setShowTable] = useState(false);
   const [showTransfers, setShowTransfers] = useState(false);
@@ -289,16 +274,7 @@ function FootballManager() {
   // cup, calendarIndex, and seasonCalendar each keep a ref in sync with state.
   // Async match/cup callbacks read the ref (.current) to avoid stale closures —
   // the ref is always up to date even if the closure was formed before the last render.
-  const [cup, _setCup] = useState(null);
-  const cupRef = useRef(null);
-  const setCup = (val) => {
-    if (typeof val === 'function') {
-      _setCup(prev => { const next = val(prev); cupRef.current = next; return next; });
-    } else {
-      cupRef.current = val;
-      _setCup(val);
-    }
-  };
+  const cup = useGameStore(s => s.cup);
   const [showCup, setShowCup] = useState(false);
   const [cupMatchResult, setCupMatchResult] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -534,17 +510,7 @@ function FootballManager() {
   const [injuryWarning, setInjuryWarning] = useState(0);
   const [squadFullAlert, setSquadFullAlert] = useState(false);
 
-  // matchPending with ref wrapper for interval access
-  const [matchPending, _setMatchPending] = useState(false);
-  const matchPendingRef = useRef(false);
-  const setMatchPending = (val) => {
-    if (typeof val === 'function') {
-      _setMatchPending(prev => { const next = val(prev); matchPendingRef.current = next; return next; });
-    } else {
-      matchPendingRef.current = val;
-      _setMatchPending(val);
-    }
-  };
+  const matchPending = useGameStore(s => s.matchPending);
 
   const [pendingPlayerUnlock, setPendingPlayerUnlock] = useState(null);
   const [showAssignAll, setShowAssignAll] = useState(false);
@@ -1307,7 +1273,7 @@ function FootballManager() {
 
     const target = ultimatumTargetRef.current;
     const maxPossible = newPts + (newGames * 3);
-    const _curWeek = weekRef.current;
+    const _curWeek = useGameStore.getState().week;
 
     if (newPts >= target) {
       // Reprieve!
@@ -1424,7 +1390,7 @@ function FootballManager() {
     setLeague, setLeagueTier, setCup, setAllLeagueStates, setSeasonCalendar,
     setCalendarIndex, setCalendarResults, setLeagueResults,
     setMatchPending, setSummerPhase, setSummerData, setMatchResult, setCupMatchResult,
-    cupRef, seasonCalendarRef,
+    seasonCalendarRef,
   });
 
   // Init league once team name is set (only if not loaded from save)
@@ -1549,7 +1515,7 @@ function FootballManager() {
     const playerName = playerNameOrObj;
     if (!playerName) return;
     // 1. Check user's squad
-    const own = squadRef.current.find(p => p.name === playerName);
+    const own = useGameStore.getState().squad.find(p => p.name === playerName);
     if (own) { setSelectedPlayer(own); return; }
     // Helper: enrich AI player with club info for transfer context
     const enrichAI = (p, tm, tier) => ({ ...p, clubName: tm.name, clubColor: tm.color, clubTier: tier });
@@ -1673,7 +1639,7 @@ function FootballManager() {
     setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
     setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
     setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
-    calendarIndexRef, squadRef,
+    calendarIndexRef,
   });
 
   // Rewind ticket — replay a chosen lost or drawn league match
@@ -1686,13 +1652,13 @@ function FootballManager() {
     const oldOppGoals = oldResult.oppGoals;
     const wasDraw = oldResult.draw;
     const mwIdx = entry.leagueMD;
-    const fixture = leagueRef.current?.fixtures?.[mwIdx]?.find(f =>
-      leagueRef.current.teams[f.home]?.isPlayer || leagueRef.current.teams[f.away]?.isPlayer
+    const fixture = useGameStore.getState().league?.fixtures?.[mwIdx]?.find(f =>
+      useGameStore.getState().league.teams[f.home]?.isPlayer || useGameStore.getState().league.teams[f.away]?.isPlayer
     );
     if (!fixture) return;
-    const updatedLeague = { ...leagueRef.current, table: leagueRef.current.table.map(r => ({ ...r })) };
+    const updatedLeague = { ...useGameStore.getState().league, table: useGameStore.getState().league.table.map(r => ({ ...r })) };
     const mod = getModifier(leagueTier);
-    const oopMult = formation ? getTeamOOPMultiplier(startingXI, formation, squadRef.current, slotAssignments) : 1.0;
+    const oopMult = formation ? getTeamOOPMultiplier(startingXI, formation, useGameStore.getState().squad, slotAssignments) : 1.0;
     const newResult = simulateMatch(
       updatedLeague.teams[fixture.home], updatedLeague.teams[fixture.away],
       startingXI, bench, false, oopMult, 0, talismanIdRef.current, 0, mod
@@ -1814,7 +1780,7 @@ function FootballManager() {
     const SQUAD_CAP = 25;
     if (msg.type === "trial_offer") {
       if (choice === "accept" && msg.trialPlayerData) {
-        if (squadRef.current.filter(p => !p.isLegend).length >= SQUAD_CAP) {
+        if (useGameStore.getState().squad.filter(p => !p.isLegend).length >= SQUAD_CAP) {
           setSquadFullAlert(true);
           return false;
         }
@@ -1836,7 +1802,7 @@ function FootballManager() {
           setUnlockedAchievements(prev => { const n = new Set(prev); n.add("opportunity_cost"); return n; });
           setAchievementQueue(prev => [...prev, "opportunity_cost"]);
         }
-        const rivals = leagueRef.current?.teams?.filter(t => !t.isPlayer) || [];
+        const rivals = useGameStore.getState().league?.teams?.filter(t => !t.isPlayer) || [];
         const rival = rivals[rand(0, rivals.length - 1)];
         const tp = msg.trialPlayerData;
         const trialAtWeek = (week || 1) + rand(3, 6);
@@ -1859,7 +1825,7 @@ function FootballManager() {
     }
     if (msg.type === "prodigal_offer") {
       if (choice === "accept" && msg.prodigalPlayerData) {
-        if (squadRef.current.filter(p => !p.isLegend).length >= SQUAD_CAP) {
+        if (useGameStore.getState().squad.filter(p => !p.isLegend).length >= SQUAD_CAP) {
           setSquadFullAlert(true);
           return false;
         }
@@ -1873,7 +1839,7 @@ function FootballManager() {
     }
     if (msg.type === "free_agent_offer") {
       if (choice === "accept" && msg.freeAgentData) {
-        if (squadRef.current.filter(p => !p.isLegend).length >= SQUAD_CAP) {
+        if (useGameStore.getState().squad.filter(p => !p.isLegend).length >= SQUAD_CAP) {
           setSquadFullAlert(true);
           return false;
         }
@@ -1890,7 +1856,7 @@ function FootballManager() {
       const idx = parseInt(choice, 10);
       const chosen = msg.poachPlayers[idx];
       if (chosen) {
-        if (squadRef.current.filter(p => !p.isLegend).length >= SQUAD_CAP) {
+        if (useGameStore.getState().squad.filter(p => !p.isLegend).length >= SQUAD_CAP) {
           setSquadFullAlert(true);
           return false;
         }
@@ -1908,7 +1874,7 @@ function FootballManager() {
     if (msg.type === "asst_mgr_training_intro" || msg.type === "asst_mgr_training_nudge") {
       if (choice === "delegate") {
         setSquad(prev => prev.map(p => ({ ...p, training: p.training || "balanced" })));
-        setTrainedThisWeek(new Set(squadRef.current.map(p => p.id)));
+        setTrainedThisWeek(new Set(useGameStore.getState().squad.map(p => p.id)));
       }
     }
   }, [week, leagueTier, seasonNumber, unlockedAchievements]); // eslint-disable-line
@@ -2487,8 +2453,8 @@ function FootballManager() {
     };
 
     // Compute but don't apply — store as pending
-    // CRITICAL: Use squadRef for fresh data, not stale squad from closure!
-    let newSquad = computeNewSquad(squadRef.current);
+    // CRITICAL: Use useGameStore.getState().squad for fresh data, not stale squad from closure!
+    let newSquad = computeNewSquad(useGameStore.getState().squad);
 
     // Snapshot before resetting — used for Sweat Equity achievement
     const wasDoubleTraining = doubleTrainingWeekRef.current;
@@ -2620,12 +2586,12 @@ function FootballManager() {
       let boardDelta = curBoard > 55 ? -0.5 : curBoard < 45 ? 0.5 : 0;
       if (consecutiveWins >= 3) fanDelta += 2;
       // Board: league position bonus/penalty after halfway point
-      const _totalMDs = leagueRef.current?.fixtures?.length || 18;
+      const _totalMDs = useGameStore.getState().league?.fixtures?.length || 18;
       if (matchweekIndexRef.current > _totalMDs / 2) {
-        const _sortedT = [...(leagueRef.current?.table || [])].sort(
+        const _sortedT = [...(useGameStore.getState().league?.table || [])].sort(
           (a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst)
         );
-        const _pIdx = leagueRef.current?.teams?.findIndex(t => t.isPlayer);
+        const _pIdx = useGameStore.getState().league?.teams?.findIndex(t => t.isPlayer);
         const _pos = _pIdx != null ? _sortedT.findIndex(r => r.teamIndex === _pIdx) + 1 : 0;
         const _total = _sortedT.length;
         if (_pos > 0 && _pos <= 3 && leagueTier > 1) boardDelta += 2;
@@ -2697,7 +2663,7 @@ function FootballManager() {
     if (isOnHolidayRef.current) {
       // Apply squad changes immediately, no popup
       setSquad(newSquad);
-      squadRef.current = newSquad;
+      useGameStore.getState().squad = newSquad;
       setWeek(w => w + 1);
       setTrainedThisWeek(new Set());
       // Don't set gains (no popup to show them)
@@ -2720,13 +2686,13 @@ function FootballManager() {
       // Compute + process trial countdown (normally happens after the holiday return,
       // but holiday path returns early, so we must do it here using fresh squad data)
       try {
-        const freshTP = squadRef.current.find(p => p.isTrial);
+        const freshTP = useGameStore.getState().squad.find(p => p.isTrial);
         if (freshTP) {
           const wasInXI = startingXI.includes(freshTP.id);
           const twl = freshTP.trialWeeksLeft - 1;
           const tns = (freshTP.trialStarts || 0) + (wasInXI ? 1 : 0);
           if (twl <= 0) {
-            const trainedP = squadRef.current.find(p => p.id === freshTP.id) || freshTP;
+            const trainedP = useGameStore.getState().squad.find(p => p.id === freshTP.id) || freshTP;
             if (tns > 0) {
               pendingTrialAction.current = {
                 type: "impressed", id: freshTP.id, name: freshTP.name, position: freshTP.position,
@@ -2735,7 +2701,7 @@ function FootballManager() {
                 season: seasonNumber, week: (week || 1) + 1,
               };
             } else {
-              const rivals = (leagueRef.current || league)?.teams?.filter(t => !t.isPlayer) || [];
+              const rivals = (useGameStore.getState().league || league)?.teams?.filter(t => !t.isPlayer) || [];
               const rival = rivals.length > 0 ? rivals[rand(0, rivals.length - 1)] : null;
               pendingTrialAction.current = {
                 type: "no_starts", id: freshTP.id, name: freshTP.name, position: freshTP.position,
@@ -2756,7 +2722,7 @@ function FootballManager() {
         if (trialAction) {
           if (trialAction.type === "impressed") {
             setSquad(prev => prev.filter(p => p.id !== trialAction.id));
-            squadRef.current = squadRef.current.filter(p => p.id !== trialAction.id);
+            useGameStore.getState().squad = useGameStore.getState().squad.filter(p => p.id !== trialAction.id);
             setStartingXI(prev => prev.filter(id => id !== trialAction.id));
             setBench(prev => prev.filter(id => id !== trialAction.id));
             setTrialPlayer(null);
@@ -2780,7 +2746,7 @@ function FootballManager() {
               setAchievementQueue(prev => [...prev, "reality_check"]);
             }
             setSquad(prev => prev.filter(p => p.id !== trialAction.id));
-            squadRef.current = squadRef.current.filter(p => p.id !== trialAction.id);
+            useGameStore.getState().squad = useGameStore.getState().squad.filter(p => p.id !== trialAction.id);
             setStartingXI(prev => prev.filter(id => id !== trialAction.id));
             setBench(prev => prev.filter(id => id !== trialAction.id));
             setTrialPlayer(null);
@@ -2809,23 +2775,23 @@ function FootballManager() {
           } else if (trialAction.type === "continue") {
             setTrialPlayer(prev => prev ? { ...prev, trialWeeksLeft: trialAction.newWeeksLeft, trialStarts: trialAction.newStarts } : null);
             setSquad(prev => prev.map(p => p.id === trialAction.id ? { ...p, trialWeeksLeft: trialAction.newWeeksLeft, trialStarts: trialAction.newStarts } : p));
-            squadRef.current = squadRef.current.map(p => p.id === trialAction.id ? { ...p, trialWeeksLeft: trialAction.newWeeksLeft, trialStarts: trialAction.newStarts } : p);
+            useGameStore.getState().squad = useGameStore.getState().squad.map(p => p.id === trialAction.id ? { ...p, trialWeeksLeft: trialAction.newWeeksLeft, trialStarts: trialAction.newStarts } : p);
           }
         }
       } catch(err) { console.error("Holiday trial processing error:", err); }
 
       // CRITICAL: Prepare cup rounds and set matchPending
       // (normally this happens in GainPopup onDone, but we're skipping that)
-      if (!summerPhase && seasonCalendarRef.current && cupRef.current) {
+      if (!summerPhase && seasonCalendarRef.current && useGameStore.getState().cup) {
         const nextEntry = seasonCalendarRef.current[calendarIndexRef.current];
         if (nextEntry?.type === "cup") {
           const cupLookup = (name, tier) => {
-            const freshLeague = leagueRef.current;
+            const freshLeague = useGameStore.getState().league;
             return tier === leagueTier ? freshLeague : (allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
           };
-          if (cupRef.current.playerEliminated) {
+          if (useGameStore.getState().cup.playerEliminated) {
             // Auto-skip: resolve AI matches and advance calendar past this cup entry
-            const updatedCup = advanceCupRound(cupRef.current, newSquad, startingXI, bench, cupLookup);
+            const updatedCup = advanceCupRound(useGameStore.getState().cup, newSquad, startingXI, bench, cupLookup);
             let finCup = updatedCup;
             if (finCup.pendingPlayerMatch) {
               const pm = finCup.pendingPlayerMatch;
@@ -2846,7 +2812,7 @@ function FootballManager() {
             // Don't set matchPending — we auto-skipped, advance to next entry
           } else {
             // Prepare the cup round for player to play
-            const updatedCup = advanceCupRound(cupRef.current, newSquad, startingXI, bench, cupLookup);
+            const updatedCup = advanceCupRound(useGameStore.getState().cup, newSquad, startingXI, bench, cupLookup);
             setCup(updatedCup);
             setMatchPending(true);
           }
@@ -2864,7 +2830,7 @@ function FootballManager() {
               } else if (dynastyCupQualifiers) {
                 // Player didn't qualify — sim both SFs
                 const q = dynastyCupQualifiers;
-                const lt = leagueRef.current?.teams || [];
+                const lt = useGameStore.getState().league?.teams || [];
                 const sf1R = simulateMatch(lt[q[0].teamIndex], lt[q[3].teamIndex], null, null, true, 1, 0, null, 0, dMod);
                 const sf2R = simulateMatch(lt[q[1].teamIndex], lt[q[2].teamIndex], null, null, true, 1, 0, null, 0, dMod);
                 let sf1W = sf1R.homeGoals > sf1R.awayGoals ? lt[q[0].teamIndex] : sf1R.awayGoals > sf1R.homeGoals ? lt[q[3].teamIndex] : null;
@@ -2919,7 +2885,7 @@ function FootballManager() {
               _holOpp = mBracket.final.home?.isPlayer ? mBracket.final.away : mBracket.final.home;
             }
             // Auto-pick player's 5v5 squad
-            const _holPlayerSquad = squadRef.current;
+            const _holPlayerSquad = useGameStore.getState().squad;
             const _holPlayerTeam = { name: teamName, color: C.green, squad: _holPlayerSquad, isPlayer: true, trait: null };
             const _holAIFive = buildAIFiveASide(_holOpp);
             const _holOppTeam = { ..._holOpp, squad: _holAIFive };
@@ -3084,9 +3050,9 @@ function FootballManager() {
             if (nextEntry.round === "sf_leg1") {
               if (!mBracket) {
                 // Player didn't qualify — set up bracket from standings
-                const mSorted = sortStandings(leagueRef.current?.table || []);
-                const mTop4 = mSorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: leagueRef.current?.teams?.[r.teamIndex]?.name }));
-                const lt = leagueRef.current?.teams || [];
+                const mSorted = sortStandings(useGameStore.getState().league?.table || []);
+                const mTop4 = mSorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: useGameStore.getState().league?.teams?.[r.teamIndex]?.name }));
+                const lt = useGameStore.getState().league?.teams || [];
                 setMiniTournamentBracket({
                   sf1: { home: lt[mTop4[0].teamIndex], away: lt[mTop4[3].teamIndex], leg1: null, leg2: null, winner: null },
                   sf2: { home: lt[mTop4[1].teamIndex], away: lt[mTop4[2].teamIndex], leg1: null, leg2: null, winner: null },
@@ -3183,7 +3149,7 @@ function FootballManager() {
           // Intergalactic Elite: generate pre-match prediction
           const _predMod = getModifier(leagueTier);
           if (_predMod.prediction) {
-            const _holFix = leagueRef.current?.fixtures?.[nextEntry.leagueMD]?.find(f => f.home === 0 || f.away === 0);
+            const _holFix = useGameStore.getState().league?.fixtures?.[nextEntry.leagueMD]?.find(f => f.home === 0 || f.away === 0);
             const _holPlHome = _holFix ? _holFix.home === 0 : true;
             // Weighted goal pool: 0-5, realistic distribution
             const _ps = [0,0,0,1,1,1,1,1,2,2,2,2,3,3,3,4,4,5];
@@ -3226,7 +3192,7 @@ function FootballManager() {
     setTrainedThisWeek(new Set());
     const resolvedTicketBoosts = pendingTicketBoosts.map(tb => {
       if (tb.playerId) {
-        const current = squadRef.current.find(p => p.id === tb.playerId);
+        const current = useGameStore.getState().squad.find(p => p.id === tb.playerId);
         if (current) return { ...tb, playerName: current.name };
       }
       return tb;
@@ -3396,7 +3362,7 @@ function FootballManager() {
                  consecutiveWins, halfwayPosition, cup };
     const arcFx = precomputeArcEffects(arcSnap, gs, prodigalSon);
 
-    let newSquad = [...squadRef.current];  // Use ref for fresh data!
+    let newSquad = [...useGameStore.getState().squad];  // Use ref for fresh data!
     let newBonuses = { ...(arcSnap.bonuses || {}) };
     const appliedIds = [];
     const newCompletedIds = [];
@@ -3506,7 +3472,7 @@ function FootballManager() {
                    consecutiveWins, halfwayPosition, cup };
       const arcFx = precomputeArcEffects(arcSnap, gs, prodigalSon);
       if (arcFx.pendingFinalRewards?.length) {
-        let newSquad = [...squadRef.current];  // Use ref!
+        let newSquad = [...useGameStore.getState().squad];  // Use ref!
         // Snapshot attrs BEFORE any rewards so we can diff the full delta at the end
         const initialAttrs = newSquad.reduce((m, p) => { m[p.id] = { ...p.attrs }; return m; }, {});
         const appliedIds = [], arcBoostGains = [];
@@ -3670,7 +3636,7 @@ function FootballManager() {
       const shuffled = [...eligible].sort(() => Math.random() - 0.5);
       const chosen = shuffled.slice(0, Math.min(3, shuffled.length));
       const arcBoosts = [];
-      const newSquad = squadRef.current.map(p => {  // Use ref for fresh data, not stale state!
+      const newSquad = useGameStore.getState().squad.map(p => {  // Use ref for fresh data, not stale state!
         const pick = chosen.find(c => c.id === p.id);
         if (!pick) return p;
         const attr = attrKeys[Math.floor(Math.random() * attrKeys.length)];
@@ -4281,7 +4247,7 @@ function FootballManager() {
         // Context line: "SEASON X · WEEK Y — LEAGUE TWO MD 5" or "— CLUBMAN CUP QUARTER-FINAL"
         const contextLabel = bannerMatch ? bannerMatch.label.toUpperCase() : (calEntry?.type === "training" ? "TRAINING" : "");
         // Action button logic
-        const isCupMatch = calEntry?.type === "cup" && cupRef.current?.pendingPlayerMatch && !cupRef.current?.playerEliminated;
+        const isCupMatch = calEntry?.type === "cup" && useGameStore.getState().cup?.pendingPlayerMatch && !useGameStore.getState().cup?.playerEliminated;
         const isDisabled = processing || (summerPhase === "summary" || summerPhase === "intake");
         const isSummer = summerPhase === "awaiting_end" || summerPhase === "break";
         return (
@@ -4638,7 +4604,7 @@ function FootballManager() {
 
             // Set target and enable holiday mode
             holidayTargetRef.current = targetMD;
-            holidayStartMatchweekRef.current = matchweekIndexRef.current;
+            holidayStartMatchuseGameStore.getState().week = matchweekIndexRef.current;
             holidayWeeksWithoutMatchRef.current = 0;
             setIsOnHoliday(true);
             setInstantMatch(true); // Auto-enable instant match for fast simulation
@@ -4687,13 +4653,13 @@ function FootballManager() {
               }
 
               // Only advance if not currently processing AND no pending squad changes
-              if (!processingRef.current && !pendingSquadRef.current) {
+              if (!useGameStore.getState().processing && !pendingSquadRef.current) {
                 // If a match is pending, trigger it with FRESH squad from ref (not stale state)
-                if (matchPendingRef.current) {
+                if (useGameStore.getState().matchPending) {
                   try {
                   // Trigger match simulation directly with fresh refs instead of clicking button
                   // This ensures we use the latest squad data, not stale closures
-                  const freshSquad = squadRef.current;
+                  const freshSquad = useGameStore.getState().squad;
                   const exhaustedHolidayIds = new Set(freshSquad.filter(p => p.isLegend && (p.legendAppearances || 0) >= 12).map(p => p.id));
                   const currentXI = startingXI.filter(id => !exhaustedHolidayIds.has(id));
                   const currentBench = bench.filter(id => !exhaustedHolidayIds.has(id));
@@ -4844,13 +4810,13 @@ function FootballManager() {
                     // Non-participant dynasty entries: don't set matchPending,
                     // advanceWeek will handle AI sim + inbox on next tick
                     setMatchPending(false);
-                  } else if (isCupMatch && cupRef.current) {
+                  } else if (isCupMatch && useGameStore.getState().cup) {
                     // Cup match - simulate directly (don't click button)
-                    const pm = cupRef.current.pendingPlayerMatch;
+                    const pm = useGameStore.getState().cup.pendingPlayerMatch;
                     if (pm) {
                       const opponent = pm.home.isPlayer ? pm.away : pm.home;
                       const oppTier = opponent.tier || leagueTier;
-                      const freshLeague = leagueRef.current;
+                      const freshLeague = useGameStore.getState().league;
                       const oppLeagueData = oppTier === leagueTier ? freshLeague : (allLeagueStates?.[oppTier] || null);
                       const storedOpp = oppLeagueData?.teams?.find(t => t.name === opponent.name);
                       const oppTeam = storedOpp || { name: opponent.name, color: opponent.color || C.textMuted, squad: [], strength: opponent.strength || 0.5, trait: opponent.trait };
@@ -4880,8 +4846,8 @@ function FootballManager() {
                         : (hg > ag ? pm.home : pm.away);
 
                       // Capture round info before setCup mutates it
-                      const _holidayCupRound = cupRef.current?.currentRound ?? 0;
-                      const _holidayCupTotalRounds = cupRef.current?.rounds?.length ?? 5;
+                      const _holidayCupRound = useGameStore.getState().cup?.currentRound ?? 0;
+                      const _holidayCupTotalRounds = useGameStore.getState().cup?.rounds?.length ?? 5;
 
                       // Record result in cup rounds and build next round
                       const cupGoalScorers = (result.events || [])
@@ -4965,7 +4931,7 @@ function FootballManager() {
                     // League match - simulate with FRESH league from ref (not stale closure)
                     const holidayCalEntry = seasonCalendarRef.current?.[calendarIndexRef.current];
                     const capturedMWIdx = holidayCalEntry?.leagueMD;
-                    const freshLeague = leagueRef.current;
+                    const freshLeague = useGameStore.getState().league;
                     if (freshLeague && freshLeague.fixtures && capturedMWIdx != null && capturedMWIdx < freshLeague.fixtures.length) {
                       const updatedLeague = { ...freshLeague, table: freshLeague.table.map(r => ({ ...r })) };
                       const league12thMan = twelfthManActiveRef.current ? 0.15 : 0;
@@ -5099,10 +5065,10 @@ function FootballManager() {
                           }));
                           let newCI = calendarIndexRef.current + 1;
                           const cal = seasonCalendarRef.current || [];
-                          while (newCI < cal.length && cal[newCI]?.type === "cup" && cupRef.current?.playerEliminated) {
-                            if (cupRef.current && cupRef.current.currentRound < cupRef.current.rounds.length) {
+                          while (newCI < cal.length && cal[newCI]?.type === "cup" && useGameStore.getState().cup?.playerEliminated) {
+                            if (useGameStore.getState().cup && useGameStore.getState().cup.currentRound < useGameStore.getState().cup.rounds.length) {
                               const skipLookup = (name, tier) => (tier === leagueTier ? updatedLeague : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
-                              const skipCup = advanceCupRound(cupRef.current, freshSquad, currentXI, currentBench, skipLookup);
+                              const skipCup = advanceCupRound(useGameStore.getState().cup, freshSquad, currentXI, currentBench, skipLookup);
                               let finCup = skipCup;
                               if (finCup.pendingPlayerMatch) {
                                 const pm2 = finCup.pendingPlayerMatch;
@@ -5149,7 +5115,7 @@ function FootballManager() {
 
                           // Ultimatum tracking (Ironman) — use ref to avoid stale closure
                           if (ultimatumActiveRef.current) {
-                            updateUltimatumProgressRef.current?.(pWon, isDraw, cupRef.current?.playerEliminated ?? true);
+                            updateUltimatumProgressRef.current?.(pWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
                           }
 
                           // Club history
@@ -5270,7 +5236,7 @@ function FootballManager() {
                         // Euro Dynasty: televised match — MotM gets +1 random ATTR (holiday)
                         const _holTvMod = getModifier(leagueTier);
                         if (_holTvMod.televisedChance && Math.random() < _holTvMod.televisedChance && playerMatch.motmName) {
-                          const _tvMotm = squadRef.current?.find(p => p.name === playerMatch.motmName);
+                          const _tvMotm = useGameStore.getState().squad?.find(p => p.name === playerMatch.motmName);
                           if (_tvMotm) {
                             const _tvCap = getOvrCap(prestigeLevel);
                             const _tvBoostable = ATTRIBUTES.filter(a => _tvMotm.attrs[a.key] < _tvCap);
@@ -5294,7 +5260,7 @@ function FootballManager() {
                           if (_holPredCorrect) {
                             const _oppIdx = pIsHome ? playerMatch.away : playerMatch.home;
                             const _playerIdx = pIsHome ? playerMatch.home : playerMatch.away;
-                            const _holLeague = leagueRef.current;
+                            const _holLeague = useGameStore.getState().league;
                             if (_holLeague) {
                               const _oppRow = _holLeague.table.find(r => r.teamIndex === _oppIdx);
                               const _plRow = _holLeague.table.find(r => r.teamIndex === _playerIdx);
@@ -5530,9 +5496,9 @@ function FootballManager() {
       {matchPending && (
           (() => {
             const calEntry = seasonCalendarRef.current?.[calendarIndexRef.current];
-            const isCupMatch = calEntry?.type === "cup" && cupRef.current?.pendingPlayerMatch && !cupRef.current.playerEliminated;
+            const isCupMatch = calEntry?.type === "cup" && useGameStore.getState().cup?.pendingPlayerMatch && !useGameStore.getState().cup.playerEliminated;
             const isDynastyMatch = calEntry?.type === "dynasty" && dynastyCupBracketRef.current && !dynastyCupBracketRef.current.playerEliminated;
-            const cupRoundName = isCupMatch ? (cupRef.current.rounds[cupRef.current.currentRound]?.name || "Cup Match") : "";
+            const cupRoundName = isCupMatch ? (useGameStore.getState().cup.rounds[useGameStore.getState().cup.currentRound]?.name || "Cup Match") : "";
             return (
           <button
             ref={playMatchBtnRef}
@@ -5557,7 +5523,7 @@ function FootballManager() {
 
               if (isCupMatch) {
                 // === CUP MATCH ===
-                const pm = cupRef.current.pendingPlayerMatch;
+                const pm = useGameStore.getState().cup.pendingPlayerMatch;
                 const opponent = pm.home.isPlayer ? pm.away : pm.home;
                 // Look up the opponent's persistent squad from stored league data so the
                 // same team (same players, same OVR) appears in both league and cup matches.
@@ -5581,7 +5547,7 @@ function FootballManager() {
                 }
                 const cupLeague = {
                   teams: [homeT, awayT],
-                  leagueName: cupRef.current.cupName || "Clubman Cup",
+                  leagueName: useGameStore.getState().cup.cupName || "Clubman Cup",
                   leagueColor: C.gold,
                 };
                 setCupMatchResult({
@@ -6990,11 +6956,11 @@ function FootballManager() {
 
               // Merge: take pending squad but preserve any training reassignments
               appliedSquad = pendingSquad.map(pp => {
-                const current = squadRef.current.find(p => p.id === pp.id);  // Use ref, not stale state!
+                const current = useGameStore.getState().squad.find(p => p.id === pp.id);  // Use ref, not stale state!
                 return current ? { ...pp, training: current.training } : pp;
               });
               setSquad(appliedSquad);
-              squadRef.current = appliedSquad; // Update ref immediately, don't wait for useEffect!
+              useGameStore.getState().squad = appliedSquad; // Update ref immediately, don't wait for useEffect!
               setPendingSquad(null);
 
               // Trigger OVR celebration if any level-ups
@@ -7271,14 +7237,14 @@ function FootballManager() {
             setProcessing(false);
 
             // If the upcoming calendar entry is a cup match, prepare the cup round
-            if (seasonCalendarRef.current && cupRef.current) {
+            if (seasonCalendarRef.current && useGameStore.getState().cup) {
               const ci = calendarIndexRef.current;
               const entry = seasonCalendarRef.current[ci];
               if (entry?.type === "cup") {
                 const cupLookup = (name, tier) => (tier === leagueTier ? league : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
-                if (cupRef.current.playerEliminated) {
+                if (useGameStore.getState().cup.playerEliminated) {
                   // Auto-skip: resolve AI matches and advance
-                  const updatedCup = advanceCupRound(cupRef.current, appliedSquad, startingXI, bench, cupLookup);
+                  const updatedCup = advanceCupRound(useGameStore.getState().cup, appliedSquad, startingXI, bench, cupLookup);
                   let finCup = updatedCup;
                   if (finCup.pendingPlayerMatch) {
                     const pm = finCup.pendingPlayerMatch;
@@ -7298,7 +7264,7 @@ function FootballManager() {
                   setCalendarIndex(prev => prev + 1);
                 } else {
                   // Prepare the cup round (resolve AI matches, find player's opponent)
-                  const updatedCup = advanceCupRound(cupRef.current, appliedSquad, startingXI, bench, cupLookup);
+                  const updatedCup = advanceCupRound(useGameStore.getState().cup, appliedSquad, startingXI, bench, cupLookup);
                   setCup(updatedCup);
                 }
               }
@@ -7316,9 +7282,9 @@ function FootballManager() {
                   if (entry2m.round === "sf_leg1") {
                     if (!mBkt) {
                       // Player didn't qualify — set up bracket from standings
-                      const mSorted = sortStandings(leagueRef.current?.table || []);
-                      const mTop4 = mSorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: leagueRef.current?.teams?.[r.teamIndex]?.name }));
-                      const mlt = leagueRef.current?.teams || [];
+                      const mSorted = sortStandings(useGameStore.getState().league?.table || []);
+                      const mTop4 = mSorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: useGameStore.getState().league?.teams?.[r.teamIndex]?.name }));
+                      const mlt = useGameStore.getState().league?.teams || [];
                       setMiniTournamentBracket({
                         sf1: { home: mlt[mTop4[0].teamIndex], away: mlt[mTop4[3].teamIndex], leg1: null, leg2: null, winner: null },
                         sf2: { home: mlt[mTop4[1].teamIndex], away: mlt[mTop4[2].teamIndex], leg1: null, leg2: null, winner: null },
@@ -7624,10 +7590,10 @@ function FootballManager() {
            }));
            let newCalIdx = calIdx + 1;
            const cal = seasonCalendarRef.current || [];
-           while (newCalIdx < cal.length && cal[newCalIdx]?.type === "cup" && cupRef.current?.playerEliminated) {
-             if (cupRef.current && cupRef.current.currentRound < cupRef.current.rounds.length) {
+           while (newCalIdx < cal.length && cal[newCalIdx]?.type === "cup" && useGameStore.getState().cup?.playerEliminated) {
+             if (useGameStore.getState().cup && useGameStore.getState().cup.currentRound < useGameStore.getState().cup.rounds.length) {
                const skipLookup = (name, tier) => (tier === leagueTier ? league : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
-               const skipCup = advanceCupRound(cupRef.current, squad, startingXI, bench, skipLookup);
+               const skipCup = advanceCupRound(useGameStore.getState().cup, squad, startingXI, bench, skipLookup);
                let finCup = skipCup;
                if (finCup.pendingPlayerMatch) {
                  const pm2 = finCup.pendingPlayerMatch;
@@ -7678,8 +7644,8 @@ function FootballManager() {
                position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults,
                playerSeasonStats, beatenTeams, unlockedAchievements, clubHistory,
                wonCupThisSeason: unlockedAchievements.has("cup_winner"),
-               squad: squadRef.current, prevSeasonSquadIds, seasonNumber,
-               dynastyCupBracket: dynastyCupBracketRef.current, cup: cupRef.current,
+               squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
+               dynastyCupBracket: dynastyCupBracketRef.current, cup: useGameStore.getState().cup,
              }, BGM.getCurrentTrackId());
              if (newSeasonUnlocks.length > 0) {
                setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
@@ -7824,7 +7790,7 @@ function FootballManager() {
             }
 
             const newUnlocks = checkAchievements({
-              squad: squadRef.current, unlocked: unlockedAchievements,
+              squad: useGameStore.getState().squad, unlocked: unlockedAchievements,
               lastMatchResult: matchResult, league, weekGains: null,
               startingXI, bench, matchweekIndex: completedMDs, seasonCards,
               totalGains, totalMatches: totalMatches + 1,
@@ -7860,7 +7826,7 @@ function FootballManager() {
               shortlist, wasAlwaysNormal: !!wasAlwaysNormal,
               fastMatchesThisSeason: fastMatchesThisSeason + (wasAlwaysFast ? 1 : 0),
               twelfthManActive, gkCleanSheets: oppGoals === 0 ? (() => {
-                const gk = squadRef.current?.find(p => startingXI.includes(p.id) && p.position === "GK");
+                const gk = useGameStore.getState().squad?.find(p => startingXI.includes(p.id) && p.position === "GK");
                 return gk ? { ...gkCleanSheets, [gk.name]: (gkCleanSheets[gk.name] || 0) + 1 } : gkCleanSheets;
               })() : gkCleanSheets,
               totalShortlisted,
@@ -7882,7 +7848,7 @@ function FootballManager() {
            // Euro Dynasty: televised match — MotM gets +1 random ATTR
            const tvMod = getModifier(leagueTier);
            if (tvMod.televisedChance && Math.random() < tvMod.televisedChance && matchResult.motmName) {
-             const motmPlayer = squadRef.current?.find(p => p.name === matchResult.motmName);
+             const motmPlayer = useGameStore.getState().squad?.find(p => p.name === matchResult.motmName);
              if (motmPlayer) {
                const boostable = ATTRIBUTES.filter(a => motmPlayer.attrs[a.key] < ovrCap);
                if (boostable.length > 0) {
@@ -7929,7 +7895,7 @@ function FootballManager() {
               const predCorrect = pred.home === matchResult.homeGoals && pred.away === matchResult.awayGoals;
               if (predCorrect) {
                 // AI prediction correct — override: opponent gets 3 pts, player gets 0 regardless of result
-                const leagueNow = pendingLeagueRef.current || leagueRef.current;
+                const leagueNow = pendingLeagueRef.current || useGameStore.getState().league;
                 if (leagueNow) {
                   const oppIdx = playerIsHome ? matchResult.away : matchResult.home;
                   const playerIdx = playerIsHome ? matchResult.home : matchResult.away;
@@ -7971,7 +7937,7 @@ function FootballManager() {
             }
             // Ultimatum tracking (Ironman)
             if (ultimatumActiveRef.current) {
-              updateUltimatumProgress(playerWon, isDraw, cupRef.current?.playerEliminated ?? true);
+              updateUltimatumProgress(playerWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
             }
             if (!isHome && playerWon) setSeasonAwayWins(prev => prev + 1);
             if (!isHome) setSeasonAwayGames(prev => prev + 1);
@@ -7993,8 +7959,8 @@ function FootballManager() {
             if (playerGoals + oppGoals >= 5) setHighScoringMatches(prev => prev + 1);
 
             // Track GK clean sheets (for Cat-Like Reflexes achievement)
-            if (oppGoals === 0 && startingXI && squadRef.current) {
-              const gk = squadRef.current.find(p => startingXI.includes(p.id) && p.position === "GK");
+            if (oppGoals === 0 && startingXI && useGameStore.getState().squad) {
+              const gk = useGameStore.getState().squad.find(p => startingXI.includes(p.id) && p.position === "GK");
               if (gk) setGkCleanSheets(prev => ({ ...prev, [gk.name]: (prev[gk.name] || 0) + 1 }));
             }
 
@@ -8569,7 +8535,7 @@ function FootballManager() {
                 }));
                 // MotM +1 stat boost if player won the Dynasty Cup
                 if (playerWon) {
-                  const eligible = squadRef.current.filter(p => startingXI.includes(p.id));
+                  const eligible = useGameStore.getState().squad.filter(p => startingXI.includes(p.id));
                   if (eligible.length > 0) {
                     const motm = eligible[Math.floor(Math.random() * eligible.length)];
                     const attrs = ["pace","shooting","passing","dribbling","defending","physical","goalkeeping"];
@@ -8750,7 +8716,7 @@ function FootballManager() {
                   }));
                 }
                 if (playerWonFinal) {
-                  const eligible = squadRef.current.filter(p => (fiveASideSquad || []).includes(p.id));
+                  const eligible = useGameStore.getState().squad.filter(p => (fiveASideSquad || []).includes(p.id));
                   if (eligible.length > 0) {
                     const motm = eligible[Math.floor(Math.random() * eligible.length)];
                     const attrs = ["pace","shooting","passing","dribbling","defending","physical","goalkeeping"];
@@ -8962,7 +8928,7 @@ function FootballManager() {
               const cupIsDraw = cupPlayerGoals === cupOppGoals;
 
               const cupNewUnlocks = checkAchievements({
-                squad: squadRef.current, unlocked: unlockedAchievements,
+                squad: useGameStore.getState().squad, unlocked: unlockedAchievements,
                 lastMatchResult: cupMatchResult, league: cupMatchResult.cupLeague || league, weekGains: null,
                 startingXI, bench, matchweekIndex: 0, seasonCards,
                 totalGains, totalMatches: totalMatches + 1,
@@ -9040,7 +9006,7 @@ function FootballManager() {
             // Auto-skip trailing cup entries if player just got eliminated
             const cal2 = seasonCalendarRef.current || [];
             const justEliminated = !winner.isPlayer;
-            while (newCupCalIdx < cal2.length && cal2[newCupCalIdx]?.type === "cup" && (justEliminated || cupRef.current?.playerEliminated)) {
+            while (newCupCalIdx < cal2.length && cal2[newCupCalIdx]?.type === "cup" && (justEliminated || useGameStore.getState().cup?.playerEliminated)) {
               newCupCalIdx++;
             }
             setCalendarIndex(newCupCalIdx);
@@ -9076,8 +9042,8 @@ function FootballManager() {
                 position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults,
                 playerSeasonStats, beatenTeams, unlockedAchievements, clubHistory,
                 wonCupThisSeason: unlockedAchievements.has("cup_winner") || cupAchs.includes("cup_winner"),
-                squad: squadRef.current, prevSeasonSquadIds, seasonNumber,
-                dynastyCupBracket: dynastyCupBracketRef.current, cup: cupRef.current,
+                squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
+                dynastyCupBracket: dynastyCupBracketRef.current, cup: useGameStore.getState().cup,
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });
@@ -9276,9 +9242,9 @@ function FootballManager() {
           })(),
         }} onDone={() => {
           // Process retirements
-          const retirees = squadRef.current.filter(p => retiringPlayers.has(p.id));
+          const retirees = useGameStore.getState().squad.filter(p => retiringPlayers.has(p.id));
           // Save squad snapshot before retirements for season archiving
-          const preRetirementSquad = [...squadRef.current];  // Use ref!
+          const preRetirementSquad = [...useGameStore.getState().squad];  // Use ref!
           // Testimonial achievement — retiring player with 30+ apps
           if (!unlockedAchievements.has("testimonial")) {
             for (const p of retirees) {
@@ -10040,7 +10006,7 @@ function FootballManager() {
               setFastMatchesThisSeason(0);
               setGkCleanSheets({});
               // Save current squad IDs for New Era achievement detection next season
-              setPrevSeasonSquadIds(squadRef.current.map(p => p.id));
+              setPrevSeasonSquadIds(useGameStore.getState().squad.map(p => p.id));
               // recentScorelines persists across seasons (it's a rolling window)
               // secondPlaceFinishes persists across seasons (it's a career stat)
               // usedTicketTypes persists across seasons (it's a career stat)
@@ -10292,7 +10258,7 @@ function FootballManager() {
         <HolidayOverlay
           currentMatchweek={matchweekIndex}
           targetMatchweek={holidayTargetRef.current || 0}
-          startMatchweek={holidayStartMatchweekRef.current || 0}
+          startMatchweek={holidayStartMatchuseGameStore.getState().week || 0}
           onReturn={() => {
             // Stop holiday interval
             if (holidayIntervalRef.current) {

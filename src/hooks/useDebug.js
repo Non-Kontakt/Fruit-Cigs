@@ -3,6 +3,7 @@ import { initLeagueRosters, initLeague, initCup, initAILeague, buildSeasonCalend
 import { simulateMatchweek } from "../utils/match.js";
 import { NUM_TIERS } from "../data/leagues.js";
 import { getModifier } from "../data/leagueModifiers.js";
+import { useGameStore } from "../store/gameStore.js";
 
 export function useDebug({
   squad, setSquad, teamName, leagueRosters, setLeagueRosters, prestigeLevel, setPrestigeLevel,
@@ -10,7 +11,7 @@ export function useDebug({
   setLeague, setLeagueTier, setCup, setAllLeagueStates, setSeasonCalendar,
   setCalendarIndex, setCalendarResults, setLeagueResults,
   setMatchPending, setSummerPhase, setSummerData, setMatchResult, setCupMatchResult,
-  cupRef, seasonCalendarRef,
+  seasonCalendarRef,
 }) {
 
   const onDebugJumpTier = useCallback((tier) => {
@@ -62,7 +63,7 @@ export function useDebug({
     });
 
     // 2. Simulate all remaining cup rounds, player wins every match
-    const curCup = cupRef.current;
+    const curCup = useGameStore.getState().cup;
     if (curCup && !curCup.playerEliminated) {
       let simCup = curCup;
       let safety = 0;

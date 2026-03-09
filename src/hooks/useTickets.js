@@ -3,6 +3,7 @@ import { ATTRIBUTES } from "../data/training.js";
 import { C } from "../data/tokens";
 import { getOverall } from "../utils/calc.js";
 import { generateFreeAgent, generateNameForNation } from "../utils/player.js";
+import { useGameStore } from "../store/gameStore.js";
 
 export function useTickets({
   squad, setSquad, retiringPlayers, setRetiringPlayers, seasonNumber, ovrCap,
@@ -10,7 +11,7 @@ export function useTickets({
   setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
   setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
   setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
-  calendarIndexRef, squadRef,
+  calendarIndexRef,
 }) {
 
   function seededPotential(playerId, age) {
@@ -176,7 +177,7 @@ export function useTickets({
   }, [squad, seasonNumber]);
 
   const useTicketTransferInsider = useCallback((ticketId) => {
-    const currentSquad = squadRef.current;
+    const currentSquad = useGameStore.getState().squad;
     const avgOvr = Math.round(currentSquad.reduce((s, p) => s + getOverall(p), 0) / currentSquad.length);
     const agent = generateFreeAgent(leagueTier, avgOvr, ovrCap);
     setPendingFreeAgent(agent);
@@ -294,7 +295,7 @@ export function useTickets({
   }, [clubHistory, seasonNumber]);
 
   const useTicketSaudiAgent = useCallback((ticketId) => {
-    const currentSquad = squadRef.current;
+    const currentSquad = useGameStore.getState().squad;
     const avgOvr = Math.round(currentSquad.reduce((s, p) => s + getOverall(p), 0) / currentSquad.length);
     const agent = generateFreeAgent(leagueTier, avgOvr, ovrCap);
     setPendingFreeAgent(agent);
