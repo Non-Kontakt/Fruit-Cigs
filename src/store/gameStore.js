@@ -44,6 +44,7 @@ export const useGameStore = create((set, get) => ({
   // === Sacking / ultimatum ===
   boardWarnCount: 0,
   ultimatumActive: false,
+  ultimatumTarget: 0,
   ultimatumPtsEarned: 0,
   ultimatumGamesLeft: 0,
   ultimatumCupPending: false,
@@ -78,7 +79,13 @@ export const useGameStore = create((set, get) => ({
       matchweekIndex: getLeagueMatchdaysPlayed(s.seasonCalendar, next),
     };
   }),
-  setSeasonCalendar: (val) => set(s => ({ seasonCalendar: typeof val === "function" ? val(s.seasonCalendar) : val })),
+  setSeasonCalendar: (val) => set(s => {
+    const next = typeof val === "function" ? val(s.seasonCalendar) : val;
+    return {
+      seasonCalendar: next,
+      matchweekIndex: getLeagueMatchdaysPlayed(next, s.calendarIndex),
+    };
+  }),
 
   setMatchPending: (val) => set(s => ({ matchPending: typeof val === "function" ? val(s.matchPending) : val })),
   setProcessing: (val) => set(s => ({ processing: typeof val === "function" ? val(s.processing) : val })),
@@ -96,6 +103,7 @@ export const useGameStore = create((set, get) => ({
 
   setBoardWarnCount: (val) => set(s => ({ boardWarnCount: typeof val === "function" ? val(s.boardWarnCount) : val })),
   setUltimatumActive: (val) => set({ ultimatumActive: val }),
+  setUltimatumTarget: (val) => set(s => ({ ultimatumTarget: typeof val === "function" ? val(s.ultimatumTarget) : val })),
   setUltimatumPtsEarned: (val) => set(s => ({ ultimatumPtsEarned: typeof val === "function" ? val(s.ultimatumPtsEarned) : val })),
   setUltimatumGamesLeft: (val) => set(s => ({ ultimatumGamesLeft: typeof val === "function" ? val(s.ultimatumGamesLeft) : val })),
   setUltimatumCupPending: (val) => set({ ultimatumCupPending: val }),
@@ -111,8 +119,9 @@ export const useGameStore = create((set, get) => ({
   setMiniTournamentBracket: (val) => set(s => ({ miniTournamentBracket: typeof val === "function" ? val(s.miniTournamentBracket) : val })),
 
   // === Bulk operations ===
-  /** Reset all game state (new game / return to menu) */
-  resetGameState: () => set({
+
+  /** Full reset — return to main menu or start a brand new game. Clears everything. */
+  resetToMenu: () => set({
     squad: null,
     week: 1,
     league: null,
@@ -126,10 +135,12 @@ export const useGameStore = create((set, get) => ({
     summerPhase: null,
     fanSentiment: 50,
     boardSentiment: 50,
+    activeProfileId: null,
     gameMode: null,
     gameOver: false,
     boardWarnCount: 0,
     ultimatumActive: false,
+    ultimatumTarget: 0,
     ultimatumPtsEarned: 0,
     ultimatumGamesLeft: 0,
     ultimatumCupPending: false,
@@ -141,5 +152,35 @@ export const useGameStore = create((set, get) => ({
     dynastyCupBracket: null,
     miniTournamentBracket: null,
     matchweekIndex: 0,
+  }),
+
+  /** Seasonal reset — new season or new-game-from-slot. Preserves profile/mode, resets gameplay. */
+  resetForNewSeason: () => set({
+    week: 1,
+    league: null,
+    cup: null,
+    calendarIndex: 0,
+    seasonCalendar: null,
+    matchPending: false,
+    processing: false,
+    pendingSquad: null,
+    isOnHoliday: false,
+    summerPhase: null,
+    boardWarnCount: 0,
+    ultimatumActive: false,
+    ultimatumTarget: 0,
+    ultimatumPtsEarned: 0,
+    ultimatumGamesLeft: 0,
+    ultimatumCupPending: false,
+    doubleTrainingWeek: false,
+    twelfthManActive: false,
+    youthCoupActive: false,
+    testimonialPlayer: null,
+    dynastyCupBracket: null,
+    miniTournamentBracket: null,
+    matchweekIndex: 0,
+    // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
+    // ironmanSaveVersion, gameOver are intentionally preserved.
+    // Prestige flow sets sentiment via partial carry-over formula, not hard reset.
   }),
 }));
