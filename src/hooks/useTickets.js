@@ -11,7 +11,6 @@ export function useTickets({
   setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
   setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
   setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
-  calendarIndexRef,
 }) {
 
   function seededPotential(playerId, age) {
@@ -32,7 +31,7 @@ export function useTickets({
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "delay_retirement"]));
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_retire_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_retire_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83C\uDFAB", title: `${player.name} Reconsidering`,
       body: `After a heart-to-heart in the manager's office, ${player.name} has had a change of heart about hanging up the boots. "I've still got a lot to give this club," he told reporters. The retirement has been called off \u2014 for now.`,
       color: C.red, read: false,
@@ -63,7 +62,7 @@ export function useTickets({
       `"Sometimes it just clicks," said ${player.name} after an intense personal session. His ${attr.key} has come on leaps and bounds.`,
     ];
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_attr_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_attr_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83C\uDFB2", title: `${player.name}: Training Note`,
       body: flavorLines[Math.floor(Math.random() * flavorLines.length)],
       color: C.green, read: false,
@@ -85,7 +84,7 @@ export function useTickets({
       `After lending ${club} some training facilities during their stadium renovation, the goodwill is flowing. Relations have taken a healthy step forward.`,
     ];
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_relation_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_relation_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83E\uDD1D", title: `${club}: Relations Improved`,
       body: flavorLines[Math.floor(Math.random() * flavorLines.length)],
       color: C.blue, read: false,
@@ -97,7 +96,7 @@ export function useTickets({
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "double_session"]));
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_double_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_double_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\u26A1", title: "Double Sessions Scheduled",
       body: "The gaffer has ordered double sessions this week. The lads aren't thrilled, but they'll thank you when the results come in. All training gains will be doubled for the next session.",
       color: C.gold, read: false,
@@ -116,7 +115,7 @@ export function useTickets({
       `${player.name} hobbled into the dressing room yesterday. Today? Sprinting like nothing happened. The medical staff are requesting more of whatever that was.`,
     ];
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_cream_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_cream_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83E\uDDF4", title: `${player.name}: Miracle Recovery`,
       body: flavorLines[Math.floor(Math.random() * flavorLines.length)],
       color: "#22d3ee", read: false,
@@ -141,7 +140,7 @@ export function useTickets({
       `The phone lines at ${club} have been ringing off the hook. ${legendName}, beloved former skipper, has been doing the rounds on local radio whipping up a frenzy ahead of the next home fixture. "I've still got my season ticket," he grinned. "And I'll be the loudest one there."`,
     ];
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_12th_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_12th_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83D\uDCE3", title: `12th Man: ${legendName} Rallies The Fans`,
       body: flavorLines[Math.floor(Math.random() * flavorLines.length)],
       color: "#f97316", read: false,
@@ -153,7 +152,7 @@ export function useTickets({
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "youth_coup"]));
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_youthcoup_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_youthcoup_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83C\uDF1F", title: "Academy Director: Special Intel",
       body: "Your academy director has pulled some strings with his contacts abroad. \"Trust me, gaffer \u2014 the next intake will feature a real gem. I've seen this kid play and he's the real deal.\"",
       color: "#a78bfa", read: false,
@@ -169,7 +168,7 @@ export function useTickets({
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "rename_player"]));
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_rename_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_rename_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83C\uDFF7\uFE0F", title: `${originalName}: New Shirt Name`,
       body: `${originalName} will now be known as "${trimmed}". The kit man has been up all night with the iron-on letters. The fans are already singing it.`,
       color: "#fb923c", read: false,
@@ -185,7 +184,7 @@ export function useTickets({
     setUsedTicketTypes(prev => new Set([...prev, "transfer_insider"]));
     const ovr = getOverall(agent);
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_insider_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_insider_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83D\uDD75\uFE0F", title: `Transfer Tip: ${agent.name}`,
       body: `Your contacts have found a promising player available on a free transfer. ${agent.name}, a ${agent.age}-year-old ${agent.position} (OVR ${ovr}), is looking for a new club. Act fast \u2014 other clubs are circling.`,
       color: "#34d399", read: false,
@@ -255,7 +254,7 @@ export function useTickets({
     }
 
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_scout_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_scout_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83D\uDD0D", title: `Scouting Report: ${sp.name}`,
       body: lines.join("\n"),
       color: "#818cf8", read: false,
@@ -287,7 +286,7 @@ export function useTickets({
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "testimonial_match"]));
     setInboxMessages(prev => [...prev, {
-      id: `msg_ticket_testimonial_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_ticket_testimonial_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "\uD83C\uDFA9", title: `${careerName}: One More Match`,
       body: `A familiar face is back! ${careerName} has agreed to lace up the boots one more time. "${career.apps || 0} appearances for this club \u2014 I couldn't say no." He's available for selection in the next match.`,
       color: "#f472b6", read: false,
@@ -303,7 +302,7 @@ export function useTickets({
     setUsedTicketTypes(prev => new Set([...prev, "saudi_agent"]));
     const ovr = getOverall(agent);
     setInboxMessages(prev => [...prev, {
-      id: `msg_saudi_agent_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+      id: `msg_saudi_agent_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
       icon: "🕌", title: `Saudi Agent: ${agent.name}`,
       body: `Your Saudi connections have delivered. ${agent.name}, a ${agent.age}-year-old ${agent.position} (OVR ${ovr}), is available on a free transfer. Sign now — he won't wait.`,
       color: "#d4a017", read: false,

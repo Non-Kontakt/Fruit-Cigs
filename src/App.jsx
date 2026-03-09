@@ -153,40 +153,35 @@ function FootballManager() {
   // --- Zustand store: core 6 states (replaces useState + useRef mirrors) ---
   const squad = useGameStore(s => s.squad);
   const week = useGameStore(s => s.week);
-  const { setSquad, setWeek, setLeague, setCup, setMatchPending, setProcessing } = useMemo(() => useGameStore.getState(), []);
+  const {
+    setSquad, setWeek, setLeague, setCup, setMatchPending, setProcessing,
+    setPendingSquad, setIsOnHoliday, setCalendarIndex, setSeasonCalendar,
+    setSummerPhase, setFanSentiment, setBoardSentiment,
+    setActiveProfileId, setGameMode, setGameOver,
+    setBoardWarnCount, setUltimatumActive, setUltimatumTarget,
+    setUltimatumPtsEarned, setUltimatumGamesLeft, setUltimatumCupPending,
+    setIronmanSaveVersion, setDoubleTrainingWeek, setTwelfthManActive,
+    setYouthCoupActive, setTestimonialPlayer,
+    setDynastyCupBracket, setMiniTournamentBracket,
+  } = useMemo(() => useGameStore.getState(), []);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
   const [swapTarget, setSwapTarget] = useState(null); // injured player being swapped out
   const [gains, setGains] = useState(null);
-  // pendingSquad with ref wrapper for interval access
-  const [pendingSquad, _setPendingSquad] = useState(null);
-  const pendingSquadRef = useRef(null);
-  const setPendingSquad = (val) => {
-    pendingSquadRef.current = val;
-    _setPendingSquad(val);
-  };
+  const pendingSquad = useGameStore(s => s.pendingSquad);
 
   const pendingLeagueRef = useRef(null); // deferred league table update until match result dismissed
   const cardedPlayerIdsRef = useRef(new Set()); // Tier 8: carded players skip next training
   const [dynastyCupQualifiers, setDynastyCupQualifiers] = useState(null); // Tier 3: top 4 at halfway for end-of-season knockout
-  const [dynastyCupBracket, _setDynastyCupBracket] = useState(null); // Tier 3: knockout bracket state
-  const dynastyCupBracketRef = useRef(null);
-  const setDynastyCupBracket = (val) => { dynastyCupBracketRef.current = typeof val === "function" ? val(dynastyCupBracketRef.current) : val; _setDynastyCupBracket(val); };
-  const [miniTournamentBracket, _setMiniTournamentBracket] = useState(null); // Tier 2: 5v5 mini-tournament bracket
-  const miniTournamentBracketRef = useRef(null);
-  const setMiniTournamentBracket = (val) => { miniTournamentBracketRef.current = typeof val === "function" ? val(miniTournamentBracketRef.current) : val; _setMiniTournamentBracket(val); };
+  const dynastyCupBracket = useGameStore(s => s.dynastyCupBracket);
+  const miniTournamentBracket = useGameStore(s => s.miniTournamentBracket);
   const [fiveASideSquad, setFiveASideSquad] = useState(null); // Tier 2: player's 5v5 squad selection [5 player IDs]
   // showFiveASidePicker removed — squad page panel handles 5v5 selection
   const aiPredictionRef = useRef(null); // Tier 1: AI predicted scoreline for current match
   const pendingTrialAction = useRef(null); // deferred trial processing after gains popup
   const holidayTargetRef = useRef(null); // Tracks target matchweek for Go on Holiday feature
   const holidayIntervalRef = useRef(null); // Interval ID for auto-advance
-  const [isOnHoliday, _setIsOnHoliday] = useState(false); // Flag to auto-skip non-match screens
-  const isOnHolidayRef = useRef(false);
-  const setIsOnHoliday = (val) => {
-    isOnHolidayRef.current = val;
-    _setIsOnHoliday(val);
-  };
+  const isOnHoliday = useGameStore(s => s.isOnHoliday);
   const holidayStartMatchweekRef = useRef(null); // Track starting matchweek
   const holidayWeeksWithoutMatchRef = useRef(0); // Safety counter
   const [ovrLevelUps, setOvrLevelUps] = useState(null); // [{ name, position, oldOvr, newOvr }]
@@ -212,20 +207,12 @@ function FootballManager() {
   const [shortlist, setShortlist] = useState([]); // Bookmarked players for scouting
   const [tickets, setTickets] = useState([]); // Consumable power-up tickets
   const [pendingTicketBoosts, setPendingTicketBoosts] = useState([]); // Ticket boosts to show in next training report
-  const [doubleTrainingWeek, _setDoubleTrainingWeek] = useState(false);
-  const doubleTrainingWeekRef = useRef(false);
-  const setDoubleTrainingWeek = (val) => { doubleTrainingWeekRef.current = val; _setDoubleTrainingWeek(val); };
-  const [twelfthManActive, _setTwelfthManActive] = useState(false);
-  const twelfthManActiveRef = useRef(false);
-  const setTwelfthManActive = (val) => { twelfthManActiveRef.current = val; _setTwelfthManActive(val); };
-  const [youthCoupActive, _setYouthCoupActive] = useState(false);
-  const youthCoupActiveRef = useRef(false);
-  const setYouthCoupActive = (val) => { youthCoupActiveRef.current = val; _setYouthCoupActive(val); };
+  const doubleTrainingWeek = useGameStore(s => s.doubleTrainingWeek);
+  const twelfthManActive = useGameStore(s => s.twelfthManActive);
+  const youthCoupActive = useGameStore(s => s.youthCoupActive);
   const [pendingFreeAgent, setPendingFreeAgent] = useState(null);
   const [scoutedPlayers, setScoutedPlayers] = useState({});
-  const [testimonialPlayer, _setTestimonialPlayer] = useState(null);
-  const testimonialPlayerRef = useRef(null);
-  const setTestimonialPlayer = (val) => { testimonialPlayerRef.current = val; _setTestimonialPlayer(val); };
+  const testimonialPlayer = useGameStore(s => s.testimonialPlayer);
   // Achievement tracking state
   const [usedTicketTypes, setUsedTicketTypes] = useState(new Set());
   const [formationsWonWith, setFormationsWonWith] = useState(new Set());
@@ -286,50 +273,16 @@ function FootballManager() {
   const [transfersKey, setTransfersKey] = useState(0);
   const [clubKey, setClubKey] = useState(0);
   const [cabinetKey, setCabinetKey] = useState(0);
-  const [calendarIndex, _setCalendarIndex] = useState(0);
-  const calendarIndexRef = useRef(0);
-  const matchweekIndexRef = useRef(0);
-  const setCalendarIndex = (val) => {
-    if (typeof val === 'function') {
-      _setCalendarIndex(prev => {
-        const next = val(prev);
-        calendarIndexRef.current = next;
-        matchweekIndexRef.current = getLeagueMatchdaysPlayed(seasonCalendarRef.current, next);
-        return next;
-      });
-    } else {
-      calendarIndexRef.current = val;
-      matchweekIndexRef.current = getLeagueMatchdaysPlayed(seasonCalendarRef.current, val);
-      _setCalendarIndex(val);
-    }
-  };
-  const [seasonCalendar, _setSeasonCalendar] = useState(null);
-  const seasonCalendarRef = useRef(null);
-  const setSeasonCalendar = (val) => {
-    if (typeof val === 'function') {
-      _setSeasonCalendar(prev => { const next = val(prev); seasonCalendarRef.current = next; return next; });
-    } else {
-      seasonCalendarRef.current = val;
-      _setSeasonCalendar(val);
-    }
-  };
-  // Derived from calendarIndex — counts consumed league entries. Cannot desync.
-  const matchweekIndex = useMemo(
-    () => getLeagueMatchdaysPlayed(seasonCalendar, calendarIndex),
-    [seasonCalendar, calendarIndex]
-  );
+  const calendarIndex = useGameStore(s => s.calendarIndex);
+  const seasonCalendar = useGameStore(s => s.seasonCalendar);
+  const matchweekIndex = useGameStore(s => s.matchweekIndex);
   const [calendarResults, setCalendarResults] = useState({}); // { [calendarIdx]: { playerGoals, oppGoals, won, draw } }
   const [inboxMessages, setInboxMessages] = useState([]); // { id, week, season, icon, title, body, color, read, choices?, choiceResult?, type? }
   const [trialPlayer, setTrialPlayer] = useState(null); // active trial player data
   const [trialHistory, setTrialHistory] = useState([]); // past trial outcomes for follow-up messages
   const [prodigalSon, setProdigalSon] = useState(null); // { phase, playerId, playerName, formerClub, position, starts, goals, wonVsFormer, sentFlags:{} }
   const [leagueResults, setLeagueResults] = useState({}); // { [matchweekIdx]: [{ home, away, homeGoals, awayGoals, goalScorers, cardRecipients }] }
-  const [summerPhase, _setSummerPhase] = useState(null);
-  const summerPhaseRef = useRef(null);
-  const setSummerPhase = (val) => {
-    summerPhaseRef.current = val;
-    _setSummerPhase(val);
-  };
+  const summerPhase = useGameStore(s => s.summerPhase);
   const [summerData, setSummerData] = useState(null);
   const [showYouthIntake, setShowYouthIntake] = useState(true);
   // Persistent league rosters: tracks which AI team configs are in each tier
@@ -361,27 +314,17 @@ function FootballManager() {
   const [consecutiveDraws, setConsecutiveDraws] = useState(0);
   const [consecutiveWins, setConsecutiveWins] = useState(0);
   const [consecutiveScoreless, setConsecutiveScoreless] = useState(0);
-  const [fanSentiment, _setFanSentiment] = useState(50);
-  const fanSentimentRef = useRef(50);
-  const setFanSentiment = (v) => { fanSentimentRef.current = v; _setFanSentiment(v); };
-  const [boardSentiment, _setBoardSentiment] = useState(50);
-  const boardSentimentRef = useRef(50);
-  const setBoardSentiment = (v) => { boardSentimentRef.current = v; _setBoardSentiment(v); };
+  const fanSentiment = useGameStore(s => s.fanSentiment);
+  const boardSentiment = useGameStore(s => s.boardSentiment);
   const boardWarnWeekRef = useRef(0);
 
   // === Profile & game mode state ===
-  const [activeProfileId, _setActiveProfileId] = useState(null);
-  const activeProfileIdRef = useRef(null);
-  const setActiveProfileId = (v) => { activeProfileIdRef.current = v; _setActiveProfileId(v); };
+  const activeProfileId = useGameStore(s => s.activeProfileId);
   const [profileList, setProfileList] = useState([]); // [{ id, name, createdAt }]
   const [profilesLoaded, setProfilesLoaded] = useState(false);
-  const [gameMode, _setGameMode] = useState(null); // "casual" | "ironman"
-  const gameModeRef = useRef(null);
-  const setGameMode = (v) => { gameModeRef.current = v; _setGameMode(v); };
+  const gameMode = useGameStore(s => s.gameMode);
   const [showModeSelect, setShowModeSelect] = useState(false);
-  const [gameOver, _setGameOver] = useState(false); // sacked — shows SackingScreen
-  const gameOverRef = useRef(false);
-  const setGameOver = (v) => { gameOverRef.current = v; _setGameOver(v); };
+  const gameOver = useGameStore(s => s.gameOver);
   const [viewingMuseumCareer, setViewingMuseumCareer] = useState(null); // career object from profile.museum
   const [viewingMuseumList, setViewingMuseumList] = useState(null); // { entries: [...] } — museum career picker
   const [museumDeleteConfirm, setMuseumDeleteConfirm] = useState(null); // entry to confirm-delete, or null
@@ -444,28 +387,15 @@ function FootballManager() {
   }, [gameOver, viewingMuseumCareer]);
 
   // === Sacking / ultimatum state ===
-  const [boardWarnCount, _setBoardWarnCount] = useState(0);
-  const boardWarnCountRef = useRef(0);
-  const setBoardWarnCount = (v) => { boardWarnCountRef.current = v; _setBoardWarnCount(v); };
-  const [ultimatumActive, _setUltimatumActive] = useState(false);
-  const ultimatumActiveRef = useRef(false);
-  const setUltimatumActive = (v) => { ultimatumActiveRef.current = v; _setUltimatumActive(v); };
-  const [ultimatumTarget, setUltimatumTarget] = useState(0);
-  const ultimatumTargetRef = useRef(0);
-  const [ultimatumPtsEarned, _setUltimatumPtsEarned] = useState(0);
-  const ultimatumPtsEarnedRef = useRef(0);
-  const setUltimatumPtsEarned = (v) => { const nv = typeof v === "function" ? v(ultimatumPtsEarnedRef.current) : v; ultimatumPtsEarnedRef.current = nv; _setUltimatumPtsEarned(nv); };
-  const [ultimatumGamesLeft, _setUltimatumGamesLeft] = useState(0);
-  const ultimatumGamesLeftRef = useRef(0);
-  const setUltimatumGamesLeft = (v) => { const nv = typeof v === "function" ? v(ultimatumGamesLeftRef.current) : v; ultimatumGamesLeftRef.current = nv; _setUltimatumGamesLeft(nv); };
-  const [ultimatumCupPending, _setUltimatumCupPending] = useState(false);
-  const ultimatumCupPendingRef = useRef(false);
-  const setUltimatumCupPending = (v) => { ultimatumCupPendingRef.current = v; _setUltimatumCupPending(v); };
+  const boardWarnCount = useGameStore(s => s.boardWarnCount);
+  const ultimatumActive = useGameStore(s => s.ultimatumActive);
+  const ultimatumTarget = useGameStore(s => s.ultimatumTarget);
+  const ultimatumPtsEarned = useGameStore(s => s.ultimatumPtsEarned);
+  const ultimatumGamesLeft = useGameStore(s => s.ultimatumGamesLeft);
+  const ultimatumCupPending = useGameStore(s => s.ultimatumCupPending);
 
   // === Ironman integrity ===
-  const [ironmanSaveVersion, _setIronmanSaveVersion] = useState(0);
-  const ironmanSaveVersionRef = useRef(0);
-  const setIronmanSaveVersion = (v) => { ironmanSaveVersionRef.current = v; _setIronmanSaveVersion(v); };
+  const ironmanSaveVersion = useGameStore(s => s.ironmanSaveVersion);
   const [isTainted, setIsTainted] = useState(false);
 
   const [readsThisWeek, setReadsThisWeek] = useState(0);
@@ -568,7 +498,7 @@ function FootballManager() {
 
   // Save game function
   const saveGame = useCallback(async () => {
-    if (!teamName || !league || !activeSaveSlot || !activeProfileIdRef.current) return;
+    if (!teamName || !league || !activeSaveSlot || !useGameStore.getState().activeProfileId) return;
     setSaveStatus("saving");
     try {
       const saveData = {
@@ -644,14 +574,14 @@ function FootballManager() {
         tradesMadeInWindow,
         tradedWithClubs: [...tradedWithClubs],
         fanSentiment, boardSentiment,
-        gameMode: gameModeRef.current,
-        boardWarnCount: boardWarnCountRef.current,
-        ultimatumActive: ultimatumActiveRef.current,
-        ultimatumTarget: ultimatumTargetRef.current,
-        ultimatumPtsEarned: ultimatumPtsEarnedRef.current,
-        ultimatumGamesLeft: ultimatumGamesLeftRef.current,
-        ultimatumCupPending: ultimatumCupPendingRef.current,
-        ironmanSaveVersion: ironmanSaveVersionRef.current,
+        gameMode: useGameStore.getState().gameMode,
+        boardWarnCount: useGameStore.getState().boardWarnCount,
+        ultimatumActive: useGameStore.getState().ultimatumActive,
+        ultimatumTarget: useGameStore.getState().ultimatumTarget,
+        ultimatumPtsEarned: useGameStore.getState().ultimatumPtsEarned,
+        ultimatumGamesLeft: useGameStore.getState().ultimatumGamesLeft,
+        ultimatumCupPending: useGameStore.getState().ultimatumCupPending,
+        ironmanSaveVersion: useGameStore.getState().ironmanSaveVersion,
         isTainted,
         dynastyCupQualifiers,
         dynastyCupBracket,
@@ -661,21 +591,21 @@ function FootballManager() {
       // Increment ironman version — update profile AFTER save write succeeds
       // so the profile can never be ahead of the actual saved data
       let ironmanNewVer = null;
-      if (gameModeRef.current === "ironman") {
-        ironmanNewVer = ironmanSaveVersionRef.current + 1;
+      if (useGameStore.getState().gameMode === "ironman") {
+        ironmanNewVer = useGameStore.getState().ironmanSaveVersion + 1;
         setIronmanSaveVersion(ironmanNewVer);
         saveData.ironmanSaveVersion = ironmanNewVer;
       }
-      const saveKey = getSaveKey(activeProfileIdRef.current, activeSaveSlot);
+      const saveKey = getSaveKey(useGameStore.getState().activeProfileId, activeSaveSlot);
       await window.storage.set(saveKey, JSON.stringify(saveData));
       // Only update profile version after save is confirmed written
       if (ironmanNewVer !== null) {
-        await updateProfileIronmanVersion(activeProfileIdRef.current, ironmanNewVer, activeSaveSlot);
+        await updateProfileIronmanVersion(useGameStore.getState().activeProfileId, ironmanNewVer, activeSaveSlot);
       }
       // Update slot summary for quick display
       setSaveSlotSummaries(prev => {
         const next = [...prev];
-        next[activeSaveSlot - 1] = { teamName, seasonNumber, leagueTier, week, gameMode: gameModeRef.current };
+        next[activeSaveSlot - 1] = { teamName, seasonNumber, leagueTier, week, gameMode: useGameStore.getState().gameMode };
         return next;
       });
       setSaveStatus("saved");
@@ -700,9 +630,9 @@ function FootballManager() {
   // Load game function
   const loadGame = useCallback(async (slotOverride) => {
     const slot = slotOverride || activeSaveSlot;
-    if (!slot || !activeProfileIdRef.current) return false;
+    if (!slot || !useGameStore.getState().activeProfileId) return false;
     try {
-      const result = await window.storage.get(getSaveKey(activeProfileIdRef.current, slot));
+      const result = await window.storage.get(getSaveKey(useGameStore.getState().activeProfileId, slot));
       if (!result) return false;
       const s = JSON.parse(result.value);
       if (!s || !s.teamName) return false;
@@ -913,22 +843,21 @@ function FootballManager() {
       setBoardWarnCount(s.boardWarnCount || 0);
       setUltimatumActive(s.ultimatumActive || false);
       setUltimatumTarget(s.ultimatumTarget || 0);
-      ultimatumTargetRef.current = s.ultimatumTarget || 0;
       setUltimatumPtsEarned(s.ultimatumPtsEarned || 0);
       setUltimatumGamesLeft(s.ultimatumGamesLeft || 0);
       setUltimatumCupPending(s.ultimatumCupPending || false);
       const loadedIronmanVer = s.ironmanSaveVersion || 0;
       setIronmanSaveVersion(loadedIronmanVer);
       // Integrity check for Ironman saves
-      if ((s.gameMode || "casual") === "ironman" && activeProfileIdRef.current) {
+      if ((s.gameMode || "casual") === "ironman" && useGameStore.getState().activeProfileId) {
         // Force-sync profile version to match the loaded save BEFORE the check.
         // This prevents false positives from the race condition where auto-save
         // updates the profile version but Vite reload/crash interrupts before the
         // save file is fully written, leaving profile ahead of the actual save.
         if (loadedIronmanVer > 0) {
-          await syncProfileIronmanVersion(activeProfileIdRef.current, loadedIronmanVer, slot);
+          await syncProfileIronmanVersion(useGameStore.getState().activeProfileId, loadedIronmanVer, slot);
         }
-        const prof = await readProfile(activeProfileIdRef.current).catch(() => null);
+        const prof = await readProfile(useGameStore.getState().activeProfileId).catch(() => null);
         const integrity = checkIronmanIntegrity({ ironmanSaveVersion: loadedIronmanVer }, prof, slot);
         setIsTainted(!integrity.valid);
         if (!integrity.valid) {
@@ -1237,14 +1166,14 @@ function FootballManager() {
 
   // Save utilities (exported/imported/deleted) — extracted to useSaveGame hook
   const { exportSave, importSave, deleteSave } = useSaveGame({
-    teamName, activeSaveSlot, activeProfileIdRef, setImportStatus, setSaveSlotSummaries,
+    teamName, activeSaveSlot, setImportStatus, setSaveSlotSummaries,
   });
 
   // Sacking: archive career to museum and show game over screen
   const triggerSacking = useCallback(async () => {
-    if (!activeProfileIdRef.current) return;
+    if (!useGameStore.getState().activeProfileId) return;
     try {
-      await archiveCareerToMuseum(activeProfileIdRef.current, {
+      await archiveCareerToMuseum(useGameStore.getState().activeProfileId, {
         teamName, seasonNumber, leagueTier,
         totalMatches,
         clubHistory,
@@ -1252,9 +1181,9 @@ function FootballManager() {
     } catch (e) { console.error("Museum archive failed:", e); }
     // Delete the save slot
     const slot = activeSaveSlot;
-    if (slot && activeProfileIdRef.current) {
+    if (slot && useGameStore.getState().activeProfileId) {
       try {
-        await window.storage.delete(getSaveKey(activeProfileIdRef.current, slot));
+        await window.storage.delete(getSaveKey(useGameStore.getState().activeProfileId, slot));
         setSaveSlotSummaries(prev => { const n = [...prev]; n[slot - 1] = null; return n; });
       } catch (e) { /* ok */ }
     }
@@ -1264,14 +1193,14 @@ function FootballManager() {
   // Ultimatum progress tracking: call after each league match result
   const updateUltimatumProgressRef = useRef(null);
   const updateUltimatumProgress = useCallback((playerWon, isDraw, cupPlayerEliminated) => {
-    if (!ultimatumActiveRef.current || gameModeRef.current !== "ironman") return;
+    if (!useGameStore.getState().ultimatumActive || useGameStore.getState().gameMode !== "ironman") return;
     const pts = playerWon ? 3 : isDraw ? 1 : 0;
-    const newPts = ultimatumPtsEarnedRef.current + pts;
-    const newGames = ultimatumGamesLeftRef.current - 1;
+    const newPts = useGameStore.getState().ultimatumPtsEarned + pts;
+    const newGames = useGameStore.getState().ultimatumGamesLeft - 1;
     setUltimatumPtsEarned(newPts);
     setUltimatumGamesLeft(newGames);
 
-    const target = ultimatumTargetRef.current;
+    const target = useGameStore.getState().ultimatumTarget;
     const maxPossible = newPts + (newGames * 3);
     const _curWeek = useGameStore.getState().week;
 
@@ -1279,7 +1208,7 @@ function FootballManager() {
       // Reprieve!
       setUltimatumActive(false);
       setBoardWarnCount(0);
-      setBoardSentiment(Math.max(50, boardSentimentRef.current));
+      setBoardSentiment(Math.max(50, useGameStore.getState().boardSentiment));
       setInboxMessages(prev => [...prev, {
         id: `msg_reprieve_${Date.now()}`, week: _curWeek, season: prev[prev.length - 1]?.season || 1,
         icon: "✅", color: "#4ade80", title: "Board Reprieve",
@@ -1361,7 +1290,7 @@ function FootballManager() {
     }
   }, [processing]);
   useEffect(() => {
-    if (prevMatchResult.current && !matchResult && teamName && league && autoSaveEnabled && !gameOverRef.current) {
+    if (prevMatchResult.current && !matchResult && teamName && league && autoSaveEnabled && !useGameStore.getState().gameOver) {
       saveGame();
     }
     prevMatchResult.current = matchResult;
@@ -1372,13 +1301,13 @@ function FootballManager() {
   const ironmanSummerLoaded = useRef(false);
   useEffect(() => {
     if (!ironmanCalendarLoaded.current) { ironmanCalendarLoaded.current = true; return; }
-    if (gameModeRef.current === "ironman" && teamName && league && !gameOverRef.current) {
+    if (useGameStore.getState().gameMode === "ironman" && teamName && league && !useGameStore.getState().gameOver) {
       saveGame();
     }
   }, [calendarIndex, teamName, league, saveGame]);
   useEffect(() => {
     if (!ironmanSummerLoaded.current) { ironmanSummerLoaded.current = true; return; }
-    if (gameModeRef.current === "ironman" && teamName && !gameOverRef.current) {
+    if (useGameStore.getState().gameMode === "ironman" && teamName && !useGameStore.getState().gameOver) {
       saveGame();
     }
   }, [summerPhase, teamName, saveGame]);
@@ -1390,7 +1319,6 @@ function FootballManager() {
     setLeague, setLeagueTier, setCup, setAllLeagueStates, setSeasonCalendar,
     setCalendarIndex, setCalendarResults, setLeagueResults,
     setMatchPending, setSummerPhase, setSummerData, setMatchResult, setCupMatchResult,
-    seasonCalendarRef,
   });
 
   // Init league once team name is set (only if not loaded from save)
@@ -1639,12 +1567,11 @@ function FootballManager() {
     setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
     setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
     setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
-    calendarIndexRef,
   });
 
   // Rewind ticket — replay a chosen lost or drawn league match
   const useTicketRewind = useCallback((ticketId, matchCalIdx) => {
-    const cal = seasonCalendarRef.current || [];
+    const cal = useGameStore.getState().seasonCalendar || [];
     const entry = cal[matchCalIdx];
     const oldResult = calendarResults[matchCalIdx];
     if (!entry || entry.type !== "league" || !oldResult || oldResult.won) return;
@@ -1912,8 +1839,8 @@ function FootballManager() {
 
     // Season end — calendar exhausted, or (no calendar) matchweekIndex past all fixtures
     const totalFix = league.fixtures?.length || 18;
-    const calendarDone = seasonCalendarRef.current && calendarIndexRef.current >= seasonCalendarRef.current.length;
-    const noCalendarFallback = !seasonCalendarRef.current && matchweekIndex >= totalFix;
+    const calendarDone = useGameStore.getState().seasonCalendar && useGameStore.getState().calendarIndex >= useGameStore.getState().seasonCalendar.length;
+    const noCalendarFallback = !useGameStore.getState().seasonCalendar && matchweekIndex >= totalFix;
     if (calendarDone || noCalendarFallback) {
       if (!summerPhase) {
         const sorted = sortStandings(league.table);
@@ -1924,7 +1851,7 @@ function FootballManager() {
         let moveType = "stayed";
         // Promotion logic: mini-tournament tiers — all 3 promo spots from tournament results
         const mod = getModifier(currentTier);
-        const mBkt = miniTournamentBracketRef.current;
+        const mBkt = useGameStore.getState().miniTournamentBracket;
         if (mod.miniTournament && currentTier > 1 && mBkt) {
           const isWinner = mBkt.winner?.isPlayer;
           const derivedRunnerUp = mBkt.runnerUp || (mBkt.winner && mBkt.final?.home && mBkt.final?.away ? (mBkt.winner.name === mBkt.final.home.name ? mBkt.final.away : mBkt.final.home) : null);
@@ -1951,9 +1878,9 @@ function FootballManager() {
           isInvincible: position === 1 && recoveryPlayerRow?.lost === 0,
         });
         // Season-end sentiment swings (recovery path)
-        if (moveType === "promoted") { setFanSentiment(Math.min(100, fanSentimentRef.current + 20)); setBoardSentiment(Math.min(100, boardSentimentRef.current + 25)); }
-        if (moveType === "relegated") { setFanSentiment(Math.max(0, fanSentimentRef.current - 20)); setBoardSentiment(Math.max(0, boardSentimentRef.current - 25)); }
-        if (position === 1) { setFanSentiment(Math.min(100, fanSentimentRef.current + 10)); setBoardSentiment(Math.min(100, boardSentimentRef.current + 10)); }
+        if (moveType === "promoted") { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
+        if (moveType === "relegated") { setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
+        if (position === 1) { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 10)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10)); }
         setSummerPhase("awaiting_end");
 
         // === STORY ARC SEASON-END TRACKING (recovery path) ===
@@ -1972,7 +1899,7 @@ function FootballManager() {
     if (summerPhase) return;
 
     setProcessing(true);
-    if (!isOnHolidayRef.current) {
+    if (!useGameStore.getState().isOnHoliday) {
       // Navigate to Home so GainPopup (which renders inside the Home/Squad branch) is visible
       setShowAchievements(false); setShowTable(false); setShowCalendar(false);
       setShowCup(false); setShowTransfers(false); setShowLegends(false); setShowSquad(false);
@@ -2006,7 +1933,7 @@ function FootballManager() {
             next.bonuses = applyArcFx(opt.fx, squad, cs.tracking?.targetId, prodigalSon?.playerId, next.bonuses || {}, ovrCap).bonuses;
           }
           next[cat] = {...cs, step: cs.step + 1, focus: null};
-          if (!isOnHolidayRef.current) {
+          if (!useGameStore.getState().isOnHoliday) {
             const focusNarr = getFocusNarrative(arc.id, newFocus.choice, opt.name);
             setArcStepQueue(q => [...q, {
               arcId:arc.id, arcName:arc.name, arcIcon:arc.icon, cat,
@@ -2027,7 +1954,7 @@ function FootballManager() {
     });
 
     // === AUTO-SELECT FOCUS CHOICES DURING HOLIDAY MODE ===
-    if (isOnHolidayRef.current) {
+    if (useGameStore.getState().isOnHoliday) {
       setStoryArcs(prev => {
         const next = {...prev};
         let autoSelected = false;
@@ -2084,7 +2011,7 @@ function FootballManager() {
               body: `${arc.rewardDesc}`,
               read: false,
             }]);
-            if (!isOnHolidayRef.current) {
+            if (!useGameStore.getState().isOnHoliday) {
               setArcStepQueue(q => [...q, {
                 arcId:arc.id, arcName:arc.name, arcIcon:arc.icon, cat,
                 stepIdx:cs.step, stepDesc:step.desc, narrative:narr,
@@ -2092,7 +2019,7 @@ function FootballManager() {
               }]);
             }
           } else {
-            if (!isOnHolidayRef.current) {
+            if (!useGameStore.getState().isOnHoliday) {
               setArcStepQueue(q => [...q, {
                 arcId:arc.id, arcName:arc.name, arcIcon:arc.icon, cat,
                 stepIdx:cs.step, stepDesc:step.desc, narrative:narr,
@@ -2353,14 +2280,14 @@ function FootballManager() {
               const starts = p.seasonStarts || 0;
               const subApps = p.seasonSubApps || 0;
               const effectiveApps = starts + subApps * 0.4;
-              const matchesPlayed = matchweekIndexRef.current || 1;
+              const matchesPlayed = useGameStore.getState().matchweekIndex || 1;
               const appearanceRate = Math.min(1, effectiveApps / Math.max(1, matchesPlayed));
               const rawProgress = getTrainingProgress(current, trainingAge, p.potential, overall, appearanceRate, playerCap);
               // Story arc training bonuses
               const arcBonuses = storyArcs?.bonuses || {};
               let arcMult = 1 + (arcBonuses.trainSpeedMult || 0);
               if (attrKey === "mental" && arcBonuses.mentalTrainMult) arcMult += arcBonuses.mentalTrainMult;
-              const doubleMult = doubleTrainingWeekRef.current ? 2 : 1;
+              const doubleMult = useGameStore.getState().doubleTrainingWeek ? 2 : 1;
               const dojoMult = mod.trainingSpeedMult || 1;
               const progressGain = rawProgress * focusMultiplier * arcMult * doubleMult * dojoMult;
 
@@ -2457,10 +2384,10 @@ function FootballManager() {
     let newSquad = computeNewSquad(useGameStore.getState().squad);
 
     // Snapshot before resetting — used for Sweat Equity achievement
-    const wasDoubleTraining = doubleTrainingWeekRef.current;
+    const wasDoubleTraining = useGameStore.getState().doubleTrainingWeek;
 
     // Reset double training flag after it's been consumed
-    if (doubleTrainingWeekRef.current) setDoubleTrainingWeek(false);
+    if (useGameStore.getState().doubleTrainingWeek) setDoubleTrainingWeek(false);
 
     // Apply arc focus effects that completed this week, derived directly from arcSnap
     // (arcSnap was captured at the top of advanceWeek before any setState calls)
@@ -2580,14 +2507,14 @@ function FootballManager() {
 
     // === SENTIMENT WEEKLY DRIFT ===
     {
-      const curFan = fanSentimentRef.current;
-      const curBoard = boardSentimentRef.current;
+      const curFan = useGameStore.getState().fanSentiment;
+      const curBoard = useGameStore.getState().boardSentiment;
       let fanDelta = curFan > 55 ? -0.5 : curFan < 45 ? 0.5 : 0;
       let boardDelta = curBoard > 55 ? -0.5 : curBoard < 45 ? 0.5 : 0;
       if (consecutiveWins >= 3) fanDelta += 2;
       // Board: league position bonus/penalty after halfway point
       const _totalMDs = useGameStore.getState().league?.fixtures?.length || 18;
-      if (matchweekIndexRef.current > _totalMDs / 2) {
+      if (useGameStore.getState().matchweekIndex > _totalMDs / 2) {
         const _sortedT = [...(useGameStore.getState().league?.table || [])].sort(
           (a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst)
         );
@@ -2610,7 +2537,7 @@ function FootballManager() {
       setFanSentiment(newFan);
       setBoardSentiment(newBoard);
       // Board bonus ticket every 8 weeks when sentiment > 75
-      const _wk = calendarIndexRef.current;
+      const _wk = useGameStore.getState().calendarIndex;
       if (newBoard > 75 && _wk > 0 && _wk % 8 === 0) {
         const _picks = ["random_attr", "double_session", "relation_boost", "transfer_insider"];
         const _pick = _picks[Math.floor(Math.random() * _picks.length)];
@@ -2625,14 +2552,13 @@ function FootballManager() {
       // Board warning when < 25, rate-limited to every 4 weeks
       if (newBoard < 25 && _wk - boardWarnWeekRef.current >= 4) {
         boardWarnWeekRef.current = _wk;
-        const isIronman = gameModeRef.current === "ironman" && !ultimatumActiveRef.current;
-        const nextCount = isIronman ? boardWarnCountRef.current + 1 : 0;
+        const isIronman = useGameStore.getState().gameMode === "ironman" && !useGameStore.getState().ultimatumActive;
+        const nextCount = isIronman ? useGameStore.getState().boardWarnCount + 1 : 0;
 
         if (isIronman && nextCount >= 3) {
           // 3rd strike: skip concern message, deliver ultimatum directly
           setBoardWarnCount(0);
           const target = leagueTier <= 3 ? 7 : leagueTier <= 7 ? 6 : 5;
-          ultimatumTargetRef.current = target;
           setUltimatumTarget(target);
           setUltimatumPtsEarned(0);
           setUltimatumGamesLeft(5);
@@ -2660,7 +2586,7 @@ function FootballManager() {
     }
 
     // === HOLIDAY MODE: APPLY SQUAD DIRECTLY, SKIP POPUP ===
-    if (isOnHolidayRef.current) {
+    if (useGameStore.getState().isOnHoliday) {
       // Apply squad changes immediately, no popup
       setSquad(newSquad);
       setWeek(w => w + 1);
@@ -2778,8 +2704,8 @@ function FootballManager() {
 
       // CRITICAL: Prepare cup rounds and set matchPending
       // (normally this happens in GainPopup onDone, but we're skipping that)
-      if (!summerPhase && seasonCalendarRef.current && useGameStore.getState().cup) {
-        const nextEntry = seasonCalendarRef.current[calendarIndexRef.current];
+      if (!summerPhase && useGameStore.getState().seasonCalendar && useGameStore.getState().cup) {
+        const nextEntry = useGameStore.getState().seasonCalendar[useGameStore.getState().calendarIndex];
         if (nextEntry?.type === "cup") {
           const cupLookup = (name, tier) => {
             const freshLeague = useGameStore.getState().league;
@@ -2813,7 +2739,7 @@ function FootballManager() {
             setMatchPending(true);
           }
         } else if (nextEntry?.type === "dynasty") {
-          const dBracket = dynastyCupBracketRef.current;
+          const dBracket = useGameStore.getState().dynastyCupBracket;
           if (dBracket && !dBracket.playerEliminated) {
             setMatchPending(true);
           } else {
@@ -2846,9 +2772,9 @@ function FootballManager() {
                   color: "#facc15", read: false,
                 }]);
               }
-              setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "Dynasty Cup Semi-Finals" } }));
+              setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "Dynasty Cup Semi-Finals" } }));
             } else if (nextEntry.round === "final") {
-              const bk = dynastyCupBracketRef.current;
+              const bk = useGameStore.getState().dynastyCupBracket;
               if (bk?.final?.home && bk?.final?.away && !bk.final.result) {
                 const finR = simulateMatch(bk.final.home, bk.final.away, null, null, true, 1, 0, null, 0, dMod);
                 let finW = finR.homeGoals > finR.awayGoals ? bk.final.home : finR.awayGoals > finR.homeGoals ? bk.final.away : null;
@@ -2861,12 +2787,12 @@ function FootballManager() {
                   color: "#facc15", read: false,
                 }]);
               }
-              setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "Dynasty Cup Final" } }));
+              setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "Dynasty Cup Final" } }));
             }
             setCalendarIndex(prev => prev + 1);
           }
         } else if (nextEntry?.type === "mini") {
-          const mBracket = miniTournamentBracketRef.current;
+          const mBracket = useGameStore.getState().miniTournamentBracket;
           if (mBracket && !mBracket.playerEliminated) {
             // Holiday auto-play: auto-pick 5v5 squad for player, simulate directly
             const _holMiniRound = nextEntry.round;
@@ -2893,7 +2819,7 @@ function FootballManager() {
             const _holHG = _holResult.homeGoals;
             const _holAG = _holResult.awayGoals;
             const _holPlayerWon = _holHG > _holAG;
-            const _holCI = calendarIndexRef.current;
+            const _holCI = useGameStore.getState().calendarIndex;
 
             if (_holMiniRound === "sf_leg1") {
               setMiniTournamentBracket(prev => ({
@@ -2977,7 +2903,7 @@ function FootballManager() {
                   thirdPlaceWinner: _hol3rdWinner,
                 }));
                 // Also sim the final (AI vs AI since player lost SF)
-                const _bk2 = miniTournamentBracketRef.current;
+                const _bk2 = useGameStore.getState().miniTournamentBracket;
                 if (_bk2?.final?.home && _bk2?.final?.away && !_bk2.final?.result) {
                   const _finR = simulateMatch(_bk2.final.home, _bk2.final.away, null, null, true, 1, 0, null, 0, _holMiniMod);
                   let _finW = _finR.homeGoals > _finR.awayGoals ? _bk2.final.home : _finR.awayGoals > _finR.homeGoals ? _bk2.final.away : null;
@@ -3026,7 +2952,7 @@ function FootballManager() {
                 }
               }
               // Also sim 3rd-place if not done yet (AI vs AI)
-              const _bk3 = miniTournamentBracketRef.current;
+              const _bk3 = useGameStore.getState().miniTournamentBracket;
               if (_bk3?.thirdPlace && !_bk3.thirdPlace.winner) {
                 const _tp3 = _bk3.thirdPlace;
                 const _tpR3 = simulateMatch(_tp3.home, _tp3.away, null, null, true, 1, 0, null, 0, _holMiniMod);
@@ -3057,7 +2983,7 @@ function FootballManager() {
                 });
               }
               // Sim leg 1 of both SFs
-              const bk = miniTournamentBracketRef.current;
+              const bk = useGameStore.getState().miniTournamentBracket;
               if (bk) {
                 const r1 = simulateMatch(bk.sf1.home, bk.sf1.away, null, null, true, 1, 0, null, 0, mMod);
                 const r2 = simulateMatch(bk.sf2.home, bk.sf2.away, null, null, true, 1, 0, null, 0, mMod);
@@ -3073,9 +2999,9 @@ function FootballManager() {
                   color: "#fbbf24", read: false,
                 }]);
               }
-              setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "Mini SF Leg 1" } }));
+              setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "Mini SF Leg 1" } }));
             } else if (nextEntry.round === "sf_leg2") {
-              const bk = miniTournamentBracketRef.current;
+              const bk = useGameStore.getState().miniTournamentBracket;
               if (bk?.sf1?.leg1 && !bk.sf1.winner) {
                 // Sim leg 2 (reversed home/away), determine winners on aggregate
                 const r1 = simulateMatch(bk.sf1.away, bk.sf1.home, null, null, true, 1, 0, null, 0, mMod);
@@ -3101,9 +3027,9 @@ function FootballManager() {
                   color: "#fbbf24", read: false,
                 }]);
               }
-              setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "Mini SF Leg 2" } }));
+              setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "Mini SF Leg 2" } }));
             } else if (nextEntry.round === "third_place") {
-              const bk = miniTournamentBracketRef.current;
+              const bk = useGameStore.getState().miniTournamentBracket;
               if (bk?.thirdPlace && !bk.thirdPlace.winner) {
                 const tp = bk.thirdPlace;
                 const tpR = simulateMatch(tp.home, tp.away, null, null, true, 1, 0, null, 0, mMod);
@@ -3121,9 +3047,9 @@ function FootballManager() {
                   color: "#fbbf24", read: false,
                 }]);
               }
-              setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "3rd Place Playoff" } }));
+              setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "3rd Place Playoff" } }));
             } else if (nextEntry.round === "final") {
-              const bk = miniTournamentBracketRef.current;
+              const bk = useGameStore.getState().miniTournamentBracket;
               if (bk?.final?.home && bk?.final?.away && !bk.final.result) {
                 const finR = simulateMatch(bk.final.home, bk.final.away, null, null, true, 1, 0, null, 0, mMod);
                 let finW = finR.homeGoals > finR.awayGoals ? bk.final.home : finR.awayGoals > finR.homeGoals ? bk.final.away : null;
@@ -3137,7 +3063,7 @@ function FootballManager() {
                   color: "#fbbf24", read: false,
                 }]);
               }
-              setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "Mini Final" } }));
+              setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "Mini Final" } }));
             }
             setCalendarIndex(prev => prev + 1);
           }
@@ -3194,13 +3120,13 @@ function FootballManager() {
       return tb;
     });
     // Holiday mode: auto-pick a random ticket from capped arc choices
-    if (isOnHolidayRef.current && cappedArcTickets.length > 0) {
+    if (useGameStore.getState().isOnHoliday && cappedArcTickets.length > 0) {
       cappedArcTickets.forEach(ct => {
         const pick = ct.choices[Math.floor(Math.random() * ct.choices.length)];
         setTickets(prev => [...prev, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: pick }]);
       });
     }
-    setGains({ improvements: weekGains, injuries: weekInjuries, duos: weekDuos, recoveries: weekRecoveries, progress: weekProgress, arcBoosts: arcBoostGains, ticketBoosts: resolvedTicketBoosts, cappedArcTickets: isOnHolidayRef.current ? [] : cappedArcTickets });
+    setGains({ improvements: weekGains, injuries: weekInjuries, duos: weekDuos, recoveries: weekRecoveries, progress: weekProgress, arcBoosts: arcBoostGains, ticketBoosts: resolvedTicketBoosts, cappedArcTickets: useGameStore.getState().isOnHoliday ? [] : cappedArcTickets });
     setPendingTicketBoosts([]);
 
     // Sweat Equity — 4+ gains in a double training week
@@ -3208,7 +3134,7 @@ function FootballManager() {
       setUnlockedAchievements(prev => { const n = new Set(prev); n.add("sweat_equity"); return n; });
       setAchievementQueue(prev => [...prev, "sweat_equity"]);
     }
-    if (!isOnHolidayRef.current) {
+    if (!useGameStore.getState().isOnHoliday) {
       setTimeout(() => setWeekTransition(false), 1500);
     }
     weekRecoveriesRef.current = weekRecoveries;
@@ -3455,7 +3381,7 @@ function FootballManager() {
   const advanceSummer = useCallback(() => {
     if (processing) return;
     setProcessing(true);
-    if (!isOnHolidayRef.current) setWeekTransition(true);
+    if (!useGameStore.getState().isOnHoliday) setWeekTransition(true);
     const wl = summerData?.weeksLeft ?? 5;
 
     const FILTER_LABELS = { DEF: "Defenders", MID: "Midfielders", FWD: "Forwards", GK: "Goalkeepers" };
@@ -4061,7 +3987,7 @@ function FootballManager() {
                 }}>KEEP</button>
                 <button onClick={() => {
                   const key = museumDeleteConfirm.archivedAt;
-                  deleteMuseumEntry(viewingMuseumList?.profileId || activeProfileIdRef.current, key);
+                  deleteMuseumEntry(viewingMuseumList?.profileId || useGameStore.getState().activeProfileId, key);
                   setViewingMuseumList(prev => prev ? { ...prev, entries: prev.entries.filter(en => en.archivedAt !== key) } : prev);
                   setMuseumDeleteConfirm(null);
                 }} style={{
@@ -4112,7 +4038,7 @@ function FootballManager() {
         onViewCareer={async () => {
           // Load the most recent museum entry from this profile
           try {
-            const prof = await readProfile(activeProfileIdRef.current);
+            const prof = await readProfile(useGameStore.getState().activeProfileId);
             const entries = prof?.museum || [];
             const latest = entries[entries.length - 1] || null;
             if (latest) {
@@ -4314,8 +4240,8 @@ function FootballManager() {
                       }
                     }
                     // Mini-tournament: use 5v5 squad from squad page
-                    const _calE = seasonCalendarRef.current?.[calendarIndexRef.current];
-                    if (_calE?.type === "mini" && miniTournamentBracketRef.current && !miniTournamentBracketRef.current.playerEliminated) {
+                    const _calE = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
+                    if (_calE?.type === "mini" && useGameStore.getState().miniTournamentBracket && !useGameStore.getState().miniTournamentBracket.playerEliminated) {
                       const _fiveIds = fiveASideSquad || [];
                       const _fiveFilled = _fiveIds.filter(Boolean).length;
                       if (_fiveFilled < 5) {
@@ -4325,22 +4251,22 @@ function FootballManager() {
                           subject: "5v5 Squad Incomplete",
                           body: `You need 5 players selected for the mini-tournament. You have ${_fiveFilled}. Go to SQUAD to pick your 5.`,
                           read: false,
-                          week: calendarIndexRef.current,
+                          week: useGameStore.getState().calendarIndex,
                         }]);
                         return;
                       }
                       // Simulate match directly
-                      const _miniCal = seasonCalendarRef.current?.[calendarIndexRef.current];
+                      const _miniCal = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
                       const _miniRound = _miniCal?.round;
-                      const _miniSF = miniTournamentBracketRef.current.playerSF === 1 ? miniTournamentBracketRef.current.sf1 : miniTournamentBracketRef.current.sf2;
+                      const _miniSF = useGameStore.getState().miniTournamentBracket.playerSF === 1 ? useGameStore.getState().miniTournamentBracket.sf1 : useGameStore.getState().miniTournamentBracket.sf2;
                       let _miniOpp = null;
                       if (_miniRound === "sf_leg1" || _miniRound === "sf_leg2") {
                         _miniOpp = _miniSF.home.isPlayer ? _miniSF.away : _miniSF.home;
-                      } else if (_miniRound === "third_place" && miniTournamentBracketRef.current.thirdPlace) {
-                        const tp = miniTournamentBracketRef.current.thirdPlace;
+                      } else if (_miniRound === "third_place" && useGameStore.getState().miniTournamentBracket.thirdPlace) {
+                        const tp = useGameStore.getState().miniTournamentBracket.thirdPlace;
                         _miniOpp = tp.home.isPlayer ? tp.away : tp.home;
                       } else {
-                        _miniOpp = miniTournamentBracketRef.current.final.home?.isPlayer ? miniTournamentBracketRef.current.final.away : miniTournamentBracketRef.current.final.home;
+                        _miniOpp = useGameStore.getState().miniTournamentBracket.final.home?.isPlayer ? useGameStore.getState().miniTournamentBracket.final.away : useGameStore.getState().miniTournamentBracket.final.home;
                       }
                       setMatchPending(false);
                       setProcessing(true);
@@ -4359,7 +4285,7 @@ function FootballManager() {
                         ...result, home: 0, away: 1,
                         cupLeague: miniLeague, cupHome: playerTeam, cupAway: oppTeam,
                         isPlayerHome: true, isCup: true, isMini: true, miniRound: _miniRound,
-                        penalties, _calendarIndex: calendarIndexRef.current,
+                        penalties, _calendarIndex: useGameStore.getState().calendarIndex,
                       });
                       return;
                     }
@@ -4594,13 +4520,13 @@ function FootballManager() {
             }
 
             // Don't start if already at or past target
-            if (matchweekIndexRef.current >= targetMD) {
+            if (useGameStore.getState().matchweekIndex >= targetMD) {
               return;
             }
 
             // Set target and enable holiday mode
             holidayTargetRef.current = targetMD;
-            holidayStartMatchweekRef.current = matchweekIndexRef.current;
+            holidayStartMatchweekRef.current = useGameStore.getState().matchweekIndex;
             holidayWeeksWithoutMatchRef.current = 0;
             setIsOnHoliday(true);
             setInstantMatch(true); // Auto-enable instant match for fast simulation
@@ -4630,7 +4556,7 @@ function FootballManager() {
               };
 
               // Stop if target reached (matchweekIndex is number of completed matches)
-              if (matchweekIndexRef.current >= targetMD) {
+              if (useGameStore.getState().matchweekIndex >= targetMD) {
                 stopHoliday();
                 return;
               }
@@ -4643,13 +4569,13 @@ function FootballManager() {
               }
 
               // Stop if entered summer (season ended)
-              if (summerPhaseRef.current) {
+              if (useGameStore.getState().summerPhase) {
                 stopHoliday();
                 return;
               }
 
               // Only advance if not currently processing AND no pending squad changes
-              if (!useGameStore.getState().processing && !pendingSquadRef.current) {
+              if (!useGameStore.getState().processing && !useGameStore.getState().pendingSquad) {
                 // If a match is pending, trigger it with FRESH squad from ref (not stale state)
                 if (useGameStore.getState().matchPending) {
                   try {
@@ -4661,13 +4587,13 @@ function FootballManager() {
                   const currentBench = bench.filter(id => !exhaustedHolidayIds.has(id));
 
                   // Check if it's a cup, dynasty, or league match
-                  const calEntry = seasonCalendarRef.current?.[calendarIndexRef.current];
+                  const calEntry = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
                   const isCupMatch = calEntry?.type === "cup";
                   const isDynastyMatch = calEntry?.type === "dynasty";
 
                   if (isDynastyMatch) {
                     // === HOLIDAY: Dynasty Cup match ===
-                    const bracket = dynastyCupBracketRef.current;
+                    const bracket = useGameStore.getState().dynastyCupBracket;
                     if (bracket && !bracket.playerEliminated) {
                       const round = calEntry.round; // "sf" or "final"
                       let homeTeam, awayTeam;
@@ -4761,16 +4687,16 @@ function FootballManager() {
                       const dynOppName = (isPlayerHome ? awayTeam : homeTeam)?.name || "?";
                       setCalendarResults(prev => ({
                         ...prev,
-                        [calendarIndexRef.current]: { playerGoals: pGoals, oppGoals: oGoals, won: playerWon, draw: false, oppName: dynOppName, pens: penalties ? { homeScore: penalties.homeScore, awayScore: penalties.awayScore } : null }
+                        [useGameStore.getState().calendarIndex]: { playerGoals: pGoals, oppGoals: oGoals, won: playerWon, draw: false, oppName: dynOppName, pens: penalties ? { homeScore: penalties.homeScore, awayScore: penalties.awayScore } : null }
                       }));
                       // If player eliminated in SF, skip remaining dynasty entries
-                      let newCI = calendarIndexRef.current + 1;
+                      let newCI = useGameStore.getState().calendarIndex + 1;
                       if (!playerWon && round === "sf") {
-                        const cal = seasonCalendarRef.current || [];
+                        const cal = useGameStore.getState().seasonCalendar || [];
                         while (newCI < cal.length && cal[newCI]?.type === "dynasty") {
                           // Auto-sim AI final if it's the final entry
-                          if (cal[newCI].round === "final" && dynastyCupBracketRef.current) {
-                            const bk = dynastyCupBracketRef.current;
+                          if (cal[newCI].round === "final" && useGameStore.getState().dynastyCupBracket) {
+                            const bk = useGameStore.getState().dynastyCupBracket;
                             if (bk.final?.home && bk.final?.away) {
                               const finR = simulateMatch(bk.final.home, bk.final.away, null, null, true, 1, 0, null, 0, dynMod);
                               let finW = finR.homeGoals > finR.awayGoals ? bk.final.home : finR.awayGoals > finR.homeGoals ? bk.final.away : null;
@@ -4822,8 +4748,8 @@ function FootballManager() {
                       const homeT = isPlayerHome ? playerTeam : oppTeam;
                       const awayT = isPlayerHome ? oppTeam : playerTeam;
                       const cupOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, freshSquad, slotAssignments) : 1.0;
-                      const cup12thMan = (isPlayerHome && !isNeutral && twelfthManActiveRef.current) ? 0.15 : 0;
-                      const cupFanMod = isPlayerHome && !isNeutral ? (fanSentimentRef.current > 75 ? 0.03 : fanSentimentRef.current < 25 ? -0.03 : 0) : 0;
+                      const cup12thMan = (isPlayerHome && !isNeutral && useGameStore.getState().twelfthManActive) ? 0.15 : 0;
+                      const cupFanMod = isPlayerHome && !isNeutral ? (useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0) : 0;
                       const result = simulateMatch(homeT, awayT, currentXI, currentBench, isNeutral, cupOOPMult, cup12thMan, talismanIdRef.current, cupFanMod);
                       if (cup12thMan > 0) setTwelfthManActive(false);
                       let penalties = null;
@@ -4873,7 +4799,7 @@ function FootballManager() {
                         : cupPGoals > cupOGoals;
                       setCalendarResults(prev => ({
                         ...prev,
-                        [calendarIndexRef.current]: { playerGoals: cupPGoals, oppGoals: cupOGoals, won: cupWon, draw: false }
+                        [useGameStore.getState().calendarIndex]: { playerGoals: cupPGoals, oppGoals: cupOGoals, won: cupWon, draw: false }
                       }));
                       setCalendarIndex(prev => prev + 1);
 
@@ -4887,8 +4813,8 @@ function FootballManager() {
                         const _fanDelta = (cupWon
                           ? (_isCupFinal ? 15 : _holidayCupRound >= 2 ? 5 : 3)
                           : (_holidayCupRound <= 1 ? -5 : -2)) * _holCupFanMult;
-                        setFanSentiment(Math.max(0, Math.min(100, fanSentimentRef.current + _fanDelta)));
-                        setBoardSentiment(Math.max(0, Math.min(100, boardSentimentRef.current + (cupWon ? (_isCupFinal ? 10 : 3) : -4))));
+                        setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment + _fanDelta)));
+                        setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (cupWon ? (_isCupFinal ? 10 : 3) : -4))));
                       }
                       setClubHistory(prev => {
                         const h = { ...prev };
@@ -4913,7 +4839,7 @@ function FootballManager() {
                         return p;
                       }));
                       // Holiday testimonial cleanup after cup match
-                      const _holTestiCup = testimonialPlayerRef.current;
+                      const _holTestiCup = useGameStore.getState().testimonialPlayer;
                       if (_holTestiCup) {
                         const tid = _holTestiCup.id;
                         setSquad(prev => prev.filter(p => p.id !== tid));
@@ -4925,13 +4851,13 @@ function FootballManager() {
                     setMatchPending(false);
                   } else {
                     // League match - simulate with FRESH league from ref (not stale closure)
-                    const holidayCalEntry = seasonCalendarRef.current?.[calendarIndexRef.current];
+                    const holidayCalEntry = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
                     const capturedMWIdx = holidayCalEntry?.leagueMD;
                     const freshLeague = useGameStore.getState().league;
                     if (freshLeague && freshLeague.fixtures && capturedMWIdx != null && capturedMWIdx < freshLeague.fixtures.length) {
                       const updatedLeague = { ...freshLeague, table: freshLeague.table.map(r => ({ ...r })) };
-                      const league12thMan = twelfthManActiveRef.current ? 0.15 : 0;
-                      const leagueFanMod = fanSentimentRef.current > 75 ? 0.03 : fanSentimentRef.current < 25 ? -0.03 : 0;
+                      const league12thMan = useGameStore.getState().twelfthManActive ? 0.15 : 0;
+                      const leagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                       // Hangover: one random healthy starter gets -1 all attrs for the match
                       const holLeagueMod = getModifier(leagueTier);
                       let holHangoverPlayer = null;
@@ -5057,10 +4983,10 @@ function FootballManager() {
                           // Calendar result + advance index
                           setCalendarResults(prev => ({
                             ...prev,
-                            [calendarIndexRef.current]: { playerGoals: pGoals, oppGoals: oGoals, won: pWon, draw: isDraw }
+                            [useGameStore.getState().calendarIndex]: { playerGoals: pGoals, oppGoals: oGoals, won: pWon, draw: isDraw }
                           }));
-                          let newCI = calendarIndexRef.current + 1;
-                          const cal = seasonCalendarRef.current || [];
+                          let newCI = useGameStore.getState().calendarIndex + 1;
+                          const cal = useGameStore.getState().seasonCalendar || [];
                           while (newCI < cal.length && cal[newCI]?.type === "cup" && useGameStore.getState().cup?.playerEliminated) {
                             if (useGameStore.getState().cup && useGameStore.getState().cup.currentRound < useGameStore.getState().cup.rounds.length) {
                               const skipLookup = (name, tier) => (tier === leagueTier ? updatedLeague : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
@@ -5103,14 +5029,14 @@ function FootballManager() {
                           if (pGoals === 0) setConsecutiveScoreless(prev => prev + 1); else setConsecutiveScoreless(0);
                           // Fan & Board Sentiment (holiday league match)
                           { const _holFanMult = getModifier(leagueTier).fanSentimentMult || 1;
-                          setFanSentiment(Math.max(0, Math.min(100, fanSentimentRef.current +
+                          setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment +
                             ((pWon ? (pIsHome ? 5 : 6) : isDraw ? -1 : (pIsHome ? -8 : -5)) +
                             (pGoals >= 3 ? 2 : 0) + (oGoals === 0 ? 1 : 0)) * _holFanMult
                           ))); }
-                          setBoardSentiment(Math.max(0, Math.min(100, boardSentimentRef.current + (pWon ? 3 : isDraw ? 0 : -4))));
+                          setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (pWon ? 3 : isDraw ? 0 : -4))));
 
                           // Ultimatum tracking (Ironman) — use ref to avoid stale closure
-                          if (ultimatumActiveRef.current) {
+                          if (useGameStore.getState().ultimatumActive) {
                             updateUltimatumProgressRef.current?.(pWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
                           }
 
@@ -5221,7 +5147,7 @@ function FootballManager() {
                           }));
                         }
                         // Holiday testimonial cleanup after league match
-                        const _holTestiLeague = testimonialPlayerRef.current;
+                        const _holTestiLeague = useGameStore.getState().testimonialPlayer;
                         if (_holTestiLeague) {
                           const tid = _holTestiLeague.id;
                           setSquad(prev => prev.filter(p => p.id !== tid));
@@ -5491,9 +5417,9 @@ function FootballManager() {
       {/* Hidden PLAY MATCH button — keeps full match logic, triggered by header pill via ref */}
       {matchPending && (
           (() => {
-            const calEntry = seasonCalendarRef.current?.[calendarIndexRef.current];
+            const calEntry = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
             const isCupMatch = calEntry?.type === "cup" && useGameStore.getState().cup?.pendingPlayerMatch && !useGameStore.getState().cup.playerEliminated;
-            const isDynastyMatch = calEntry?.type === "dynasty" && dynastyCupBracketRef.current && !dynastyCupBracketRef.current.playerEliminated;
+            const isDynastyMatch = calEntry?.type === "dynasty" && useGameStore.getState().dynastyCupBracket && !useGameStore.getState().dynastyCupBracket.playerEliminated;
             const cupRoundName = isCupMatch ? (useGameStore.getState().cup.rounds[useGameStore.getState().cup.currentRound]?.name || "Cup Match") : "";
             return (
           <button
@@ -5533,8 +5459,8 @@ function FootballManager() {
                 const homeT = isPlayerHome ? playerTeam : oppTeam;
                 const awayT = isPlayerHome ? oppTeam : playerTeam;
                 const cupOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, squad, slotAssignments) : 1.0;
-                const cup12thMan2 = (isPlayerHome && !isNeutral && twelfthManActiveRef.current) ? 0.15 : 0;
-                const cup2FanMod = isPlayerHome && !isNeutral ? (fanSentimentRef.current > 75 ? 0.03 : fanSentimentRef.current < 25 ? -0.03 : 0) : 0;
+                const cup12thMan2 = (isPlayerHome && !isNeutral && useGameStore.getState().twelfthManActive) ? 0.15 : 0;
+                const cup2FanMod = isPlayerHome && !isNeutral ? (useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0) : 0;
                 const result = simulateMatch(homeT, awayT, currentXI, currentBench, isNeutral, cupOOPMult, cup12thMan2, talismanIdRef.current, cup2FanMod);
                 if (cup12thMan2 > 0) setTwelfthManActive(false);
                 let penalties = null;
@@ -5556,11 +5482,11 @@ function FootballManager() {
                   isPlayerHome,
                   isCup: true,
                   penalties,
-                  _calendarIndex: calendarIndexRef.current,
+                  _calendarIndex: useGameStore.getState().calendarIndex,
                 });
               } else if (isDynastyMatch) {
                 // === DYNASTY CUP MATCH ===
-                const bracket = dynastyCupBracketRef.current;
+                const bracket = useGameStore.getState().dynastyCupBracket;
                 const round = calEntry.round; // "sf" or "final"
                 let homeTeam, awayTeam;
                 if (round === "sf") {
@@ -5599,19 +5525,19 @@ function FootballManager() {
                   isDynasty: true,
                   dynastyRound: round,
                   penalties,
-                  _calendarIndex: calendarIndexRef.current,
+                  _calendarIndex: useGameStore.getState().calendarIndex,
                 });
               } else {
                 // === LEAGUE MATCH ===
-                const capturedCalIdx = calendarIndexRef.current;
+                const capturedCalIdx = useGameStore.getState().calendarIndex;
                 const capturedMWIdx = calEntry?.leagueMD;
                 if (!league || capturedMWIdx == null || capturedMWIdx >= league.fixtures.length) {
                   setProcessing(false);
                   return;
                 }
                 const updatedLeague = { ...league, table: league.table.map(r => ({ ...r })) };
-                const normalLeague12thMan = twelfthManActiveRef.current ? 0.15 : 0;
-                const normalLeagueFanMod = fanSentimentRef.current > 75 ? 0.03 : fanSentimentRef.current < 25 ? -0.03 : 0;
+                const normalLeague12thMan = useGameStore.getState().twelfthManActive ? 0.15 : 0;
+                const normalLeagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                 // Hangover: one random healthy starter gets -1 all attrs for the match
                 const leagueMod = getModifier(leagueTier);
                 let hangoverPlayer = null;
@@ -5655,7 +5581,7 @@ function FootballManager() {
                   );
                   // Defer league table update until match result screen is dismissed
                   // so the Dashboard mini-table doesn't spoil the result
-                  if (playerMatch && !isOnHolidayRef.current) {
+                  if (playerMatch && !useGameStore.getState().isOnHoliday) {
                     pendingLeagueRef.current = updatedLeague;
                   } else {
                     setLeague(updatedLeague);
@@ -7134,7 +7060,7 @@ function FootballManager() {
 
             // === ASSISTANT MANAGER: TRAINING NUDGE (Matchday 5, no training assigned) ===
             try {
-              const mwPlayed = matchweekIndexRef.current;
+              const mwPlayed = useGameStore.getState().matchweekIndex;
               const noTrainingAssigned = (appliedSquad || squad).every(p => !p.training);
               const alreadySent = inboxMessages.some(m => m.id === "msg_asst_mgr_training_nudge");
               const introDeclined = inboxMessages.some(m => m.id === "msg_asst_mgr_training_intro" && m.choiceResult === "manual");
@@ -7232,9 +7158,9 @@ function FootballManager() {
             setProcessing(false);
 
             // If the upcoming calendar entry is a cup match, prepare the cup round
-            if (seasonCalendarRef.current && useGameStore.getState().cup) {
-              const ci = calendarIndexRef.current;
-              const entry = seasonCalendarRef.current[ci];
+            if (useGameStore.getState().seasonCalendar && useGameStore.getState().cup) {
+              const ci = useGameStore.getState().calendarIndex;
+              const entry = useGameStore.getState().seasonCalendar[ci];
               if (entry?.type === "cup") {
                 const cupLookup = (name, tier) => (tier === leagueTier ? league : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
                 if (useGameStore.getState().cup.playerEliminated) {
@@ -7267,10 +7193,10 @@ function FootballManager() {
 
             // Mini-Tournament: handle mini entry for non-participants
             {
-              const ci2m = calendarIndexRef.current;
-              const entry2m = seasonCalendarRef.current?.[ci2m];
+              const ci2m = useGameStore.getState().calendarIndex;
+              const entry2m = useGameStore.getState().seasonCalendar?.[ci2m];
               if (entry2m?.type === "mini") {
-                const mBkt = miniTournamentBracketRef.current;
+                const mBkt = useGameStore.getState().miniTournamentBracket;
                 const shouldSkipM = !mBkt || mBkt.playerEliminated;
                 if (shouldSkipM) {
                   const mMod2 = getModifier(leagueTier);
@@ -7287,7 +7213,7 @@ function FootballManager() {
                         playerSF: 0, playerEliminated: true, winner: null, fiveASide: true,
                       });
                     }
-                    const mbk = miniTournamentBracketRef.current;
+                    const mbk = useGameStore.getState().miniTournamentBracket;
                     if (mbk) {
                       const mr1 = simulateMatch(mbk.sf1.home, mbk.sf1.away, null, null, true, 1, 0, null, 0, mMod2);
                       const mr2 = simulateMatch(mbk.sf2.home, mbk.sf2.away, null, null, true, 1, 0, null, 0, mMod2);
@@ -7305,7 +7231,7 @@ function FootballManager() {
                     }
                     setCalendarResults(prev => ({ ...prev, [ci2m]: { spectator: true, label: "Mini SF Leg 1" } }));
                   } else if (entry2m.round === "sf_leg2") {
-                    const mbk = miniTournamentBracketRef.current;
+                    const mbk = useGameStore.getState().miniTournamentBracket;
                     if (mbk?.sf1?.leg1 && !mbk.sf1.winner) {
                       const mr1 = simulateMatch(mbk.sf1.away, mbk.sf1.home, null, null, true, 1, 0, null, 0, mMod2);
                       const mr2 = simulateMatch(mbk.sf2.away, mbk.sf2.home, null, null, true, 1, 0, null, 0, mMod2);
@@ -7332,7 +7258,7 @@ function FootballManager() {
                     }
                     setCalendarResults(prev => ({ ...prev, [ci2m]: { spectator: true, label: "Mini SF Leg 2" } }));
                   } else if (entry2m.round === "final") {
-                    const mbk = miniTournamentBracketRef.current;
+                    const mbk = useGameStore.getState().miniTournamentBracket;
                     if (mbk?.final?.home && mbk?.final?.away && !mbk.final.result) {
                       const mfR = simulateMatch(mbk.final.home, mbk.final.away, null, null, true, 1, 0, null, 0, mMod2);
                       let mfW = mfR.homeGoals > mfR.awayGoals ? mbk.final.home : mfR.awayGoals > mfR.homeGoals ? mbk.final.away : null;
@@ -7355,10 +7281,10 @@ function FootballManager() {
             // Dynasty Cup: handle dynasty entry for non-participants
             // (sim AI match in background, advance calendar — player just gets a training week)
             {
-              const ci2 = calendarIndexRef.current;
-              const entry2 = seasonCalendarRef.current?.[ci2];
+              const ci2 = useGameStore.getState().calendarIndex;
+              const entry2 = useGameStore.getState().seasonCalendar?.[ci2];
               if (entry2?.type === "dynasty") {
-                const bracket = dynastyCupBracketRef.current;
+                const bracket = useGameStore.getState().dynastyCupBracket;
                 const shouldSkip = !bracket || bracket.playerEliminated;
                 if (shouldSkip) {
                   const dMod = getModifier(leagueTier);
@@ -7388,7 +7314,7 @@ function FootballManager() {
                     }
                     setCalendarResults(prev => ({ ...prev, [ci2]: { spectator: true, label: "Dynasty Cup Semi-Finals" } }));
                   } else if (entry2.round === "final") {
-                    const bk = dynastyCupBracketRef.current;
+                    const bk = useGameStore.getState().dynastyCupBracket;
                     if (bk?.final?.home && bk?.final?.away && !bk.final.result) {
                       const finR = simulateMatch(bk.final.home, bk.final.away, null, null, true, 1, 0, null, 0, dMod);
                       let finW = finR.homeGoals > finR.awayGoals ? bk.final.home : finR.awayGoals > finR.homeGoals ? bk.final.away : null;
@@ -7410,17 +7336,17 @@ function FootballManager() {
 
             // Only set matchPending during active season (not summer break, not past calendar end)
             if (!summerPhase) {
-              const _nextCal = seasonCalendarRef.current?.[calendarIndexRef.current];
+              const _nextCal = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
               if (!_nextCal) {
                 // Calendar exhausted — advanceWeek will handle season-end on next call
               } else if (_nextCal.type === "dynasty") {
-                const _dBracket = dynastyCupBracketRef.current;
+                const _dBracket = useGameStore.getState().dynastyCupBracket;
                 if (_dBracket && !_dBracket.playerEliminated) {
                   setMatchPending(true);
                 }
                 // Non-participant dynasty entries handled by advanceWeek
               } else if (_nextCal.type === "mini") {
-                const _mBracket = miniTournamentBracketRef.current;
+                const _mBracket = useGameStore.getState().miniTournamentBracket;
                 if (_mBracket && !_mBracket.playerEliminated) {
                   const _mRound = _nextCal.round;
                   const _playerInFinal = _mBracket.playerInFinal;
@@ -7444,16 +7370,16 @@ function FootballManager() {
                         color: "#fbbf24", read: false,
                       }]);
                     }
-                    setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "3rd Place Playoff" } }));
+                    setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "3rd Place Playoff" } }));
                     setCalendarIndex(prev => prev + 1);
                     // Now check if the next entry is the final (player's match)
-                    const _nextCal2 = seasonCalendarRef.current?.[calendarIndexRef.current + 1];
+                    const _nextCal2 = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex + 1];
                     if (_nextCal2?.type === "mini" && _nextCal2.round === "final") {
                       setMatchPending(true);
                     }
                   } else if (_mRound === "final" && _playerInFinal === false) {
                     // Player was in 3rd-place match, final already simmed — just advance
-                    setCalendarResults(prev => ({ ...prev, [calendarIndexRef.current]: { spectator: true, label: "Mini Final" } }));
+                    setCalendarResults(prev => ({ ...prev, [useGameStore.getState().calendarIndex]: { spectator: true, label: "Mini Final" } }));
                     setCalendarIndex(prev => prev + 1);
                   } else {
                     setMatchPending(true);
@@ -7578,13 +7504,13 @@ function FootballManager() {
            const playerLost = oppGoals > playerGoals;
 
            // Store result in calendar and advance index
-           const calIdx = matchResult._calendarIndex != null ? matchResult._calendarIndex : calendarIndexRef.current;
+           const calIdx = matchResult._calendarIndex != null ? matchResult._calendarIndex : useGameStore.getState().calendarIndex;
            setCalendarResults(prev => ({
              ...prev,
              [calIdx]: { playerGoals, oppGoals, won: playerWon, draw: isDraw }
            }));
            let newCalIdx = calIdx + 1;
-           const cal = seasonCalendarRef.current || [];
+           const cal = useGameStore.getState().seasonCalendar || [];
            while (newCalIdx < cal.length && cal[newCalIdx]?.type === "cup" && useGameStore.getState().cup?.playerEliminated) {
              if (useGameStore.getState().cup && useGameStore.getState().cup.currentRound < useGameStore.getState().cup.rounds.length) {
                const skipLookup = (name, tier) => (tier === leagueTier ? league : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
@@ -7619,7 +7545,7 @@ function FootballManager() {
              let newTier = swapResult.playerNewTier;
              // Safety: promote if eligible — tournament tiers use tournament results
              const _mod = getModifier(currentTier);
-             const _mBkt = miniTournamentBracketRef.current;
+             const _mBkt = useGameStore.getState().miniTournamentBracket;
              if (_mod.miniTournament && currentTier > 1 && _mBkt) {
                const _dRU = _mBkt.runnerUp || (_mBkt.winner && _mBkt.final?.home && _mBkt.final?.away ? (_mBkt.winner.name === _mBkt.final.home.name ? _mBkt.final.away : _mBkt.final.home) : null);
                const _promoted = _mBkt.winner?.isPlayer || _dRU?.isPlayer || (_mBkt.thirdPlaceWinner || _mBkt.thirdPlace?.winner)?.isPlayer;
@@ -7640,7 +7566,7 @@ function FootballManager() {
                playerSeasonStats, beatenTeams, unlockedAchievements, clubHistory,
                wonCupThisSeason: unlockedAchievements.has("cup_winner"),
                squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
-               dynastyCupBracket: dynastyCupBracketRef.current, cup: useGameStore.getState().cup,
+               dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
              }, BGM.getCurrentTrackId());
              if (newSeasonUnlocks.length > 0) {
                setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
@@ -7654,9 +7580,9 @@ function FootballManager() {
              }
              setLastSeasonMove(moveType);
              // Season-end sentiment swings
-             if (moveType === "promoted") { setFanSentiment(Math.min(100, fanSentimentRef.current + 20)); setBoardSentiment(Math.min(100, boardSentimentRef.current + 25)); }
-             if (moveType === "relegated") { setFanSentiment(Math.max(0, fanSentimentRef.current - 20)); setBoardSentiment(Math.max(0, boardSentimentRef.current - 25)); }
-             if (position === 1) { setFanSentiment(Math.min(100, fanSentimentRef.current + 10)); setBoardSentiment(Math.min(100, boardSentimentRef.current + 10)); }
+             if (moveType === "promoted") { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
+             if (moveType === "relegated") { setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
+             if (position === 1) { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 10)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10)); }
              setSummerData({ moveType, fromTier: currentTier, toTier: newTier, position, leagueName: league.leagueName || LEAGUE_DEFS[currentTier].name, newLeagueName: LEAGUE_DEFS[newTier].name, newRosters: swapResult.rosters, isInvincible: position === 1 && playerRow?.lost === 0 });
              setSummerPhase("summary");
 
@@ -7816,7 +7742,7 @@ function FootballManager() {
               usedTicketTypes, formationsWonWith: playerWon ? new Set([...formationsWonWith, formation.map(s => s.pos).join("-")]) : formationsWonWith,
               freeAgentSignings, scoutedPlayers, transferFocus, clubRelationships,
               isOnHoliday, holidayMatchesThisSeason,
-              testimonialPlayer: testimonialPlayerRef.current,
+              testimonialPlayer: useGameStore.getState().testimonialPlayer,
               seasonNumber, lastSeasonPosition: clubHistory?.seasonArchive?.length > 0 ? clubHistory.seasonArchive[clubHistory.seasonArchive.length - 1].position : null,
               shortlist, wasAlwaysNormal: !!wasAlwaysNormal,
               fastMatchesThisSeason: fastMatchesThisSeason + (wasAlwaysFast ? 1 : 0),
@@ -7879,11 +7805,11 @@ function FootballManager() {
             const fanMatchMod = getModifier(leagueTier);
             const fanMatchDelta = ((playerWon ? (isHome ? 5 : 6) : isDraw ? -1 : (isHome ? -8 : -5)) +
               (playerGoals >= 3 ? 2 : 0) + (oppGoals === 0 ? 1 : 0)) * (fanMatchMod.fanSentimentMult || 1);
-            setFanSentiment(Math.max(0, Math.min(100, fanSentimentRef.current + fanMatchDelta)));
+            setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment + fanMatchDelta)));
             const boardDeltaMatch = playerWon ? 3 : isDraw ? 0 : -4;
             const scrutinyMod = fanMatchMod;
             const boardChange = boardDeltaMatch < 0 ? boardDeltaMatch * (scrutinyMod.boardScrutinyMult || 1) : boardDeltaMatch;
-            setBoardSentiment(Math.max(0, Math.min(100, boardSentimentRef.current + boardChange)));
+            setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + boardChange)));
             // Intergalactic Elite: AI prediction check — correct prediction steals 3 pts
             if (aiPredictionRef.current && fanMatchMod.prediction) {
               const pred = aiPredictionRef.current;
@@ -7931,7 +7857,7 @@ function FootballManager() {
               aiPredictionRef.current = null;
             }
             // Ultimatum tracking (Ironman)
-            if (ultimatumActiveRef.current) {
+            if (useGameStore.getState().ultimatumActive) {
               updateUltimatumProgress(playerWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
             }
             if (!isHome && playerWon) setSeasonAwayWins(prev => prev + 1);
@@ -8420,14 +8346,14 @@ function FootballManager() {
              console.error("Match onDone error:", err, err.stack);
            } finally {
             // Testimonial cleanup: remove temp player after any match
-            const testimonialP = testimonialPlayerRef.current;
+            const testimonialP = useGameStore.getState().testimonialPlayer;
             if (testimonialP) {
               const tid = testimonialP.id;
               setSquad(prev => prev.filter(p => p.id !== tid));
               setStartingXI(prev => prev.filter(id => id !== tid));
               setBench(prev => prev.filter(id => id !== tid));
               setInboxMessages(prev => [...prev, {
-                id: `msg_testimonial_done_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+                id: `msg_testimonial_done_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
                 icon: "🎩", title: `${testimonialP.name}: Standing Ovation`,
                 body: `The crowd gave ${testimonialP.name} a standing ovation as he walked off the pitch for the final time. Eyes glistening, he applauded every corner of the ground. A fitting farewell.`,
                 color: "#f472b6", read: false,
@@ -8489,7 +8415,7 @@ function FootballManager() {
 
               if (round === "sf") {
                 // Record player's SF result and auto-sim the other SF
-                const bracket = dynastyCupBracketRef.current;
+                const bracket = useGameStore.getState().dynastyCupBracket;
                 const otherSF = bracket.playerSF === 1 ? bracket.sf2 : bracket.sf1;
                 const mod = getModifier(leagueTier);
                 const otherResult = simulateMatch(otherSF.home, otherSF.away, null, null, true, 1, 0, null, 0, mod);
@@ -8570,7 +8496,7 @@ function FootballManager() {
 
               if (mRound === "sf_leg1") {
                 // Record leg 1 result
-                const sfKey = miniTournamentBracketRef.current.playerSF === 1 ? "sf1" : "sf2";
+                const sfKey = useGameStore.getState().miniTournamentBracket.playerSF === 1 ? "sf1" : "sf2";
                 setMiniTournamentBracket(prev => ({
                   ...prev,
                   [sfKey]: { ...prev[sfKey], leg1: { homeGoals: mhg, awayGoals: mag } },
@@ -8578,7 +8504,7 @@ function FootballManager() {
                 setCalendarResults(prev => ({ ...prev, [cupMatchResult._calendarIndex]: { playerGoals: mhg, oppGoals: mag, won: mhg > mag, draw: mhg === mag, oppName: (cupMatchResult.cupAway || cupMatchResult.cupHome)?.name || "?" } }));
               } else if (mRound === "sf_leg2") {
                 // Determine aggregate winner
-                const bracket = miniTournamentBracketRef.current;
+                const bracket = useGameStore.getState().miniTournamentBracket;
                 const sfKey = bracket.playerSF === 1 ? "sf1" : "sf2";
                 const leg1 = bracket[sfKey].leg1;
                 // Player is always simulated as home in both legs, so homeGoals = player's goals
@@ -8658,7 +8584,7 @@ function FootballManager() {
                   playerEliminated: !playerWon3rd && !prev.playerInFinal,
                 }));
                 // Sim the final if player is NOT in the final (AI vs AI)
-                const bracket = miniTournamentBracketRef.current;
+                const bracket = useGameStore.getState().miniTournamentBracket;
                 if (!bracket.playerInFinal && bracket.final?.home && bracket.final?.away) {
                   const mMod = getModifier(leagueTier);
                   const finR = simulateMatch(bracket.final.home, bracket.final.away, null, null, true, 1, 0, null, 0, mMod);
@@ -8698,7 +8624,7 @@ function FootballManager() {
                   runnerUp: finalLoser,
                 }));
                 // Sim 3rd-place playoff if player was in the final (AI vs AI 3rd place)
-                const bracket = miniTournamentBracketRef.current;
+                const bracket = useGameStore.getState().miniTournamentBracket;
                 if (bracket.thirdPlace && !bracket.thirdPlace.winner) {
                   const mMod = getModifier(leagueTier);
                   const tpR = simulateMatch(bracket.thirdPlace.home, bracket.thirdPlace.away, null, null, true, 1, 0, null, 0, mMod);
@@ -8785,8 +8711,8 @@ function FootballManager() {
               const _fanCupDelta = (winner.isPlayer
                 ? (isFinal ? 15 : cupRoundIdx >= 2 ? 5 : 3)
                 : (cupRoundIdx <= 1 ? -5 : -2)) * _cupFanMult;
-              setFanSentiment(Math.max(0, Math.min(100, fanSentimentRef.current + _fanCupDelta)));
-              setBoardSentiment(Math.max(0, Math.min(100, boardSentimentRef.current + (winner.isPlayer ? (isFinal ? 10 : 3) : -4))));
+              setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment + _fanCupDelta)));
+              setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (winner.isPlayer ? (isFinal ? 10 : 3) : -4))));
             }
 
             // Super Sub — works in cup too
@@ -8948,7 +8874,7 @@ function FootballManager() {
                 usedTicketTypes, formationsWonWith: cupPlayerWon ? new Set([...formationsWonWith, formation.map(s => s.pos).join("-")]) : formationsWonWith,
                 freeAgentSignings, scoutedPlayers, transferFocus, clubRelationships,
                 isOnHoliday, holidayMatchesThisSeason,
-                testimonialPlayer: testimonialPlayerRef.current,
+                testimonialPlayer: useGameStore.getState().testimonialPlayer,
                 seasonNumber, lastSeasonPosition: clubHistory?.seasonArchive?.length > 0 ? clubHistory.seasonArchive[clubHistory.seasonArchive.length - 1].position : null,
                 shortlist, wasAlwaysNormal: !!cupWasAlwaysNormal,
                 fastMatchesThisSeason: fastMatchesThisSeason + (cupWasAlwaysFast ? 1 : 0),
@@ -8990,7 +8916,7 @@ function FootballManager() {
             }
 
             // Store cup result in calendar results
-            const cupCalIdx = cupMatchResult._calendarIndex != null ? cupMatchResult._calendarIndex : calendarIndexRef.current;
+            const cupCalIdx = cupMatchResult._calendarIndex != null ? cupMatchResult._calendarIndex : useGameStore.getState().calendarIndex;
             const pGoals = cupMatchResult.isPlayerHome ? hg : ag;
             const oGoals = cupMatchResult.isPlayerHome ? ag : hg;
             setCalendarResults(prev => ({
@@ -8999,7 +8925,7 @@ function FootballManager() {
             }));
             let newCupCalIdx = cupCalIdx + 1;
             // Auto-skip trailing cup entries if player just got eliminated
-            const cal2 = seasonCalendarRef.current || [];
+            const cal2 = useGameStore.getState().seasonCalendar || [];
             const justEliminated = !winner.isPlayer;
             while (newCupCalIdx < cal2.length && cal2[newCupCalIdx]?.type === "cup" && (justEliminated || useGameStore.getState().cup?.playerEliminated)) {
               newCupCalIdx++;
@@ -9015,7 +8941,7 @@ function FootballManager() {
               let newTier = swapResult.playerNewTier;
               // Safety: promote if eligible — tournament tiers use tournament results
               const _mod3 = getModifier(currentTier);
-              const _mBkt3 = miniTournamentBracketRef.current;
+              const _mBkt3 = useGameStore.getState().miniTournamentBracket;
               if (_mod3.miniTournament && currentTier > 1 && _mBkt3) {
                 const _dRU3 = _mBkt3.runnerUp || (_mBkt3.winner && _mBkt3.final?.home && _mBkt3.final?.away ? (_mBkt3.winner.name === _mBkt3.final.home.name ? _mBkt3.final.away : _mBkt3.final.home) : null);
                 const _promoted3 = _mBkt3.winner?.isPlayer || _dRU3?.isPlayer || (_mBkt3.thirdPlaceWinner || _mBkt3.thirdPlace?.winner)?.isPlayer;
@@ -9038,7 +8964,7 @@ function FootballManager() {
                 playerSeasonStats, beatenTeams, unlockedAchievements, clubHistory,
                 wonCupThisSeason: unlockedAchievements.has("cup_winner") || cupAchs.includes("cup_winner"),
                 squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
-                dynastyCupBracket: dynastyCupBracketRef.current, cup: useGameStore.getState().cup,
+                dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });
@@ -9052,9 +8978,9 @@ function FootballManager() {
               }
               setLastSeasonMove(moveType);
               // Season-end sentiment swings (cup path)
-              if (moveType === "promoted") { setFanSentiment(Math.min(100, fanSentimentRef.current + 20)); setBoardSentiment(Math.min(100, boardSentimentRef.current + 25)); }
-              if (moveType === "relegated") { setFanSentiment(Math.max(0, fanSentimentRef.current - 20)); setBoardSentiment(Math.max(0, boardSentimentRef.current - 25)); }
-              if (position === 1) { setFanSentiment(Math.min(100, fanSentimentRef.current + 10)); setBoardSentiment(Math.min(100, boardSentimentRef.current + 10)); }
+              if (moveType === "promoted") { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
+              if (moveType === "relegated") { setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
+              if (position === 1) { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 10)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10)); }
 
               const cupPathPlayerRow = league?.table?.find(r => league.teams[r.teamIndex]?.isPlayer);
               setSummerData({
@@ -9171,14 +9097,14 @@ function FootballManager() {
             } catch(err) { console.error("Prodigal cup tracking error:", err); }
 
             // Testimonial cleanup: remove temp player after cup match
-            const testimonialP2 = testimonialPlayerRef.current;
+            const testimonialP2 = useGameStore.getState().testimonialPlayer;
             if (testimonialP2) {
               const tid = testimonialP2.id;
               setSquad(prev => prev.filter(p => p.id !== tid));
               setStartingXI(prev => prev.filter(id => id !== tid));
               setBench(prev => prev.filter(id => id !== tid));
               setInboxMessages(prev => [...prev, {
-                id: `msg_testimonial_done_cup_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+                id: `msg_testimonial_done_cup_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
                 icon: "🎩", title: `${testimonialP2.name}: Standing Ovation`,
                 body: `The crowd gave ${testimonialP2.name} a standing ovation as he walked off the pitch for the final time. Eyes glistening, he applauded every corner of the ground. A fitting farewell.`,
                 color: "#f472b6", read: false,
@@ -9187,14 +9113,14 @@ function FootballManager() {
             }
 
             // Cup-pending sacking resolution (Ironman)
-            if (ultimatumCupPendingRef.current && gameModeRef.current === "ironman") {
+            if (useGameStore.getState().ultimatumCupPending && useGameStore.getState().gameMode === "ironman") {
               setUltimatumCupPending(false);
               if (isFinal && winner.isPlayer) {
                 // Won the cup final — reprieve!
                 setBoardWarnCount(0);
-                setBoardSentiment(Math.max(50, boardSentimentRef.current));
+                setBoardSentiment(Math.max(50, useGameStore.getState().boardSentiment));
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_cup_reprieve_${Date.now()}`, week: calendarIndexRef.current + 1, season: seasonNumber,
+                  id: `msg_cup_reprieve_${Date.now()}`, week: useGameStore.getState().calendarIndex + 1, season: seasonNumber,
                   icon: "🏆", color: "#4ade80", title: "Board Reprieve",
                   body: "Fan reaction to your cup run has given the board cause to reconsider. Your job is safe — for now.",
                   read: false,
@@ -9227,7 +9153,7 @@ function FootballManager() {
           isInvincible: summerData.isInvincible,
           prestigeLevel,
           miniTournamentFinish: (() => {
-            const mb = miniTournamentBracketRef.current;
+            const mb = useGameStore.getState().miniTournamentBracket;
             if (!mb || !getModifier(summerData.fromTier).miniTournament) return null;
             if (mb.winner?.isPlayer) return "winner";
             const ru = mb.runnerUp || (mb.winner && mb.final?.home && mb.final?.away ? (mb.winner.name === mb.final.home.name ? mb.final.away : mb.final.home) : null);
@@ -9285,8 +9211,8 @@ function FootballManager() {
             return; // Skip youth intake — resetting everything via prestige
           }
 
-          const candidates = generateYouthIntake(retiringPlayers, squad, youthCoupActiveRef.current, ovrCap);
-          if (youthCoupActiveRef.current) setYouthCoupActive(false);
+          const candidates = generateYouthIntake(retiringPlayers, squad, useGameStore.getState().youthCoupActive, ovrCap);
+          if (useGameStore.getState().youthCoupActive) setYouthCoupActive(false);
           // Story arc: youth stat boost
           const youthBoost = storyArcs?.bonuses?.youthStatBoost || 0;
           if (youthBoost > 0) {
@@ -9421,8 +9347,8 @@ function FootballManager() {
             setPlayerRatingTracker({});
             setMotmTracker({});
             // Sentiment partial carry-over on prestige reset
-            setFanSentiment(Math.round(fanSentimentRef.current * 0.5 + 25));
-            setBoardSentiment(Math.round(boardSentimentRef.current * 0.5 + 25));
+            setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
+            setBoardSentiment(Math.round(useGameStore.getState().boardSentiment * 0.5 + 25));
             // League modifier intro message for new tier
             const prestigeMod = getModifier(NUM_TIERS);
             if (prestigeMod.inboxIntro) {
@@ -9989,8 +9915,8 @@ function FootballManager() {
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));
               setBeatenTeams(new Set());
               // Sentiment partial carry-over: ×0.5 + 25 (100→75, 50→50, 0→25)
-              setFanSentiment(Math.round(fanSentimentRef.current * 0.5 + 25));
-              setBoardSentiment(Math.round(boardSentimentRef.current * 0.5 + 25));
+              setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
+              setBoardSentiment(Math.round(useGameStore.getState().boardSentiment * 0.5 + 25));
               setHalfwayPosition(null);
               setPlayerInjuryCount({});
               setSeasonInjuryLog({});

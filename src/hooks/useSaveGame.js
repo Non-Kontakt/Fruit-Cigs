@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { getSaveKey } from "../utils/profile.js";
+import { useGameStore } from "../store/gameStore.js";
 
 /**
  * useSaveGame — extracts exportSave, importSave, and deleteSave callbacks.
@@ -7,14 +8,12 @@ import { getSaveKey } from "../utils/profile.js";
  * @param {Object} config
  * @param {string} config.teamName
  * @param {number|null} config.activeSaveSlot
- * @param {React.MutableRefObject} config.activeProfileIdRef
  * @param {Function} config.setImportStatus
  * @param {Function} config.setSaveSlotSummaries
  */
 export function useSaveGame({
   teamName,
   activeSaveSlot,
-  activeProfileIdRef,
   setImportStatus,
   setSaveSlotSummaries,
 }) {
@@ -68,9 +67,9 @@ export function useSaveGame({
   // Delete saved game
   const deleteSave = useCallback(async (slotOverride) => {
     const slot = slotOverride || activeSaveSlot;
-    if (!slot || !activeProfileIdRef.current) return;
+    if (!slot || !useGameStore.getState().activeProfileId) return;
     try {
-      await window.storage.delete(getSaveKey(activeProfileIdRef.current, slot));
+      await window.storage.delete(getSaveKey(useGameStore.getState().activeProfileId, slot));
       setSaveSlotSummaries(prev => {
         const next = [...prev];
         next[slot - 1] = null;

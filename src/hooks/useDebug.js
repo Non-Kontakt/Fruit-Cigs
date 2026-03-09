@@ -11,7 +11,6 @@ export function useDebug({
   setLeague, setLeagueTier, setCup, setAllLeagueStates, setSeasonCalendar,
   setCalendarIndex, setCalendarResults, setLeagueResults,
   setMatchPending, setSummerPhase, setSummerData, setMatchResult, setCupMatchResult,
-  seasonCalendarRef,
 }) {
 
   const onDebugJumpTier = useCallback((tier) => {
@@ -97,7 +96,7 @@ export function useDebug({
     }
 
     // 3. Advance calendar to end, record all entries as player wins
-    const cal = seasonCalendarRef.current;
+    const cal = useGameStore.getState().seasonCalendar;
     if (cal) {
       setCalendarIndex(cal.length);
       const results = {};
