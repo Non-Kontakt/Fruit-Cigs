@@ -477,8 +477,8 @@ export function Dashboard({
                   </div>
                 )}
                 {msg.choiceResult && (
-                  <div style={{ fontSize: F.xs, color: msg.choiceResult === "accept" ? C.green : C.lightRed, marginTop: 4, fontStyle: "italic" }}>
-                    {msg.choiceResult === "accept" ? "Accepted" : "Declined"}
+                  <div style={{ fontSize: F.xs, color: msg.choiceResult === "accept" ? C.green : msg.choiceResult === "decline" ? C.lightRed : C.textMuted, marginTop: 4, fontStyle: "italic" }}>
+                    {msg.choiceResult === "accept" ? "Accepted" : msg.choiceResult === "decline" ? "Declined" : (msg.choices?.find(c => c.value === msg.choiceResult)?.label || "Chosen")}
                   </div>
                 )}
                 {msg.followUp && (
@@ -486,20 +486,21 @@ export function Dashboard({
                 )}
                 {msg.choices && !msg.choiceResult && (
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    {msg.choices.map(choice => (
-                      <button key={choice.value} onClick={() => {
+                    {msg.choices.map((choice, ci) => {
+                      const isAccept = choice.value === "accept" || choice.value === "decline" ? choice.value === "accept" : ci === 0;
+                      return <button key={choice.value} onClick={() => {
                         if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
                         if (setInboxMessages) {
                           setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
                         }
                       }} style={{
                         padding: "6px 10px", fontSize: F.xs, fontFamily: FONT,
-                        background: choice.value === "accept" ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.08)",
-                        border: `1px solid ${choice.value === "accept" ? C.green : C.red}`,
-                        color: choice.value === "accept" ? C.green : C.lightRed,
+                        background: isAccept ? "rgba(74,222,128,0.12)" : "rgba(148,163,184,0.08)",
+                        border: `1px solid ${isAccept ? C.green : C.textMuted}`,
+                        color: isAccept ? C.green : C.textMuted,
                         cursor: "pointer",
-                      }}>{choice.label}</button>
-                    ))}
+                      }}>{choice.label}</button>;
+                    })}
                   </div>
                 )}
               </div>

@@ -1353,11 +1353,11 @@ function FootballManager() {
       ]);
       // Asst Manager intro — training onboarding
       setInboxMessages(prev => [...prev, {
-        id: "msg_asst_mgr_training_intro", week: 2, season: 1,
+        id: "msg_asst_mgr_training_intro", week: 3, season: 1,
         icon: "📋", color: "#f59e0b",
         title: "Asst. Manager's Notes",
         body: "Boss, now that we've got a match under our belt, I wanted to have a word about training.\n\nEach week, your players can be assigned a training focus — shooting, defending, pace, the lot. It's how they improve over time. Without it, they'll stay exactly where they are.\n\nYou can set it up on the Squad page, or if you'd rather focus on tactics and transfers, I'm happy to put everyone on a general programme for now. Your call.",
-        read: false, type: "asst_mgr_training_intro", pendingUntilWeek: 2,
+        read: false, type: "asst_mgr_training_intro", pendingUntilWeek: 3,
         choices: [{ label: "You Handle It", value: "delegate" }, { label: "I'll Set It Up", value: "manual" }],
       }]);
       // League modifier intro message
