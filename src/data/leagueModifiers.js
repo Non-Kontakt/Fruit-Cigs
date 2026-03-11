@@ -101,7 +101,7 @@ export const LEAGUE_MODIFIERS = {
   },
   2: {
     id: "world_xi_invitational",
-    trainingDisabled: true,
+    trainingSpeedMult: 0.15,
     fanSentimentMult: 2.5,
     miniTournament: true,
     miniTournamentFixtures: 15,
@@ -109,7 +109,7 @@ export const LEAGUE_MODIFIERS = {
     inboxIntro: {
       icon: "🌐",
       title: "Welcome to the World XI Invitational",
-      body: "This is an exhibition league — normal training is suspended. Only Duo Boosts and story arc effects can improve your players.\n\nThe crowds are volatile. Fan sentiment swings hit 2.5x harder here.\n\nThe top 4 at season's end enter a 5v5 Mini-Tournament — two-leg semi-finals and a single-leg final. Pick your five wisely.",
+      body: "This is an exhibition league — training crawls at a fraction of its normal pace. Only Duo Boosts and story arc effects can improve your players.\n\nThe crowds are volatile. Fan sentiment swings hit 2.5x harder here.\n\nThe top 4 at season's end enter a 5v5 Mini-Tournament — two-leg semi-finals and a single-leg final. Pick your five wisely.",
     },
   },
   1: {
