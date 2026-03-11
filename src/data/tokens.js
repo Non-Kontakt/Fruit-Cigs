@@ -14,7 +14,6 @@ export const C = {
   slate: "#475569",
   gold: "#facc15",
   blue: "#60a5fa",
-  yellow: "#fbbf24",
   amber: "#fbbf24",
   lightRed: "#f87171",
   purple: "#c084fc",
