@@ -1929,8 +1929,10 @@ function FootballManager() {
         if (newFocus.weeksLeft <= 0) {
           const step = arc.steps[cs.step];
           const opt = step[newFocus.choice];
-          if (opt?.fx) {
-            next.bonuses = applyArcFx(opt.fx, squad, cs.tracking?.targetId, prodigalSon?.playerId, next.bonuses || {}, ovrCap).bonuses;
+          if (opt?.fx?.bonus) {
+            const nb = {...(next.bonuses || {})};
+            Object.entries(opt.fx.bonus).forEach(([k,v]) => { nb[k] = (nb[k]||0) + v; });
+            next.bonuses = nb;
           }
           next[cat] = {...cs, step: cs.step + 1, focus: null};
           if (!useGameStore.getState().isOnHoliday) {
