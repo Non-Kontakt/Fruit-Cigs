@@ -19,6 +19,7 @@ export function useSaveGame({
 }) {
   // Export save data as a JSON file download
   const exportSave = useCallback(async () => {
+    setImportStatus("loading");
     try {
       const result = await window.storage.get(getSaveKey(useGameStore.getState().activeProfileId, activeSaveSlot));
       if (!result) { setImportStatus("no-save"); setTimeout(() => setImportStatus(null), 2500); return; }
@@ -43,6 +44,7 @@ export function useSaveGame({
 
   // Import save from a JSON file
   const importSave = useCallback(async (file) => {
+    setImportStatus("loading");
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
