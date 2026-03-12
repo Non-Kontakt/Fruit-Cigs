@@ -4,6 +4,19 @@ All notable updates to Jumpers for Goalposts, written for players.
 
 ---
 
+## 12 March 2026
+
+### Bug Fixes
+
+- **Save button feedback fixed**: The Export and Import buttons in Boot Room now show the correct status — "EXPORTED ✓" / "IMPORTED ✓" on success, "INVALID FILE" / "NO SAVE" on errors, and a loading state while the operation runs. Previously they never changed because the code was checking for status values that didn't exist.
+
+### Under the Hood
+
+- Removed duplicate colour definitions from 4 standalone screens (Mode Select, Sacking, Museum, Profile Select) — all now pull from the shared token system
+- Save export/import operations now show a loading indicator while running
+
+---
+
 ## 11 March 2026
 
 ### Improvements
