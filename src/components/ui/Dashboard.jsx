@@ -219,11 +219,12 @@ export function Dashboard({
     return best;
   }, [playerRatingTracker]);
 
-  // Injury count
-  const injuredCount = useMemo(() => {
-    if (!squad) return 0;
-    return squad.filter(p => p.injury).length;
+  // Injured players (with name + weeksLeft for display)
+  const injuredPlayers = useMemo(() => {
+    if (!squad) return [];
+    return squad.filter(p => p.injury).map(p => ({ name: p.name, weeksLeft: p.injury.weeksLeft, injuryName: p.injury.name }));
   }, [squad]);
+  const injuredCount = injuredPlayers.length;
 
   // Golden Boot — top scorers across league
   const goldenBoot = useMemo(() => {
@@ -695,8 +696,13 @@ export function Dashboard({
               </div>
             ) : null}
             {injuredCount > 0 ? (
-              <div style={{ fontSize: F.xs, color: C.red, lineHeight: 2.2, padding: "3px 0" }}>
-                {injuredCount} player{injuredCount !== 1 ? "s" : ""} injured
+              <div style={{ fontSize: F.xs, color: C.red, padding: "3px 0" }}>
+                {injuredPlayers.map((p, i) => (
+                  <div key={i} style={{ lineHeight: 2.2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span onClick={() => onPlayerClick?.(p.name)} style={{ cursor: "pointer" }}>🏥 {p.name}</span>
+                    <span style={{ color: C.textMuted }}>{p.injuryName} ({p.weeksLeft}w)</span>
+                  </div>
+                ))}
               </div>
             ) : null}
             {!topScorer && !bestRated && injuredCount === 0 && (
