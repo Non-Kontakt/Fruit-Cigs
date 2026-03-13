@@ -6,7 +6,7 @@ import { NATIONALITIES, NATION_NAMES, FIRST_NAMES, LAST_NAMES } from "./data/nat
 import { CUP_ROUND_MATCHWEEKS, CUP_ROUND_NAMES, CUP_DEFS } from "./data/cups.js";
 import { TIER_WIN_ACHS, ACHIEVEMENTS, LEGENDARY_ACHIEVEMENTS, PRESTIGIOUS_ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achievements.js";
 import { LEAGUE_DEFS, NUM_TIERS, TEAM_TRAITS, AI_BENCH_POSITIONS } from "./data/leagues.js";
-import { ARC_CATS, ARC_CAT_LABELS, STORY_ARCS, ARC_NARRATIVES } from "./data/storyArcs.js";
+import { ARC_TICKET_POOL, ARC_CATS, ARC_CAT_LABELS, STORY_ARCS, ARC_NARRATIVES } from "./data/storyArcs.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
 import { TICKET_DEFS } from "./data/tickets.js";
 import { getModifier } from "./data/leagueModifiers.js";
@@ -2396,7 +2396,6 @@ function FootballManager() {
     let arcBoostGains = [];
     let cappedArcTickets = [];
     let juicedThisWeek = false;
-    const ARC_TICKET_POOL = ["double_session", "miracle_cream", "twelfth_man", "relation_boost", "transfer_insider", "youth_coup", "rewind", "random_attr"];
     ARC_CATS.forEach(cat => {
       const cs = arcSnap[cat];
       if (!cs || cs.completed || !cs.focus) return;
@@ -3292,7 +3291,6 @@ function FootballManager() {
     const newCompletedIds = [];
     const achievementsToUnlock = [];
 
-    const ARC_TICKET_POOL_SE = ["double_session", "miracle_cream", "twelfth_man", "relation_boost", "transfer_insider", "youth_coup", "rewind", "random_attr"];
     if (arcFx.pendingFinalRewards?.length) {
       for (const { arc, targetId, prodigalId } of arcFx.pendingFinalRewards) {
         if ((arcSnap.rewardsApplied || []).includes(arc.id)) continue;
@@ -3314,7 +3312,7 @@ function FootballManager() {
           Object.keys(p.attrs).forEach(k => { if ((p.attrs[k] || 0) > (pre[k] || 0)) gainCountSE++; });
         });
         if (intendedBoostSE && gainCountSE === 0) {
-          const shuffled = [...ARC_TICKET_POOL_SE].sort(() => Math.random() - 0.5);
+          const shuffled = [...ARC_TICKET_POOL].sort(() => Math.random() - 0.5);
           const pick = shuffled[0];
           setTickets(prev => [...prev, { id: `t_arc_se_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: pick }]);
         }
