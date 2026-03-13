@@ -1,3 +1,5 @@
+export const ARC_TICKET_POOL = ["double_session", "miracle_cream", "twelfth_man", "relation_boost", "transfer_insider", "youth_coup", "rewind", "random_attr"];
+
 export const ARC_CATS = ["player","club","legacy"];
 
 export const ARC_CAT_LABELS = { player:"🧑 PLAYER", club:"🏟️ CLUB", legacy:"⭐ LEGACY" };
