@@ -38,10 +38,10 @@ This guide is for AI agents working on this codebase. Follow these rules strictl
 
 ## Architecture
 
-- **`src/App.jsx`** (~5,300 lines) — the game root. This is the most sensitive file. Be extremely careful editing it.
-- **`src/components/`** — 24+ extracted components across subdirectories (match/, arcs/, boot/, cup/, club/, league/, player/, gains/, season/, achievements/, charts/, ui/, transfer/)
-- **`src/utils/`** — pure logic (match simulation, player generation, calculations, achievements, arcs, transfers)
-- **`src/data/`** — static data (leagues, formations, training, achievements, story arcs, tokens, nationalities)
+- **`src/App.jsx`** (~10,300 lines) — the game root. This is the most sensitive file. Be extremely careful editing it.
+- **`src/components/`** — 41 extracted components across 14 subdirectories (match/, arcs/, boot/, cup/, club/, league/, player/, gains/, season/, achievements/, charts/, ui/, transfer/)
+- **`src/utils/`** — pure logic (match.js, player.js, arcs.js, league.js, calc.js, formation.js, transfer.js, achievements.js, profile.js, sfx.js, messageUtils.js)
+- **`src/data/`** — static data (leagues.js, leagueModifiers.js, formations.js, training.js, achievements.js, storyArcs.js, tokens.js, nationalities.js, cups.js, positions.js, tickets.js)
 - **`src/hooks/`** — React hooks (useSettings, useSaveGame, useDebug, useTickets)
 
 ### Files ranked by risk (highest first)
