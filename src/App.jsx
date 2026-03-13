@@ -5354,6 +5354,17 @@ function FootballManager() {
         }}>
           <span style={{ fontSize: F.sm, color: "#fca5a5" }}>
             🏥 {injuryWarning} starter{injuryWarning > 1 ? "s" : ""} injured in training! Manage your squad before the match.
+            {(() => {
+              const injured = startingXI
+                .map(id => squad.find(p => p.id === id))
+                .filter(p => p && p.injury);
+              if (injured.length === 0) return null;
+              return (
+                <span style={{ display: "block", marginTop: 4, fontSize: F.xs, color: "#fca5a5" }}>
+                  {injured.map(p => `${p.name} (${p.injury.name}, ${p.injury.weeksLeft}w)`).join(" · ")}
+                </span>
+              );
+            })()}
           </span>
         </div>
       )}
