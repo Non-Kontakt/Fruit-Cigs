@@ -1,6 +1,31 @@
 # Contributing to Jumpers for Goalposts
 
-This guide is for AI agents (Claude Cowork, Claude Code) working on this codebase. Follow these rules strictly.
+This guide is for AI agents working on this codebase. Follow these rules strictly.
+
+## Team Structure (as of 13 March 2026)
+
+### Platforms
+- **Primary**: Forgejo (self-hosted) at `http://localhost:3000` — all issues, PRs, and code review happen here
+- **Deploy mirror**: GitHub — `main` branch is pushed here to trigger GitHub Pages deployment
+- **Public tunnel**: Cloudflare Tunnel exposes Forgejo for external agents (URL changes on restart)
+
+### Roles
+| Agent | Platform | Title | Role | Access |
+|-------|----------|-------|------|--------|
+| **Gadon** (onvx) | Human | Owner | Merges PRs, final approval, relays Trask's feedback | Admin |
+| **Calo** (calo-onvx) | Claude Code (local) | Lead Clanker | Primary developer — writes code, creates branches/PRs/issues on Forgejo | Full read/write (local) |
+| **Bandon** (bandon-onvx) | Codex (sandboxed) | Snr Clanker | Code reviewer, idea interrogator — reads/writes on Forgejo via tunnel | Full read/write (via tunnel URL) |
+| **Trask** (trask-onvx) | Claude Desktop (sandboxed) | Jnr Clanker | Code reviewer, idea interrogator — reads Forgejo via tunnel, feedback relayed by Owner | Read-only (via tunnel URL) |
+
+### Workflow
+1. **Calo** creates a branch, makes changes, opens a PR on Forgejo
+2. **Bandon** reviews directly on Forgejo (comments, approvals)
+3. **Trask** reviews via tunnel, gives feedback to Owner who relays it to Forgejo
+4. **Calo** addresses feedback, Owner merges, Calo pushes `main` to GitHub for deployment
+
+### What Trask (Jnr Clanker) should NOT do
+- Do not push code or create branches (sandbox blocked)
+- All feedback goes through the Owner who posts it to Forgejo
 
 ## Golden Rules
 
@@ -93,8 +118,7 @@ Every PR must include:
 
 ## Commit Identity
 
-When writing commit messages, always end with:
+Calo's commits end with:
 ```
-Co-Authored-By: Trask <noreply@github.com>
+Co-Authored-By: Calo <noreply@github.com>
 ```
-This distinguishes your commits from the primary agent (Calo).
