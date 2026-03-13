@@ -27,8 +27,9 @@ export function useSaveGame({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       const date = new Date().toISOString().slice(0, 10);
+      const safeName = (teamName || "backup").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       a.href = url;
-      a.download = `jfg-save-${teamName || "backup"}-slot${activeSaveSlot}-${date}.json`;
+      a.download = `jumpers-${safeName}-${date}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
