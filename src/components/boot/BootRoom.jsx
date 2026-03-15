@@ -308,6 +308,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                         padding: "14px 7px",
                         color: isCurrent ? C.text : isPlayed ? C.textDim : C.textMuted,
                         borderBottom: `1px solid ${borderColor}`, background: bgColor,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0,
                       }}>
                         {entry.type === "league" && <span style={{ color: isPlayed ? C.bgInput : C.green, marginRight: 7 }}>MD {entry.leagueMD + 1}</span>}
                         {isCup && <span style={{ color: isPlayed ? C.bgInput : C.amber, marginRight: 7 }}>{entry.cupRoundName}</span>}
@@ -1029,6 +1030,7 @@ function CalendarView({ calendar, calendarIndex, league, cup, calendarResults, o
                   padding: "12px 6px",
                   color: isCurrent ? C.text : isPlayed ? C.textDim : C.textMuted,
                   borderBottom: `1px solid ${borderColor}`, background: bgColor,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0,
                 }}>
                   {entry.type === "league" && <span style={{ color: isPlayed ? C.bgInput : C.green, marginRight: 7 }}>MD {entry.leagueMD + 1}</span>}
                   {isCup && <span style={{ color: isPlayed ? C.bgInput : C.amber, marginRight: 7 }}>{entry.cupRoundName}</span>}

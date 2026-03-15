@@ -817,7 +817,7 @@ export function Dashboard({
                   <>
                     <div>{cupInfo.roundName}</div>
                     {cupInfo.opponent && (
-                      <div>vs <span onClick={() => onTeamClick?.(cupInfo.opponent)} style={{ color: C.text, cursor: "pointer" }}>{cupInfo.opponent}</span></div>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>vs <span onClick={() => onTeamClick?.(cupInfo.opponent)} style={{ color: C.text, cursor: "pointer" }}>{cupInfo.opponent}</span></div>
                     )}
                   </>
                 )}
@@ -831,7 +831,7 @@ export function Dashboard({
               {sectionHeader("Club Records", C.textMuted)}
               <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: 2.2 }}>
                 {clubHistory.biggestWin && (
-                  <div style={{ borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "2px 0" }}>
+                  <div style={{ borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     Best: <span style={{ color: C.green }}>{clubHistory.biggestWin.score}</span> vs <span onClick={() => onTeamClick?.(clubHistory.biggestWin.opponent)} style={{ cursor: "pointer" }}>{clubHistory.biggestWin.opponent}</span>
                   </div>
                 )}

@@ -93,13 +93,13 @@ export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" })
             ))}
           </div>
           {ch.biggestWin && (
-            <div style={{ fontSize: F.label, color: C.textMuted, marginTop: 4, lineHeight: 2.2 }}>
+            <div style={{ fontSize: F.label, color: C.textMuted, marginTop: 4, lineHeight: 2.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Best win: <span style={{ color: C.green }}>{ch.biggestWin.score}</span> vs {ch.biggestWin.opponent}
               {ch.biggestWin.season ? ` (S${ch.biggestWin.season})` : ""}
             </div>
           )}
           {ch.worstDefeat && (
-            <div style={{ fontSize: F.label, color: C.textMuted, lineHeight: 2.2 }}>
+            <div style={{ fontSize: F.label, color: C.textMuted, lineHeight: 2.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Worst result: <span style={{ color: C.red }}>{ch.worstDefeat.score}</span> vs {ch.worstDefeat.opponent}
               {ch.worstDefeat.season ? ` (S${ch.worstDefeat.season})` : ""}
             </div>

@@ -744,7 +744,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                       }}
                       style={{
                         color: row.isPlayer ? C.green : C.text, fontSize: mob ? F.xs : F.sm,
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0,
                         cursor: row.teamIndex != null ? "pointer" : "default",
                         textDecoration: row.teamIndex != null ? "underline" : "none",
                         textDecorationColor: row.color || C.slate,
