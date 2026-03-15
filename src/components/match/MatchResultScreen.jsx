@@ -234,7 +234,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           </div>
 
           {/* Score */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, marginBottom: 7 }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: mob ? 8 : 18, marginBottom: 7 }}>
             <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>
               <div
                 onClick={() => {
@@ -246,7 +246,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                   setViewingTeam({ team: homeTeam, tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null, matchGoals: Object.keys(mg).length > 0 ? mg : null });
                 }}
                 style={{
-                  fontSize: F.lg, color: homeTeam.isPlayer ? C.green : C.text, marginBottom: 2,
+                  fontSize: mob ? F.md : F.lg, color: homeTeam.isPlayer ? C.green : C.text, marginBottom: 2,
                   cursor: !homeTeam.isPlayer && homeTeam.squad ? "pointer" : "default",
                   textDecoration: !homeTeam.isPlayer && homeTeam.squad ? "underline" : "none",
                   textDecorationColor: homeTeam.color || C.slate,
@@ -259,10 +259,11 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               )}
             </div>
             <div style={{
-              fontSize: F.hero, fontWeight: "bold", color: C.text,
+              fontSize: mob ? F.h1 : F.hero, fontWeight: "bold", color: C.text,
               textShadow: "0 0 15px rgba(226,232,240,0.3)",
-              minWidth: 104, textAlign: "center",
+              minWidth: mob ? 70 : 104, textAlign: "center",
               transition: "all 0.3s ease",
+              flexShrink: 0,
             }}>
               {currentHomeGoals} - {currentAwayGoals}
             </div>
@@ -277,7 +278,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                   setViewingTeam({ team: awayTeam, tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null, matchGoals: Object.keys(mg).length > 0 ? mg : null });
                 }}
                 style={{
-                  fontSize: F.lg, color: awayTeam.isPlayer ? C.green : C.text, marginBottom: 2,
+                  fontSize: mob ? F.md : F.lg, color: awayTeam.isPlayer ? C.green : C.text, marginBottom: 2,
                   cursor: !awayTeam.isPlayer && awayTeam.squad ? "pointer" : "default",
                   textDecoration: !awayTeam.isPlayer && awayTeam.squad ? "underline" : "none",
                   textDecorationColor: awayTeam.color || C.slate,

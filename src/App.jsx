@@ -4187,7 +4187,7 @@ function FootballManager() {
             gap: 16,
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.textDim, letterSpacing: 1.2, marginBottom: 4 }}>
+              <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.textDim, letterSpacing: 1.2, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? `S${seasonNumber} · W${week}` : `SEASON ${seasonNumber} · WEEK ${week}`}{contextLabel ? ` — ${contextLabel}` : ""}
               </div>
               {bannerMatch ? (
