@@ -14,7 +14,7 @@ const hexToRgb = (hex) => {
   return `${r},${g},${b}`;
 };
 
-export function AchievementCabinet({ unlocked, squad, clubHistory, currentTier, ovrCap = 20,
+export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, calendarIndex = 0, squad, clubHistory, currentTier, ovrCap = 20,
   tickets, retiringPlayers, transferFocus, doubleTrainingWeek,
   twelfthManActive, youthCoupActive, pendingFreeAgent, shortlist, scoutedPlayers, testimonialPlayer,
   rewindableMatches,
@@ -68,6 +68,10 @@ export function AchievementCabinet({ unlocked, squad, clubHistory, currentTier, 
     { label: "Story Arcs", icon: "📖", ids: new Set(["plot_armour","page_turner","speedrun","trilogy","box_set","completionist","the_gaffer","we_go_again","cold_feet","juiced"]) },
     { label: "Secrets", icon: "🎭", ids: new Set(["mixed_up","enzo_drive","nomin_determ","who_shot_rr","joga_bonito","bayda","old_pace","giant_killing","impossible_job","deja_vu","hand_of_god","salt_wounds","six_seven","its_a_sign","absolute_barclays","forgot_kit","soundtrack","gone_up_one_track","ice_bath_track","training_montage","odds_are_even","the_specialist","binary","impatient"]) },
   ];
+
+  const isRecent = (id) => achievementUnlockWeeks[id] != null && calendarIndex - achievementUnlockWeeks[id] <= 2;
+  const recentIds = new Set(ACHIEVEMENTS.filter(a => unlocked.has(a.id) && isRecent(a.id)).map(a => a.id));
+  const hasRecent = recentIds.size > 0;
 
   React.useEffect(() => {
     if (document.getElementById(achStyleId.current)) return;
@@ -336,6 +340,20 @@ export function AchievementCabinet({ unlocked, squad, clubHistory, currentTier, 
 
           {/* Category filters */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: filterCat ? 12 : 18 }}>
+            {hasRecent && (
+              <div onClick={() => setFilterCat(filterCat === "Recent" ? null : "Recent")} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 12px", cursor: "pointer",
+                background: filterCat === "Recent" ? "rgba(250,204,21,0.15)" : "rgba(250,204,21,0.08)",
+                border: `1px solid ${filterCat === "Recent" ? "rgba(250,204,21,0.6)" : "rgba(250,204,21,0.3)"}`,
+                outline: filterCat === "Recent" ? "1px solid rgba(250,204,21,0.2)" : "none",
+                outlineOffset: 2,
+              }}>
+                <span style={{ fontSize: F.lg }}>🆕</span>
+                <span style={{ fontSize: F.xs, color: filterCat === "Recent" ? C.gold : C.text, letterSpacing: 0.5 }}>RECENT</span>
+                <span style={{ fontSize: F.xs, color: C.gold, fontWeight: "bold" }}>{recentIds.size}</span>
+              </div>
+            )}
             {ACH_CATS.map(cat => {
               const total = ACHIEVEMENTS.filter(a => cat.ids.has(a.id)).length;
               const done = ACHIEVEMENTS.filter(a => cat.ids.has(a.id) && unlocked.has(a.id)).length;
@@ -372,7 +390,7 @@ export function AchievementCabinet({ unlocked, squad, clubHistory, currentTier, 
 
           {/* Achievement grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(253px, 1fr))", gap: 7 }}>
-            {ACHIEVEMENTS.filter(a => !filterCat || (ACH_CATS.find(c => c.label === filterCat)?.ids.has(a.id))).map((ach, achIdx) => {
+            {ACHIEVEMENTS.filter(a => !filterCat || (filterCat === "Recent" ? recentIds.has(a.id) : ACH_CATS.find(c => c.label === filterCat)?.ids.has(a.id))).map((ach, achIdx) => {
               const ok = unlocked.has(ach.id);
               const isLegendary = ok && LEGENDARY_ACHIEVEMENTS.has(ach.id);
               const isPlayerUnlock = ok && PLAYER_UNLOCK_ACHIEVEMENTS.has(ach.id);
@@ -399,7 +417,7 @@ export function AchievementCabinet({ unlocked, squad, clubHistory, currentTier, 
                         {ach.icon}
                       </div>
                       <div style={{ minWidth: 0, overflow: "hidden" }}>
-                        <div style={{ fontSize: F.sm, color: nameColor, lineHeight: 1.5 }}>{ach.name}</div>
+                        <div style={{ fontSize: F.sm, color: nameColor, lineHeight: 1.5 }}>{ach.name}{recentIds.has(ach.id) && <span style={{ fontSize: F.micro, color: "#0d0d1f", background: C.gold, padding: "1px 5px", marginLeft: 8, borderRadius: 2, verticalAlign: "middle", letterSpacing: 1 }}>NEW</span>}</div>
                         <div style={{ fontSize: F.xs, color: descColor, marginTop: 2, lineHeight: 1.5 }}>{ach.desc}</div>
                       </div>
                       <span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" />
@@ -426,7 +444,7 @@ export function AchievementCabinet({ unlocked, squad, clubHistory, currentTier, 
                   </div>
                   <div style={{ minWidth: 0, overflow: "hidden" }}>
                     <div style={{ fontSize: F.sm, color: ok ? C.text : C.slate, lineHeight: 1.5 }}>
-                      {ach.name}
+                      {ach.name}{ok && recentIds.has(ach.id) && <span style={{ fontSize: F.micro, color: "#0d0d1f", background: C.gold, padding: "1px 5px", marginLeft: 8, borderRadius: 2, verticalAlign: "middle", letterSpacing: 1 }}>NEW</span>}
                     </div>
                     <div style={{ fontSize: F.xs, color: ok ? C.textMuted : C.bgCard, marginTop: 2, lineHeight: 1.5 }}>
                       {ok ? ach.desc : "Locked"}

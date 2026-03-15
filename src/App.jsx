@@ -244,6 +244,8 @@ function FootballManager() {
   }, []);
   const [selectedForMove, setSelectedForMove] = useState(null); // mobile tap-to-move
   const [unlockedAchievements, setUnlockedAchievements] = useState(new Set());
+  const [achievementUnlockWeeks, setAchievementUnlockWeeks] = useState({}); // { achId: calendarIndex }
+  const achievementUnlockWeeksRef = useRef(achievementUnlockWeeks);
   const [achievementQueue, setAchievementQueue] = useState([]);
   const achievementToastKeyRef = useRef(0);
   const [showAchievements, setShowAchievements] = useState(false);
@@ -274,6 +276,16 @@ function FootballManager() {
   const [clubKey, setClubKey] = useState(0);
   const [cabinetKey, setCabinetKey] = useState(0);
   const calendarIndex = useGameStore(s => s.calendarIndex);
+  // Track when achievements were unlocked (by calendar week) for "Recent" filter
+  useEffect(() => {
+    const prev = achievementUnlockWeeksRef.current;
+    const updated = { ...prev };
+    let changed = false;
+    for (const id of unlockedAchievements) {
+      if (!(id in updated)) { updated[id] = calendarIndex; changed = true; }
+    }
+    if (changed) { achievementUnlockWeeksRef.current = updated; setAchievementUnlockWeeks(updated); }
+  }, [unlockedAchievements, calendarIndex]);
   const seasonCalendar = useGameStore(s => s.seasonCalendar);
   const matchweekIndex = useGameStore(s => s.matchweekIndex);
   const [calendarResults, setCalendarResults] = useState({}); // { [calendarIdx]: { playerGoals, oppGoals, won, draw } }
@@ -505,7 +517,7 @@ function FootballManager() {
         version: 2,
         teamName, newspaperName, reporterName, squad, week, league, matchweekIndex,
         startingXI, bench,
-        unlockedAchievements: [...unlockedAchievements],
+        unlockedAchievements: [...unlockedAchievements], achievementUnlockWeeks,
         seasonCards, seasonNumber, leagueWins, leagueTier, prestigeLevel, leagueVersion: 3, lastSeasonMove, matchSpeed,
         soundEnabled, autoSaveEnabled, trainingCardSpeed, matchDetail,
         musicEnabled, musicVolume, disabledTracks: [...disabledTracks], instantMatch,
@@ -809,6 +821,7 @@ function FootballManager() {
       setStartingXI(s.startingXI);
       setBench(s.bench);
       setUnlockedAchievements(new Set(s.unlockedAchievements || []));
+      if (s.achievementUnlockWeeks) { setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
       setSeasonCards(s.seasonCards || 0);
       setSeasonNumber(s.seasonNumber || 1);
       setLeagueWins(s.leagueWins || 0);
@@ -4436,14 +4449,14 @@ function FootballManager() {
             {cup && <button onClick={() => { if (showCup) setCupKey(k => k + 1); clearAll(); setShowCup(true); }} style={navBtn(showCup, cup.playerEliminated ? C.slate : C.gold)}>🏆 CUP{cup.playerEliminated ? " (OUT)" : ""}</button>}
             <button onClick={() => { if (showTransfers) setTransfersKey(k => k + 1); clearAll(); setShowTransfers(true); }} style={navBtn(showTransfers, C.green)}>🤝 TRANSFERS</button>
             <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>📜 CLUB</button>
-            <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); }} style={navBtn(showAchievements, C.gold)}>🏅 CABINET</button>
+            <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); }} style={navBtn(showAchievements, C.gold)}>🏅 CABINET{!showAchievements && [...unlockedAchievements].some(id => achievementUnlockWeeks[id] != null && calendarIndex - achievementUnlockWeeks[id] <= 2) ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.gold, marginLeft: 6, verticalAlign: "middle", boxShadow: "0 0 6px rgba(250,204,21,0.6)" }} /> : null}</button>
           </div>
         );
       })()}
 
       {/* Page content */}
       {showAchievements ? (
-        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode} isTainted={isTainted}
+        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode} isTainted={isTainted}
           tickets={tickets} retiringPlayers={retiringPlayers} transferFocus={transferFocus}
           doubleTrainingWeek={doubleTrainingWeek} twelfthManActive={twelfthManActive}
           youthCoupActive={youthCoupActive} pendingFreeAgent={pendingFreeAgent}

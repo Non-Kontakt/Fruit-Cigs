@@ -9,7 +9,10 @@ import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { F, C, FONT, Z } from "../../data/tokens";
 
 export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20 }) {
-  const effectiveCap = player.isLegend ? player.legendCap : ovrCap;
+  const effectiveCap = player.isLegend ? player.legendCap
+    : player.isUnlockable && player.legendCap ? player.legendCap
+    : player.isUnlockable ? Math.max(ovrCap, ...Object.values(player.attrs))
+    : ovrCap;
   const overall = getOverall(player);
   const ovrPips = Math.min(4, Math.floor(getOvrProgress(player) * 5)); // 0–4; 5 would mean already levelled up
   const [showChart, setShowChart] = useState(false);
