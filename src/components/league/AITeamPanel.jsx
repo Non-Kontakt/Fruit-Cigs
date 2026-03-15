@@ -136,7 +136,7 @@ export function AITeamPanel({
           <div style={{ display: "flex", alignItems: "center", gap: mob ? 10 : 14 }}>
             <ClubBadge name={team.name} color={team.color} size={mob ? 42 : 56} />
             <div>
-              <div style={{ fontSize: mob ? F.xl : F.h3, color: teamColor, marginBottom: 6 }}>
+              <div style={{ fontSize: mob ? F.xl : F.h3, color: teamColor, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {team.name}
               </div>
               {team.trait && TEAM_TRAITS[team.trait] && (

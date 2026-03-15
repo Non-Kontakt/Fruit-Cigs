@@ -4191,7 +4191,7 @@ function FootballManager() {
                 {isMobile ? `S${seasonNumber} · W${week}` : `SEASON ${seasonNumber} · WEEK ${week}`}{contextLabel ? ` — ${contextLabel}` : ""}
               </div>
               {bannerMatch ? (
-                <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: 1.6 }}>
+                <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: 1.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {bannerMatch.isHome ? (
                     <>
                       <span style={{ color: C.green, fontWeight: "bold" }}>{teamName}</span>
