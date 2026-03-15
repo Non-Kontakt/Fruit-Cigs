@@ -1319,6 +1319,7 @@ function FootballManager() {
     setLeague, setLeagueTier, setCup, setAllLeagueStates, setSeasonCalendar,
     setCalendarIndex, setCalendarResults, setLeagueResults,
     setMatchPending, setSummerPhase, setSummerData, setMatchResult, setCupMatchResult,
+    setFiveASideSquad,
   });
 
   // Init league once team name is set (only if not loaded from save)
@@ -9486,7 +9487,7 @@ function FootballManager() {
               // Clamp to valid range
               return Math.max(1, Math.min(NUM_TIERS, raw));
             })();
-            if (seasonNumber < 10) {
+            {
               // Archive completed season into club history
               // Use pre-retirement squad so retired players are still included
               const archiveSquad = summerData.preRetirementSquad || squad;
@@ -9792,6 +9793,8 @@ function FootballManager() {
 
                 return h;
               });
+            } // end season archiving
+            { // New season init — always runs
               setLeagueTier(newTier);
               setSeasonNumber(prev => prev + 1);
               // Reset season-specific arc tracking

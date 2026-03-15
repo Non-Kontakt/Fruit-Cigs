@@ -11,6 +11,7 @@ export function useDebug({
   setLeague, setLeagueTier, setCup, setAllLeagueStates, setSeasonCalendar,
   setCalendarIndex, setCalendarResults, setLeagueResults,
   setMatchPending, setSummerPhase, setSummerData, setMatchResult, setCupMatchResult,
+  setFiveASideSquad,
 }) {
 
   const onDebugJumpTier = useCallback((tier) => {
@@ -39,6 +40,10 @@ export function useDebug({
     setSummerData(null);
     setMatchResult(null);
     setCupMatchResult(null);
+    // Clear tier-specific tournament state so stale brackets/UI don't persist
+    useGameStore.getState().setMiniTournamentBracket(null);
+    useGameStore.getState().setDynastyCupBracket(null);
+    if (setFiveASideSquad) setFiveASideSquad(null);
   }, [squad, teamName, leagueRosters, prestigeLevel]);
 
   const onDebugWinLeague = useCallback(() => {
