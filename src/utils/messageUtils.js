@@ -4,13 +4,13 @@
  */
 
 /**
- * Check if a message should be visible given the current week
- * Messages can be marked as pending until a certain week, at which point they become visible
+ * Check if a message should be visible given the current calendarIndex
+ * Messages can be marked as pending until a certain calendarIndex, at which point they become visible
  * @param {Object} msg - The message object
- * @param {number} msg.pendingUntilWeek - Optional week number until which the message is hidden
- * @param {number} currentWeek - The current week number (defaults to 1 if not provided)
+ * @param {number} msg.pendingUntilWeek - Optional calendarIndex value until which the message is hidden
+ * @param {number} calendarIndex - The current calendarIndex (0-based, defaults to 0)
  * @returns {boolean} - True if the message should be visible, false otherwise
  */
-export function isMessageVisible(msg, currentWeek = 1) {
-  return !msg.pendingUntilWeek || currentWeek >= msg.pendingUntilWeek;
+export function isMessageVisible(msg, calendarIndex = 0) {
+  return !msg.pendingUntilWeek || calendarIndex >= msg.pendingUntilWeek;
 }

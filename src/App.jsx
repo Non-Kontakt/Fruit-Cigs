@@ -878,7 +878,7 @@ function FootballManager() {
             // Don't add duplicate integrity warnings
             if (prev.some(m => m.id === "msg_tainted")) return prev;
             return [...prev, {
-              id: "msg_tainted", week: s.week || 1, season: s.seasonNumber || 1,
+              id: "msg_tainted", week: (s.calendarIndex || 0) + 1, season: s.seasonNumber || 1,
               icon: "⚠", color: C.lightRed, title: "Integrity Warning",
               body: "Ironman integrity check failed — this save appears to have been restored from a previous point. Achievements are suspended for this career.",
               read: false,
@@ -1215,7 +1215,7 @@ function FootballManager() {
 
     const target = useGameStore.getState().ultimatumTarget;
     const maxPossible = newPts + (newGames * 3);
-    const _curWeek = useGameStore.getState().week;
+    const _curWeek = useGameStore.getState().calendarIndex + 1;
 
     if (newPts >= target) {
       // Reprieve!
@@ -1363,7 +1363,7 @@ function FootballManager() {
       setInboxMessages([
         { id: "msg_welcome", week: 1, season: 1, icon: "📰", title: "Welcome to the Boot Room", body: "This is your hub for news, messages and notifications. Check back here as your season progresses.", color: C.blue, read: false },
         { id: "msg_board", week: 1, season: 1, icon: "🏟️", title: "Board Expectations", body: `The board expects a solid mid-table finish this season in ${LEAGUE_DEFS[leagueTier]?.name || "Sunday League"}. Prove them wrong.`, color: C.textMuted, read: false },
-        { id: "msg_trial_" + trialP.id, week: trialWeek, season: 1, icon: "🌍", title: `Trial Suggested: ${trialP.name}`, body: `Your scout reports: "${trialP.name}, a ${trialP.age}-year-old ${trialP.position} from ${trialP.countryLabel} ${trialP.flag}, is over here on holiday and is showing promise. He's available for a 3-week trial if you have space in your squad."`, color: C.green, read: false, type: "trial_offer", trialPlayerData: trialP, pendingUntilWeek: trialWeek, choices: [{ label: "Accept Trial", value: "accept" }, { label: "Decline", value: "decline" }] },
+        { id: "msg_trial_" + trialP.id, week: trialWeek, season: 1, icon: "🌍", title: `Trial Suggested: ${trialP.name}`, body: `Your scout reports: "${trialP.name}, a ${trialP.age}-year-old ${trialP.position} from ${trialP.countryLabel} ${trialP.flag}, is over here on holiday and is showing promise. He's available for a 3-week trial if you have space in your squad."`, color: C.green, read: false, type: "trial_offer", trialPlayerData: trialP, pendingUntilWeek: trialWeek - 1, choices: [{ label: "Accept Trial", value: "accept" }, { label: "Decline", value: "decline" }] },
       ]);
       // Asst Manager intro — training onboarding
       setInboxMessages(prev => [...prev, {
@@ -1371,7 +1371,7 @@ function FootballManager() {
         icon: "📋", color: "#f59e0b",
         title: "Asst. Manager's Notes",
         body: "Boss, now that we've got a match under our belt, I wanted to have a word about training.\n\nEach week, your players can be assigned a training focus — shooting, defending, pace, the lot. It's how they improve over time. Without it, they'll stay exactly where they are.\n\nYou can set it up on the Squad page, or if you'd rather focus on tactics and transfers, I'm happy to put everyone on a general programme for now. Your call.",
-        read: false, type: "asst_mgr_training_intro", pendingUntilWeek: 3,
+        read: false, type: "asst_mgr_training_intro", pendingUntilWeek: 2,
         choices: [{ label: "You Handle It", value: "delegate" }, { label: "I'll Set It Up", value: "manual" }],
       }]);
       // League modifier intro message
@@ -1393,7 +1393,7 @@ function FootballManager() {
         icon: "📰", color: "#94a3b8",
         title: `${rName}, ${pName}`,
         body: `${profileList.find(p => p.id === activeProfileId)?.name || "Gaffer"},\n\n${rName} here — I cover your club for ${pName}. Thought I'd introduce myself now the season's underway.\n\nI've been doing this job long enough to know that the best clubs aren't just built on results. They're built on stories. The captain who drags the team through a crisis. The kid who comes from nowhere. The old pro who gets one last shot.\n\nYou'll find those threads developing in your Boot Room under Story Arcs. Keep an eye on them — the drama tends to write itself, and the payoff can be worth more than any training session.\n\nI'll be watching. Good luck.`,
-        read: false, pendingUntilWeek: 2,
+        read: false, pendingUntilWeek: 1,
       }]);
       // Single-fixture opponents announcement (Dynasty / Mini-Tournament tiers)
       if (newLeague.singleFixtureOpponents) {
@@ -1655,7 +1655,7 @@ function FootballManager() {
     const oppName = playerIsHome ? updatedLeague.teams[fixture.away]?.name : updatedLeague.teams[fixture.home]?.name;
     const oldLabel = wasDraw ? "draw" : "loss";
     setInboxMessages(prev => [...prev, {
-      id: `msg_rewind_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+      id: `msg_rewind_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
       icon: "⏪", title: "Time Rewound!",
       body: (() => {
         const base = `You replayed your ${oldLabel} against ${oppName || "the opposition"}. New result: ${newPGoals}-${newOGoals}`;
@@ -1746,7 +1746,7 @@ function FootballManager() {
         const rivals = useGameStore.getState().league?.teams?.filter(t => !t.isPlayer) || [];
         const rival = rivals[rand(0, rivals.length - 1)];
         const tp = msg.trialPlayerData;
-        const trialAtWeek = (week || 1) + rand(3, 6);
+        const trialAtWeek = calendarIndex + rand(3, 6);
         setTrialHistory(prev => [...prev, {
           name: tp.name, position: tp.position, nationality: tp.nationality,
           flag: tp.flag, countryLabel: tp.countryLabel,
@@ -2021,7 +2021,7 @@ function FootballManager() {
               setAchievementQueue(prev => { const ex = new Set(prev); const f = result.achievements.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
             }
             setInboxMessages(pm => [...pm, {
-              id: `msg_arc_${arc.id}_${Date.now()}`, week: (week||1)+1, season: seasonNumber,
+              id: `msg_arc_${arc.id}_${Date.now()}`, week: calendarIndex + 2, season: seasonNumber,
               icon: "🏆", color: C.amber,
               title: `Arc Complete: ${arc.name}`,
               body: `${arc.rewardDesc}`,
@@ -2558,7 +2558,7 @@ function FootballManager() {
         const _pick = _picks[Math.floor(Math.random() * _picks.length)];
         setTickets(prev => [...prev, { id: `ticket_board_${Date.now()}`, type: _pick }]);
         setInboxMessages(prev => [...prev, {
-          id: `msg_board_ticket_${Date.now()}`, week: week, season: seasonNumber,
+          id: `msg_board_ticket_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
           icon: "🎫", color: C.amber, title: "Board Reward",
           body: `The board are impressed with your work. They've sent over a ${TICKET_DEFS[_pick]?.name || "gift"} as a token of their confidence.`,
           read: false,
@@ -2579,7 +2579,7 @@ function FootballManager() {
           setUltimatumGamesLeft(5);
           setUltimatumActive(true);
           setInboxMessages(prev => [...prev, {
-            id: `msg_ultimatum_${Date.now()}`, week: week, season: seasonNumber,
+            id: `msg_ultimatum_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
             icon: "⚠️", color: C.lightRed, title: "Board Ultimatum",
             body: `Results have fallen well below what we expect. You have five league matches to earn at least ${target} points, or we will be forced to make a change.`,
             read: false,
@@ -2588,7 +2588,7 @@ function FootballManager() {
           // Warning 1 or 2: concern message with escalating tone
           const isSecond = isIronman && nextCount === 2;
           setInboxMessages(prev => [...prev, {
-            id: `msg_board_warn_${Date.now()}`, week: week, season: seasonNumber,
+            id: `msg_board_warn_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
             icon: "📋", color: C.lightRed, title: "Board Concern",
             body: isSecond
               ? "The board met again this morning. This is the second time we've had to raise this — results must improve immediately. Do not make us do this again."
@@ -2638,7 +2638,7 @@ function FootballManager() {
                 type: "impressed", id: freshTP.id, name: freshTP.name, position: freshTP.position,
                 nationality: freshTP.nationality, flag: freshTP.flag, countryLabel: freshTP.countryLabel,
                 attrs: { ...trainedP.attrs }, potential: freshTP.potential, starts: tns,
-                season: seasonNumber, week: (week || 1) + 1,
+                season: seasonNumber, week: calendarIndex + 1,
               };
             } else {
               const rivals = (useGameStore.getState().league || league)?.teams?.filter(t => !t.isPlayer) || [];
@@ -2646,7 +2646,7 @@ function FootballManager() {
               pendingTrialAction.current = {
                 type: "no_starts", id: freshTP.id, name: freshTP.name, position: freshTP.position,
                 nationality: freshTP.nationality, flag: freshTP.flag, countryLabel: freshTP.countryLabel,
-                rivalTeam: rival?.name || "a rival club", season: seasonNumber, week: (week || 1) + 1,
+                rivalTeam: rival?.name || "a rival club", season: seasonNumber, week: calendarIndex + 1,
               };
             }
           } else {
@@ -2781,7 +2781,7 @@ function FootballManager() {
                   playerSF: 0, playerEliminated: true, winner: null,
                 });
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_dynasty_sf_bg_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_dynasty_sf_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🌍", title: "Dynasty Cup — Semi-Finals",
                   body: `${sf1W.name} beat ${sf1W === lt[q[0].teamIndex] ? lt[q[3].teamIndex].name : lt[q[0].teamIndex].name} ${sf1R.homeGoals}-${sf1R.awayGoals}\n${sf2W.name} beat ${sf2W === lt[q[1].teamIndex] ? lt[q[2].teamIndex].name : lt[q[1].teamIndex].name} ${sf2R.homeGoals}-${sf2R.awayGoals}\n\nThe final will be ${sf1W.name} vs ${sf2W.name}.`,
                   color: "#facc15", read: false,
@@ -2796,7 +2796,7 @@ function FootballManager() {
                 if (!finW) { const p = generatePenaltyShootout(bk.final.home, bk.final.away, finR.events, null, null, dMod); finW = p.winner; }
                 setDynastyCupBracket(prev => ({ ...prev, final: { ...prev.final, result: { homeGoals: finR.homeGoals, awayGoals: finR.awayGoals, winner: finW } }, winner: finW }));
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_dynasty_final_bg_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_dynasty_final_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🏆", title: "Dynasty Cup Final",
                   body: `${finW.name} won the Dynasty Cup, beating ${finW === bk.final.home ? bk.final.away.name : bk.final.home.name} ${finR.homeGoals}-${finR.awayGoals} in the final.`,
                   color: "#facc15", read: false,
@@ -2959,7 +2959,7 @@ function FootballManager() {
                   const _holNewVal = Math.min(_holMotm.legendCap || ovrCap, (_holMotm.attrs[_holAttr] || 1) + 1);
                   setSquad(prev => prev.map(p => p.id === _holMotm.id ? { ...p, attrs: { ...p.attrs, [_holAttr]: _holNewVal } } : p));
                   setInboxMessages(prev => [...prev, {
-                    id: `msg_mini_hol_champ_${Date.now()}`, week: week, season: seasonNumber,
+                    id: `msg_mini_hol_champ_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                     icon: "🏆", title: "5v5 Mini-Tournament Champions!",
                     body: `You've won the 5v5 Mini-Tournament! ${_holMotm.name} earns +1 ${_holAttr.charAt(0).toUpperCase() + _holAttr.slice(1)} (now ${_holNewVal}).`,
                     color: "#fbbf24", read: false,
@@ -3008,7 +3008,7 @@ function FootballManager() {
                   sf2: { ...prev.sf2, leg1: { homeGoals: r2.homeGoals, awayGoals: r2.awayGoals } },
                 }));
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_mini_sf_l1_bg_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_mini_sf_l1_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🌐", title: "Mini-Tournament — SF Leg 1",
                   body: `${bk.sf1.home.name} ${r1.homeGoals}-${r1.awayGoals} ${bk.sf1.away.name}\n${bk.sf2.home.name} ${r2.homeGoals}-${r2.awayGoals} ${bk.sf2.away.name}`,
                   color: "#fbbf24", read: false,
@@ -3036,7 +3036,7 @@ function FootballManager() {
                   final: { home: w1, away: w2, result: null },
                 }));
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_mini_sf_l2_bg_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_mini_sf_l2_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🌐", title: "Mini-Tournament — SF Leg 2",
                   body: `${bk.sf1.away.name} ${r1.homeGoals}-${r1.awayGoals} ${bk.sf1.home.name} (Agg: ${agg1h}-${agg1a}) — ${w1.name} advance\n${bk.sf2.away.name} ${r2.homeGoals}-${r2.awayGoals} ${bk.sf2.home.name} (Agg: ${agg2h}-${agg2a}) — ${w2.name} advance\n\nFinal: ${w1.name} vs ${w2.name}`,
                   color: "#fbbf24", read: false,
@@ -3056,7 +3056,7 @@ function FootballManager() {
                   thirdPlaceWinner: tpW,
                 }));
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_mini_3rd_bg_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_mini_3rd_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🥉", title: "Mini-Tournament — 3rd-Place Playoff",
                   body: `${tpW.name} beat ${tpW === tp.home ? tp.away.name : tp.home.name} ${tpR.homeGoals}-${tpR.awayGoals} to claim 3rd place.`,
                   color: "#fbbf24", read: false,
@@ -3072,7 +3072,7 @@ function FootballManager() {
                 const finLoser = finW === bk.final.home ? bk.final.away : bk.final.home;
                 setMiniTournamentBracket(prev => ({ ...prev, final: { ...prev.final, result: { homeGoals: finR.homeGoals, awayGoals: finR.awayGoals, winner: finW } }, winner: finW, runnerUp: finLoser }));
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_mini_final_bg_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_mini_final_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🏆", title: "Mini-Tournament Final",
                   body: `${finW.name} won the 5v5 Mini-Tournament, beating ${finLoser.name} ${finR.homeGoals}-${finR.awayGoals}.`,
                   color: "#fbbf24", read: false,
@@ -3175,7 +3175,7 @@ function FootballManager() {
         body: `${weekCardSkips.join(", ")} missed training — indiscipline in the last match cost them a session.`,
         color: "#fb923c",
         read: false,
-        week: calendarIndex,
+        week: calendarIndex + 1,
         season: seasonNumber,
       }]);
     }
@@ -3267,7 +3267,7 @@ function FootballManager() {
             name: trialPlayer.name, position: trialPlayer.position,
             nationality: trialPlayer.nationality, flag: trialPlayer.flag,
             countryLabel: trialPlayer.countryLabel, attrs: { ...trainedPlayer.attrs },
-            potential: trialPlayer.potential, starts: newStarts, season: seasonNumber, week: (week || 1) + 1,
+            potential: trialPlayer.potential, starts: newStarts, season: seasonNumber, week: calendarIndex + 1,
           };
         } else {
           const rivals = league?.teams?.filter(t => !t.isPlayer) || [];
@@ -3277,7 +3277,7 @@ function FootballManager() {
             name: trialPlayer.name, position: trialPlayer.position,
             nationality: trialPlayer.nationality, flag: trialPlayer.flag,
             countryLabel: trialPlayer.countryLabel,
-            rivalTeam: rival?.name || "a rival club", season: seasonNumber, week: (week || 1) + 1,
+            rivalTeam: rival?.name || "a rival club", season: seasonNumber, week: calendarIndex + 1,
           };
         }
       } else {
@@ -3347,7 +3347,7 @@ function FootballManager() {
           ? `${arc.rewardDesc}\nYour squad is already maxed — a bonus ticket has been added to your cabinet instead.`
           : arc.rewardDesc;
         setInboxMessages(pm => [...pm, {
-          id: `msg_arc_${arc.id}_${Date.now()}`, week: (week || 1) + 1, season: seasonNumber,
+          id: `msg_arc_${arc.id}_${Date.now()}`, week: calendarIndex + 2, season: seasonNumber,
           icon: "🏆", color: C.amber,
           title: `Arc Complete: ${arc.name}`,
           body: rewardBody, read: false,
@@ -3541,7 +3541,7 @@ function FootballManager() {
       if (topMotmName && topMotm > 0) totsBody += ` ${topMotmName} was named Player of the Season (${topMotm} MOTM).`;
       if (totsNames) totsBody += ` Your standout performers: ${totsNames}.`;
       setInboxMessages(prev => [...prev, {
-        id: `msg_tots_${Date.now()}`, week: week || 1, season: seasonNumber,
+        id: `msg_tots_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
         icon: "⭐", color: C.amber, title: "Team of the Season", body: totsBody, read: false,
       }]);
 
@@ -3598,8 +3598,8 @@ function FootballManager() {
       if (topTeamName) previewBody += ` ${topTeamName} are the ones to beat — they finished top last term.`;
       previewBody += ` ${expectation}`;
       setInboxMessages(prev => [...prev,
-        { id: `msg_well_rested_${Date.now()}`, week: week || 1, season: seasonNumber, icon: "☀️", color: "#f59e0b", title: "Players Return Refreshed", body: `Pre-season is underway. ${names} came back from the break in the best shape of their careers.`, read: false },
-        { id: `msg_preview_${Date.now()}`, week: week || 1, season: seasonNumber, icon: "📋", color: C.blue, title: "New Season Preview", body: previewBody, read: false },
+        { id: `msg_well_rested_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber, icon: "☀️", color: "#f59e0b", title: "Players Return Refreshed", body: `Pre-season is underway. ${names} came back from the break in the best shape of their careers.`, read: false },
+        { id: `msg_preview_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber, icon: "📋", color: C.blue, title: "New Season Preview", body: previewBody, read: false },
       ]);
       if (transferWindowOpen) setTransferWindowWeeksRemaining(prev => Math.max(0, prev - 1));
       setSummerPhase(null);
@@ -4245,7 +4245,7 @@ function FootballManager() {
                       const atkCount = startingXI.map(id => squad.find(p => p.id === id)).filter(p => p && atkPositions.has(p.position)).length;
                       if (atkCount < atkMod.minAtkPlayers) {
                         setInboxMessages(prev => [...prev, {
-                          id: `msg_atk_block_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                          id: `msg_atk_block_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                           icon: "🏔️", title: "Board Directive: More Attackers Required",
                           body: `The board insists on attacking football. You need at least ${atkMod.minAtkPlayers} attackers (AM/LW/RW/ST) in your starting XI. Currently: ${atkCount}.`,
                           color: C.red, read: false,
@@ -4265,7 +4265,7 @@ function FootballManager() {
                           subject: "5v5 Squad Incomplete",
                           body: `You need 5 players selected for the mini-tournament. You have ${_fiveFilled}. Go to SQUAD to pick your 5.`,
                           read: false,
-                          week: useGameStore.getState().calendarIndex,
+                          week: useGameStore.getState().calendarIndex + 1,
                         }]);
                         return;
                       }
@@ -4657,7 +4657,7 @@ function FootballManager() {
                           playerEliminated: !playerWon,
                         }));
                         setInboxMessages(prev => [...prev, {
-                          id: `msg_hol_dynasty_sf_${Date.now()}`, week: week, season: seasonNumber,
+                          id: `msg_hol_dynasty_sf_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                           icon: "🌍", title: "Dynasty Cup — Semi-Finals",
                           body: `Your match: ${homeTeam.name} ${hg}-${ag} ${awayTeam.name}${playerWon ? " ✓" : " ✗"}\nOther SF: ${otherSF.home.name} ${otherResult.homeGoals}-${otherResult.awayGoals} ${otherSF.away.name}${playerWon ? `\n\nYou face ${otherWinner.name} in the final!` : `\n\nYour Dynasty Cup run is over.`}`,
                           color: "#facc15", read: false,
@@ -4679,7 +4679,7 @@ function FootballManager() {
                             const newVal = Math.min(motm.legendCap || ovrCap, (motm.attrs[attr] || 1) + 1);
                             setSquad(prev => prev.map(p => p.id === motm.id ? { ...p, attrs: { ...p.attrs, [attr]: newVal } } : p));
                             setInboxMessages(prev => [...prev, {
-                              id: `msg_hol_dynasty_win_${Date.now()}`, week: week, season: seasonNumber,
+                              id: `msg_hol_dynasty_win_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                               icon: "🏆", title: "Dynasty Cup Champions!",
                               body: `You've won the Dynasty Cup! ${motm.name} earns +1 ${attr.charAt(0).toUpperCase() + attr.slice(1)} (now ${newVal}).`,
                               color: "#facc15", read: false,
@@ -4687,7 +4687,7 @@ function FootballManager() {
                           }
                         } else {
                           setInboxMessages(prev => [...prev, {
-                            id: `msg_hol_dynasty_loss_${Date.now()}`, week: week, season: seasonNumber,
+                            id: `msg_hol_dynasty_loss_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                             icon: "🌍", title: "Dynasty Cup Final",
                             body: `${winner.name} beat you ${hg > ag ? `${hg}-${ag}` : `${ag}-${hg}`} to win the Dynasty Cup.`,
                             color: "#facc15", read: false,
@@ -4720,7 +4720,7 @@ function FootballManager() {
                               }
                               setDynastyCupBracket(prev => ({ ...prev, final: { ...prev.final, result: { homeGoals: finR.homeGoals, awayGoals: finR.awayGoals, winner: finW } }, winner: finW }));
                               setInboxMessages(prev => [...prev, {
-                                id: `msg_hol_dynasty_ai_final_${Date.now()}`, week: week, season: seasonNumber,
+                                id: `msg_hol_dynasty_ai_final_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                                 icon: "🏆", title: "Dynasty Cup Final",
                                 body: `${finW.name} won the Dynasty Cup, beating ${finW === bk.final.home ? bk.final.away.name : bk.final.home.name} ${finR.homeGoals}-${finR.awayGoals}.`,
                                 color: "#facc15", read: false,
@@ -4928,7 +4928,7 @@ function FootballManager() {
                               });
                             }
                             setInboxMessages(prev => [...prev, {
-                              id: `msg_hol_dynasty_draw_${Date.now()}`, week: week, season: seasonNumber,
+                              id: `msg_hol_dynasty_draw_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                               icon: "🌍", title: "Dynasty Cup Draw",
                               body: `The league season is over. The top 4 enter the Dynasty Cup knockout!\n\nSF: ${holTop4[0]?.name || "TBD"} vs ${holTop4[3]?.name || "TBD"}\nSF: ${holTop4[1]?.name || "TBD"} vs ${holTop4[2]?.name || "TBD"}\n\n${holPlayerInTop4 ? "You're in!" : "You didn't make the cut."}`,
                               color: "#facc15", read: false,
@@ -4962,7 +4962,7 @@ function FootballManager() {
                                 });
                               }
                               setInboxMessages(prev => [...prev, {
-                                id: `msg_hol_mini_draw_${Date.now()}`, week: week, season: seasonNumber,
+                                id: `msg_hol_mini_draw_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                                 icon: "🌐", title: "5v5 Mini-Tournament Draw",
                                 body: `The league season is over. The top 4 enter the 5v5 Mini-Tournament!\n\nSF: ${holMiniTop4[0]?.name || "TBD"} vs ${holMiniTop4[3]?.name || "TBD"} (2 legs)\nSF: ${holMiniTop4[1]?.name || "TBD"} vs ${holMiniTop4[2]?.name || "TBD"} (2 legs)\n\n${holMiniPlayerIn ? "You're in! (Auto-picking your 5v5 squad during holiday)" : "You didn't qualify."}`,
                                 color: "#fbbf24", read: false,
@@ -5089,7 +5089,7 @@ function FootballManager() {
                               const top3 = sorted.slice(0, 3).map((r, i) => `${i+1}. ${updatedLeague.teams[r.teamIndex]?.shortName || updatedLeague.teams[r.teamIndex]?.name || "?"} ${r.points}pts`).join(" · ");
                               const standingsLine = playerPos <= 3 ? top3 : `${top3} · ... ${playerPos}. ${teamName} ${sorted[playerPos-1]?.points || 0}pts`;
                               setInboxMessages(prev => [...prev, {
-                                id: `msg_md_${capturedMWIdx}_${Date.now()}`, week: week, season: seasonNumber,
+                                id: `msg_md_${capturedMWIdx}_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                                 icon: "📋", color: C.blue,
                                 title: `Matchday ${capturedMWIdx + 1} Results`,
                                 body: `${lines.join("\n")}\n\n📊 ${standingsLine}`,
@@ -5180,7 +5180,7 @@ function FootballManager() {
                               const _tvPick = _tvBoostable[rand(0, _tvBoostable.length - 1)];
                               setSquad(prev => prev.map(p => p.id === _tvMotm.id ? { ...p, attrs: { ...p.attrs, [_tvPick.key]: p.attrs[_tvPick.key] + 1 } } : p));
                               setInboxMessages(prev => [...prev, {
-                                id: `msg_hol_tv_motm_${Date.now()}`, week: week, season: seasonNumber,
+                                id: `msg_hol_tv_motm_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                                 icon: "📺", title: "Televised Match Boost",
                                 body: `That match was televised! ${_tvMotm.name}'s Man of the Match performance earned a permanent +1 ${_tvPick.label}.`,
                                 color: LEAGUE_DEFS[leagueTier]?.color || C.green, read: false,
@@ -5214,7 +5214,7 @@ function FootballManager() {
                               if (_plRow) _plRow.points -= _normalPlPts;
                             }
                             setInboxMessages(prev => [...prev, {
-                              id: `msg_hol_pred_correct_${Date.now()}`, week: week, season: seasonNumber,
+                              id: `msg_hol_pred_correct_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                               icon: "🛸", title: "AI Prediction Correct!",
                               body: `The AI predicted ${_holPred.home}-${_holPred.away} and was right! The opposition steals the full 3 points from this fixture.`,
                               color: "#a78bfa", read: false,
@@ -7021,9 +7021,9 @@ function FootballManager() {
                 if (prog.length > 0) parts.push(`🔄 Progress: ${prog.slice(0, 2).map(p => `${p.playerName} ${p.attr} ${Math.round(p.newProgress * 100)}%`).join(", ")}`);
                 if (parts.length === 0) parts.push("A quiet week on the training pitch. No breakthroughs to report.");
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_train_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_train_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🏋️", color: "#a78bfa",
-                  title: `Training Report · Week ${week}`,
+                  title: `Training Report · Week ${calendarIndex + 1}`,
                   body: parts.join("\n"),
                   read: false,
                 }]);
@@ -7072,7 +7072,7 @@ function FootballManager() {
                 setLopsidedWarned(newWarned);
                 const lines = warnings.map(w => `${w.name}: ${w.highLabel} ${w.highest} / ${w.lowLabel} ${w.lowest} (on ${w.training})`);
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_lopsided_${Date.now()}`, week: week, season: seasonNumber,
+                  id: `msg_lopsided_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "📋", color: "#f59e0b",
                   title: `Asst. Manager's Notes`,
                   body: `Boss, a few lads might benefit from a change of focus in training:\n${lines.join("\n")}`,
@@ -7091,7 +7091,7 @@ function FootballManager() {
               const introDeclined = inboxMessages.some(m => m.id === "msg_asst_mgr_training_intro" && m.choiceResult === "manual");
               if (mwPlayed >= 5 && noTrainingAssigned && !alreadySent && seasonNumber === 1) {
                 setInboxMessages(prev => [...prev, {
-                  id: "msg_asst_mgr_training_nudge", week: week, season: seasonNumber,
+                  id: "msg_asst_mgr_training_nudge", week: calendarIndex + 1, season: seasonNumber,
                   icon: "📋", color: "#f59e0b",
                   title: "Asst. Manager's Notes",
                   body: introDeclined
@@ -7248,7 +7248,7 @@ function FootballManager() {
                         sf2: { ...prev.sf2, leg1: { homeGoals: mr2.homeGoals, awayGoals: mr2.awayGoals } },
                       }));
                       setInboxMessages(prev => [...prev, {
-                        id: `msg_mini_sf_l1_bg2_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                        id: `msg_mini_sf_l1_bg2_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                         icon: "🌐", title: "Mini-Tournament — SF Leg 1",
                         body: `${mbk.sf1.home.name} ${mr1.homeGoals}-${mr1.awayGoals} ${mbk.sf1.away.name}\n${mbk.sf2.home.name} ${mr2.homeGoals}-${mr2.awayGoals} ${mbk.sf2.away.name}`,
                         color: "#fbbf24", read: false,
@@ -7275,7 +7275,7 @@ function FootballManager() {
                         final: { home: mw1, away: mw2, result: null },
                       }));
                       setInboxMessages(prev => [...prev, {
-                        id: `msg_mini_sf_l2_bg2_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                        id: `msg_mini_sf_l2_bg2_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                         icon: "🌐", title: "Mini-Tournament — SF Results",
                         body: `${mw1.name} and ${mw2.name} advance to the final on aggregate.`,
                         color: "#fbbf24", read: false,
@@ -7290,7 +7290,7 @@ function FootballManager() {
                       if (!mfW) { const p = generatePenaltyShootout(mbk.final.home, mbk.final.away, mfR.events, null, null, mMod2); mfW = p.winner === "home" ? mbk.final.home : mbk.final.away; }
                       setMiniTournamentBracket(prev => ({ ...prev, final: { ...prev.final, result: { homeGoals: mfR.homeGoals, awayGoals: mfR.awayGoals, winner: mfW } }, winner: mfW }));
                       setInboxMessages(prev => [...prev, {
-                        id: `msg_mini_final_bg2_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                        id: `msg_mini_final_bg2_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                         icon: "🏆", title: "Mini-Tournament Final",
                         body: `${mfW.name} won the 5v5 Mini-Tournament! ${mfR.homeGoals}-${mfR.awayGoals}`,
                         color: "#fbbf24", read: false,
@@ -7331,7 +7331,7 @@ function FootballManager() {
                         playerSF: 0, playerEliminated: true, winner: null,
                       });
                       setInboxMessages(prev => [...prev, {
-                        id: `msg_dynasty_sf_bg_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                        id: `msg_dynasty_sf_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                         icon: "🌍", title: "Dynasty Cup — Semi-Finals",
                         body: `${sf1W.name} beat ${sf1W === lt[q[0].teamIndex] ? lt[q[3].teamIndex].name : lt[q[0].teamIndex].name} ${sf1R.homeGoals}-${sf1R.awayGoals}\n${sf2W.name} beat ${sf2W === lt[q[1].teamIndex] ? lt[q[2].teamIndex].name : lt[q[1].teamIndex].name} ${sf2R.homeGoals}-${sf2R.awayGoals}\n\nThe final will be ${sf1W.name} vs ${sf2W.name}.`,
                         color: "#facc15", read: false,
@@ -7346,7 +7346,7 @@ function FootballManager() {
                       if (!finW) { const p = generatePenaltyShootout(bk.final.home, bk.final.away, finR.events, null, null, dMod); finW = p.winner; }
                       setDynastyCupBracket(prev => ({ ...prev, final: { ...prev.final, result: { homeGoals: finR.homeGoals, awayGoals: finR.awayGoals, winner: finW } }, winner: finW }));
                       setInboxMessages(prev => [...prev, {
-                        id: `msg_dynasty_final_bg_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                        id: `msg_dynasty_final_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                         icon: "🏆", title: "Dynasty Cup Final",
                         body: `${finW.name} won the Dynasty Cup, beating ${finW === bk.final.home ? bk.final.away.name : bk.final.home.name} ${finR.homeGoals}-${finR.awayGoals} in the final.`,
                         color: "#facc15", read: false,
@@ -7389,7 +7389,7 @@ function FootballManager() {
                         thirdPlaceWinner: _tpW,
                       }));
                       setInboxMessages(prev => [...prev, {
-                        id: `msg_mini_3rd_bg_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                        id: `msg_mini_3rd_bg_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                         icon: "🥉", title: "Mini-Tournament — 3rd-Place Playoff",
                         body: `${_tpW.name} beat ${_tpW === _tp.home ? _tp.away.name : _tp.home.name} ${_tpR.homeGoals}-${_tpR.awayGoals} to claim 3rd place and the final promotion spot.`,
                         color: "#fbbf24", read: false,
@@ -7652,7 +7652,7 @@ function FootballManager() {
                 const p2 = generateFreeAgent(leagueTier, ovrCap);
                 const p3 = generateFreeAgent(leagueTier, ovrCap);
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_poach_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                  id: `msg_poach_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🕌", title: "Mid-Season Poach Event",
                   body: `Three players have emerged on the Saudi market. Pick one to sign — the other two will be snapped up by ${sorted[1] ? league.teams[sorted[1].teamIndex]?.name : "a rival"}.\n\n` +
                     `A) ${p1.name} — ${p1.position}, Age ${p1.age}, OVR ${getOverall(p1)}\n` +
@@ -7693,7 +7693,7 @@ function FootballManager() {
                 });
               }
               setInboxMessages(prev => [...prev, {
-                id: `msg_dynasty_cup_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                id: `msg_dynasty_cup_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                 icon: "🌍", title: "Dynasty Cup Draw",
                 body: `The league season is over. The top 4 enter the Dynasty Cup knockout!\n\n` +
                   `SF: ${top4[0]?.name || "TBD"} vs ${top4[3]?.name || "TBD"}\n` +
@@ -7725,7 +7725,7 @@ function FootballManager() {
                 });
               }
               setInboxMessages(prev => [...prev, {
-                id: `msg_mini_tournament_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                id: `msg_mini_tournament_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                 icon: "🌐", title: "5v5 Mini-Tournament Draw",
                 body: `The league season is over. The top 4 enter the 5v5 Mini-Tournament!\n\n` +
                   `SF: ${top4[0]?.name || "TBD"} vs ${top4[3]?.name || "TBD"} (2 legs)\n` +
@@ -7801,7 +7801,7 @@ function FootballManager() {
                  const pick = boostable[rand(0, boostable.length - 1)];
                  setSquad(prev => prev.map(p => p.id === motmPlayer.id ? { ...p, attrs: { ...p.attrs, [pick.key]: p.attrs[pick.key] + 1 } } : p));
                  setInboxMessages(prev => [...prev, {
-                   id: `msg_tv_motm_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                   id: `msg_tv_motm_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                    icon: "📺", title: "Televised Match Boost",
                    body: `That match was televised! ${motmPlayer.name}'s Man of the Match performance earned a permanent +1 ${pick.label}.`,
                    color: LEAGUE_DEFS[leagueTier]?.color || C.green, read: false,
@@ -7863,7 +7863,7 @@ function FootballManager() {
                   else setLeague({ ...leagueNow, table: leagueNow.table.map(r => ({ ...r })) });
                 }
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_pred_correct_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                  id: `msg_pred_correct_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🛸", title: "AI Prediction Correct!",
                   body: `The AI predicted ${pred.home}-${pred.away} and was right! The opposition steals the full 3 points from this fixture.`,
                   color: "#a78bfa", read: false,
@@ -7873,7 +7873,7 @@ function FootballManager() {
                   ? `The AI predicted ${pred.home}-${pred.away} but the result was ${matchResult.homeGoals}-${matchResult.awayGoals}. They got the 3 points the old-fashioned way.`
                   : `The AI predicted ${pred.home}-${pred.away} but the result was ${matchResult.homeGoals}-${matchResult.awayGoals}. No points stolen.`;
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_pred_wrong_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                  id: `msg_pred_wrong_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🛸", title: "AI Prediction Wrong",
                   body: _predBody,
                   color: "#6b7280", read: false,
@@ -8161,7 +8161,7 @@ function FootballManager() {
                        setAchievementQueue(prev => { const ex = new Set(prev); const f = result.achievements.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
                      }
                      setInboxMessages(pm => [...pm, {
-                       id: `msg_arc_${arc.id}_${Date.now()}`, week: (week||1), season: seasonNumber,
+                       id: `msg_arc_${arc.id}_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                        icon: "🏆", color: C.amber,
                        title: `Arc Complete: ${arc.name}`,
                        body: `${arc.rewardDesc}`,
@@ -8217,7 +8217,7 @@ function FootballManager() {
                if (wasInXI && ps.starts === 1 && !ps.sentFlags.firstStart) {
                  ps.sentFlags = { ...ps.sentFlags, firstStart: true };
                  msgs.push({
-                   id: `msg_prodigal_start_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                   id: `msg_prodigal_start_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                    icon: "📋", color: C.textMuted,
                    title: "Asst. Manager's Notes",
                    body: `${ps.playerName} looked rusty but didn't hide. The fitness will come.`,
@@ -8228,7 +8228,7 @@ function FootballManager() {
                if (ps.consecutiveBenched >= 3 && !ps.sentFlags.benchWarn) {
                  ps.sentFlags = { ...ps.sentFlags, benchWarn: true };
                  msgs.push({
-                   id: `msg_prodigal_bench_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                   id: `msg_prodigal_bench_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                    icon: "📋", color: C.textMuted,
                    title: "Asst. Manager's Notes",
                    body: `${ps.playerName} hasn't said a word but you can see it in him. He needs games, boss.`,
@@ -8239,7 +8239,7 @@ function FootballManager() {
                if (scored && !ps.sentFlags.firstGoal) {
                  ps.sentFlags = { ...ps.sentFlags, firstGoal: true };
                  msgs.push({
-                   id: `msg_prodigal_goal_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                   id: `msg_prodigal_goal_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                    icon: "⚽", color: C.gold,
                    title: `${ps.playerName} Off the Mark`,
                    body: `${ps.playerName} was emotional after that one. A long time coming.`,
@@ -8252,7 +8252,7 @@ function FootballManager() {
                  ps.sentFlags = { ...ps.sentFlags, formerClubPlayed: true };
                  if (playerWon) {
                    msgs.push({
-                     id: `msg_prodigal_former_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                     id: `msg_prodigal_former_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                      icon: "🤝", color: "#f59e0b",
                      title: `${ps.playerName} vs ${ps.formerClub}`,
                      body: `${ps.playerName} didn't celebrate. Shook hands with a few of their lads after the whistle. You could tell it meant everything.`,
@@ -8260,7 +8260,7 @@ function FootballManager() {
                    });
                  } else {
                    msgs.push({
-                     id: `msg_prodigal_former_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                     id: `msg_prodigal_former_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                      icon: "🤝", color: C.textMuted,
                      title: `${ps.playerName} vs ${ps.formerClub}`,
                      body: `Tough afternoon for ${ps.playerName} against his old lot. He'll dust himself off.`,
@@ -8276,7 +8276,7 @@ function FootballManager() {
                    ps.wonVsFormer = true;
                    ps.sentFlags = { ...ps.sentFlags, rivalTranscended: true };
                    msgs.push({
-                     id: `msg_prodigal_transcended_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                     id: `msg_prodigal_transcended_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                      icon: "📰", color: C.textMuted,
                      title: `${ps.formerClub} Regretting`,
                      body: `There are stories doing the rounds in the local press. Apparently ${ps.formerClub} have been watching ${ps.playerName} closely from afar. A source close to their coaching staff admitted they hadn't expected him to develop like this. He never got the chance to silence them in person — but the numbers don't lie anymore.`,
@@ -8291,7 +8291,7 @@ function FootballManager() {
                  ps.phase = "redeemed";
                  ps.pendingBoost = true; // Deferred — boost applied next training session
                  msgs.push({
-                   id: `msg_prodigal_redeemed_${Date.now()}`, week: (week || 1), season: seasonNumber,
+                   id: `msg_prodigal_redeemed_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                    icon: "🏠", color: C.green,
                    title: `${ps.playerName} — Settled In`,
                    body: `${ps.playerName} pulled me aside after training. Said this is the happiest he's been in years. Whatever you've done for him, it's working. He looks like a different player. Expect a big step up in the next session.`,
@@ -8356,7 +8356,7 @@ function FootballManager() {
                }).join(" · ");
                const standingsLine = playerPos <= 3 ? top3 : `${top3} · ... ${playerPos}. ${teamName} ${sorted[playerPos-1]?.points || 0}pts`;
                setInboxMessages(prev => [...prev, {
-                 id: `msg_md_${mwIdx}_${Date.now()}`, week: week, season: seasonNumber,
+                 id: `msg_md_${mwIdx}_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                  icon: "📋", color: C.blue,
                  title: `Matchday ${mwIdx + 1} Results`,
                  body: `${lines.join("\n")}\n\n📊 ${standingsLine}`,
@@ -8467,7 +8467,7 @@ function FootballManager() {
                 }));
                 // Inbox: other SF result
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_dynasty_other_sf_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                  id: `msg_dynasty_other_sf_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🌍", title: "Dynasty Cup — Other Semi-Final",
                   body: `${otherWinner.name} beat ${otherWinner === otherSF.home ? otherSF.away.name : otherSF.home.name} ${otherResult.homeGoals}-${otherResult.awayGoals} to reach the final.${playerWon ? `\n\nYou'll face ${otherWinner.name} in the Dynasty Cup Final!` : `\n\nYour journey ends here.`}`,
                   color: "#facc15", read: false,
@@ -8489,7 +8489,7 @@ function FootballManager() {
                     const newVal = Math.min(motm.legendCap || ovrCap, (motm.attrs[attr] || 1) + 1);
                     setSquad(prev => prev.map(p => p.id === motm.id ? { ...p, attrs: { ...p.attrs, [attr]: newVal } } : p));
                     setInboxMessages(prev => [...prev, {
-                      id: `msg_dynasty_champ_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                      id: `msg_dynasty_champ_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                       icon: "🏆", title: "Dynasty Cup Champions!",
                       body: `You've won the Dynasty Cup! ${motm.name} was named Man of the Match and earns a permanent +1 ${attr.charAt(0).toUpperCase() + attr.slice(1)} boost (now ${newVal}).`,
                       color: "#facc15", read: false,
@@ -8588,7 +8588,7 @@ function FootballManager() {
                 }));
                 const otherLoserName = otherWinner === otherSF.home ? otherSF.away.name : otherSF.home.name;
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_mini_other_sf_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                  id: `msg_mini_other_sf_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: "🌐", title: "Mini-Tournament — Semi-Finals Complete",
                   body: `${otherWinner.name} beat ${otherLoserName} on aggregate to reach the final.${playerWonSF
                     ? `\n\nYou'll face ${otherWinner.name} in the 5v5 Final!`
@@ -8622,14 +8622,14 @@ function FootballManager() {
                     runnerUp: finW === bracket.final.home ? bracket.final.away : bracket.final.home,
                   }));
                   setInboxMessages(prev => [...prev, {
-                    id: `msg_mini_final_bg2_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                    id: `msg_mini_final_bg2_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                     icon: "🏆", title: "Mini-Tournament Final Result",
                     body: `${finW.name} won the 5v5 Mini-Tournament Final, beating ${finW === bracket.final.home ? bracket.final.away.name : bracket.final.home.name} ${finR.homeGoals}-${finR.awayGoals}.`,
                     color: "#fbbf24", read: false,
                   }]);
                 }
                 setInboxMessages(prev => [...prev, {
-                  id: `msg_mini_3rd_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                  id: `msg_mini_3rd_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                   icon: playerWon3rd ? "🥉" : "😞", title: playerWon3rd ? "3rd-Place Playoff — Victory!" : "3rd-Place Playoff — Defeat",
                   body: playerWon3rd ? `You won the 3rd-place playoff ${mhg}-${mag}! You've secured the final promotion spot.` : `You lost the 3rd-place playoff ${mhg}-${mag}. No promotion this season.`,
                   color: "#fbbf24", read: false,
@@ -8670,7 +8670,7 @@ function FootballManager() {
                     const newVal = Math.min(motm.legendCap || ovrCap, (motm.attrs[attr] || 1) + 1);
                     setSquad(prev => prev.map(p => p.id === motm.id ? { ...p, attrs: { ...p.attrs, [attr]: newVal } } : p));
                     setInboxMessages(prev => [...prev, {
-                      id: `msg_mini_champ_${Date.now()}`, week: calendarIndex, season: seasonNumber,
+                      id: `msg_mini_champ_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                       icon: "🏆", title: "5v5 Mini-Tournament Champions!",
                       body: `You've won the 5v5 Mini-Tournament! ${motm.name} was named Man of the Match and earns a permanent +1 ${attr.charAt(0).toUpperCase() + attr.slice(1)} boost (now ${newVal}).`,
                       color: "#fbbf24", read: false,
@@ -9073,7 +9073,7 @@ function FootballManager() {
               else if (isFinal) bodyParts.push(`\n🏆 You have won ${cupName}!`);
               else bodyParts.push(`\n✅ Through to the next round.`);
               setInboxMessages(prev => [...prev, {
-                id: `msg_cup_${Date.now()}`, week: week, season: seasonNumber,
+                id: `msg_cup_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber,
                 icon: "🏆", color: C.gold,
                 title: `${cupName} · ${roundName}`,
                 body: bodyParts.join(""),
@@ -9107,13 +9107,13 @@ function FootballManager() {
                 const msgs = [];
                 if (cupScored && !ps.sentFlags.firstGoal) {
                   ps.sentFlags = { ...ps.sentFlags, firstGoal: true };
-                  msgs.push({ id: `msg_prodigal_goal_${Date.now()}`, week: (week || 1), season: seasonNumber, icon: "⚽", color: C.gold, title: `${ps.playerName} Off the Mark`, body: `${ps.playerName} was emotional after that one. A long time coming.`, read: false });
+                  msgs.push({ id: `msg_prodigal_goal_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber, icon: "⚽", color: C.gold, title: `${ps.playerName} Off the Mark`, body: `${ps.playerName} was emotional after that one. A long time coming.`, read: false });
                 }
                 if (ps.starts >= 10 && ps.goals >= 3 && ps.wonVsFormer && !ps.sentFlags.redeemed) {
                   ps.sentFlags = { ...ps.sentFlags, redeemed: true };
                   ps.phase = "redeemed";
                   ps.pendingBoost = true;
-                  msgs.push({ id: `msg_prodigal_redeemed_${Date.now()}`, week: (week || 1), season: seasonNumber, icon: "🏠", color: C.green, title: `${ps.playerName} — Settled In`, body: `${ps.playerName} pulled me aside after training. Said this is the happiest he's been in years. Whatever you've done for him, it's working. He looks like a different player. Expect a big step up in the next session.`, read: false });
+                  msgs.push({ id: `msg_prodigal_redeemed_${Date.now()}`, week: calendarIndex + 1, season: seasonNumber, icon: "🏠", color: C.green, title: `${ps.playerName} — Settled In`, body: `${ps.playerName} pulled me aside after training. Said this is the happiest he's been in years. Whatever you've done for him, it's working. He looks like a different player. Expect a big step up in the next session.`, read: false });
                   if (!unlockedAchievements.has("prodigal_son")) { setUnlockedAchievements(prev => { const n = new Set(prev); n.add("prodigal_son"); return n; }); setAchievementQueue(prev => [...prev, "prodigal_son"]); }
                 }
                 if (msgs.length > 0) setInboxMessages(prev => [...prev, ...msgs]);
@@ -9403,7 +9403,7 @@ function FootballManager() {
               icon: "🌍", title: `Trial Suggested: ${trialP.name}`,
               body: `Your scout reports: "${trialP.name}, a ${trialP.age}-year-old ${trialP.position} from ${trialP.countryLabel} ${trialP.flag}, is over here on holiday and is showing promise. He's available for a 3-week trial if you have space in your squad."`,
               color: C.green, read: false, type: "trial_offer", trialPlayerData: trialP,
-              pendingUntilWeek: trialWeek,
+              pendingUntilWeek: trialWeek - 1,
               choices: [{ label: "Accept Trial", value: "accept" }, { label: "Decline", value: "decline" }],
             }]);
           }}
@@ -9983,7 +9983,7 @@ function FootballManager() {
                 icon: "🌍", title: `Trial Suggested: ${nextTrialP.name}`,
                 body: `Your scout reports: "${nextTrialP.name}, a ${nextTrialP.age}-year-old ${nextTrialP.position} from ${nextTrialP.countryLabel} ${nextTrialP.flag}, is over here on holiday and is showing promise. He's available for a 3-week trial if you have space in your squad."`,
                 color: C.green, read: false, type: "trial_offer", trialPlayerData: nextTrialP,
-                pendingUntilWeek: nextTrialWeek,
+                pendingUntilWeek: nextTrialWeek - 1,
                 choices: [{ label: "Accept Trial", value: "accept" }, { label: "Decline", value: "decline" }],
               }]);
               setTrialPlayer(null); // Clear any lingering trial
@@ -10047,14 +10047,14 @@ function FootballManager() {
                       icon: "📋", color: "#f59e0b",
                       title: `Released Player: ${prodigalP.name}`,
                       body: `Boss, ${prodigalP.name}'s been let go by ${formerClub}. Been training on his own since. The quality's obvious but his fitness has dropped right off. I've had a word with his agent — he's available if we want him.`,
-                      read: false, pendingUntilWeek: scoutWeek,
+                      read: false, pendingUntilWeek: scoutWeek - 1,
                     },
                     {
                       id: `msg_prodigal_offer_${Date.now()}`, week: offerWeek, season: nextSeason,
                       icon: "📝", color: "#f59e0b",
                       title: `${prodigalP.name} — Decision Needed`,
                       body: `${prodigalP.name} (${prodigalP.position}, 25) is willing to come in on reduced terms. He knows he has to earn his place. Do you want to bring him in?`,
-                      read: false, pendingUntilWeek: offerWeek,
+                      read: false, pendingUntilWeek: offerWeek - 1,
                       type: "prodigal_offer", prodigalPlayerData: prodigalP,
                       choices: [{ label: "Sign Him", value: "accept" }, { label: "Pass", value: "decline" }],
                     },

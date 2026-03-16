@@ -422,7 +422,7 @@ export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, cale
                         {ach.icon}
                       </div>
                       <div style={{ minWidth: 0, overflow: "hidden" }}>
-                        <div style={{ fontSize: F.sm, color: nameColor, lineHeight: 1.5 }}>{ach.name}{recentIds.has(ach.id) && <span style={{ fontSize: F.micro, color: "#0d0d1f", background: C.gold, padding: "1px 5px", marginLeft: 8, borderRadius: 2, verticalAlign: "middle", letterSpacing: 1 }}>NEW</span>}</div>
+                        <div style={{ fontSize: F.sm, color: nameColor, lineHeight: 1.5 }}>{ach.name}</div>
                         <div style={{ fontSize: F.xs, color: descColor, marginTop: 2, lineHeight: 1.5 }}>{ach.desc}</div>
                       </div>
                       <span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" />
@@ -449,7 +449,7 @@ export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, cale
                   </div>
                   <div style={{ minWidth: 0, overflow: "hidden" }}>
                     <div style={{ fontSize: F.sm, color: ok ? C.text : C.slate, lineHeight: 1.5 }}>
-                      {ach.name}{ok && recentIds.has(ach.id) && <span style={{ fontSize: F.micro, color: "#0d0d1f", background: C.gold, padding: "1px 5px", marginLeft: 8, borderRadius: 2, verticalAlign: "middle", letterSpacing: 1 }}>NEW</span>}
+                      {ach.name}
                     </div>
                     <div style={{ fontSize: F.xs, color: ok ? C.textMuted : C.bgCard, marginTop: 2, lineHeight: 1.5 }}>
                       {ok ? ach.desc : "Locked"}
