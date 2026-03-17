@@ -6768,7 +6768,7 @@ function FootballManager() {
       ) : (
       <Dashboard
         inboxMessages={inboxMessages}
-        week={week}
+        week={calendarIndex}
         seasonNumber={seasonNumber}
         formation={formation}
         startingXI={startingXI}

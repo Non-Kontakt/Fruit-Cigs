@@ -130,7 +130,11 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   {inboxMessages.length === 0 ? "No messages yet. Check back as your season progresses." : "No messages in this category."}
                 </div>
               ) : (
-                [...visible].reverse().map((msg) => (
+                visible.sort((a, b) => {
+                  if ((b.season || 1) !== (a.season || 1)) return (b.season || 1) - (a.season || 1);
+                  if ((b.week || 1) !== (a.week || 1)) return (b.week || 1) - (a.week || 1);
+                  return inboxMessages.indexOf(b) - inboxMessages.indexOf(a);
+                }).map((msg) => (
                 <div key={msg.id} style={{
                   padding: mob ? "21px 17px" : "24px 26px",
                   borderBottom: `1px solid ${C.bgCard}`,
