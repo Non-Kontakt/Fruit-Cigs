@@ -44,13 +44,16 @@ export function Dashboard({
   const visibleMessages = useMemo(() => {
     if (!inboxMessages) return [];
     return [...inboxMessages]
-      .filter(m => isMessageVisible(m, week))
-      .reverse();
+      .filter(m => isMessageVisible(m, week || 1))
+      .sort((a, b) => {
+        if ((b.season || 1) !== (a.season || 1)) return (b.season || 1) - (a.season || 1);
+        return (b.week || 1) - (a.week || 1);
+      });
   }, [inboxMessages, week]);
 
   const unreadCount = useMemo(() => {
     if (!inboxMessages) return 0;
-    return inboxMessages.filter(m => !m.read && isMessageVisible(m, week)).length;
+    return inboxMessages.filter(m => !m.read && isMessageVisible(m, week || 1)).length;
   }, [inboxMessages, week]);
 
   // League table
