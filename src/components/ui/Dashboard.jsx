@@ -3,7 +3,7 @@ import { F, C, FONT, Z, MODAL } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getEffectiveSlots, detectFormationName } from "../../utils/formation.js";
-import { isMessageVisible } from "../../utils/messageUtils.js";
+import { getVisibleMessages, getUnreadCount } from "../../utils/messageUtils.js";
 
 export function Dashboard({
   inboxMessages, week, seasonNumber,
@@ -41,20 +41,8 @@ export function Dashboard({
   }, [formation]);
 
   // Inbox
-  const visibleMessages = useMemo(() => {
-    if (!inboxMessages) return [];
-    const filtered = inboxMessages.filter(m => isMessageVisible(m, calendarIndex));
-    return filtered.sort((a, b) => {
-      if ((b.season || 1) !== (a.season || 1)) return (b.season || 1) - (a.season || 1);
-      if ((b.week || 1) !== (a.week || 1)) return (b.week || 1) - (a.week || 1);
-      return inboxMessages.indexOf(b) - inboxMessages.indexOf(a);
-    });
-  }, [inboxMessages, calendarIndex]);
-
-  const unreadCount = useMemo(() => {
-    if (!inboxMessages) return 0;
-    return inboxMessages.filter(m => !m.read && isMessageVisible(m, calendarIndex)).length;
-  }, [inboxMessages, calendarIndex]);
+  const visibleMessages = useMemo(() => getVisibleMessages(inboxMessages, calendarIndex), [inboxMessages, calendarIndex]);
+  const unreadCount = useMemo(() => getUnreadCount(inboxMessages, calendarIndex), [inboxMessages, calendarIndex]);
 
   // League table
   const sortedTable = useMemo(() => {
