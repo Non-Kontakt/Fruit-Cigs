@@ -4,7 +4,7 @@ import { StoryArcsPanel } from "../arcs/StoryArcsPanel.jsx";
 import { STORY_ARCS } from "../../data/storyArcs.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
-import { isMessageVisible } from "../../utils/messageUtils.js";
+import { isMessageVisible, getUnreadCount, getVisibleMessages, inboxSort } from "../../utils/messageUtils.js";
 
 export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex, league, cup, calendarResults, seasonNumber, week, onExitToMenu, storyArcs, setStoryArcs, squad, setSquad, prodigalSon, leagueTier, initialTab, onAchievementCheck, onHoliday, matchweekIndex, prestigeLevel, ovrCap, gameMode = "casual", activeProfileName = null }) {
   const { matchSpeed, setMatchSpeed, soundEnabled, setSoundEnabled, autoSaveEnabled, setAutoSaveEnabled, trainingCardSpeed, setTrainingCardSpeed, matchDetail, setMatchDetail, musicEnabled, setMusicEnabled, musicVolume, setMusicVolume, disabledTracks, setDisabledTracks, instantMatch, setInstantMatch } = settings;
@@ -64,7 +64,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
     <div style={{ fontFamily: FONT }}>
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        <button onClick={() => setActiveTab("inbox")} style={tabStyle("inbox")}>📨 INBOX{(() => { const unread = (inboxMessages || []).filter(m => !m.read && isMessageVisible(m, calendarIndex)).length; return unread > 0 ? <span style={{ background: C.red, color: "#fff", fontSize: F.micro, padding: "2px 7px", borderRadius: 7, marginLeft: 5, display: "inline-block", minWidth: 16, textAlign: "center", lineHeight: "12px", verticalAlign: "middle" }}>{unread}</span> : null; })()}</button>
+        <button onClick={() => setActiveTab("inbox")} style={tabStyle("inbox")}>📨 INBOX{(() => { const unread = getUnreadCount(inboxMessages, calendarIndex); return unread > 0 ? <span style={{ background: C.red, color: "#fff", fontSize: F.micro, padding: "2px 7px", borderRadius: 7, marginLeft: 5, display: "inline-block", minWidth: 16, textAlign: "center", lineHeight: "12px", verticalAlign: "middle" }}>{unread}</span> : null; })()}</button>
         <button onClick={() => setActiveTab("calendar")} style={tabStyle("calendar")}>📅 CALENDAR</button>
         <button onClick={() => setActiveTab("arcs")} style={tabStyle("arcs")}>📖 ARCS{(() => { const n = ["player","club","legacy"].filter(cat => { const cs = storyArcs?.[cat]; if (!cs || cs.completed) return false; const arc = STORY_ARCS.find(a => a.id === cs.arcId); if (!arc) return false; const step = arc.steps[cs.step]; return step?.t === "focus" && !cs.focus; }).length; return n > 0 ? <span style={{ background: C.red, color: "#fff", fontSize: F.micro, padding: "2px 7px", borderRadius: 7, marginLeft: 5, display: "inline-block", minWidth: 16, textAlign: "center", lineHeight: "12px", verticalAlign: "middle" }}>{n}</span> : null; })()}</button>
         <button onClick={() => setActiveTab("settings")} style={tabStyle("settings")}>⚙️ SETTINGS</button>
@@ -97,7 +97,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   </button>
                 ))}
                 {(() => {
-                  const hasUnread = (inboxMessages || []).some(m => !m.read && isMessageVisible(m, calendarIndex));
+                  const hasUnread = getUnreadCount(inboxMessages, calendarIndex) > 0;
                   return (
                     <button onClick={hasUnread ? () => {
                       setInboxMessages(prev => prev.map(m => isMessageVisible(m, calendarIndex) ? { ...m, read: true } : m));
@@ -122,19 +122,14 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             {(() => {
               const RECURRING_PREFIXES = ["msg_train_", "msg_md_", "msg_cup_", "msg_lopsided_"];
               const isRecurring = (id) => RECURRING_PREFIXES.some(p => id?.startsWith(p));
-              const visible = [...inboxMessages]
-                .filter(m => isMessageVisible(m, calendarIndex))
+              const visible = getVisibleMessages(inboxMessages, calendarIndex)
                 .filter(m => inboxFilter === "all" ? true : inboxFilter === "updates" ? isRecurring(m.id) : !isRecurring(m.id));
               return visible.length === 0 ? (
                 <div style={{ textAlign: "center", padding: mob ? 26 : 40, fontSize: F.sm, color: C.bgInput }}>
                   {inboxMessages.length === 0 ? "No messages yet. Check back as your season progresses." : "No messages in this category."}
                 </div>
               ) : (
-                visible.sort((a, b) => {
-                  if ((b.season || 1) !== (a.season || 1)) return (b.season || 1) - (a.season || 1);
-                  if ((b.week || 1) !== (a.week || 1)) return (b.week || 1) - (a.week || 1);
-                  return inboxMessages.indexOf(b) - inboxMessages.indexOf(a);
-                }).map((msg) => (
+                visible.map((msg) => (
                 <div key={msg.id} style={{
                   padding: mob ? "21px 17px" : "24px 26px",
                   borderBottom: `1px solid ${C.bgCard}`,
