@@ -2050,7 +2050,7 @@ function FootballManager() {
 
     // Left On Read — 10+ unread inbox messages
     if (!unlockedAchievements.has("left_on_read")) {
-      const unreadCount = (inboxMessages || []).filter(m => !m.read && isMessageVisible(m, week || 1)).length;
+      const unreadCount = (inboxMessages || []).filter(m => !m.read && isMessageVisible(m, calendarIndex)).length;
       if (unreadCount >= 10) {
         setUnlockedAchievements(prev => { const n = new Set(prev); n.add("left_on_read"); return n; });
         setAchievementQueue(prev => [...prev, "left_on_read"]);
@@ -4439,7 +4439,7 @@ function FootballManager() {
             <button onClick={() => { if (showCalendar) setBootRoomKey(k => k + 1); clearAll(); setInitialBootRoomTab("inbox"); setShowCalendar(true); }} style={navBtn(showCalendar, C.blue)}>
               🥾 BOOT ROOM
               {(() => {
-                const unread = inboxMessages.filter(m => !m.read && isMessageVisible(m, week || 1)).length;
+                const unread = inboxMessages.filter(m => !m.read && isMessageVisible(m, calendarIndex)).length;
                 const arcPending = ["player","club","legacy"].filter(cat => { const cs = storyArcs?.[cat]; if (!cs || cs.completed) return false; const arc = STORY_ARCS.find(a => a.id === cs.arcId); if (!arc) return false; const step = arc.steps[cs.step]; return step?.t === "focus" && !cs.focus; }).length;
                 const total = unread + arcPending;
                 return total > 0 ? <span style={{ background: C.red, color: "#fff", fontSize: F.xs, padding: "3px 7px", borderRadius: 8, marginLeft: 8, fontFamily: FONT, minWidth: 20, textAlign: "center", display: "inline-block", lineHeight: "14px", verticalAlign: "middle" }}>{total}</span> : null;
