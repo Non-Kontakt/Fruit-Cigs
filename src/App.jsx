@@ -649,7 +649,7 @@ function FootballManager() {
     inboxMessages, trialPlayer, trialHistory, prodigalSon, lopsidedWarned, ovrHistory, storyArcs, allTimeLeagueStats, formation, slotAssignments, allLeagueStates,
     tickets, pendingTicketBoosts, doubleTrainingWeek, twelfthManActive, youthCoupActive, pendingFreeAgent, scoutedPlayers, testimonialPlayer,
     usedTicketTypes, formationsWonWith, freeAgentSignings, holidayMatchesThisSeason,
-    fastMatchesThisSeason, gkCleanSheets, totalShortlisted, prevSeasonSquadIds, tradesMadeInWindow, tradedWithClubs]);
+    fastMatchesThisSeason, gkCleanSheets, totalShortlisted, prevSeasonSquadIds, tradesMadeInWindow, tradedWithClubs, lastSeenAchievementCount]);
 
   // Load game function
   const loadGame = useCallback(async (slotOverride) => {
