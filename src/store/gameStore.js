@@ -61,6 +61,40 @@ export const useGameStore = create((set, get) => ({
   dynastyCupBracket: null,
   miniTournamentBracket: null,
 
+  // === Season progression ===
+  seasonNumber: 1,
+  leagueTier: 11,
+  leagueWins: 0,
+  prestigeLevel: 0,
+  lastSeasonMove: null,
+
+  // === Results ===
+  calendarResults: {},
+  leagueResults: {},
+
+  // === Season statistics ===
+  totalGains: 0,
+  totalMatches: 0,
+  seasonCleanSheets: 0,
+  seasonGoalsFor: 0,
+  seasonDraws: 0,
+  seasonHomeUnbeaten: true,
+  seasonAwayWins: 0,
+  seasonAwayGames: 0,
+  consecutiveUnbeaten: 0,
+  consecutiveLosses: 0,
+  consecutiveDraws: 0,
+  consecutiveWins: 0,
+  consecutiveScoreless: 0,
+
+  // === Records / history ===
+  halfwayPosition: null,
+  recentScorelines: [],
+  secondPlaceFinishes: 0,
+  ovrHistory: [],
+  clubHistory: null,
+  allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
+
   // === Derived (kept in sync by setCalendarIndex) ===
   matchweekIndex: 0,
 
@@ -116,6 +150,36 @@ export const useGameStore = create((set, get) => ({
   setDynastyCupBracket: (val) => set(s => ({ dynastyCupBracket: typeof val === "function" ? val(s.dynastyCupBracket) : val })),
   setMiniTournamentBracket: (val) => set(s => ({ miniTournamentBracket: typeof val === "function" ? val(s.miniTournamentBracket) : val })),
 
+  setSeasonNumber: (val) => set(s => ({ seasonNumber: typeof val === "function" ? val(s.seasonNumber) : val })),
+  setLeagueTier: (val) => set(s => ({ leagueTier: typeof val === "function" ? val(s.leagueTier) : val })),
+  setLeagueWins: (val) => set(s => ({ leagueWins: typeof val === "function" ? val(s.leagueWins) : val })),
+  setPrestigeLevel: (val) => set(s => ({ prestigeLevel: typeof val === "function" ? val(s.prestigeLevel) : val })),
+  setLastSeasonMove: (val) => set({ lastSeasonMove: val }),
+
+  setCalendarResults: (val) => set(s => ({ calendarResults: typeof val === "function" ? val(s.calendarResults) : val })),
+  setLeagueResults: (val) => set(s => ({ leagueResults: typeof val === "function" ? val(s.leagueResults) : val })),
+
+  setTotalGains: (val) => set(s => ({ totalGains: typeof val === "function" ? val(s.totalGains) : val })),
+  setTotalMatches: (val) => set(s => ({ totalMatches: typeof val === "function" ? val(s.totalMatches) : val })),
+  setSeasonCleanSheets: (val) => set(s => ({ seasonCleanSheets: typeof val === "function" ? val(s.seasonCleanSheets) : val })),
+  setSeasonGoalsFor: (val) => set(s => ({ seasonGoalsFor: typeof val === "function" ? val(s.seasonGoalsFor) : val })),
+  setSeasonDraws: (val) => set(s => ({ seasonDraws: typeof val === "function" ? val(s.seasonDraws) : val })),
+  setSeasonHomeUnbeaten: (val) => set({ seasonHomeUnbeaten: val }),
+  setSeasonAwayWins: (val) => set(s => ({ seasonAwayWins: typeof val === "function" ? val(s.seasonAwayWins) : val })),
+  setSeasonAwayGames: (val) => set(s => ({ seasonAwayGames: typeof val === "function" ? val(s.seasonAwayGames) : val })),
+  setConsecutiveUnbeaten: (val) => set(s => ({ consecutiveUnbeaten: typeof val === "function" ? val(s.consecutiveUnbeaten) : val })),
+  setConsecutiveLosses: (val) => set(s => ({ consecutiveLosses: typeof val === "function" ? val(s.consecutiveLosses) : val })),
+  setConsecutiveDraws: (val) => set(s => ({ consecutiveDraws: typeof val === "function" ? val(s.consecutiveDraws) : val })),
+  setConsecutiveWins: (val) => set(s => ({ consecutiveWins: typeof val === "function" ? val(s.consecutiveWins) : val })),
+  setConsecutiveScoreless: (val) => set(s => ({ consecutiveScoreless: typeof val === "function" ? val(s.consecutiveScoreless) : val })),
+
+  setHalfwayPosition: (val) => set({ halfwayPosition: val }),
+  setRecentScorelines: (val) => set(s => ({ recentScorelines: typeof val === "function" ? val(s.recentScorelines) : val })),
+  setSecondPlaceFinishes: (val) => set(s => ({ secondPlaceFinishes: typeof val === "function" ? val(s.secondPlaceFinishes) : val })),
+  setOvrHistory: (val) => set(s => ({ ovrHistory: typeof val === "function" ? val(s.ovrHistory) : val })),
+  setClubHistory: (val) => set(s => ({ clubHistory: typeof val === "function" ? val(s.clubHistory) : val })),
+  setAllTimeLeagueStats: (val) => set(s => ({ allTimeLeagueStats: typeof val === "function" ? val(s.allTimeLeagueStats) : val })),
+
   // === Bulk operations ===
 
   /** Full reset — return to main menu or start a brand new game. Clears everything. */
@@ -148,6 +212,32 @@ export const useGameStore = create((set, get) => ({
     testimonialPlayer: null,
     dynastyCupBracket: null,
     miniTournamentBracket: null,
+    seasonNumber: 1,
+    leagueTier: 11,
+    leagueWins: 0,
+    prestigeLevel: 0,
+    lastSeasonMove: null,
+    calendarResults: {},
+    leagueResults: {},
+    totalGains: 0,
+    totalMatches: 0,
+    seasonCleanSheets: 0,
+    seasonGoalsFor: 0,
+    seasonDraws: 0,
+    seasonHomeUnbeaten: true,
+    seasonAwayWins: 0,
+    seasonAwayGames: 0,
+    consecutiveUnbeaten: 0,
+    consecutiveLosses: 0,
+    consecutiveDraws: 0,
+    consecutiveWins: 0,
+    consecutiveScoreless: 0,
+    halfwayPosition: null,
+    recentScorelines: [],
+    secondPlaceFinishes: 0,
+    ovrHistory: [],
+    clubHistory: null,
+    allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
     matchweekIndex: 0,
   }),
 
@@ -174,7 +264,24 @@ export const useGameStore = create((set, get) => ({
     testimonialPlayer: null,
     dynastyCupBracket: null,
     miniTournamentBracket: null,
+    lastSeasonMove: null,
+    calendarResults: {},
+    leagueResults: {},
+    seasonCleanSheets: 0,
+    seasonGoalsFor: 0,
+    seasonDraws: 0,
+    seasonHomeUnbeaten: true,
+    seasonAwayWins: 0,
+    seasonAwayGames: 0,
+    consecutiveUnbeaten: 0,
+    consecutiveLosses: 0,
+    consecutiveDraws: 0,
+    consecutiveWins: 0,
+    consecutiveScoreless: 0,
+    halfwayPosition: null,
+    recentScorelines: [],
     matchweekIndex: 0,
+    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats are intentionally preserved.
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
     // ironmanSaveVersion, gameOver are intentionally preserved.
     // Prestige flow sets sentiment via partial carry-over formula, not hard reset.
