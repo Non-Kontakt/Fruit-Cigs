@@ -1983,7 +1983,7 @@ function FootballManager() {
           // Check if arc is now complete
           if (cs.step + 1 >= arc.steps.length) {
             // pendingFinalRewardRef is set in synchronous pre-computation above (not here — updaters run too late)
-            const result = processArcCompletion(arc, cs, next.completed, next.bonuses, { unlockedAchievements, seasonNumber, week });
+            const result = processArcCompletion(arc, cs, next.completed, next.bonuses, { unlockedAchievements, seasonNumber, week: calendarIndex + 1 });
             next.bonuses = result.bonuses;
             next.completed = result.completed;
             next[cat] = {...next[cat], completed: true};
@@ -3284,7 +3284,7 @@ function FootballManager() {
           arc, arcSnap[cat] || {},
           [...(arcSnap.completed || []), ...newCompletedIds],
           newBonuses,
-          { unlockedAchievements, seasonNumber, week }
+          { unlockedAchievements, seasonNumber, week: calendarIndex + 1 }
         );
         newBonuses = completionResult.bonuses;
         newCompletedIds.push(arc.id);
@@ -4127,7 +4127,7 @@ function FootballManager() {
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.textDim, letterSpacing: 1.2, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {isMobile ? `S${seasonNumber} · W${week}` : `SEASON ${seasonNumber} · WEEK ${week}`}{contextLabel ? ` — ${contextLabel}` : ""}
+                {isMobile ? `S${seasonNumber} · W${calendarIndex + 1}` : `SEASON ${seasonNumber} · WEEK ${calendarIndex + 1}`}{contextLabel ? ` — ${contextLabel}` : ""}
               </div>
               {bannerMatch ? (
                 <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: 1.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -8007,7 +8007,7 @@ function FootballManager() {
                    changed = true;
                    if (next[cat].step >= arc.steps.length) {
                      // Arc complete! pendingFinalRewardRef is set on next advanceWeek via precomputeArcEffects
-                     const result = processArcCompletion(arc, cs, next.completed, next.bonuses, { unlockedAchievements, seasonNumber, week });
+                     const result = processArcCompletion(arc, cs, next.completed, next.bonuses, { unlockedAchievements, seasonNumber, week: calendarIndex + 1 });
                      next.bonuses = result.bonuses;
                      next.completed = result.completed;
                      next[cat] = {...next[cat], completed: true};
