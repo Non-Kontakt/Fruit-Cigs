@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getLeagueMatchdaysPlayed } from "../utils/league.js";
+import { DEFAULT_FORMATION } from "../data/formations.js";
 
 /**
  * Core game state store — replaces the useState + useRef mirror pattern.
@@ -104,7 +105,7 @@ export const useGameStore = create((set, get) => ({
   // === Squad composition ===
   startingXI: [],
   bench: [],
-  formation: null, // initialized from DEFAULT_FORMATION in App.jsx new-game flow
+  formation: DEFAULT_FORMATION.map(s => ({ ...s })),
   slotAssignments: null,
   prevStartingXI: null,
 
@@ -307,7 +308,7 @@ export const useGameStore = create((set, get) => ({
     allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
     startingXI: [],
     bench: [],
-    formation: null,
+    formation: DEFAULT_FORMATION.map(s => ({ ...s })),
     slotAssignments: null,
     prevStartingXI: null,
     trialPlayer: null,
@@ -371,7 +372,6 @@ export const useGameStore = create((set, get) => ({
     halfwayPosition: null,
     startingXI: [],
     bench: [],
-    formation: null,
     slotAssignments: null,
     prevStartingXI: null,
     trialPlayer: null,
@@ -391,7 +391,7 @@ export const useGameStore = create((set, get) => ({
     trainedThisWeek: new Set(),
     lopsidedWarned: new Set(),
     matchweekIndex: 0,
-    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines are intentionally preserved.
+    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines, formation are intentionally preserved.
     // NOTE: trialHistory, careerMilestones are career-spanning and intentionally preserved.
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
     // ironmanSaveVersion, gameOver are intentionally preserved.
