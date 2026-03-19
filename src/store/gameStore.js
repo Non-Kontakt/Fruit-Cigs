@@ -17,7 +17,6 @@ import { getLeagueMatchdaysPlayed } from "../utils/league.js";
 export const useGameStore = create((set, get) => ({
   // === Core game state ===
   squad: null,
-  week: 1,
   league: null,
   cup: null,
   calendarIndex: 0,
@@ -69,7 +68,6 @@ export const useGameStore = create((set, get) => ({
   // Each setter accepts a value or an updater function: set(val) or set(prev => newVal)
 
   setSquad: (val) => set(s => ({ squad: typeof val === "function" ? val(s.squad) : val })),
-  setWeek: (val) => set(s => ({ week: typeof val === "function" ? val(s.week) : val })),
   setLeague: (val) => set(s => ({ league: typeof val === "function" ? val(s.league) : val })),
   setCup: (val) => set(s => ({ cup: typeof val === "function" ? val(s.cup) : val })),
   setCalendarIndex: (val) => set(s => {
@@ -123,7 +121,6 @@ export const useGameStore = create((set, get) => ({
   /** Full reset — return to main menu or start a brand new game. Clears everything. */
   resetToMenu: () => set({
     squad: null,
-    week: 1,
     league: null,
     cup: null,
     calendarIndex: 0,
@@ -156,7 +153,6 @@ export const useGameStore = create((set, get) => ({
 
   /** Seasonal reset — new season or new-game-from-slot. Preserves profile/mode, resets gameplay. */
   resetForNewSeason: () => set({
-    week: 1,
     league: null,
     cup: null,
     calendarIndex: 0,

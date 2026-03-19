@@ -153,9 +153,8 @@ function FootballManager() {
   });
   // --- Zustand store: core 6 states (replaces useState + useRef mirrors) ---
   const squad = useGameStore(s => s.squad);
-  const week = useGameStore(s => s.week);
   const {
-    setSquad, setWeek, setLeague, setCup, setMatchPending, setProcessing,
+    setSquad, setLeague, setCup, setMatchPending, setProcessing,
     setPendingSquad, setIsOnHoliday, setCalendarIndex, setSeasonCalendar,
     setSummerPhase, setFanSentiment, setBoardSentiment,
     setActiveProfileId, setGameMode, setGameOver,
@@ -516,7 +515,7 @@ function FootballManager() {
     try {
       const saveData = {
         version: 2,
-        teamName, newspaperName, reporterName, squad, week, league, matchweekIndex,
+        teamName, newspaperName, reporterName, squad, league, matchweekIndex,
         startingXI, bench,
         unlockedAchievements: [...unlockedAchievements], achievementUnlockWeeks,
         seasonCards, seasonNumber, leagueWins, leagueTier, prestigeLevel, leagueVersion: 3, lastSeasonMove, matchSpeed,
@@ -619,7 +618,7 @@ function FootballManager() {
       // Update slot summary for quick display
       setSaveSlotSummaries(prev => {
         const next = [...prev];
-        next[activeSaveSlot - 1] = { teamName, seasonNumber, leagueTier, week, gameMode: useGameStore.getState().gameMode };
+        next[activeSaveSlot - 1] = { teamName, seasonNumber, leagueTier, week: useGameStore.getState().calendarIndex + 1, gameMode: useGameStore.getState().gameMode };
         return next;
       });
       setSaveStatus("saved");
@@ -629,7 +628,7 @@ function FootballManager() {
       setSaveStatus("error");
       setTimeout(() => setSaveStatus(null), 3000);
     }
-  }, [teamName, newspaperName, squad, week, league, startingXI, bench, activeSaveSlot,
+  }, [teamName, newspaperName, squad, league, startingXI, bench, activeSaveSlot,
     unlockedAchievements, seasonCards, seasonNumber, leagueWins, leagueTier, prestigeLevel, matchSpeed, soundEnabled, autoSaveEnabled, trainingCardSpeed, matchDetail, musicEnabled, musicVolume, disabledTracks,
     totalGains, totalMatches, seasonCleanSheets, seasonGoalsFor, seasonDraws,
     seasonHomeUnbeaten, seasonAwayWins, seasonAwayGames, consecutiveUnbeaten, consecutiveLosses, consecutiveWins, consecutiveScoreless,
@@ -662,7 +661,6 @@ function FootballManager() {
         return migrated;
       });
       setSquad(migratedSquad);
-      setWeek(s.week);
       // Migrate: patch AI team squad members with names/nationalities + add bench if missing
       if (s.league?.teams) {
         s.league.teams.forEach(team => {
@@ -1151,7 +1149,7 @@ function FootballManager() {
       if (!s.ovrHistory || s.ovrHistory.length === 0) {
         const snap = {};
         (s.squad || []).forEach(p => { snap[`${p.name}|${p.position}`] = getOverall(p); });
-        setOvrHistory([{ w: s.week || 1, s: s.seasonNumber || 1, p: snap }]);
+        setOvrHistory([{ w: (s.calendarIndex || 0) + 1, s: s.seasonNumber || 1, p: snap }]);
       }
       // Migration: grant missing player unlocks for already-unlocked achievements
       // Shows the reveal screen on load so the player gets the full unlock experience
@@ -1791,7 +1789,7 @@ function FootballManager() {
         setTrainedThisWeek(new Set(useGameStore.getState().squad.map(p => p.id)));
       }
     }
-  }, [week, leagueTier, seasonNumber, unlockedAchievements]); // eslint-disable-line
+  }, [leagueTier, seasonNumber, unlockedAchievements]); // eslint-disable-line
 
   const assignTraining = useCallback((playerId, trainingKey) => {
     setSquad(prev => prev.map(p =>
@@ -2566,7 +2564,6 @@ function FootballManager() {
     if (useGameStore.getState().isOnHoliday) {
       // Apply squad changes immediately, no popup
       setSquad(newSquad);
-      setWeek(w => w + 1);
       setTrainedThisWeek(new Set());
       // Don't set gains (no popup to show them)
       weekRecoveriesRef.current = weekRecoveries;
@@ -2578,7 +2575,7 @@ function FootballManager() {
         const key = `${p.name}|${p.position}`;
         ovrSnap[key] = getOverall(p);
       });
-      setOvrHistory(prev => [...prev, { w: (week || 1) + 1, s: seasonNumber || 1, p: ovrSnap }]);
+      setOvrHistory(prev => [...prev, { w: calendarIndex + 1, s: seasonNumber || 1, p: ovrSnap }]);
 
       // Clear prodigal boost flag
       if (prodigalSon?.pendingBoost) {
@@ -3057,14 +3054,13 @@ function FootballManager() {
       const key = `${p.name}|${p.position}`;
       ovrSnap[key] = getOverall(p);
     });
-    setOvrHistory(prev => [...prev, { w: (week || 1) + 1, s: seasonNumber || 1, p: ovrSnap }]);
+    setOvrHistory(prev => [...prev, { w: calendarIndex + 1, s: seasonNumber || 1, p: ovrSnap }]);
 
     // Clear prodigal boost flag after it's been applied
     if (prodigalSon?.pendingBoost) {
       setProdigalSon(prev => prev ? { ...prev, pendingBoost: false } : prev);
     }
 
-    setWeek(w => w + 1);
     setTrainedThisWeek(new Set());
     const resolvedTicketBoosts = pendingTicketBoosts.map(tb => {
       if (tb.playerId) {
@@ -3318,7 +3314,7 @@ function FootballManager() {
     setSummerPhase("break");
     setSummerData(prev => ({ ...(prev || {}), weeksLeft: 5 }));
     setTimeout(() => setWeekTransition(false), 1500);
-  }, [processing, squad, league, storyArcs, prodigalSon, trialPlayer, trialHistory, leagueTier, consecutiveWins, halfwayPosition, cup, unlockedAchievements, seasonNumber, week, ovrCap]);
+  }, [processing, squad, league, storyArcs, prodigalSon, trialPlayer, trialHistory, leagueTier, consecutiveWins, halfwayPosition, cup, unlockedAchievements, seasonNumber, ovrCap]);
   advanceWeekRef.current = advanceWeek;
 
   // Drives the 5-week summer break, one event per click
@@ -3536,7 +3532,7 @@ function FootballManager() {
       setSummerData(null);
       setTimeout(() => { setProcessing(false); setWeekTransition(false); }, 1500);
     }
-  }, [processing, summerData, squad, playerSeasonStats, league, leagueTier, week, seasonNumber,
+  }, [processing, summerData, squad, playerSeasonStats, league, leagueTier, seasonNumber,
       storyArcs, prodigalSon, trialPlayer, trialHistory, consecutiveWins, halfwayPosition, cup]);
 
   const AUTO_TRAINING = {
@@ -4455,7 +4451,7 @@ function FootballManager() {
           cup={cup}
           calendarResults={calendarResults}
           seasonNumber={seasonNumber}
-          week={week}
+          week={calendarIndex + 1}
           settings={{ matchSpeed, setMatchSpeed, soundEnabled, setSoundEnabled, autoSaveEnabled, setAutoSaveEnabled, trainingCardSpeed, setTrainingCardSpeed, matchDetail, setMatchDetail, musicEnabled, setMusicEnabled, musicVolume, setMusicVolume, disabledTracks, setDisabledTracks, instantMatch, setInstantMatch }}
           matchweekIndex={matchweekIndex}
           onHoliday={(targetMD) => {
@@ -6683,7 +6679,7 @@ function FootballManager() {
       ) : (
       <Dashboard
         inboxMessages={inboxMessages}
-        week={week}
+        week={calendarIndex + 1}
         seasonNumber={seasonNumber}
         formation={formation}
         startingXI={startingXI}
@@ -9190,6 +9186,13 @@ function FootballManager() {
             setMatchResult(null);
             setCupMatchResult(null);
             setSeasonNumber(prev => prev + 1);
+            // Prune recurring messages from previous seasons
+            {
+              const newSN = (seasonNumber || 1) + 1;
+              const RECURRING_PREFIXES = ["msg_train_", "msg_md_", "msg_cup_", "msg_lopsided_", "card-skip-"];
+              const isRecurring = (id) => RECURRING_PREFIXES.some(p => id?.startsWith(p));
+              setInboxMessages(prev => prev.filter(m => !isRecurring(m.id) || m.season >= newSN));
+            }
             setRetiringPlayers(new Set());
             setPlayerSeasonStats({});
             setPlayerRatingTracker({});
@@ -9622,6 +9625,13 @@ function FootballManager() {
             { // New season init — always runs
               setLeagueTier(newTier);
               setSeasonNumber(prev => prev + 1);
+              // Prune recurring messages from previous seasons
+              {
+                const newSN = (seasonNumber || 1) + 1;
+                const RECURRING_PREFIXES = ["msg_train_", "msg_md_", "msg_cup_", "msg_lopsided_", "card-skip-"];
+                const isRecurring = (id) => RECURRING_PREFIXES.some(p => id?.startsWith(p));
+                setInboxMessages(prev => prev.filter(m => !isRecurring(m.id) || m.season >= newSN));
+              }
               // Reset season-specific arc tracking
               setStoryArcs(prev => {
                 const next = {...prev};

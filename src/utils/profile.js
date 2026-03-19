@@ -154,7 +154,7 @@ export async function scanProfileSlots(profileId) {
             teamName: s.teamName,
             seasonNumber: s.seasonNumber || 1,
             leagueTier: s.leagueTier || 11,
-            week: s.week || 1,
+            week: s.week || (s.calendarIndex || 0) + 1 || 1,
             gameMode: s.gameMode || "casual",
           };
         }
