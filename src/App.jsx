@@ -171,6 +171,13 @@ function FootballManager() {
     setConsecutiveWins, setConsecutiveScoreless,
     setHalfwayPosition, setRecentScorelines, setSecondPlaceFinishes,
     setOvrHistory, setClubHistory, setAllTimeLeagueStats,
+    setStartingXI, setBench, setFormation, setSlotAssignments, setPrevStartingXI,
+    setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
+    setPendingFreeAgent, setScoutedPlayers,
+    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker,
+    setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
+    setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
+    setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
   } = useMemo(() => useGameStore.getState(), []);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
@@ -218,8 +225,8 @@ function FootballManager() {
   const doubleTrainingWeek = useGameStore(s => s.doubleTrainingWeek);
   const twelfthManActive = useGameStore(s => s.twelfthManActive);
   const youthCoupActive = useGameStore(s => s.youthCoupActive);
-  const [pendingFreeAgent, setPendingFreeAgent] = useState(null);
-  const [scoutedPlayers, setScoutedPlayers] = useState({});
+  const pendingFreeAgent = useGameStore(s => s.pendingFreeAgent);
+  const scoutedPlayers = useGameStore(s => s.scoutedPlayers);
   const testimonialPlayer = useGameStore(s => s.testimonialPlayer);
   // Achievement tracking state
   const [usedTicketTypes, setUsedTicketTypes] = useState(new Set());
@@ -232,9 +239,9 @@ function FootballManager() {
   const [prevSeasonSquadIds, setPrevSeasonSquadIds] = useState(null); // player IDs from last season
   const [tradesMadeInWindow, setTradesMadeInWindow] = useState(0); // trades in current transfer window
   const [tradedWithClubs, setTradedWithClubs] = useState(new Set()); // clubs traded with (for Old Boys Network)
-  const [startingXI, setStartingXI] = useState([]);
+  const startingXI = useGameStore(s => s.startingXI);
   const [showLineupWarning, setShowLineupWarning] = useState(null); // null | "advance" | "match"
-  const [bench, setBench] = useState([]);
+  const bench = useGameStore(s => s.bench);
   const [dragPlayer, setDragPlayer] = useState(null);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth <= 768);
   useEffect(() => {
@@ -265,7 +272,7 @@ function FootballManager() {
   const prestigeLevel = useGameStore(s => s.prestigeLevel);
   const ovrCap = useMemo(() => getOvrCap(prestigeLevel), [prestigeLevel]);
   const lastSeasonMove = useGameStore(s => s.lastSeasonMove);
-  const [retiringPlayers, setRetiringPlayers] = useState(new Set()); // player IDs retiring at end of season
+  const retiringPlayers = useGameStore(s => s.retiringPlayers);
   const [youthIntake, setYouthIntake] = useState(null);
   // cup, calendarIndex, and seasonCalendar each keep a ref in sync with state.
   // Async match/cup callbacks read the ref (.current) to avoid stale closures —
@@ -297,9 +304,9 @@ function FootballManager() {
   const matchweekIndex = useGameStore(s => s.matchweekIndex);
   const calendarResults = useGameStore(s => s.calendarResults);
   const [inboxMessages, setInboxMessages] = useState([]); // { id, week, season, icon, title, body, color, read, choices?, choiceResult?, type? }
-  const [trialPlayer, setTrialPlayer] = useState(null); // active trial player data
-  const [trialHistory, setTrialHistory] = useState([]); // past trial outcomes for follow-up messages
-  const [prodigalSon, setProdigalSon] = useState(null); // { phase, playerId, playerName, formerClub, position, starts, goals, wonVsFormer, sentFlags:{} }
+  const trialPlayer = useGameStore(s => s.trialPlayer);
+  const trialHistory = useGameStore(s => s.trialHistory);
+  const prodigalSon = useGameStore(s => s.prodigalSon);
   const leagueResults = useGameStore(s => s.leagueResults);
   const summerPhase = useGameStore(s => s.summerPhase);
   const [summerData, setSummerData] = useState(null);
@@ -418,27 +425,27 @@ function FootballManager() {
   const [isTainted, setIsTainted] = useState(false);
 
   const [readsThisWeek, setReadsThisWeek] = useState(0);
-  const [lopsidedWarned, setLopsidedWarned] = useState(new Set()); // player IDs already warned about stat imbalance
+  const lopsidedWarned = useGameStore(s => s.lopsidedWarned);
   // Persistent club history — survives across seasons
   const clubHistory = useGameStore(s => s.clubHistory);
-  const [prevStartingXI, setPrevStartingXI] = useState(null);
-  const [motmTracker, setMotmTracker] = useState({});
-  const [stScoredConsecutive, setStScoredConsecutive] = useState(0);
-  const [playerRatingTracker, setPlayerRatingTracker] = useState({});
-  const [playerSeasonStats, setPlayerSeasonStats] = useState({}); // name → { goals, assists, yellows, reds, apps, motm }
-  const [beatenTeams, setBeatenTeams] = useState(new Set());
+  const prevStartingXI = useGameStore(s => s.prevStartingXI);
+  const motmTracker = useGameStore(s => s.motmTracker);
+  const stScoredConsecutive = useGameStore(s => s.stScoredConsecutive);
+  const playerRatingTracker = useGameStore(s => s.playerRatingTracker);
+  const playerSeasonStats = useGameStore(s => s.playerSeasonStats);
+  const beatenTeams = useGameStore(s => s.beatenTeams);
   const halfwayPosition = useGameStore(s => s.halfwayPosition);
   const recentScorelines = useGameStore(s => s.recentScorelines);
   const secondPlaceFinishes = useGameStore(s => s.secondPlaceFinishes);
-  const [playerInjuryCount, setPlayerInjuryCount] = useState({}); // name → count this season
-  const [seasonInjuryLog, setSeasonInjuryLog] = useState({}); // { playerName: { "Twisted Ankle": 2, ... } }
-  const [careerMilestones, setCareerMilestones] = useState({}); // { goals50: "name"|null, apps100: "name"|null, ... }
-  const [benchStreaks, setBenchStreaks] = useState({}); // playerId → consecutive bench appearances
-  const [highScoringMatches, setHighScoringMatches] = useState(0); // count of 5+ total goal matches this season
+  const playerInjuryCount = useGameStore(s => s.playerInjuryCount);
+  const seasonInjuryLog = useGameStore(s => s.seasonInjuryLog);
+  const careerMilestones = useGameStore(s => s.careerMilestones);
+  const benchStreaks = useGameStore(s => s.benchStreaks);
+  const highScoringMatches = useGameStore(s => s.highScoringMatches);
   // All-time league-wide stats (accumulated at end of each season)
   // { scorers: { "PlayerName|TeamName": goals }, cards: { "PlayerName|TeamName": cards } }
   const allTimeLeagueStats = useGameStore(s => s.allTimeLeagueStats);
-  const [trainedThisWeek, setTrainedThisWeek] = useState(new Set());
+  const trainedThisWeek = useGameStore(s => s.trainedThisWeek);
   const [injuryWarning, setInjuryWarning] = useState(0);
   const [squadFullAlert, setSquadFullAlert] = useState(false);
 
@@ -465,8 +472,8 @@ function FootballManager() {
     };
   }, [showAssignAll]);
   const [squadView, setSquadView] = useState("attrs"); // "attrs" or "stats"
-  const [formation, setFormation] = useState(() => DEFAULT_FORMATION.map(s => ({...s})));
-  const [slotAssignments, setSlotAssignments] = useState(null); // Array(11) of playerIds or null — manual slot→player mapping
+  const formation = useGameStore(s => s.formation);
+  const slotAssignments = useGameStore(s => s.slotAssignments);
   const [showTactics, setShowTactics] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null); // index of formation slot being assigned
   const [saveStatus, setSaveStatus] = useState(null);

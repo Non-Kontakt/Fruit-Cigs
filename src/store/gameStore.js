@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getLeagueMatchdaysPlayed } from "../utils/league.js";
+import { DEFAULT_FORMATION } from "../data/formations.js";
 
 /**
  * Core game state store — replaces the useState + useRef mirror pattern.
@@ -101,6 +102,35 @@ export const useGameStore = create((set, get) => ({
   },
   allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
 
+  // === Squad composition ===
+  startingXI: [],
+  bench: [],
+  formation: DEFAULT_FORMATION.map(s => ({ ...s })),
+  slotAssignments: null,
+  prevStartingXI: null,
+
+  // === Player management ===
+  trialPlayer: null,
+  trialHistory: [],
+  prodigalSon: null,
+  retiringPlayers: new Set(),
+  pendingFreeAgent: null,
+  scoutedPlayers: {},
+
+  // === Player tracking stats ===
+  motmTracker: {},
+  stScoredConsecutive: 0,
+  playerRatingTracker: {},
+  playerSeasonStats: {},
+  beatenTeams: new Set(),
+  playerInjuryCount: {},
+  seasonInjuryLog: {},
+  careerMilestones: {},
+  benchStreaks: {},
+  highScoringMatches: 0,
+  trainedThisWeek: new Set(),
+  lopsidedWarned: new Set(),
+
   // === Derived (kept in sync by setCalendarIndex) ===
   matchweekIndex: 0,
 
@@ -186,6 +216,32 @@ export const useGameStore = create((set, get) => ({
   setClubHistory: (val) => set(s => ({ clubHistory: typeof val === "function" ? val(s.clubHistory) : val })),
   setAllTimeLeagueStats: (val) => set(s => ({ allTimeLeagueStats: typeof val === "function" ? val(s.allTimeLeagueStats) : val })),
 
+  setStartingXI: (val) => set(s => ({ startingXI: typeof val === "function" ? val(s.startingXI) : val })),
+  setBench: (val) => set(s => ({ bench: typeof val === "function" ? val(s.bench) : val })),
+  setFormation: (val) => set(s => ({ formation: typeof val === "function" ? val(s.formation) : val })),
+  setSlotAssignments: (val) => set(s => ({ slotAssignments: typeof val === "function" ? val(s.slotAssignments) : val })),
+  setPrevStartingXI: (val) => set(s => ({ prevStartingXI: typeof val === "function" ? val(s.prevStartingXI) : val })),
+
+  setTrialPlayer: (val) => set(s => ({ trialPlayer: typeof val === "function" ? val(s.trialPlayer) : val })),
+  setTrialHistory: (val) => set(s => ({ trialHistory: typeof val === "function" ? val(s.trialHistory) : val })),
+  setProdigalSon: (val) => set(s => ({ prodigalSon: typeof val === "function" ? val(s.prodigalSon) : val })),
+  setRetiringPlayers: (val) => set(s => ({ retiringPlayers: typeof val === "function" ? val(s.retiringPlayers) : val })),
+  setPendingFreeAgent: (val) => set(s => ({ pendingFreeAgent: typeof val === "function" ? val(s.pendingFreeAgent) : val })),
+  setScoutedPlayers: (val) => set(s => ({ scoutedPlayers: typeof val === "function" ? val(s.scoutedPlayers) : val })),
+
+  setMotmTracker: (val) => set(s => ({ motmTracker: typeof val === "function" ? val(s.motmTracker) : val })),
+  setStScoredConsecutive: (val) => set(s => ({ stScoredConsecutive: typeof val === "function" ? val(s.stScoredConsecutive) : val })),
+  setPlayerRatingTracker: (val) => set(s => ({ playerRatingTracker: typeof val === "function" ? val(s.playerRatingTracker) : val })),
+  setPlayerSeasonStats: (val) => set(s => ({ playerSeasonStats: typeof val === "function" ? val(s.playerSeasonStats) : val })),
+  setBeatenTeams: (val) => set(s => ({ beatenTeams: typeof val === "function" ? val(s.beatenTeams) : val })),
+  setPlayerInjuryCount: (val) => set(s => ({ playerInjuryCount: typeof val === "function" ? val(s.playerInjuryCount) : val })),
+  setSeasonInjuryLog: (val) => set(s => ({ seasonInjuryLog: typeof val === "function" ? val(s.seasonInjuryLog) : val })),
+  setCareerMilestones: (val) => set(s => ({ careerMilestones: typeof val === "function" ? val(s.careerMilestones) : val })),
+  setBenchStreaks: (val) => set(s => ({ benchStreaks: typeof val === "function" ? val(s.benchStreaks) : val })),
+  setHighScoringMatches: (val) => set(s => ({ highScoringMatches: typeof val === "function" ? val(s.highScoringMatches) : val })),
+  setTrainedThisWeek: (val) => set(s => ({ trainedThisWeek: typeof val === "function" ? val(s.trainedThisWeek) : val })),
+  setLopsidedWarned: (val) => set(s => ({ lopsidedWarned: typeof val === "function" ? val(s.lopsidedWarned) : val })),
+
   // === Bulk operations ===
 
   /** Full reset — return to main menu or start a brand new game. Clears everything. */
@@ -250,6 +306,29 @@ export const useGameStore = create((set, get) => ({
       playerCareers: {}, allTimeXI: {}, seasonArchive: [], cupHistory: [],
     },
     allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
+    startingXI: [],
+    bench: [],
+    formation: DEFAULT_FORMATION.map(s => ({ ...s })),
+    slotAssignments: null,
+    prevStartingXI: null,
+    trialPlayer: null,
+    trialHistory: [],
+    prodigalSon: null,
+    retiringPlayers: new Set(),
+    pendingFreeAgent: null,
+    scoutedPlayers: {},
+    motmTracker: {},
+    stScoredConsecutive: 0,
+    playerRatingTracker: {},
+    playerSeasonStats: {},
+    beatenTeams: new Set(),
+    playerInjuryCount: {},
+    seasonInjuryLog: {},
+    careerMilestones: {},
+    benchStreaks: {},
+    highScoringMatches: 0,
+    trainedThisWeek: new Set(),
+    lopsidedWarned: new Set(),
     matchweekIndex: 0,
   }),
 
@@ -291,8 +370,29 @@ export const useGameStore = create((set, get) => ({
     consecutiveWins: 0,
     consecutiveScoreless: 0,
     halfwayPosition: null,
+    startingXI: [],
+    bench: [],
+    slotAssignments: null,
+    prevStartingXI: null,
+    trialPlayer: null,
+    prodigalSon: null,
+    retiringPlayers: new Set(),
+    pendingFreeAgent: null,
+    scoutedPlayers: {},
+    motmTracker: {},
+    stScoredConsecutive: 0,
+    playerRatingTracker: {},
+    playerSeasonStats: {},
+    beatenTeams: new Set(),
+    playerInjuryCount: {},
+    seasonInjuryLog: {},
+    benchStreaks: {},
+    highScoringMatches: 0,
+    trainedThisWeek: new Set(),
+    lopsidedWarned: new Set(),
     matchweekIndex: 0,
-    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines are intentionally preserved.
+    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines, formation are intentionally preserved.
+    // NOTE: trialHistory, careerMilestones are career-spanning and intentionally preserved.
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
     // ironmanSaveVersion, gameOver are intentionally preserved.
     // Prestige flow sets sentiment via partial carry-over formula, not hard reset.
