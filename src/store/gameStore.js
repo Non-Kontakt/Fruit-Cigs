@@ -92,7 +92,13 @@ export const useGameStore = create((set, get) => ({
   recentScorelines: [],
   secondPlaceFinishes: 0,
   ovrHistory: [],
-  clubHistory: null,
+  clubHistory: {
+    totalWins: 0, totalDraws: 0, totalLosses: 0,
+    totalGoalsFor: 0, totalGoalsConceded: 0,
+    bestWinStreak: 0, bestUnbeatenRun: 0, worstLossStreak: 0,
+    biggestWin: null, worstDefeat: null, bestSeasonFinish: null, bestSeasonPoints: 0,
+    playerCareers: {}, allTimeXI: {}, seasonArchive: [], cupHistory: [],
+  },
   allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
 
   // === Derived (kept in sync by setCalendarIndex) ===
@@ -236,7 +242,13 @@ export const useGameStore = create((set, get) => ({
     recentScorelines: [],
     secondPlaceFinishes: 0,
     ovrHistory: [],
-    clubHistory: null,
+    clubHistory: {
+      totalWins: 0, totalDraws: 0, totalLosses: 0,
+      totalGoalsFor: 0, totalGoalsConceded: 0,
+      bestWinStreak: 0, bestUnbeatenRun: 0, worstLossStreak: 0,
+      biggestWin: null, worstDefeat: null, bestSeasonFinish: null, bestSeasonPoints: 0,
+      playerCareers: {}, allTimeXI: {}, seasonArchive: [], cupHistory: [],
+    },
     allTimeLeagueStats: { scorers: {}, assisters: {}, cards: {} },
     matchweekIndex: 0,
   }),
@@ -279,9 +291,8 @@ export const useGameStore = create((set, get) => ({
     consecutiveWins: 0,
     consecutiveScoreless: 0,
     halfwayPosition: null,
-    recentScorelines: [],
     matchweekIndex: 0,
-    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats are intentionally preserved.
+    // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines are intentionally preserved.
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
     // ironmanSaveVersion, gameOver are intentionally preserved.
     // Prestige flow sets sentiment via partial carry-over formula, not hard reset.
