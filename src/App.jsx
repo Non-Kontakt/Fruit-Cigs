@@ -142,9 +142,9 @@ function generateNewspaperName(teamName) {
   return tpl(short);
 }
 function FootballManager() {
-  const [teamName, setTeamName] = useState(null);
-  const [newspaperName, setNewspaperName] = useState(null);
-  const [reporterName, setReporterName] = useState(null);
+  const teamName = useGameStore(s => s.teamName);
+  const newspaperName = useGameStore(s => s.newspaperName);
+  const reporterName = useGameStore(s => s.reporterName);
   const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => {
     const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p) }));
@@ -183,6 +183,14 @@ function FootballManager() {
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
     setTotalShortlisted, setPrevSeasonSquadIds, setTradesMadeInWindow,
     setTradedWithClubs, setSeasonCards, setReadsThisWeek,
+    setTeamName, setNewspaperName, setReporterName,
+    setClubRelationships, setTransferFocus, setTransferWindowOpen,
+    setTransferWindowWeeksRemaining, setTransferOffers, setLoanedOutPlayers,
+    setLoanedInPlayers, setTransferHistory, setPendingTradeTarget, setShortlist,
+    setTickets, setPendingTicketBoosts,
+    setStoryArcs, setArcStepQueue,
+    setSummerData, setLeagueRosters, setAllLeagueStates,
+    setDynastyCupQualifiers, setFiveASideSquad,
   } = useMemo(() => useGameStore.getState(), []);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
@@ -192,10 +200,10 @@ function FootballManager() {
 
   const pendingLeagueRef = useRef(null); // deferred league table update until match result dismissed
   const cardedPlayerIdsRef = useRef(new Set()); // Tier 8: carded players skip next training
-  const [dynastyCupQualifiers, setDynastyCupQualifiers] = useState(null); // Tier 3: top 4 at halfway for end-of-season knockout
+  const dynastyCupQualifiers = useGameStore(s => s.dynastyCupQualifiers); // Tier 3: top 4 at halfway for end-of-season knockout
   const dynastyCupBracket = useGameStore(s => s.dynastyCupBracket);
   const miniTournamentBracket = useGameStore(s => s.miniTournamentBracket);
-  const [fiveASideSquad, setFiveASideSquad] = useState(null); // Tier 2: player's 5v5 squad selection [5 player IDs]
+  const fiveASideSquad = useGameStore(s => s.fiveASideSquad); // Tier 2: player's 5v5 squad selection [5 player IDs]
   // showFiveASidePicker removed — squad page panel handles 5v5 selection
   const aiPredictionRef = useRef(null); // Tier 1: AI predicted scoreline for current match
   const pendingTrialAction = useRef(null); // deferred trial processing after gains popup
@@ -207,26 +215,26 @@ function FootballManager() {
   const [ovrLevelUps, setOvrLevelUps] = useState(null); // [{ name, position, oldOvr, newOvr }]
   const [recentOvrLevelUps, setRecentOvrLevelUps] = useState(null); // persists until next advance week
   const ovrHistory = useGameStore(s => s.ovrHistory);
-  const [storyArcs, setStoryArcs] = useState(initStoryArcs());
-  const [arcStepQueue, setArcStepQueue] = useState([]); // [{ arcId, stepIdx, type, desc, gains }]
+  const storyArcs = useGameStore(s => s.storyArcs);
+  const arcStepQueue = useGameStore(s => s.arcStepQueue); // [{ arcId, stepIdx, type, desc, gains }]
   const processing = useGameStore(s => s.processing);
   const [weekTransition, setWeekTransition] = useState(false);
   const league = useGameStore(s => s.league);
   const [matchResult, setMatchResult] = useState(null);
   const [showTable, setShowTable] = useState(false);
   const [showTransfers, setShowTransfers] = useState(false);
-  const [clubRelationships, setClubRelationships] = useState({}); // { [teamName]: { pct, tier } }
-  const [transferFocus, setTransferFocus] = useState([]); // array of up to 2 team names
-  const [transferWindowOpen, setTransferWindowOpen] = useState(false);
-  const [transferWindowWeeksRemaining, setTransferWindowWeeksRemaining] = useState(0);
-  const [transferOffers, setTransferOffers] = useState([]); // AI-initiated trade proposals
-  const [loanedOutPlayers, setLoanedOutPlayers] = useState([]); // [{player, club, returnSeason, ovrDelta, potDelta}]
-  const [loanedInPlayers, setLoanedInPlayers] = useState([]); // [{player, parentClub, returnSeason}]
-  const [transferHistory, setTransferHistory] = useState([]); // Log of completed deals
-  const [pendingTradeTarget, setPendingTradeTarget] = useState(null); // player to open trade for when navigating to transfers
-  const [shortlist, setShortlist] = useState([]); // Bookmarked players for scouting
-  const [tickets, setTickets] = useState([]); // Consumable power-up tickets
-  const [pendingTicketBoosts, setPendingTicketBoosts] = useState([]); // Ticket boosts to show in next training report
+  const clubRelationships = useGameStore(s => s.clubRelationships); // { [teamName]: { pct, tier } }
+  const transferFocus = useGameStore(s => s.transferFocus); // array of up to 2 team names
+  const transferWindowOpen = useGameStore(s => s.transferWindowOpen);
+  const transferWindowWeeksRemaining = useGameStore(s => s.transferWindowWeeksRemaining);
+  const transferOffers = useGameStore(s => s.transferOffers); // AI-initiated trade proposals
+  const loanedOutPlayers = useGameStore(s => s.loanedOutPlayers); // [{player, club, returnSeason, ovrDelta, potDelta}]
+  const loanedInPlayers = useGameStore(s => s.loanedInPlayers); // [{player, parentClub, returnSeason}]
+  const transferHistory = useGameStore(s => s.transferHistory); // Log of completed deals
+  const pendingTradeTarget = useGameStore(s => s.pendingTradeTarget); // player to open trade for when navigating to transfers
+  const shortlist = useGameStore(s => s.shortlist); // Bookmarked players for scouting
+  const tickets = useGameStore(s => s.tickets); // Consumable power-up tickets
+  const pendingTicketBoosts = useGameStore(s => s.pendingTicketBoosts); // Ticket boosts to show in next training report
   const doubleTrainingWeek = useGameStore(s => s.doubleTrainingWeek);
   const twelfthManActive = useGameStore(s => s.twelfthManActive);
   const youthCoupActive = useGameStore(s => s.youthCoupActive);
@@ -314,12 +322,12 @@ function FootballManager() {
   const prodigalSon = useGameStore(s => s.prodigalSon);
   const leagueResults = useGameStore(s => s.leagueResults);
   const summerPhase = useGameStore(s => s.summerPhase);
-  const [summerData, setSummerData] = useState(null);
+  const summerData = useGameStore(s => s.summerData);
   const [showYouthIntake, setShowYouthIntake] = useState(true);
   // Persistent league rosters: tracks which AI team configs are in each tier
   // Format: { 1: [{name, color, strength, trait}, ...], 2: [...], 3: [...] }
-  const [leagueRosters, setLeagueRosters] = useState(null); // { candidates: [...], slots: n } // "promoted" | "relegated" | "stayed"
-  const [allLeagueStates, setAllLeagueStates] = useState({}); // { [tier]: aiLeague } — running simulations for every non-player tier
+  const leagueRosters = useGameStore(s => s.leagueRosters); // { candidates: [...], slots: n } // "promoted" | "relegated" | "stayed"
+  const allLeagueStates = useGameStore(s => s.allLeagueStates); // { [tier]: aiLeague } — running simulations for every non-player tier
   const {
     matchSpeed, setMatchSpeed,
     soundEnabled, setSoundEnabled,

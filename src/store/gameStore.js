@@ -148,6 +148,38 @@ export const useGameStore = create((set, get) => ({
   seasonCards: 0,
   readsThisWeek: 0,
 
+  // === Identity ===
+  teamName: null,
+  newspaperName: null,
+  reporterName: null,
+
+  // === Transfers & relationships ===
+  clubRelationships: {},
+  transferFocus: [],
+  transferWindowOpen: false,
+  transferWindowWeeksRemaining: 0,
+  transferOffers: [],
+  loanedOutPlayers: [],
+  loanedInPlayers: [],
+  transferHistory: [],
+  pendingTradeTarget: null,
+  shortlist: [],
+
+  // === Tickets ===
+  tickets: [],
+  pendingTicketBoosts: [],
+
+  // === Story arcs ===
+  storyArcs: null,
+  arcStepQueue: [],
+
+  // === Season/summer state ===
+  summerData: null,
+  leagueRosters: null,
+  allLeagueStates: {},
+  dynastyCupQualifiers: null,
+  fiveASideSquad: null,
+
   // === Derived (kept in sync by setCalendarIndex) ===
   matchweekIndex: 0,
 
@@ -275,6 +307,33 @@ export const useGameStore = create((set, get) => ({
   setSeasonCards: (val) => set(s => ({ seasonCards: typeof val === "function" ? val(s.seasonCards) : val })),
   setReadsThisWeek: (val) => set(s => ({ readsThisWeek: typeof val === "function" ? val(s.readsThisWeek) : val })),
 
+  setTeamName: (val) => set(s => ({ teamName: typeof val === "function" ? val(s.teamName) : val })),
+  setNewspaperName: (val) => set(s => ({ newspaperName: typeof val === "function" ? val(s.newspaperName) : val })),
+  setReporterName: (val) => set(s => ({ reporterName: typeof val === "function" ? val(s.reporterName) : val })),
+
+  setClubRelationships: (val) => set(s => ({ clubRelationships: typeof val === "function" ? val(s.clubRelationships) : val })),
+  setTransferFocus: (val) => set(s => ({ transferFocus: typeof val === "function" ? val(s.transferFocus) : val })),
+  setTransferWindowOpen: (val) => set({ transferWindowOpen: val }),
+  setTransferWindowWeeksRemaining: (val) => set(s => ({ transferWindowWeeksRemaining: typeof val === "function" ? val(s.transferWindowWeeksRemaining) : val })),
+  setTransferOffers: (val) => set(s => ({ transferOffers: typeof val === "function" ? val(s.transferOffers) : val })),
+  setLoanedOutPlayers: (val) => set(s => ({ loanedOutPlayers: typeof val === "function" ? val(s.loanedOutPlayers) : val })),
+  setLoanedInPlayers: (val) => set(s => ({ loanedInPlayers: typeof val === "function" ? val(s.loanedInPlayers) : val })),
+  setTransferHistory: (val) => set(s => ({ transferHistory: typeof val === "function" ? val(s.transferHistory) : val })),
+  setPendingTradeTarget: (val) => set({ pendingTradeTarget: val }),
+  setShortlist: (val) => set(s => ({ shortlist: typeof val === "function" ? val(s.shortlist) : val })),
+
+  setTickets: (val) => set(s => ({ tickets: typeof val === "function" ? val(s.tickets) : val })),
+  setPendingTicketBoosts: (val) => set(s => ({ pendingTicketBoosts: typeof val === "function" ? val(s.pendingTicketBoosts) : val })),
+
+  setStoryArcs: (val) => set(s => ({ storyArcs: typeof val === "function" ? val(s.storyArcs) : val })),
+  setArcStepQueue: (val) => set(s => ({ arcStepQueue: typeof val === "function" ? val(s.arcStepQueue) : val })),
+
+  setSummerData: (val) => set(s => ({ summerData: typeof val === "function" ? val(s.summerData) : val })),
+  setLeagueRosters: (val) => set(s => ({ leagueRosters: typeof val === "function" ? val(s.leagueRosters) : val })),
+  setAllLeagueStates: (val) => set(s => ({ allLeagueStates: typeof val === "function" ? val(s.allLeagueStates) : val })),
+  setDynastyCupQualifiers: (val) => set(s => ({ dynastyCupQualifiers: typeof val === "function" ? val(s.dynastyCupQualifiers) : val })),
+  setFiveASideSquad: (val) => set(s => ({ fiveASideSquad: typeof val === "function" ? val(s.fiveASideSquad) : val })),
+
   // === Bulk operations ===
 
   /** Full reset — return to main menu or start a brand new game. Clears everything. */
@@ -377,6 +436,28 @@ export const useGameStore = create((set, get) => ({
     tradedWithClubs: new Set(),
     seasonCards: 0,
     readsThisWeek: 0,
+    teamName: null,
+    newspaperName: null,
+    reporterName: null,
+    clubRelationships: {},
+    transferFocus: [],
+    transferWindowOpen: false,
+    transferWindowWeeksRemaining: 0,
+    transferOffers: [],
+    loanedOutPlayers: [],
+    loanedInPlayers: [],
+    transferHistory: [],
+    pendingTradeTarget: null,
+    shortlist: [],
+    tickets: [],
+    pendingTicketBoosts: [],
+    storyArcs: null,
+    arcStepQueue: [],
+    summerData: null,
+    leagueRosters: null,
+    allLeagueStates: {},
+    dynastyCupQualifiers: null,
+    fiveASideSquad: null,
     matchweekIndex: 0,
   }),
 
@@ -444,12 +525,18 @@ export const useGameStore = create((set, get) => ({
     gkCleanSheets: {},
     seasonCards: 0,
     readsThisWeek: 0,
+    pendingTradeTarget: null,
+    arcStepQueue: [],
+    summerData: null,
+    dynastyCupQualifiers: null,
+    fiveASideSquad: null,
     matchweekIndex: 0,
     // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines, formation are intentionally preserved.
     // NOTE: trialHistory, careerMilestones are career-spanning and intentionally preserved.
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
     // ironmanSaveVersion, gameOver are intentionally preserved.
     // NOTE: unlockedAchievements, achievementUnlockWeeks, inboxMessages, usedTicketTypes, freeAgentSignings, totalShortlisted, tradesMadeInWindow, tradedWithClubs, prevSeasonSquadIds are intentionally preserved.
+    // NOTE: clubRelationships, transferFocus, transferWindowOpen, transferWindowWeeksRemaining, transferOffers, loanedOutPlayers, loanedInPlayers, transferHistory, shortlist, tickets, pendingTicketBoosts, storyArcs, leagueRosters, allLeagueStates, teamName, newspaperName, reporterName are intentionally preserved.
     // Prestige flow sets sentiment via partial carry-over formula, not hard reset.
   }),
 }));
