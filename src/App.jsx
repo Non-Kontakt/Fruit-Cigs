@@ -3301,7 +3301,7 @@ function FootballManager() {
         }]);
 
         // Inbox message
-        const rewardBody = (intendedBoostSE && gainCountSE === 0)
+        const rewardBody = (intendedBoostSE && targetExistsSE && gainCountSE === 0)
           ? `${arc.rewardDesc}\nYour squad is already maxed — a bonus ticket has been added to your cabinet instead.`
           : arc.rewardDesc;
         setInboxMessages(pm => [...pm, createInboxMessage(
