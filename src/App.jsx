@@ -2288,20 +2288,26 @@ function FootballManager() {
               const progressGain = rawProgress * focusMultiplier * arcMult * doubleMult * dojoMult;
 
               const oldProgress = newPlayer.statProgress[attrKey] || 0;
-              const newProgress = oldProgress + progressGain;
+              let newProgress = oldProgress + progressGain;
 
               if (newProgress >= 1.0) {
-                // STAT LEVEL UP!
-                newPlayer.attrs[attrKey] = Math.min(playerCap, current + 1);
-                newPlayer.gains[attrKey] = 1;
-                newPlayer.statProgress[attrKey] = Math.max(0, newProgress - 1.0); // keep overflow
+                // STAT LEVEL UP — handle multiple level-ups if progress >= 2.0
+                let levelUps = 0;
+                while (newProgress >= 1.0 && newPlayer.attrs[attrKey] < playerCap) {
+                  newProgress -= 1.0;
+                  newPlayer.attrs[attrKey] = Math.min(playerCap, newPlayer.attrs[attrKey] + 1);
+                  levelUps++;
+                }
+                if (newPlayer.attrs[attrKey] >= playerCap) newProgress = 0; // at cap, no overflow
+                newPlayer.gains[attrKey] = levelUps;
+                newPlayer.statProgress[attrKey] = Math.max(0, newProgress);
                 const priorPips = progressToPips(oldProgress);
                 weekGains.push({
                   playerName: p.name,
                   playerPosition: p.position,
                   attr: attrKey,
                   oldVal: current,
-                  newVal: current + 1,
+                  newVal: newPlayer.attrs[attrKey],
                   oldPips: priorPips,
                 });
               } else {
