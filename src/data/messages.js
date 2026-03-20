@@ -858,7 +858,7 @@ const atkBlock = (minRequired, current) => ({
   id: `msg_atk_block_${Date.now()}`,
   icon: "\uD83C\uDFD4\uFE0F", // 🏔️
   title: "Board Directive: More Attackers Required",
-  body: `The board insists on attacking football. You need at least ${minRequired} attackers (AM/LW/RW/ST) in your starting XI. Currently: ${current}.`,
+  body: `The board insists on attacking football. You need at least ${minRequired} forwards (LW/RW/ST) in your starting XI. Currently: ${current}.`,
   color: C.red,
 });
 
