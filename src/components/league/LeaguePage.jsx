@@ -744,40 +744,42 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                       }}
                       style={{
                         color: row.isPlayer ? C.green : C.text, fontSize: mob ? F.xs : F.sm,
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0,
+                        display: "flex", alignItems: "center", minWidth: 0,
                         cursor: row.teamIndex != null ? "pointer" : "default",
+                      }}
+                    >
+                      <span style={{
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         textDecoration: row.teamIndex != null ? "underline" : "none",
                         textDecorationColor: row.color || C.slate,
                         textDecorationStyle: "dotted",
-                      }}
-                    >
-                      {row.name}
+                      }}>
+                        {row.name}
+                      </span>
                       {(() => {
                         const seasonDone = isPlayerTier && matchweekIndex >= (league.fixtures?.length || 18);
                         if (!seasonDone) return null;
                         const isChamp = pos === 0;
                         const mod = getModifier(displayTier);
                         if (mod.miniTournament && displayTier > 1 && miniTournamentBracket) {
-                          // All 3 promotion spots from tournament: winner, runner-up, 3rd-place winner
                           const mW = miniTournamentBracket.winner;
-                          // Derive runner-up from final participants if not explicitly stored
                           const mR = miniTournamentBracket.runnerUp
                             || (mW && miniTournamentBracket.final?.home && miniTournamentBracket.final?.away
                               ? (mW.name === miniTournamentBracket.final.home.name ? miniTournamentBracket.final.away : miniTournamentBracket.final.home)
                               : null);
                           const m3 = miniTournamentBracket.thirdPlaceWinner
                             || miniTournamentBracket.thirdPlace?.winner || null;
-                          if (mW && row.name === mW.name) return <span style={{ fontSize: F.micro, color: "#facc15", marginLeft: 6 }}>(C)</span>;
-                          if (mR && row.name === mR.name) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6 }}>(P)</span>;
-                          if (m3 && row.name === m3.name) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6 }}>(P)</span>;
+                          if (mW && row.name === mW.name) return <span style={{ fontSize: F.micro, color: "#facc15", marginLeft: 6, flexShrink: 0 }}>(C)</span>;
+                          if (mR && row.name === mR.name) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6, flexShrink: 0 }}>(P)</span>;
+                          if (m3 && row.name === m3.name) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6, flexShrink: 0 }}>(P)</span>;
                         } else {
-                          if (isChamp) return <span style={{ fontSize: F.micro, color: "#facc15", marginLeft: 6 }}>(C)</span>;
-                          if (displayTier > 1 && inPromoZone && !isChamp) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6 }}>(P)</span>;
+                          if (isChamp) return <span style={{ fontSize: F.micro, color: "#facc15", marginLeft: 6, flexShrink: 0 }}>(C)</span>;
+                          if (displayTier > 1 && inPromoZone && !isChamp) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6, flexShrink: 0 }}>(P)</span>;
                         }
                         return null;
                       })()}
                       {!mob && row.trait && TEAM_TRAITS[row.trait] && (
-                        <span style={{ fontSize: F.micro, color: C.textDim, marginLeft: 6 }}>{TEAM_TRAITS[row.trait].label}</span>
+                        <span style={{ fontSize: F.micro, color: C.textDim, marginLeft: 6, flexShrink: 0 }}>{TEAM_TRAITS[row.trait].label}</span>
                       )}
                     </span>
                     {mob ? (
