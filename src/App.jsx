@@ -664,11 +664,17 @@ function FootballManager() {
       setTeamName(s.teamName);
       setNewspaperName(s.newspaperName || generateNewspaperName(s.teamName));
       setReporterName(s.reporterName || generateReporterName());
-      // Migrate: add nationality and statProgress to existing players if missing
+      // Migrate: add nationality, statProgress, and potential to existing players if missing
+      const loadOvrCap = getOvrCap(s.prestigeLevel || 0);
       const migratedSquad = (s.squad || []).map(p => {
         const migrated = { ...p };
         if (!migrated.nationality) migrated.nationality = inferNationality(migrated.name);
         if (!migrated.statProgress) migrated.statProgress = {};
+        if (migrated.potential == null) {
+          const ovr = getOverall(migrated);
+          const maxGap = migrated.age <= 19 ? rand(5,10) : migrated.age <= 23 ? rand(3,8) : migrated.age <= 27 ? rand(2,5) : migrated.age <= 30 ? rand(1,3) : rand(0,2);
+          migrated.potential = Math.min(loadOvrCap, ovr + maxGap);
+        }
         return migrated;
       });
       setSquad(migratedSquad);
@@ -833,7 +839,7 @@ function FootballManager() {
       setBench(s.bench);
       setUnlockedAchievements(new Set(s.unlockedAchievements || []));
       if (s.achievementUnlockWeeks) { setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
-      setLastSeenAchievementCount(s.lastSeenAchievementCount || 0);
+      setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.length ?? 0));
       setSeasonCards(s.seasonCards || 0);
       setSeasonNumber(s.seasonNumber || 1);
       setLeagueWins(s.leagueWins || 0);
@@ -2004,7 +2010,7 @@ function FootballManager() {
               setAchievementQueue(prev => { const ex = new Set(prev); const f = result.achievements.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
             }
             setInboxMessages(pm => [...pm, createInboxMessage(
-              { ...MSG.arcComplete(arc.name, arc.rewardDesc), week: calendarIndex + 2 },
+              MSG.arcComplete(arc.name, arc.rewardDesc),
               { calendarIndex, seasonNumber },
             )]);
             if (!useGameStore.getState().isOnHoliday) {
@@ -2288,20 +2294,26 @@ function FootballManager() {
               const progressGain = rawProgress * focusMultiplier * arcMult * doubleMult * dojoMult;
 
               const oldProgress = newPlayer.statProgress[attrKey] || 0;
-              const newProgress = oldProgress + progressGain;
+              let newProgress = oldProgress + progressGain;
 
               if (newProgress >= 1.0) {
-                // STAT LEVEL UP!
-                newPlayer.attrs[attrKey] = Math.min(playerCap, current + 1);
-                newPlayer.gains[attrKey] = 1;
-                newPlayer.statProgress[attrKey] = Math.max(0, newProgress - 1.0); // keep overflow
+                // STAT LEVEL UP — handle multiple level-ups if progress >= 2.0
+                let levelUps = 0;
+                while (newProgress >= 1.0 && newPlayer.attrs[attrKey] < playerCap) {
+                  newProgress -= 1.0;
+                  newPlayer.attrs[attrKey] = Math.min(playerCap, newPlayer.attrs[attrKey] + 1);
+                  levelUps++;
+                }
+                if (newPlayer.attrs[attrKey] >= playerCap) newProgress = 0; // at cap, no overflow
+                newPlayer.gains[attrKey] = levelUps;
+                newPlayer.statProgress[attrKey] = Math.max(0, newProgress);
                 const priorPips = progressToPips(oldProgress);
                 weekGains.push({
                   playerName: p.name,
                   playerPosition: p.position,
                   attr: attrKey,
                   oldVal: current,
-                  newVal: current + 1,
+                  newVal: newPlayer.attrs[attrKey],
                   oldPips: priorPips,
                 });
               } else {
@@ -3287,7 +3299,7 @@ function FootballManager() {
           ? `${arc.rewardDesc}\nYour squad is already maxed — a bonus ticket has been added to your cabinet instead.`
           : arc.rewardDesc;
         setInboxMessages(pm => [...pm, createInboxMessage(
-          { ...MSG.arcComplete(arc.name, rewardBody), week: calendarIndex + 2 },
+          MSG.arcComplete(arc.name, rewardBody),
           { calendarIndex, seasonNumber },
         )]);
 

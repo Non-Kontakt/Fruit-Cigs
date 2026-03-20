@@ -315,6 +315,12 @@ export function autoSelectBench(squad, startingXI) {
   return available.slice(0, 5).map(p => p.id);
 }
 
+function calcPotential(position, attrs, age, ovrCap) {
+  const ovr = getOverall({ position, attrs });
+  const maxGap = age <= 19 ? rand(5, 10) : age <= 23 ? rand(3, 8) : age <= 27 ? rand(2, 5) : age <= 30 ? rand(1, 3) : rand(0, 2);
+  return Math.min(ovrCap, ovr + maxGap);
+}
+
 export function generateAITeam(name, color, strength, trait, tier, extraCount = 0, prestigeLevel = 0, teamNatMix = null) {
   const offset = getPrestigeOffset(prestigeLevel);
   const ovrCap = getOvrCap(prestigeLevel);
@@ -344,7 +350,8 @@ export function generateAITeam(name, color, strength, trait, tier, extraCount = 
     applyAISpike(attrs, ovrCap);
     const pNameData = uniqueName(pickAINationality(tier, teamNatMix));
     const lp = rollAILearnedPositions(pos);
-    return { id: genId("ai"), name: pNameData.name, position: pos, attrs, nationality: pNameData.nationality, age: rand(22, 32), ...(lp ? { learnedPositions: lp } : {}) };
+    const age = rand(22, 32);
+    return { id: genId("ai"), name: pNameData.name, position: pos, attrs, nationality: pNameData.nationality, age, potential: calcPotential(pos, attrs, age, ovrCap), ...(lp ? { learnedPositions: lp } : {}) };
   });
   const benchMin = Math.max(1, minBase - 1);
   const benchMax = Math.max(2, maxBase - 1);
@@ -365,7 +372,8 @@ export function generateAITeam(name, color, strength, trait, tier, extraCount = 
     applyAISpike(attrs, ovrCap);
     const pNameData = uniqueName(pickAINationality(tier, teamNatMix));
     const lp = rollAILearnedPositions(pos);
-    squad.push({ id: genId("ai"), name: pNameData.name, position: pos, attrs, isBench: true, nationality: pNameData.nationality, age: rand(19, 27), ...(lp ? { learnedPositions: lp } : {}) });
+    const age = rand(19, 27);
+    squad.push({ id: genId("ai"), name: pNameData.name, position: pos, attrs, isBench: true, nationality: pNameData.nationality, age, potential: calcPotential(pos, attrs, age, ovrCap), ...(lp ? { learnedPositions: lp } : {}) });
   });
   // Extra depth players for teams with large target squad sizes
   for (let e = 0; e < extraCount; e++) {
@@ -381,7 +389,8 @@ export function generateAITeam(name, color, strength, trait, tier, extraCount = 
     applyAISpike(attrs, ovrCap);
     const nd = uniqueName(pickAINationality(tier, teamNatMix));
     const lp = rollAILearnedPositions(pos);
-    squad.push({ id: genId("ai"), name: nd.name, position: pos, attrs, isBench: true, nationality: nd.nationality, age: rand(19, 25), ...(lp ? { learnedPositions: lp } : {}) });
+    const age = rand(19, 25);
+    squad.push({ id: genId("ai"), name: nd.name, position: pos, attrs, isBench: true, nationality: nd.nationality, age, potential: calcPotential(pos, attrs, age, ovrCap), ...(lp ? { learnedPositions: lp } : {}) });
   }
   return { name, color, squad, isPlayer: false, trait };
 }
