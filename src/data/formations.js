@@ -50,6 +50,33 @@ export const FORMATION_PRESETS = {
     { pos: "AM", x: 50, y: 30 },
     { pos: "ST", x: 35, y: 14 }, { pos: "ST", x: 65, y: 14 },
   ],
+  "4-4-1-1": [
+    { pos: "GK", x: 50, y: 90 },
+    { pos: "LB", x: 12, y: 68 }, { pos: "CB", x: 35, y: 72 }, { pos: "CB", x: 65, y: 72 }, { pos: "RB", x: 88, y: 68 },
+    { pos: "LW", x: 12, y: 42 }, { pos: "CM", x: 35, y: 46 }, { pos: "CM", x: 65, y: 46 }, { pos: "RW", x: 88, y: 42 },
+    { pos: "AM", x: 50, y: 26 },
+    { pos: "ST", x: 50, y: 12 },
+  ],
+  "3-4-1-2": [
+    { pos: "GK", x: 50, y: 90 },
+    { pos: "CB", x: 28, y: 72 }, { pos: "CB", x: 50, y: 70 }, { pos: "CB", x: 72, y: 72 },
+    { pos: "LW", x: 8, y: 48 }, { pos: "CM", x: 35, y: 50 }, { pos: "CM", x: 65, y: 50 }, { pos: "RW", x: 92, y: 48 },
+    { pos: "AM", x: 50, y: 30 },
+    { pos: "ST", x: 35, y: 14 }, { pos: "ST", x: 65, y: 14 },
+  ],
+  "4-3-1-2": [
+    { pos: "GK", x: 50, y: 90 },
+    { pos: "LB", x: 12, y: 68 }, { pos: "CB", x: 35, y: 72 }, { pos: "CB", x: 65, y: 72 }, { pos: "RB", x: 88, y: 68 },
+    { pos: "CM", x: 28, y: 48 }, { pos: "CM", x: 50, y: 52 }, { pos: "CM", x: 72, y: 48 },
+    { pos: "AM", x: 50, y: 30 },
+    { pos: "ST", x: 35, y: 14 }, { pos: "ST", x: 65, y: 14 },
+  ],
+  "5-4-1": [
+    { pos: "GK", x: 50, y: 90 },
+    { pos: "LB", x: 8, y: 64 }, { pos: "CB", x: 28, y: 72 }, { pos: "CB", x: 50, y: 70 }, { pos: "CB", x: 72, y: 72 }, { pos: "RB", x: 92, y: 64 },
+    { pos: "LW", x: 12, y: 42 }, { pos: "CM", x: 35, y: 46 }, { pos: "CM", x: 65, y: 46 }, { pos: "RW", x: 88, y: 42 },
+    { pos: "ST", x: 50, y: 14 },
+  ],
 };
 
 export const DEFAULT_FORMATION = FORMATION_PRESETS["4-2-3-1"];
