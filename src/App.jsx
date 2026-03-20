@@ -2004,7 +2004,7 @@ function FootballManager() {
               setAchievementQueue(prev => { const ex = new Set(prev); const f = result.achievements.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
             }
             setInboxMessages(pm => [...pm, createInboxMessage(
-              { ...MSG.arcComplete(arc.name, arc.rewardDesc), week: calendarIndex + 2 },
+              MSG.arcComplete(arc.name, arc.rewardDesc),
               { calendarIndex, seasonNumber },
             )]);
             if (!useGameStore.getState().isOnHoliday) {
@@ -3287,7 +3287,7 @@ function FootballManager() {
           ? `${arc.rewardDesc}\nYour squad is already maxed — a bonus ticket has been added to your cabinet instead.`
           : arc.rewardDesc;
         setInboxMessages(pm => [...pm, createInboxMessage(
-          { ...MSG.arcComplete(arc.name, rewardBody), week: calendarIndex + 2 },
+          MSG.arcComplete(arc.name, rewardBody),
           { calendarIndex, seasonNumber },
         )]);
 
