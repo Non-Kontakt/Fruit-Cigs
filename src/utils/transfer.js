@@ -117,18 +117,23 @@ export function generateAITransferOffers(clubRelationships, squad, allLeagueStat
 
   if (eligibleClubs.length === 0) return offers;
 
-  // Generate 1-3 random offers
+  // Generate 1-3 random offers (no duplicate clubs or target players)
   const offerCount = Math.min(3, Math.floor(Math.random() * 3) + 1);
+  const shuffledClubs = [...eligibleClubs].sort(() => Math.random() - 0.5);
+  const usedPlayerIds = new Set();
 
-  for (let i = 0; i < offerCount && i < eligibleClubs.length; i++) {
-    const club = eligibleClubs[Math.floor(Math.random() * eligibleClubs.length)];
+  for (let i = 0; i < offerCount && i < shuffledClubs.length; i++) {
+    const club = shuffledClubs[i];
 
     // Find AI squad from allLeagueStates
     const aiTeam = findAITeamInLeagues(club.name, allLeagueStates);
     if (!aiTeam || !aiTeam.squad || aiTeam.squad.length === 0) continue;
 
-    // AI wants: Random player from user squad (prefer lower OVR)
-    const userSquadSorted = [...squad].sort((a, b) => getOverall(a) - getOverall(b));
+    // AI wants: Random player from user squad (prefer lower OVR, skip already-targeted)
+    const userSquadSorted = [...squad]
+      .filter(p => !usedPlayerIds.has(p.id))
+      .sort((a, b) => getOverall(a) - getOverall(b));
+    if (userSquadSorted.length === 0) continue;
     const aiWants = [userSquadSorted[Math.floor(Math.random() * Math.min(5, userSquadSorted.length))]];
 
     // AI offers: Random player from their squad (similar value)
@@ -141,6 +146,7 @@ export function generateAITransferOffers(clubRelationships, squad, allLeagueStat
     if (aiSquadFiltered.length === 0) continue;
 
     const aiOffers = [aiSquadFiltered[Math.floor(Math.random() * aiSquadFiltered.length)]];
+    usedPlayerIds.add(aiWants[0].id);
 
     offers.push({
       aiClubName: club.name,
