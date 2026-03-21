@@ -59,7 +59,7 @@ export const LEAGUE_MODIFIERS = {
     inboxIntro: {
       icon: "🏔️",
       title: "Welcome to the Altitude Trials",
-      body: "The air is thin up here. The board demands attacking football — at least 4 attackers (AM/LW/RW/ST) in every starting XI.\n\nThe altitude takes its toll. Injuries are 40% more frequent, and exhaustion is a real risk — though strong physical players cope better.",
+      body: "The air is thin up here. The board demands attacking football — at least 4 forwards (LW/RW/ST) in every starting XI.\n\nThe altitude takes its toll. Injuries are 40% more frequent, and exhaustion is a real risk — though strong physical players cope better.",
     },
   },
   5: {

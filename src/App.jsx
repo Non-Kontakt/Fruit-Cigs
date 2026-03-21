@@ -4196,11 +4196,11 @@ function FootballManager() {
                       setShowLineupWarning("match");
                       return;
                     }
-                    // Altitude Trials: enforce minimum ATK players
+                    // Altitude Trials: enforce minimum forward slots in formation
                     const atkMod = getModifier(leagueTier);
                     if (atkMod.minAtkPlayers) {
-                      const atkPositions = new Set(["AM", "LW", "RW", "ST"]);
-                      const atkCount = startingXI.map(id => squad.find(p => p.id === id)).filter(p => p && atkPositions.has(p.position)).length;
+                      const fwdPositions = new Set(["LW", "RW", "ST"]);
+                      const atkCount = formation ? formation.filter(slot => fwdPositions.has(slot.pos)).length : 0;
                       if (atkCount < atkMod.minAtkPlayers) {
                         setInboxMessages(prev => [...prev, createInboxMessage(
                           MSG.atkBlock(atkMod.minAtkPlayers, atkCount),
