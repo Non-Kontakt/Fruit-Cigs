@@ -77,6 +77,7 @@ export const ACHIEVEMENTS = [
   { id: "cursed", name: "Cursed", desc: "Receive 3 injuries from a single training session", icon: "🩼" },
 
   // === PLAYER DEVELOPMENT — stat growth and squad building ===
+  { id: "through_the_roof", name: "Through The Roof", desc: "A player gains +2 OVR in a single week", icon: "🚀" },
   { id: "stat_15", name: "Star Quality", desc: "Have any player reach 15 in a stat", icon: "⭐" },
   { id: "stat_20", name: "Stat Anorak", desc: "Train a player's attribute to 20", icon: "📊" },
   { id: "centurion", name: "Centurion", desc: "Reach 100 total stat gains across your squad", icon: "💪" },
@@ -137,6 +138,7 @@ export const ACHIEVEMENTS = [
   { id: "promoted", name: "Moving On Up", desc: "Win promotion to a higher league", icon: "📈" },
   { id: "relegated", name: "Trapdoor", desc: "Get relegated to a lower league", icon: "📉" },
   { id: "invincibles", name: "Invincibles", desc: "Win the league without losing a match", icon: "🦁" },
+  { id: "centurions", name: "The Centurions", desc: "Win every league match in a season", icon: "💯" },
   { id: "back_to_back", name: "Back to Back", desc: "Win promotion in consecutive seasons", icon: "⬆️" },
   { id: "yo_yo", name: "Yo-Yo Club", desc: "Get relegated the season after being promoted", icon: "🪀" },
   { id: "free_fall", name: "Free Fall", desc: "Get relegated in consecutive seasons", icon: "🪂" },
@@ -394,7 +396,7 @@ export const ACHIEVEMENTS = [
 
 
 export const LEGENDARY_ACHIEVEMENTS = new Set([
-  "mentality_monsters", "invincibles", "from_the_bottom", "the_double",
+  "mentality_monsters", "invincibles", "centurions", "from_the_bottom", "the_double",
   "maxed_out", "dynasty", "catenaccio",
   "nominative_determinism", "always_bridesmaid", "baby_faced",
   "completionist", "speedrun",
@@ -405,7 +407,7 @@ export const LEGENDARY_ACHIEVEMENTS = new Set([
 ]);
 
 export const PRESTIGIOUS_ACHIEVEMENTS = new Set([
-  "hand_of_god", "safe_hands", "golden_gen", "peak_perf",
+  "through_the_roof", "hand_of_god", "safe_hands", "golden_gen", "peak_perf",
   "squeaky", "perfect_motm", "comeback", "respect_badge", "no_cards",
   "kolo_kolo", "golden_boot", "professional_job",
   "fox_box", "odds_are_even", "great_escape", "perfect_five",

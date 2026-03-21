@@ -6863,6 +6863,11 @@ function FootballManager() {
                   setUnlockedAchievements(prev => { const n = new Set(prev); n.add("level_up"); return n; });
                   setAchievementQueue(prev => [...prev, "level_up"]);
                 }
+                // Through The Roof — a player gains +2 OVR in a single week
+                if (!unlockedAchievements.has("through_the_roof") && levelUps.some(l => l.newOvr - l.oldOvr >= 2)) {
+                  setUnlockedAchievements(prev => { const n = new Set(prev); n.add("through_the_roof"); return n; });
+                  setAchievementQueue(prev => [...prev, "through_the_roof"]);
+                }
                 // 1-Up Addict — 5+ OVR increases in a single week
                 if (levelUps.length >= 5 && !unlockedAchievements.has("1up_addict")) {
                   setUnlockedAchievements(prev => { const n = new Set(prev); n.add("1up_addict"); return n; });

@@ -549,6 +549,7 @@ export function checkAchievements(state) {
 
       if (!unlocked.has("champion") && isFirst) newUnlocks.push("champion");
       if (!unlocked.has("invincibles") && isFirst && playerRow?.lost === 0) newUnlocks.push("invincibles");
+      if (!unlocked.has("centurions") && isFirst && playerRow?.lost === 0 && playerRow?.drawn === 0) newUnlocks.push("centurions");
 
       // Kolo Kolo — won the league with an ex-trial defender in the squad
       if (!unlocked.has("kolo_kolo") && isFirst && trialHistory && trialHistory.length > 0) {
