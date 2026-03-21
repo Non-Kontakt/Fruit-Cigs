@@ -7688,7 +7688,13 @@ function FootballManager() {
                const boostable = ATTRIBUTES.filter(a => motmPlayer.attrs[a.key] < ovrCap);
                if (boostable.length > 0) {
                  const pick = boostable[rand(0, boostable.length - 1)];
-                 setSquad(prev => prev.map(p => p.id === motmPlayer.id ? { ...p, attrs: { ...p.attrs, [pick.key]: p.attrs[pick.key] + 1 } } : p));
+                 const oldVal = motmPlayer.attrs[pick.key];
+                 const newVal = oldVal + 1;
+                 setSquad(prev => prev.map(p => p.id === motmPlayer.id ? { ...p, attrs: { ...p.attrs, [pick.key]: newVal } } : p));
+                 setPendingTicketBoosts(prev => [...prev, {
+                   playerId: motmPlayer.id, playerName: motmPlayer.name, playerPosition: motmPlayer.position,
+                   attr: pick.key, oldVal, newVal, source: "televised",
+                 }]);
                  setInboxMessages(prev => [...prev, createInboxMessage(
                    MSG.televisionBoost(motmPlayer.name, pick.label, leagueTier),
                    { calendarIndex, seasonNumber },

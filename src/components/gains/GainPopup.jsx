@@ -63,7 +63,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
         allItems.push({ type: "arc_boost_group", data: group, priority: 110 });
       });
     }
-    ticketBoosts.forEach(tb => allItems.push({ type: "ticket_boost", data: tb, priority: 115 }));
+    ticketBoosts.forEach(tb => allItems.push({ type: tb.source === "televised" ? "televised_boost" : "ticket_boost", data: tb, priority: 115 }));
     (gains.cappedArcTickets || []).forEach(ct => allItems.push({ type: "capped_arc_ticket", data: ct, priority: 105 }));
     progressEvents.forEach(p => {
       if (p.type === "positionLearned") {
@@ -80,10 +80,10 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
 
     // Shuffle mystery cards: prodigal boosts first, then ticket boosts, then arc boosts, then rest
     const mysteryProdigal = mystery.filter(i => i.type === "prodigal_boost");
-    const mysteryTicketBoosts = mystery.filter(i => i.type === "ticket_boost");
+    const mysteryTicketBoosts = mystery.filter(i => i.type === "ticket_boost" || i.type === "televised_boost");
     const mysteryArcBoosts = mystery.filter(i => i.type === "arc_boost_group");
     const mysteryCappedArc = mystery.filter(i => i.type === "capped_arc_ticket");
-    const mysteryRest = mystery.filter(i => i.type !== "prodigal_boost" && i.type !== "arc_boost_group" && i.type !== "ticket_boost" && i.type !== "capped_arc_ticket");
+    const mysteryRest = mystery.filter(i => i.type !== "prodigal_boost" && i.type !== "arc_boost_group" && i.type !== "ticket_boost" && i.type !== "televised_boost" && i.type !== "capped_arc_ticket");
     for (let i = mysteryRest.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [mysteryRest[i], mysteryRest[j]] = [mysteryRest[j], mysteryRest[i]];
@@ -129,6 +129,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
     else if (item.type === "breakthrough" || item.type === "prodigal_boost") SFX.breakthrough();
     else if (item.type === "arc_boost_group") SFX.arcStep();
     else if (item.type === "capped_arc_ticket") SFX.arcStep();
+    else if (item.type === "televised_boost") SFX.breakthrough();
     else if (item.type === "progress") SFX.progress();
     else if (item.type === "positionLearned") SFX.reveal();
     else SFX.reveal();
@@ -372,6 +373,41 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
               <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
                 <span style={{ color: C.purple, fontSize: F.h1, fontWeight: "bold", textShadow: "0 0 12px rgba(168,85,247,0.9), 0 0 30px rgba(168,85,247,0.4)", lineHeight: 1 }}>{tb.newVal}</span>
                 <span style={{ color: C.purple, fontSize: F.xs, marginLeft: 2, marginTop: -2, opacity: 0.8 }}>+1</span>
+              </span>
+              <span style={{ color: C.slate, fontSize: F.xs }}>was {tb.oldVal}</span>
+            </span>
+          </div>
+        </div>
+      );
+    }
+    // Televised match MotM boost — Euro Dynasty deep blue
+    if (item.type === "televised_boost") {
+      const tb = item.data;
+      const attr = ATTRIBUTES.find(a => a.key === tb.attr);
+      const blue = "#1e3a8a";
+      return (
+        <div key={index} style={{
+          padding: "18px 20px", marginBottom: 8,
+          background: `linear-gradient(135deg, rgba(30,58,138,0.15) 0%, rgba(30,58,138,0.06) 50%, rgba(30,58,138,0.12) 100%)`,
+          border: `1px solid rgba(30,58,138,0.5)`,
+          position: "relative", overflow: "hidden",
+          animation: "slideIn 0.4s ease both",
+        }}>
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 55%, transparent 70%)",
+            animation: `sheen 2.5s ease ${index * 0.2}s infinite`, pointerEvents: "none",
+          }} />
+          <div style={{ fontSize: F.micro, color: blue, letterSpacing: 2, marginBottom: 8, position: "relative" }}>📺 TELEVISED MOTM BOOST</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
+            <span style={{ color: C.text, fontSize: F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 6 }}
+              onClick={() => onPlayerClick && onPlayerClick(tb.playerName)}
+            >{tb.playerPosition && <span style={{ background: getPosColor(tb.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", textDecoration: "none" }}>{tb.playerPosition}</span>}{tb.playerName}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+              <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
+                <span style={{ color: blue, fontSize: F.h1, fontWeight: "bold", textShadow: `0 0 12px rgba(30,58,138,0.9), 0 0 30px rgba(30,58,138,0.4)`, lineHeight: 1 }}>{tb.newVal}</span>
+                <span style={{ color: blue, fontSize: F.xs, marginLeft: 2, marginTop: -2, opacity: 0.8 }}>+1</span>
               </span>
               <span style={{ color: C.slate, fontSize: F.xs }}>was {tb.oldVal}</span>
             </span>
