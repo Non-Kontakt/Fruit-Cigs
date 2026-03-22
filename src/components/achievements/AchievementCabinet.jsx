@@ -483,7 +483,9 @@ export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, cale
             const isUnlocked = isAchievementUnlock || isInSquad;
             // Show current squad attrs if available (prestige-scaled + training gains), else definition attrs
             const displayAttrs = squadPlayer ? squadPlayer.attrs : up.attrs;
-            const displayCap = squadPlayer?.isLegend ? squadPlayer.legendCap : ovrCap;
+            const displayCap = squadPlayer?.isLegend ? squadPlayer.legendCap
+              : squadPlayer?.isUnlockable && squadPlayer.legendCap ? squadPlayer.legendCap
+              : ovrCap;
             const hasAch = up.achievementId !== null;
             const isSecret = up.secret;
             const linkedAch = up.achievementId ? ACHIEVEMENTS.find(a => a.id === up.achievementId) : null;
