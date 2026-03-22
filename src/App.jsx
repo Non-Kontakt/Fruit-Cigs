@@ -4215,14 +4215,10 @@ function FootballManager() {
                       const _fiveIds = fiveASideSquad || [];
                       const _fiveFilled = _fiveIds.filter(Boolean).length;
                       if (_fiveFilled < 5) {
-                        setInbox(prev => [...prev, {
-                          id: `msg_five_incomplete_${Date.now()}`,
-                          sender: "Match Official",
-                          subject: "5v5 Squad Incomplete",
-                          body: `You need 5 players selected for the mini-tournament. You have ${_fiveFilled}. Go to SQUAD to pick your 5.`,
-                          read: false,
-                          week: useGameStore.getState().calendarIndex + 1,
-                        }]);
+                        setInboxMessages(prev => [...prev, createInboxMessage(
+                          MSG.miniIncomplete(_fiveFilled),
+                          { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber: useGameStore.getState().seasonNumber },
+                        )]);
                         return;
                       }
                       // Simulate match directly

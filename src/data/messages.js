@@ -571,6 +571,14 @@ const mini3rdResult = (playerWon, mhg, mag) => ({
   color: "#fbbf24",
 });
 
+const miniIncomplete = (filled) => ({
+  id: `msg_five_incomplete_${Date.now()}`,
+  icon: "⚠️",
+  title: "5v5 Squad Incomplete",
+  body: `You need 5 players selected for the mini-tournament. You have ${filled}. Go to SQUAD to pick your 5.`,
+  color: "#f97316",
+});
+
 // ---------------------------------------------------------------------------
 // PRODIGAL SON
 // ---------------------------------------------------------------------------
@@ -954,6 +962,7 @@ export const MSG = {
   miniFinalBg2,
   miniFinalResult,
   mini3rdResult,
+  miniIncomplete,
   // Prodigal
   prodigalScout,
   prodigalOffer,
