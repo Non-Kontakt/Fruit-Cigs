@@ -69,7 +69,7 @@ export function useTickets({
       return { ...prev, [club]: { ...entry, pct: Math.min(100, entry.pct + 20) } };
     });
     setTickets(prev => prev.filter(t => t.id !== ticketId));
-    setUsedTicketTypes(prev => new Set([...prev, "relations_boost"]));
+    setUsedTicketTypes(prev => new Set([...prev, "relation_boost"]));
     setInboxMessages(prev => [...prev, createInboxMessage(
       MSG.relationBoost(club),
       { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber },
