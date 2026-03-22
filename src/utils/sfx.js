@@ -532,8 +532,30 @@ export const BGM = {
     }
   },
 
+  // Tracks reserved for Corner Shop — excluded from normal rotation
+  reservedTracks: new Set(["komeda_banger", "ticket_shop"]),
+  _contextOverride: null, // when set, plays this track instead of playlist
+
   getEnabledTracks() {
-    return BGM_TRACKS.filter(t => !this.disabledTracks.has(t.id));
+    return BGM_TRACKS.filter(t => !this.disabledTracks.has(t.id) && !this.reservedTracks.has(t.id));
+  },
+
+  /** Play a specific track (e.g. for Corner Shop). Call releaseContext() to resume normal rotation. */
+  playContext(trackId) {
+    if (!this.enabled) return;
+    this._contextOverride = trackId;
+    this._init();
+    const track = BGM_TRACKS.find(t => t.id === trackId);
+    if (!track) return;
+    this.audio.src = `./${track.file}`;
+    this.audio.play().catch(() => {});
+  },
+
+  /** Resume normal playlist rotation after a context override. */
+  releaseContext() {
+    if (!this._contextOverride) return;
+    this._contextOverride = null;
+    this.next();
   },
 
   shuffle() {
@@ -550,6 +572,14 @@ export const BGM = {
 
   next() {
     if (!this.enabled || !this.audio) return;
+    // If in context override (e.g. Corner Shop), pick a random reserved track
+    if (this._contextOverride) {
+      const reserved = [...this.reservedTracks];
+      const pick = reserved[Math.floor(Math.random() * reserved.length)];
+      const track = BGM_TRACKS.find(t => t.id === pick);
+      if (track) { this.audio.src = `./${track.file}`; this.audio.play().catch(() => {}); }
+      return;
+    }
     this.playlistIdx++;
     const enabled = this.getEnabledTracks();
     if (enabled.length === 0) return;

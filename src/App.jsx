@@ -285,6 +285,11 @@ function FootballManager() {
   const [packUnlockQueue, setPackUnlockQueue] = useState([]);
   const achievementToastKeyRef = useRef(0);
   const [showAchievements, setShowAchievements] = useState(false);
+  // Corner Shop BGM: play reserved tracks when open, release on close
+  useEffect(() => {
+    if (showAchievements) BGM.playContext("komeda_banger");
+    else BGM.releaseContext();
+  }, [showAchievements]);
   const [showLegends, setShowLegends] = useState(false);
   const seasonCards = useGameStore(s => s.seasonCards);
   const seasonNumber = useGameStore(s => s.seasonNumber);
@@ -334,15 +339,19 @@ function FootballManager() {
     }
   }, [unlockedAchievements, unlockedPacks, seasonNumber, leagueTier, prestigeLevel]);
 
-  // Unlock players when their pack is fully completed (replaces per-achievement player unlock)
-  const playerUnlockedPacksRef = useRef(new Set());
+  // Pack completion rewards: player unlocks + 3 random tickets
+  const completedPacksRef = useRef(new Set());
   useEffect(() => {
     const newPlayerUnlocks = [];
+    let ticketsToAdd = 0;
     for (const pack of CIG_PACKS) {
       if (!unlockedPacks.has(pack.id)) continue;
-      if (playerUnlockedPacksRef.current.has(pack.id)) continue;
+      if (completedPacksRef.current.has(pack.id)) continue;
       if (!isPackComplete(pack.id, unlockedAchievements)) continue;
-      // Pack just completed — check for player unlock achievement in this pack
+      completedPacksRef.current.add(pack.id);
+      // Award 3 random tickets for every completed pack
+      ticketsToAdd += 3;
+      // Check for player unlock achievement in this pack
       const playerAch = pack.achievementIds.find(achId => PLAYER_UNLOCK_ACHIEVEMENTS.has(achId));
       if (playerAch) {
         const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === playerAch);
@@ -350,7 +359,17 @@ function FootballManager() {
           newPlayerUnlocks.push(unlock);
         }
       }
-      playerUnlockedPacksRef.current.add(pack.id);
+    }
+    if (ticketsToAdd > 0) {
+      const pool = ARC_TICKET_POOL;
+      setTickets(prev => {
+        const newTickets = [...prev];
+        for (let i = 0; i < ticketsToAdd; i++) {
+          const type = pool[Math.floor(Math.random() * pool.length)];
+          newTickets.push({ id: `t_pack_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, type });
+        }
+        return newTickets;
+      });
     }
     if (newPlayerUnlocks.length > 0) {
       setPendingPlayerUnlock(prev => prev ? [].concat(prev).concat(newPlayerUnlocks) : newPlayerUnlocks);
