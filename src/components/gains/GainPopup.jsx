@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { getPosColor, progressToPips } from "../../utils/calc.js";
+import { shortName } from "../../utils/player.js";
 import { SFX } from "../../utils/sfx.js";
 import { AnimatedPips } from "../ui/AnimatedPips.jsx";
 import { LevelUpPips } from "../ui/LevelUpPips.jsx";
@@ -15,6 +16,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
   const [revealedCount, setRevealedCount] = useState(0);
   const [pickedTickets, setPickedTickets] = useState({});
   const mob = window.innerWidth <= 768;
+  const dn = (name) => mob ? shortName(name) : name; // display name — abbreviated on mobile
   const isQuick = cardSpeed === "quick";
   const isSummary = cardSpeed === "summary";
   const doneRef = useRef(false);
@@ -202,7 +204,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
               {d.playerPosition && <span style={{ background: getPosColor(d.playerPosition), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", flexShrink: 0 }}>{d.playerPosition}</span>}
               <span style={{ color: C.text, fontSize: F.md, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3 }}
                 onClick={() => onPlayerClick && onPlayerClick(d.playerName)}
-              >{d.playerName}</span>
+              >{dn(d.playerName)}</span>
               <span style={{ color: "#92723f", fontSize: F.xs, flexShrink: 0 }}>w/</span>
               <span style={{ color: "#a3a3a3", fontSize: F.xs, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(163,163,163,0.2)", textUnderlineOffset: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                 onClick={() => onPlayerClick && onPlayerClick(d.partnerName)}
@@ -270,7 +272,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
             <div style={{ fontSize: F.xs, color: group.sourceKey === "well_rested" ? C.amber : "#93c5fd", letterSpacing: 3, marginBottom: 6, textShadow: group.sourceKey === "well_rested" ? "0 0 10px rgba(251,191,36,0.5)" : "0 0 10px rgba(96,165,250,0.5)" }}>{group.sourceKey === "well_rested" ? "☀️ WELL RESTED" : "📖 ARC BOOST"}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: "#dbeafe", fontSize: mob ? F.sm : F.md }}>
-                {group.players.length === 1 ? (group.players[0].name) : group.players.length <= 5 ? group.players.map(p => p.name).join(", ") : group.filterLabel ? `All ${group.filterLabel} (${group.players.length})` : `All squad (${group.players.length} players)`}
+                {group.players.length === 1 ? dn(group.players[0].name) : group.players.length <= 5 ? group.players.map(p => dn(p.name)).join(", ") : group.filterLabel ? `All ${group.filterLabel} (${group.players.length})` : `All squad (${group.players.length} players)`}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
@@ -336,7 +338,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
               onClick={() => onPlayerClick && onPlayerClick(p.playerName)}
             >
               {p.playerPosition && <span style={{ background: getPosColor(p.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", marginRight: 6 }}>{p.playerPosition}</span>}
-              {p.playerName}
+              {dn(p.playerName)}
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: C.blue, fontSize: F.xs }}>can now play</span>
@@ -562,7 +564,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={i} style={{ padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#fca5a5", fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(inj.playerName)}>🏥 {inj.playerName}</span>
+                          <span style={{ color: "#fca5a5", fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(inj.playerName)}>🏥 {dn(inj.playerName)}</span>
                           <span style={{ color: C.red, fontSize: F.xs }}>{inj.injury} ({inj.weeksOut}w)</span>
                         </div>
                         {inj.attrLoss && <div style={{ color: "#f87171", fontSize: F.xs, marginTop: 3 }}>−1 {inj.attrLoss.label}</div>}
@@ -574,7 +576,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     const attr = ATTRIBUTES.find(a => a.key === d.attr);
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
-                        <span style={{ color: C.amber, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(d.playerName)}>🤝 {d.playerName}</span>
+                        <span style={{ color: C.amber, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(d.playerName)}>🤝 {dn(d.playerName)}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.green, fontSize: F.md, fontWeight: "bold" }}>{d.newVal}</span>
@@ -588,7 +590,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     const attr = ATTRIBUTES.find(a => a.key === g.attr);
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
-                        <span style={{ color: C.textMuted, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(g.playerName)}>{g.playerName}</span>
+                        <span style={{ color: C.textMuted, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(g.playerName)}>{dn(g.playerName)}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.green, fontSize: F.md, fontWeight: "bold" }}>{g.newVal}</span>
@@ -614,7 +616,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     const p = item.data;
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(96,165,250,0.2)", background: "rgba(96,165,250,0.04)" }}>
-                        <span style={{ color: C.blue, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(p.playerName)}>🎓 {p.playerName}</span>
+                        <span style={{ color: C.blue, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(p.playerName)}>🎓 {dn(p.playerName)}</span>
                         <span style={{ color: C.blue, fontSize: F.xs }}>Learned {p.learnedPosition}</span>
                       </div>
                     );
@@ -625,7 +627,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     const pips = progressToPips(p.newProgress);
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
-                        <span style={{ color: C.textDim, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(p.playerName)}>{p.playerName}</span>
+                        <span style={{ color: C.textDim, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(p.playerName)}>{dn(p.playerName)}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label} {p.statVal}</span>
                           <span style={{ display: "flex", gap: 1 }}>
@@ -707,7 +709,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                       <div key={`ov-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <span style={{ color: C.textMuted, fontSize: F.sm, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(148,163,184,0.2)", textUnderlineOffset: 2 }}
                           onClick={() => onPlayerClick && onPlayerClick(g.playerName)}
-                        >{g.playerName}</span>
+                        >{dn(g.playerName)}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.green, fontSize: F.md, fontWeight: "bold" }}>{g.newVal}</span>
@@ -738,7 +740,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                       <div key={`ov-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <span style={{ color: C.textDim, fontSize: F.sm, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(100,116,139,0.2)", textUnderlineOffset: 2 }}
                           onClick={() => onPlayerClick && onPlayerClick(p.playerName)}
-                        >{p.playerName}</span>
+                        >{dn(p.playerName)}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label} {p.statVal}</span>
                           <span style={{ display: "flex", gap: 1 }}>
@@ -755,7 +757,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={`ov-${i}`} style={{ padding: "5px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#fca5a5", fontSize: F.sm }}>🏥 {inj.playerName}</span>
+                          <span style={{ color: "#fca5a5", fontSize: F.sm }}>🏥 {dn(inj.playerName)}</span>
                           <span style={{ color: C.red, fontSize: F.xs }}>{inj.injury} ({inj.weeksOut}w)</span>
                         </div>
                         {inj.attrLoss && <div style={{ color: "#f87171", fontSize: F.xs, marginTop: 3 }}>−1 {inj.attrLoss.label}</div>}

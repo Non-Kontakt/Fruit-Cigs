@@ -807,3 +807,13 @@ export function generateProdigalPlayer(formerClub, ovrCap = 20) {
     isProdigal: true, formerClub, injuryHistory: {},
   };
 }
+
+// Abbreviated name for mobile: "Grape Cig" → "G.Cig", "Mark-Anthony Fraser" → "M-A.Fraser"
+export function shortName(name) {
+  if (!name) return "";
+  const parts = name.split(" ");
+  if (parts.length < 2) return name;
+  const surname = parts[parts.length - 1];
+  const initials = parts.slice(0, -1).map(p => p[0]).join("-");
+  return `${initials}.${surname}`;
+}
