@@ -29,7 +29,7 @@ export function useSaveGame({
       const date = new Date().toISOString().slice(0, 10);
       const safeName = (teamName || "backup").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "backup";
       a.href = url;
-      a.download = `jumpers-${safeName}-${date}.json`;
+      a.download = `fruit-cigs-${safeName}-${date}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

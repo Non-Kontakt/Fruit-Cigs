@@ -326,7 +326,7 @@ export const ACHIEVEMENTS = [
   // === TACTICS ===
   { id: "false_nine", name: "False Nine", desc: "Win a match with no strikers in your Starting XI", icon: "9️⃣" },
   { id: "get_it_in_the_mixer", name: "Get It In The Mixer", desc: "Start a match with 4 or more forwards in your Starting XI", icon: "🥣" },
-  { id: "jumpers_for_goalposts", name: "Jumpers For Goalposts", desc: "Win a match with no players assigned to a training focus", icon: "🧥" },
+  { id: "jumpers_for_goalposts", name: "Fruit Cigs", desc: "Win a match with no players assigned to a training focus", icon: "🚬" },
   { id: "good_engine", name: "Good Engine", desc: "Have a central midfielder with both Physical and Mental at 15 or above", icon: "🔋" },
 
   // === HOLIDAY MODE — power-user feature ===

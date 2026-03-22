@@ -630,7 +630,7 @@ export function checkAchievements(state) {
       if (fwdCount >= 4) newUnlocks.push("get_it_in_the_mixer");
     }
 
-    // Jumpers For Goalposts — win with no players on a training focus
+    // Fruit Cigs — win with no players on a training focus
     if (!unlocked.has("jumpers_for_goalposts") && playerWon && startingXI && squad) {
       const xiPlayers = startingXI.map(id => squad.find(p => p.id === id)).filter(Boolean);
       if (xiPlayers.length === 11 && xiPlayers.every(p => !p.training || p.training === null)) {

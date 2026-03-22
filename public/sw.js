@@ -1,5 +1,5 @@
 // Service worker — full offline PWA support
-const CACHE_NAME = "jfg-v4";
+const CACHE_NAME = "fc-v5";
 
 // Detect base path from service worker scope
 const BASE = new URL("./", self.registration.scope).pathname;
