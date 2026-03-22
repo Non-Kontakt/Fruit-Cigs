@@ -1422,7 +1422,7 @@ function FootballManager() {
         { id: `t_${Date.now()}_3`, type: "double_session" },
         { id: `t_${Date.now()}_4`, type: "miracle_cream" },
         { id: `t_${Date.now()}_5`, type: "rename_player" },
-        { id: `t_${Date.now()}_6`, type: "relations_boost" },
+        { id: `t_${Date.now()}_6`, type: "relation_boost" },
         { id: `t_${Date.now()}_7`, type: "twelfth_man" },
         { id: `t_${Date.now()}_8`, type: "youth_coup" },
         { id: `t_${Date.now()}_9`, type: "transfer_insider" },
