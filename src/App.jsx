@@ -3647,7 +3647,7 @@ function FootballManager() {
               textShadow: "0 0 20px rgba(74,222,128,0.4)",
               lineHeight: 1.2,
             }}>
-              JUMPERS FOR GOALPOSTS
+              FRUIT CIGS
             </div>
 
             <div style={{ fontSize: F.md, color: C.textMuted, marginBottom: 16, letterSpacing: 1 }}>
@@ -3790,7 +3790,7 @@ function FootballManager() {
             fontSize: F.h3, color: C.green, letterSpacing: 3, marginBottom: 8,
             textShadow: "0 0 20px rgba(74,222,128,0.4)",
           }}>
-            ⚽ JUMPERS FOR GOALPOSTS
+            🚬 FRUIT CIGS
           </div>
           <div style={{ fontSize: F.sm, color: C.slate, marginBottom: 32 }}>
             Save Slot {activeSaveSlot} · New Career

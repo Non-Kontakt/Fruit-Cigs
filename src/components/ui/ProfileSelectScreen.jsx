@@ -31,7 +31,7 @@ export function ProfileSelectScreen({ profiles, onSelect, onCreate, onViewMuseum
           fontSize: F.xl, color: C.green, letterSpacing: 2, marginBottom: 6,
           textShadow: "0 0 20px rgba(74,222,128,0.4)", lineHeight: 1.4,
         }}>
-          JUMPERS FOR GOALPOSTS
+          FRUIT CIGS
         </div>
         <div style={{ fontSize: F.sm, color: C.slate, marginBottom: 32, letterSpacing: 1 }}>
           SELECT PROFILE

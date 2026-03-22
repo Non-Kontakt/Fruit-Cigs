@@ -91,7 +91,7 @@ export function ModeSelectScreen({ slotNumber, onSelect, onBack }) {
     }}>
       <div style={{ textAlign: "center", maxWidth: 600, width: "95%" }}>
         <div style={{ fontSize: F.xl, color: C.green, letterSpacing: 2, marginBottom: 8, textShadow: "0 0 20px rgba(74,222,128,0.4)" }}>
-          ⚽ JUMPERS FOR GOALPOSTS
+          🚬 FRUIT CIGS
         </div>
         <div style={{ fontSize: F.sm, color: C.slate, marginBottom: 32, letterSpacing: 1 }}>
           Slot {slotNumber} · New Career · Choose Mode
