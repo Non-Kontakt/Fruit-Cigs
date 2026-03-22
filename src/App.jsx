@@ -3540,16 +3540,22 @@ function FootballManager() {
       setGains({ improvements: [], injuries: [], duos: [], recoveries: [], progress: [], arcBoosts, ticketBoosts: [] });
       const names = chosen.map(p => p.name.split(" ").pop()).join(", ");
       const newLeagueName = league?.leagueName || LEAGUE_DEFS[leagueTier]?.name || "the new division";
-      const tableSorted = sortStandings(league?.table || []);
-      const topRow = tableSorted.find(r => !league?.teams?.[r.teamIndex]?.isPlayer);
-      const topTeamName = topRow ? league?.teams?.[topRow.teamIndex]?.name : null;
+      // Pick strongest AI team by average squad OVR (not standings — all teams have 0 pts at season start)
+      const aiTeams = (league?.teams || []).filter(t => t && !t.isPlayer && t.squad?.length);
+      const topAI = aiTeams.length > 0
+        ? aiTeams.reduce((best, t) => {
+            const avg = t.squad.reduce((s, p) => s + getOverall(p), 0) / t.squad.length;
+            return avg > best.avg ? { name: t.name, avg } : best;
+          }, { name: null, avg: -1 })
+        : null;
+      const topTeamName = topAI?.name || null;
       let expectation = "Survive and build for the future.";
       if (leagueTier <= 3) expectation = "The chairman demands nothing less than a title challenge.";
       else if (leagueTier <= 5) expectation = "The board expects a top-three finish and promotion.";
       else if (leagueTier <= 7) expectation = "A top-half finish is the minimum expectation.";
       else if (leagueTier <= 9) expectation = "Avoid relegation and consolidate your position.";
       let previewBody = `A new season in ${newLeagueName} awaits.`;
-      if (topTeamName) previewBody += ` ${topTeamName} are the ones to beat — they finished top last term.`;
+      if (topTeamName) previewBody += ` ${topTeamName} look like the ones to beat this season.`;
       previewBody += ` ${expectation}`;
       setInboxMessages(prev => [...prev,
         createInboxMessage(MSG.wellRested(names), { calendarIndex, seasonNumber }),
