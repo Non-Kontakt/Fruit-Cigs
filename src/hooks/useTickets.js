@@ -105,7 +105,7 @@ export function useTickets({
     // Persistent club ambassador — generated once, stored in clubHistory
     let legendName = clubHistory.clubAmbassador;
     if (!legendName) {
-      const { name } = generateNameForNation("EN");
+      const { name } = generateNameForNation("ENG");
       legendName = name;
       setClubHistory(prev => ({ ...prev, clubAmbassador: name }));
     }
