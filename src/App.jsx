@@ -7,6 +7,7 @@ import { CUP_ROUND_MATCHWEEKS, CUP_ROUND_NAMES, CUP_DEFS } from "./data/cups.js"
 import { TIER_WIN_ACHS, ACHIEVEMENTS, LEGENDARY_ACHIEVEMENTS, PRESTIGIOUS_ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achievements.js";
 import { LEAGUE_DEFS, NUM_TIERS, TEAM_TRAITS, AI_BENCH_POSITIONS } from "./data/leagues.js";
 import { ARC_TICKET_POOL, ARC_CATS, ARC_CAT_LABELS, STORY_ARCS, ARC_NARRATIVES } from "./data/storyArcs.js";
+import { CIG_PACKS, STARTER_PACKS, ACH_TO_PACK } from "./data/cigPacks.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
 import { TICKET_DEFS } from "./data/tickets.js";
 import { MSG } from "./data/messages.js";
@@ -179,7 +180,7 @@ function FootballManager() {
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
-    setUnlockedAchievements, setAchievementUnlockWeeks, setLastSeenAchievementCount, setInboxMessages,
+    setUnlockedAchievements, setUnlockedPacks, setAchievementUnlockWeeks, setLastSeenAchievementCount, setInboxMessages,
     setUsedTicketTypes, setFormationsWonWith, setFreeAgentSignings,
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
     setTotalShortlisted, setPrevSeasonSquadIds, setTradesMadeInWindow,
@@ -268,9 +269,16 @@ function FootballManager() {
   }, []);
   const [selectedForMove, setSelectedForMove] = useState(null); // mobile tap-to-move
   const unlockedAchievements = useGameStore(s => s.unlockedAchievements);
+  const unlockedPacks = useGameStore(s => s.unlockedPacks);
   const achievementUnlockWeeks = useGameStore(s => s.achievementUnlockWeeks);
   const lastSeenAchievementCount = useGameStore(s => s.lastSeenAchievementCount);
   const achievementUnlockWeeksRef = useRef(achievementUnlockWeeks);
+  // Precompute the set of achievement IDs the player can currently earn (from unlocked packs)
+  const achievableIds = useMemo(() => {
+    const ids = new Set();
+    CIG_PACKS.forEach(pack => { if (unlockedPacks.has(pack.id)) pack.achievementIds.forEach(id => ids.add(id)); });
+    return ids;
+  }, [unlockedPacks]);
   const [achievementQueue, setAchievementQueue] = useState([]);
   const achievementToastKeyRef = useRef(0);
   const [showAchievements, setShowAchievements] = useState(false);
@@ -524,7 +532,7 @@ function FootballManager() {
         version: 2,
         teamName, newspaperName, reporterName, squad, league, matchweekIndex,
         startingXI, bench,
-        unlockedAchievements: [...unlockedAchievements], achievementUnlockWeeks, lastSeenAchievementCount,
+        unlockedAchievements: [...unlockedAchievements], unlockedPacks: [...unlockedPacks], achievementUnlockWeeks, lastSeenAchievementCount,
         seasonCards, seasonNumber, leagueWins, leagueTier, prestigeLevel, leagueVersion: 3, lastSeasonMove, matchSpeed,
         soundEnabled, autoSaveEnabled, trainingCardSpeed, matchDetail,
         musicEnabled, musicVolume, disabledTracks: [...disabledTracks], instantMatch,
@@ -834,6 +842,7 @@ function FootballManager() {
       setStartingXI(s.startingXI);
       setBench(s.bench);
       setUnlockedAchievements(new Set(s.unlockedAchievements || []));
+      setUnlockedPacks(new Set(s.unlockedPacks || [...STARTER_PACKS]));
       if (s.achievementUnlockWeeks) { setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
       setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.length ?? 0));
       setSeasonCards(s.seasonCards || 0);
@@ -2042,7 +2051,7 @@ function FootballManager() {
 
     // Check training focus mass achievements at moment of advance
     const focusUnlocks = checkAchievements({
-      squad, unlocked: unlockedAchievements,
+      squad, unlocked: unlockedAchievements, achievableIds,
       lastMatchResult: null, league, weekGains: null,
       startingXI, bench, matchweekIndex, trainedThisWeek,
       doubleTrainingWeek, usedTicketTypes, scoutedPlayers, transferFocus,
@@ -7638,7 +7647,7 @@ function FootballManager() {
             }
 
             const newUnlocks = checkAchievements({
-              squad: useGameStore.getState().squad, unlocked: unlockedAchievements,
+              squad: useGameStore.getState().squad, unlocked: unlockedAchievements, achievableIds,
               lastMatchResult: matchResult, league, weekGains: null,
               startingXI, bench, matchweekIndex: completedMDs, seasonCards,
               totalGains, totalMatches: totalMatches + 1,
@@ -8744,7 +8753,7 @@ function FootballManager() {
               const cupIsDraw = cupPlayerGoals === cupOppGoals;
 
               const cupNewUnlocks = checkAchievements({
-                squad: useGameStore.getState().squad, unlocked: unlockedAchievements,
+                squad: useGameStore.getState().squad, unlocked: unlockedAchievements, achievableIds,
                 lastMatchResult: cupMatchResult, league: cupMatchResult.cupLeague || league, weekGains: null,
                 startingXI, bench, matchweekIndex: 0, seasonCards,
                 totalGains, totalMatches: totalMatches + 1,

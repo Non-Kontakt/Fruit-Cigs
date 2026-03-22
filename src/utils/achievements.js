@@ -51,7 +51,7 @@ export function checkAchievements(state) {
     isOnHoliday, holidayMatchesThisSeason, doubleTrainingWeek, testimonialPlayer,
     seasonNumber, lastSeasonPosition,
     shortlist, wasAlwaysNormal, fastMatchesThisSeason, twelfthManActive, gkCleanSheets,
-    totalShortlisted } = state;
+    totalShortlisted, achievableIds } = state;
   const newUnlocks = [];
 
   // Training-based
@@ -1202,6 +1202,8 @@ export function checkAchievements(state) {
     }
   }
 
+  // Gate by unlocked packs — only return achievements the player can currently earn
+  if (achievableIds) return newUnlocks.filter(id => achievableIds.has(id));
   return newUnlocks;
 }
 
