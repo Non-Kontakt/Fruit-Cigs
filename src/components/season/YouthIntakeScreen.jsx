@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { getAttrColor, getPosColor } from "../../utils/calc.js";
-import { getNatFlag } from "../../utils/player.js";
+import { getNatFlag, displayName } from "../../utils/player.js";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 const ARCHETYPE_BADGE = {
   specialist: { label: "SPECIALIST", color: "#34d399", bg: "rgba(52,211,153,0.12)" },
@@ -10,12 +11,12 @@ const ARCHETYPE_BADGE = {
   wildcard:   { label: "WILDCARD",   color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
 };
 
-export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, isMobile, ovrCap = 20 }) {
+export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, ovrCap = 20 }) {
   const [selected, setSelected] = useState(new Set());
   const [expanded, setExpanded] = useState(null);
   const SQUAD_CAP = 25;
   const slotsAvailable = Math.max(0, SQUAD_CAP - (squadSize || 0));
-  const mob = isMobile;
+  const mob = useMobile();
 
   const toggleSelect = (id) => {
     setSelected(prev => {
@@ -64,7 +65,7 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, isMobile
             background: "rgba(239,68,68,0.08)", border: "1px solid #ef444433",
             padding: "14px 21px", marginBottom: 23, fontSize: F.xs, color: "#fca5a5", lineHeight: 1.8,
           }}>
-            👋 Retired: {intake.retirees.map(r => `${r.name} (${r.position}, ${r.age})`).join(", ")}
+            👋 Retired: {intake.retirees.map(r => `${displayName(r.name, mob)} (${r.position}, ${r.age})`).join(", ")}
           </div>
         )}
 
@@ -113,7 +114,7 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, isMobile
                     display: "flex", alignItems: "center", gap: 6, minWidth: 0,
                   }}>
                     <span style={{ fontSize: mob ? F.md : F.lg, lineHeight: 1, flexShrink: 0 }}>{getNatFlag(player.nationality)}</span>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</span>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName(player.name, mob)}</span>
                     {ARCHETYPE_BADGE[player.youthArchetype] && !mob && (
                       <span style={{
                         fontSize: F.micro, color: ARCHETYPE_BADGE[player.youthArchetype].color,

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { SFX } from "../../utils/sfx.js";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function SeasonEndReveal({ info, onDone }) {
   const [phase, setPhase] = useState(0); // 0=fade in, 1=show result
   const [confetti, setConfetti] = useState([]);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   const isChampion = info.position === 1;
   const isPromoted = info.type === "promoted";

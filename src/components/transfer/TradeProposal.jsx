@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
 import { evaluateTrade, getRelationshipDiscount } from "../../utils/transfer.js";
+import { displayName } from "../../utils/player.js";
+import { useMobile } from "../../hooks/useMobile.js";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { PositionChip } from "../ui/PositionChip.jsx";
 
@@ -21,7 +23,7 @@ function PlayerChip({ player, onRemove, mob, ovrCap = 20 }) {
         padding: "2px 5px", fontSize: F.micro, fontWeight: "bold",
       }}>{player.position}</span>
       <span style={{ color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-        {player.name}
+        {displayName(player.name, mob)}
       </span>
       <span style={{ color: getAttrColor(ovr, ovrCap), fontSize: F.sm, fontWeight: "bold" }}>{ovr}</span>
       <span
@@ -80,7 +82,7 @@ function SquadList({ players, selectedIds, onToggle, title, titleColor, mob, isU
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
                 {inTrade && <span style={{ marginRight: 4 }}>↔</span>}
-                {p.name}
+                {displayName(p.name, mob)}
               </span>
               <span style={{ textAlign: "center", fontSize: F.sm, color: getAttrColor(ovr, ovrCap), fontWeight: "bold" }}>
                 {ovr}
@@ -105,7 +107,7 @@ export function TradeProposal({
   const [userWant, setUserWant] = useState(preSelectedPlayer ? [preSelectedPlayer] : []);
   const [mobileTab, setMobileTab] = useState("yours"); // "yours" | "theirs"
   const [success, setSuccess] = useState(false);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   const userOfferIds = useMemo(() => new Set(userOffer.map(p => p.id)), [userOffer]);
   const userWantIds = useMemo(() => new Set(userWant.map(p => p.id)), [userWant]);

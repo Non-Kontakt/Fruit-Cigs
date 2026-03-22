@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function HolidayOverlay({ currentMatchweek, targetMatchweek, startMatchweek, onReturn }) {
   const [sunRotation, setSunRotation] = useState(0);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   // Animate sun rotation
   useEffect(() => {

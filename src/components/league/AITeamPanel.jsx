@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, getAttrColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
 import { TEAM_TRAITS } from "../../data/leagues.js";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { PositionChip } from "../ui/PositionChip.jsx";
@@ -38,6 +40,7 @@ function XpBar({ pct, color, height = 6 }) {
 }
 
 function PlayerRow({ player, matchGoals, seasonGoals, seasonAssists, onPlayerClick, ovrCap = 20 }) {
+  const mob = useMobile();
   const ovr = getOverall(player);
   const mg = matchGoals?.[player.name] || 0;
   const sg = seasonGoals?.[player.name] || 0;
@@ -53,11 +56,11 @@ function PlayerRow({ player, matchGoals, seasonGoals, seasonAssists, onPlayerCli
         transition: "background 0.1s ease",
       }}
     >
-      <PositionChip position={player.position} mobile={window.innerWidth <= 768} />
+      <PositionChip position={player.position} mobile={mob} />
       <span style={{
         flex: 1, fontSize: F.sm, color: C.text,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}>{player.name}</span>
+      }}>{displayName(player.name, mob)}</span>
       {mg > 0 && (
         <span style={{ fontSize: F.xs, color: C.amber, flexShrink: 0 }}>
           ⚽{mg > 1 ? mg : ""}
@@ -93,7 +96,7 @@ export function AITeamPanel({
   onReplaceFocus,
   ovrCap = 20,
 }) {
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const teamColor = team.color || C.textMuted;
   const starters = sortByPosition((team.squad || []).filter(p => !p.isBench));
   const bench = (team.squad || []).filter(p => p.isBench);

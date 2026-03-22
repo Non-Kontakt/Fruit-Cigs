@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { F, C, FONT } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 import { getPosColor } from "../../utils/calc.js";
 
 export const CHART_COLORS = [
@@ -11,7 +12,7 @@ export const CHART_COLORS = [
 export function OvrProgressChart({ ovrHistory, squad, ovrCap = 20 }) {
   const [selected, setSelected] = useState(null); // null = uninitialised
   const [showDeparted, setShowDeparted] = useState(false);
-  const mob = typeof window !== "undefined" && window.innerWidth <= 768;
+  const mob = useMobile();
 
   // Build player lists
   const currentKeys = new Set((squad || []).map(p => `${p.name}|${p.position}`));

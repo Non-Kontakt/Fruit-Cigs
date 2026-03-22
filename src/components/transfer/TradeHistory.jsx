@@ -1,9 +1,12 @@
 import React from "react";
 import { F, C, FONT } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
+import { useMobile } from "../../hooks/useMobile.js";
 
-export function TradeHistory({ history, teamName, mob, onPlayerClick, onTeamClick, ovrCap = 20 }) {
+export function TradeHistory({ history, teamName, onPlayerClick, onTeamClick, ovrCap = 20 }) {
+  const mob = useMobile();
   if (!history || history.length === 0) {
     return (
       <div style={{
@@ -56,7 +59,7 @@ export function TradeHistory({ history, teamName, mob, onPlayerClick, onTeamClic
                     background: getPosColor(p.position), color: C.bg,
                     padding: "1px 3px", fontWeight: "bold",
                   }}>{p.position}</span>
-                  <span onClick={() => onPlayerClick?.(p.name, teamName)} style={{ color: C.textMuted, cursor: "pointer" }}>{p.name}</span>
+                  <span onClick={() => onPlayerClick?.(p.name, teamName)} style={{ color: C.textMuted, cursor: "pointer" }}>{displayName(p.name, mob)}</span>
                   <span style={{ color: getAttrColor(getOverall(p), ovrCap) }}>{getOverall(p)}</span>
                 </div>
               ))}
@@ -73,7 +76,7 @@ export function TradeHistory({ history, teamName, mob, onPlayerClick, onTeamClic
                     background: getPosColor(p.position), color: C.bg,
                     padding: "1px 3px", fontWeight: "bold",
                   }}>{p.position}</span>
-                  <span onClick={() => onPlayerClick?.(p.name, trade.aiClubName)} style={{ color: C.text, cursor: "pointer" }}>{p.name}</span>
+                  <span onClick={() => onPlayerClick?.(p.name, trade.aiClubName)} style={{ color: C.text, cursor: "pointer" }}>{displayName(p.name, mob)}</span>
                   <span style={{ color: getAttrColor(getOverall(p), ovrCap) }}>{getOverall(p)}</span>
                 </div>
               ))}

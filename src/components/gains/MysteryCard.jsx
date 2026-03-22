@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { F, C, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function MysteryCard({ index, item, isNext, onRevealed, renderRevealed }) {
   const [dissolving, setDissolving] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [pixels, setPixels] = useState([]);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   const handleClick = () => {
     if (dissolving || revealed || !isNext) return;

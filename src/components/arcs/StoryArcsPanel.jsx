@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { ARC_CATS, ARC_CAT_LABELS } from "../../data/storyArcs.js";
 import { getOverall, getPosColor } from "../../utils/calc.js";
 import { getArcById, getArcsForCat, getValidTargets } from "../../utils/arcs.js";
+import { displayName } from "../../utils/player.js";
 import { F, C, FONT } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodigalSon, league, leagueTier, onAchievementCheck, week, seasonNumber }) {
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const [selectingArc, setSelectingArc] = useState(null); // cat being selected
   const [selectingTarget, setSelectingTarget] = useState(null); // { cat, arcId }
   const [focusChoice, setFocusChoice] = useState(null); // { cat }
@@ -243,7 +245,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
         <div style={{ fontSize:mob?F.xs:F.sm, color:C.textDim, marginBottom:5 }}>{arc.desc}</div>
         {targetPlayer && (
           <div style={{ fontSize:mob?F.xs:F.sm, color:C.textMuted, marginBottom:5 }}>
-            🎯 {targetPlayer.name} ({targetPlayer.position}) · OVR {getOverall(targetPlayer)}
+            🎯 {displayName(targetPlayer.name, mob)} ({targetPlayer.position}) · OVR {getOverall(targetPlayer)}
             {catState.tracking?.apps != null && ` · ${catState.tracking.apps} apps`}
           </div>
         )}
@@ -275,7 +277,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
               fontFamily:FONT,
             }}>
               <span style={{ background:getPosColor(p.position), color:C.bg, padding:"2px 8px", fontSize:F.xs, fontWeight:"bold", marginRight:7 }}>{p.position}</span>
-              <span style={{ color:C.text, fontSize:mob?F.xs:F.sm }}>{p.name}</span>
+              <span style={{ color:C.text, fontSize:mob?F.xs:F.sm }}>{displayName(p.name, mob)}</span>
               <span style={{ color:C.textDim, fontSize:mob?F.xs:F.sm, marginLeft:9 }}>OVR {getOverall(p)} · Age {p.age}</span>
             </button>
           ))}

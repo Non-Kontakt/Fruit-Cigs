@@ -13,12 +13,13 @@ import { MSG } from "./data/messages.js";
 import { getModifier } from "./data/leagueModifiers.js";
 import { rand, getOverall, getAttrColor, getPosColor, progressToPips, getTrainingProgress, getOOPPenalty, getPositionTrainingWeeks } from "./utils/calc.js";
 import { detectFormationName, assignPlayersToSlots, getFormationPositions, getEffectiveSlots, getTeamOOPMultiplier } from "./utils/formation.js";
-import { pickNationality, pickAINationality, generateNameForNation, getNatFlag, getNatLabel, inferNationality, generatePlayer, generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthPlayer, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, generateFreeAgent, getOvrCap } from "./utils/player.js";
+import { pickNationality, pickAINationality, generateNameForNation, getNatFlag, getNatLabel, inferNationality, generatePlayer, generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthPlayer, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, generateFreeAgent, getOvrCap, displayName } from "./utils/player.js";
 import { getArcById, getArcsForCat, getValidTargets, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, initStoryArcs, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "./utils/arcs.js";
 import { getTeamStrength, generateFixtures, simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
 import { initLeagueRosters, normalizeRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, computeCalendarIndex, getLeagueMatchdaysPlayed, getCupForTier, initCup, advanceCupRound, buildNextCupRound } from "./utils/league.js";
 import { SFX, BGM, BGM_TRACKS } from "./utils/sfx.js";
 import * as Tone from "tone";
+import { useMobile } from "./hooks/useMobile.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useTickets } from "./hooks/useTickets.js";
 import { useDebug } from "./hooks/useDebug.js";
@@ -256,12 +257,7 @@ function FootballManager() {
   const [showLineupWarning, setShowLineupWarning] = useState(null); // null | "advance" | "match"
   const bench = useGameStore(s => s.bench);
   const [dragPlayer, setDragPlayer] = useState(null);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth <= 768);
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+  const isMobile = useMobile();
   useEffect(() => {
     if (!document.querySelector('meta[name="viewport"]')) {
       const meta = document.createElement("meta");
@@ -5316,7 +5312,7 @@ function FootballManager() {
               if (injured.length === 0) return null;
               return (
                 <span style={{ display: "block", marginTop: 4, fontSize: F.xs, color: "#fca5a5" }}>
-                  {injured.map(p => `${p.name} (${p.injury.name}, ${p.injury.weeksLeft}w)`).join(" · ")}
+                  {injured.map(p => `${displayName(p.name, isMobile)} (${p.injury.name}, ${p.injury.weeksLeft}w)`).join(" · ")}
                 </span>
               );
             })()}
@@ -5332,7 +5328,7 @@ function FootballManager() {
           fontFamily: FONT,
         }}>
           <span style={{ fontSize: F.sm, color: C.green }}>
-            🔄 Replacing {swapTarget.name} — click a healthy player from another section to swap.
+            🔄 Replacing {displayName(swapTarget.name, isMobile)} — click a healthy player from another section to swap.
           </span>
           <button onClick={() => setSwapTarget(null)} style={{
             background: "none", border: `1px solid ${C.bgInput}`, color: C.textMuted,
@@ -5735,7 +5731,7 @@ function FootballManager() {
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 0,
                       }}>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{displayName(p.name, isMobile)}</span>
                         <span style={{ fontSize: F.xs, color: getPosColor(p.position), opacity: 0.6, fontFamily: FONT, flexShrink: 0 }}>{p.position}</span>
                       </span>
                     ) : (
@@ -6166,7 +6162,7 @@ function FootballManager() {
                 );
               })()}
               <span style={{ fontSize: isMobile ? F.sm : F.md, color: isInjured ? C.lightRed : C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{player.name}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{displayName(player.name, isMobile)}</span>
                 <span style={{
                   fontSize: F.xs, color: getPosColor(player.position), opacity: 0.6,
                   fontFamily: FONT, flexShrink: 0,

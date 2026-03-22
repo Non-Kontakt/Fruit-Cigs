@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { ACHIEVEMENTS } from "../../data/achievements.js";
 import { SFX } from "../../utils/sfx.js";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function AchievementToast({ achievement, onDone, muteSound }) {
   const [visible, setVisible] = useState(false);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const dismissedRef = useRef(false);
   const touchStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);

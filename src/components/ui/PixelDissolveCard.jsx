@@ -2,13 +2,15 @@ import React, { useState } from "react";
 import { F, C, Z } from "../../data/tokens";
 import { ATTRIBUTES } from "../../data/training.js";
 import { getPosColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
 import { SFX } from "../../utils/sfx.js";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function PixelDissolveCard({ gain, onRevealed, index, isNext, onPlayerClick }) {
   const [dissolving, setDissolving] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [pixels, setPixels] = useState([]);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const attr = ATTRIBUTES.find(a => a.key === gain.attr);
 
   const handleClick = () => {
@@ -62,10 +64,10 @@ export function PixelDissolveCard({ gain, onRevealed, index, isNext, onPlayerCli
         opacity: revealed || dissolving ? 1 : 0,
         transition: "opacity 0.3s ease",
       }}>
-        <span style={{ color: C.text, fontSize: mob ? F.xs : F.sm, cursor: revealed ? "pointer" : "default", textDecoration: revealed ? "underline" : "none", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: mob ? 4 : 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, maxWidth: "50%" }}
+        <span style={{ color: C.text, fontSize: mob ? F.xs : F.sm, cursor: revealed ? "pointer" : "default", textDecoration: revealed ? "underline" : "none", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, maxWidth: "50%" }}
           onClick={(e) => { if (revealed && onPlayerClick) { e.stopPropagation(); onPlayerClick(gain.playerName); } }}
-        >{gain.playerPosition && <span style={{ background: getPosColor(gain.playerPosition), color: C.bg, padding: "1px 4px", fontSize: F.micro, fontWeight: "bold", textDecoration: "none" }}>{gain.playerPosition}</span>}{gain.playerName}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: mob ? 6 : 10, flexShrink: 0 }}>
+        >{gain.playerPosition && <span style={{ background: getPosColor(gain.playerPosition), color: C.bg, padding: "4px 8px", fontSize: F.sm, fontWeight: "bold", textDecoration: "none", borderRadius: 3 }}>{gain.playerPosition}</span>}{displayName(gain.playerName, mob)}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: 8 }}>
           <span style={{
             color: attr?.color || "#fff", fontSize: mob ? F.micro : F.xs,
             textShadow: `0 0 8px ${attr?.color || "#fff"}55`,

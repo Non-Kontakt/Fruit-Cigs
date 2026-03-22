@@ -1,8 +1,10 @@
 import React from "react";
 import { F, C, FONT } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
 import { getPlayerValue, getTotalValue } from "../../utils/transfer.js";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
+import { useMobile } from "../../hooks/useMobile.js";
 
 function OfferPlayerChip({ player, mob, onClick, ovrCap = 20 }) {
   const ovr = getOverall(player);
@@ -16,13 +18,14 @@ function OfferPlayerChip({ player, mob, onClick, ovrCap = 20 }) {
         background: getPosColor(player.position), color: C.bg,
         padding: "1px 3px", fontSize: F.micro, fontWeight: "bold",
       }}>{player.position}</span>
-      <span onClick={onClick} style={{ color: C.text, cursor: onClick ? "pointer" : undefined }}>{player.name}</span>
+      <span onClick={onClick} style={{ color: C.text, cursor: onClick ? "pointer" : undefined }}>{displayName(player.name, mob)}</span>
       <span style={{ color: getAttrColor(ovr, ovrCap), fontWeight: "bold" }}>{ovr}</span>
     </span>
   );
 }
 
-export function OffersPanel({ offers, onAccept, onReject, onCounter, mob, onPlayerClick, ovrCap = 20 }) {
+export function OffersPanel({ offers, onAccept, onReject, onCounter, onPlayerClick, ovrCap = 20 }) {
+  const mob = useMobile();
   if (!offers || offers.length === 0) {
     return (
       <div style={{

@@ -6,6 +6,8 @@ import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { CUP_DEFS } from "../../data/cups.js";
 import { TICKET_DEFS } from "../../data/tickets.js";
 import { getOverall, getPosColor, getAttrColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
+import { useMobile } from "../../hooks/useMobile.js";
 
 const hexToRgb = (hex) => {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -20,7 +22,7 @@ export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, cale
   rewindableMatches,
   onUseTicket, onViewAchievements, hasUnseenAchievements = false, gameMode = "casual", isTainted = false }) {
   const isCasual = gameMode === "casual";
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const [tab, setTab] = useState("trophies");
   const [filterCat, setFilterCat] = useState(null);
   const handleTabChange = (newTab) => {
@@ -828,7 +830,7 @@ export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, cale
                                   padding: "2px 6px", fontWeight: "bold", flexShrink: 0,
                                 }}>{p.position}</span>
                                 <span style={{ fontSize: mob ? F.xs : F.sm, color: C.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {p.name}
+                                  {displayName(p.name, mob)}
                                 </span>
                                 <span style={{ fontSize: F.xs, color: C.textMuted, flexShrink: 0 }}>
                                   OVR {getOverall(p)}
@@ -873,7 +875,7 @@ export function AchievementCabinet({ unlocked, achievementUnlockWeeks = {}, cale
                                   padding: "2px 6px", fontWeight: "bold", flexShrink: 0,
                                 }}>{p.position}</span>
                                 <span style={{ fontSize: mob ? F.xs : F.sm, color: C.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {p.name}
+                                  {displayName(p.name, mob)}
                                 </span>
                                 <span style={{ fontSize: F.xs, color: C.textMuted, flexShrink: 0 }}>
                                   OVR {getOverall(p)}

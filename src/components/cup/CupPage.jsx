@@ -2,11 +2,13 @@ import React, { useState, useMemo } from "react";
 import { POSITION_TYPES } from "../../data/positions.js";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { getPosColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
 import { F, C, FONT } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlayerClick, onTeamClick }) {
   const [activeTab, setActiveTab] = useState("bracket");
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   // Build a live name→tier lookup from current leagueRosters so tier chips always reflect current placement
   const liveTierByName = React.useMemo(() => {
@@ -420,7 +422,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
                     alignItems: "center",
                   }}>
                     <span style={{ color: i === 0 ? C.gold : C.slate }}>{i + 1}</span>
-                    <span onClick={() => onPlayerClick?.(s.name, s.teamName)} style={{ color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: "#e2e8f044", textUnderlineOffset: 3 }}>{s.name}</span>
+                    <span onClick={() => onPlayerClick?.(s.name, s.teamName)} style={{ color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: "#e2e8f044", textUnderlineOffset: 3 }}>{displayName(s.name, mob)}</span>
                     <span onClick={() => onTeamClick?.(s.teamName)} style={{ color: C.textDim, fontSize: mob ? F.micro : F.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>{s.teamName}</span>
                     <span style={{ textAlign: "center", color: C.green, fontWeight: "bold", fontSize: F.md }}>{s.goals}</span>
                   </div>
@@ -441,7 +443,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
                     alignItems: "center",
                   }}>
                     <span style={{ color: i === 0 ? C.gold : C.slate }}>{i + 1}</span>
-                    <span onClick={() => onPlayerClick?.(s.name, s.teamName)} style={{ color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: "#e2e8f044", textUnderlineOffset: 3 }}>{s.name}</span>
+                    <span onClick={() => onPlayerClick?.(s.name, s.teamName)} style={{ color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: "#e2e8f044", textUnderlineOffset: 3 }}>{displayName(s.name, mob)}</span>
                     <span onClick={() => onTeamClick?.(s.teamName)} style={{ color: C.textDim, fontSize: mob ? F.micro : F.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>{s.teamName}</span>
                     <span style={{ textAlign: "center", color: "#38bdf8", fontWeight: "bold", fontSize: F.md }}>{s.assists}</span>
                   </div>
@@ -474,7 +476,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
                     }}>{p.position}</span>
                     <div style={{ overflow: "hidden" }}>
                       <div onClick={() => onPlayerClick?.(p.name, p.teamName)} style={{ color: p.isPlayerTeam ? C.green : C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>
-                        {p.name}
+                        {displayName(p.name, mob)}
                       </div>
                       {mob && (
                         <div onClick={() => onTeamClick?.(p.teamName)} style={{ fontSize: F.micro, color: C.slate, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>

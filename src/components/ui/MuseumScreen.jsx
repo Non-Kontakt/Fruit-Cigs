@@ -1,4 +1,6 @@
 import { C as TC, FONT } from "../../data/tokens";
+import { displayName } from "../../utils/player.js";
+import { useMobile } from "../../hooks/useMobile.js";
 
 const C = { ...TC, bg: "#06060f", dim: "#334155" };
 // Larger sizes — Press Start 2P needs room to breathe
@@ -29,6 +31,7 @@ function Section({ title, children }) {
 }
 
 export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" }) {
+  const mob = useMobile();
   const ch = career?.clubHistory || {};
   const seasons = ch.seasonArchive || [];
   const cups = ch.cupHistory || [];
@@ -162,7 +165,7 @@ export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" })
                 padding: "10px 0", borderBottom: `1px solid rgba(51,65,85,0.4)`,
                 fontSize: F.body,
               }}>
-                <span style={{ color: C.textMuted, flex: 1, marginRight: 16 }}>{p.name}</span>
+                <span style={{ color: C.textMuted, flex: 1, marginRight: 16 }}>{displayName(p.name, mob)}</span>
                 <span style={{ color: C.amber, marginRight: 20 }}>{p.goals}g</span>
                 <span style={{ color: C.slate }}>{p.apps} apps</span>
               </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { F, C, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 import { getOvrCap } from "../../utils/player.js";
 
 export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
   const [phase, setPhase] = useState(0); // 0=black, 1=wormhole, 2=text, 3=button
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const oldCap = getOvrCap(prestigeLevel);
   const newCap = getOvrCap(newPrestigeLevel);
 

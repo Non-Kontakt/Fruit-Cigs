@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { getPosColor, progressToPips } from "../../utils/calc.js";
-import { shortName } from "../../utils/player.js";
+import { displayName } from "../../utils/player.js";
 import { SFX } from "../../utils/sfx.js";
 import { AnimatedPips } from "../ui/AnimatedPips.jsx";
 import { LevelUpPips } from "../ui/LevelUpPips.jsx";
 import { PixelDissolveCard } from "../ui/PixelDissolveCard.jsx";
 import { MysteryCard } from "./MysteryCard.jsx";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 import { TICKET_DEFS } from "../../data/tickets.js";
 
@@ -15,8 +16,8 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
   const [visible, setVisible] = useState(false);
   const [revealedCount, setRevealedCount] = useState(0);
   const [pickedTickets, setPickedTickets] = useState({});
-  const mob = window.innerWidth <= 768;
-  const dn = (name) => mob ? shortName(name) : name; // display name — abbreviated on mobile
+  const mob = useMobile();
+  const dn = (name) => displayName(name, mob); // abbreviated on mobile, full on desktop
   const isQuick = cardSpeed === "quick";
   const isSummary = cardSpeed === "summary";
   const doneRef = useRef(false);
@@ -166,9 +167,9 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           animation: "slideIn 0.4s ease both",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "#fca5a5", fontSize: F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(252,165,165,0.3)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 6 }}
+            <span style={{ color: "#fca5a5", fontSize: mob ? F.md : F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(252,165,165,0.3)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
               onClick={() => onPlayerClick && onPlayerClick(inj.playerName)}
-            >🏥 {inj.playerPosition && <span style={{ background: getPosColor(inj.playerPosition), color: C.bg, padding: "1px 5px", fontSize: F.xs, fontWeight: "bold", textDecoration: "none" }}>{inj.playerPosition}</span>}{inj.playerName}</span>
+            >{inj.playerPosition && <span style={{ background: getPosColor(inj.playerPosition), color: C.bg, padding: "4px 8px", fontSize: F.sm, fontWeight: "bold", textDecoration: "none", borderRadius: 3 }}>{inj.playerPosition}</span>}{dn(inj.playerName)}</span>
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ color: C.red, fontSize: F.sm }}>{inj.injury}</span>
               <span style={{ color: C.lightRed, fontSize: F.md, fontWeight: "bold" }}>{inj.weeksOut}w</span>
@@ -210,8 +211,8 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                 onClick={() => onPlayerClick && onPlayerClick(d.partnerName)}
               >{d.partnerName}</span>
             </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <span style={{ color: attr?.color || "#fff", fontSize: mob ? F.sm : F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
               <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
                 <span style={{ color: C.gold, fontSize: F.h2, fontWeight: "bold", textShadow: "0 0 12px rgba(250,204,21,0.9), 0 0 30px rgba(250,204,21,0.4)", lineHeight: 1 }}>{d.newVal}</span>
                 <span style={{ color: C.gold, fontSize: F.xs, marginLeft: 2, marginTop: -2, opacity: 0.8 }}>+{d.newVal - d.oldVal}</span>
@@ -238,10 +239,10 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           animation: "slideIn 0.4s ease both",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: nearlyThere ? "#7dd3fc" : C.textMuted, fontSize: F.md, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(148,163,184,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 5 }}
+            <span style={{ color: nearlyThere ? "#7dd3fc" : C.textMuted, fontSize: F.md, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(148,163,184,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
               onClick={() => onPlayerClick && onPlayerClick(p.playerName)}
-            >⬆ {p.playerPosition && <span style={{ background: getPosColor(p.playerPosition), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", textDecoration: "none" }}>{p.playerPosition}</span>}{p.playerName}</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            >⬆ {p.playerPosition && <span style={{ background: getPosColor(p.playerPosition), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", textDecoration: "none" }}>{p.playerPosition}</span>}{dn(p.playerName)}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
               <span style={{ color: attr?.color || "#fff", fontSize: F.sm }}>{attr?.label} {p.statVal}</span>
               <AnimatedPips oldPips={p.oldPips} newPips={filledPips} nearlyThere={nearlyThere} pipCrossed={p.pipCrossed} />
               {nearlyThere && <span style={{ fontSize: F.xs, color: "#38bdf8", animation: "pulse 1.5s ease infinite" }}>CLOSE!</span>}
@@ -274,9 +275,9 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
               <span style={{ color: "#dbeafe", fontSize: mob ? F.sm : F.md }}>
                 {group.players.length === 1 ? dn(group.players[0].name) : group.players.length <= 5 ? group.players.map(p => dn(p.name)).join(", ") : group.filterLabel ? `All ${group.filterLabel} (${group.players.length})` : `All squad (${group.players.length} players)`}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
-                <span style={{ color: C.blue, fontSize: F.h1, fontWeight: "bold", textShadow: "0 0 15px rgba(96,165,250,0.9), 0 0 35px rgba(96,165,250,0.4)", lineHeight: 1 }}>+{group.amount}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: attr?.color || "#fff", fontSize: mob ? F.sm : F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+                <span style={{ color: C.blue, fontSize: mob ? F.xl : F.h1, fontWeight: "bold", textShadow: "0 0 15px rgba(96,165,250,0.9), 0 0 35px rgba(96,165,250,0.4)", lineHeight: 1 }}>+{group.amount}</span>
               </span>
             </div>
           </div>
@@ -305,13 +306,13 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           <div style={{ position: "relative" }}>
             <div style={{ fontSize: F.xs, color: "#5eead4", letterSpacing: 3, marginBottom: 6, textShadow: "0 0 10px rgba(45,212,191,0.5)" }}>🏠 SETTLED IN</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#ccfbf1", fontSize: F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(204,251,241,0.3)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 6 }}
+              <span style={{ color: "#ccfbf1", fontSize: mob ? F.md : F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(204,251,241,0.3)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
                 onClick={() => onPlayerClick && onPlayerClick(g.playerName)}
-              >{g.playerPosition && <span style={{ background: getPosColor(g.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", textDecoration: "none" }}>{g.playerPosition}</span>}{g.playerName}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+              >{g.playerPosition && <span style={{ background: getPosColor(g.playerPosition), color: C.bg, padding: "4px 8px", fontSize: F.sm, fontWeight: "bold", textDecoration: "none", borderRadius: 3 }}>{g.playerPosition}</span>}{dn(g.playerName)}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: attr?.color || "#fff", fontSize: mob ? F.sm : F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
                 <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
-                  <span style={{ color: "#2dd4bf", fontSize: F.h1, fontWeight: "bold", textShadow: "0 0 15px rgba(45,212,191,0.9), 0 0 35px rgba(45,212,191,0.4)", lineHeight: 1 }}>{g.newVal}</span>
+                  <span style={{ color: "#2dd4bf", fontSize: mob ? F.xl : F.h1, fontWeight: "bold", textShadow: "0 0 15px rgba(45,212,191,0.9), 0 0 35px rgba(45,212,191,0.4)", lineHeight: 1 }}>{g.newVal}</span>
                   <span style={{ color: "#5eead4", fontSize: F.xs, marginLeft: 2, marginTop: -2 }}>+{gained}</span>
                 </span>
                 <span style={{ color: "#4a7c72", fontSize: F.xs }}>was {g.oldVal}</span>
@@ -340,7 +341,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
               {p.playerPosition && <span style={{ background: getPosColor(p.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", marginRight: 6 }}>{p.playerPosition}</span>}
               {dn(p.playerName)}
             </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ color: C.blue, fontSize: F.xs }}>can now play</span>
               <span style={{ background: getPosColor(p.learnedPosition), color: C.bg, padding: "3px 9px", fontSize: F.sm, fontWeight: "bold" }}>{p.learnedPosition}</span>
             </span>
@@ -367,13 +368,13 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           }} />
           <div style={{ fontSize: F.micro, color: C.purple, letterSpacing: 2, marginBottom: 8, position: "relative" }}>🎟️ TICKET BOOST</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
-            <span style={{ color: C.text, fontSize: F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 6 }}
+            <span style={{ color: C.text, fontSize: mob ? F.md : F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
               onClick={() => onPlayerClick && onPlayerClick(tb.playerName)}
-            >{tb.playerPosition && <span style={{ background: getPosColor(tb.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", textDecoration: "none" }}>{tb.playerPosition}</span>}{tb.playerName}</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+            >{tb.playerPosition && <span style={{ background: getPosColor(tb.playerPosition), color: C.bg, padding: "4px 8px", fontSize: F.sm, fontWeight: "bold", textDecoration: "none", borderRadius: 3 }}>{tb.playerPosition}</span>}{dn(tb.playerName)}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ color: attr?.color || "#fff", fontSize: mob ? F.sm : F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
               <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
-                <span style={{ color: C.purple, fontSize: F.h1, fontWeight: "bold", textShadow: "0 0 12px rgba(168,85,247,0.9), 0 0 30px rgba(168,85,247,0.4)", lineHeight: 1 }}>{tb.newVal}</span>
+                <span style={{ color: C.purple, fontSize: mob ? F.xl : F.h1, fontWeight: "bold", textShadow: "0 0 12px rgba(168,85,247,0.9), 0 0 30px rgba(168,85,247,0.4)", lineHeight: 1 }}>{tb.newVal}</span>
                 <span style={{ color: C.purple, fontSize: F.xs, marginLeft: 2, marginTop: -2, opacity: 0.8 }}>+1</span>
               </span>
               <span style={{ color: C.slate, fontSize: F.xs }}>was {tb.oldVal}</span>
@@ -402,13 +403,13 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           }} />
           <div style={{ fontSize: F.micro, color: blue, letterSpacing: 2, marginBottom: 8, position: "relative" }}>📺 TELEVISED MOTM BOOST</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
-            <span style={{ color: C.text, fontSize: F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 6 }}
+            <span style={{ color: C.text, fontSize: mob ? F.md : F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
               onClick={() => onPlayerClick && onPlayerClick(tb.playerName)}
-            >{tb.playerPosition && <span style={{ background: getPosColor(tb.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", textDecoration: "none" }}>{tb.playerPosition}</span>}{tb.playerName}</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+            >{tb.playerPosition && <span style={{ background: getPosColor(tb.playerPosition), color: C.bg, padding: "4px 8px", fontSize: F.sm, fontWeight: "bold", textDecoration: "none", borderRadius: 3 }}>{tb.playerPosition}</span>}{dn(tb.playerName)}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ color: attr?.color || "#fff", fontSize: mob ? F.sm : F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
               <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
-                <span style={{ color: blue, fontSize: F.h1, fontWeight: "bold", textShadow: `0 0 12px rgba(30,58,138,0.9), 0 0 30px rgba(30,58,138,0.4)`, lineHeight: 1 }}>{tb.newVal}</span>
+                <span style={{ color: blue, fontSize: mob ? F.xl : F.h1, fontWeight: "bold", textShadow: `0 0 12px rgba(30,58,138,0.9), 0 0 30px rgba(30,58,138,0.4)`, lineHeight: 1 }}>{tb.newVal}</span>
                 <span style={{ color: blue, fontSize: F.xs, marginLeft: 2, marginTop: -2, opacity: 0.8 }}>+1</span>
               </span>
               <span style={{ color: C.slate, fontSize: F.xs }}>was {tb.oldVal}</span>
@@ -494,14 +495,14 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           animation: `sheen 2.5s ease ${index * 0.2}s infinite`, pointerEvents: "none",
         }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
-          <span style={{ color: C.text, fontSize: F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 6 }}
+          <span style={{ color: C.text, fontSize: mob ? F.md : F.lg, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(226,232,240,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
             onClick={() => onPlayerClick && onPlayerClick(g.playerName)}
-          >{g.playerPosition && <span style={{ background: getPosColor(g.playerPosition), color: C.bg, padding: "1px 7px", fontSize: F.xs, fontWeight: "bold", textDecoration: "none" }}>{g.playerPosition}</span>}{g.playerName}</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <LevelUpPips oldPips={g.oldPips} accentColor={C.green} />
-            <span style={{ color: attr?.color || "#fff", fontSize: F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
+          >{g.playerPosition && <span style={{ background: getPosColor(g.playerPosition), color: C.bg, padding: "4px 8px", fontSize: F.sm, fontWeight: "bold", textDecoration: "none", borderRadius: 3 }}>{g.playerPosition}</span>}{dn(g.playerName)}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {!mob && <LevelUpPips oldPips={g.oldPips} accentColor={C.green} />}
+            <span style={{ color: attr?.color || "#fff", fontSize: mob ? F.sm : F.md, textShadow: `0 0 8px ${attr?.color || "#fff"}55` }}>{attr?.label}</span>
             <span style={{ position: "relative", display: "inline-flex", alignItems: "flex-start" }}>
-              <span style={{ color: C.green, fontSize: F.h1, fontWeight: "bold", textShadow: "0 0 12px rgba(74,222,128,0.9), 0 0 30px rgba(74,222,128,0.4)", lineHeight: 1 }}>{g.newVal}</span>
+              <span style={{ color: C.green, fontSize: mob ? F.xl : F.h1, fontWeight: "bold", textShadow: "0 0 12px rgba(74,222,128,0.9), 0 0 30px rgba(74,222,128,0.4)", lineHeight: 1 }}>{g.newVal}</span>
               <span style={{ color: C.green, fontSize: F.xs, marginLeft: 2, marginTop: -2, opacity: 0.8 }}>+1</span>
             </span>
             <span style={{ color: C.slate, fontSize: F.xs }}>was {g.oldVal}</span>
@@ -577,7 +578,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <span style={{ color: C.amber, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(d.playerName)}>🤝 {dn(d.playerName)}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.green, fontSize: F.md, fontWeight: "bold" }}>{d.newVal}</span>
                           <span style={{ color: C.green, fontSize: F.xs }}>+1</span>
@@ -591,7 +592,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <span style={{ color: C.textMuted, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(g.playerName)}>{dn(g.playerName)}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.green, fontSize: F.md, fontWeight: "bold" }}>{g.newVal}</span>
                           <span style={{ color: C.green, fontSize: F.xs }}>+1</span>
@@ -605,7 +606,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(96,165,250,0.2)", background: "rgba(96,165,250,0.04)" }}>
                         <span style={{ color: "#93c5fd", fontSize: F.sm }}>📖 {group.players.length} players</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.blue, fontSize: F.md, fontWeight: "bold" }}>+{group.amount}</span>
                         </span>
@@ -628,9 +629,9 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(30,41,59,0.3)" }}>
                         <span style={{ color: C.textDim, fontSize: F.sm, cursor: "pointer" }} onClick={() => onPlayerClick && onPlayerClick(p.playerName)}>{dn(p.playerName)}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 8 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label} {p.statVal}</span>
-                          <span style={{ display: "flex", gap: 1 }}>
+                          <span style={{ display: "flex", gap: 2 }}>
                             {[0,1,2,3,4].map(j => (
                               <span key={j} style={{ width: 7, height: 4, background: j < pips ? (p.newProgress >= 0.8 ? "#06b6d4" : "#f59e0b") : "rgba(30,41,59,0.6)", opacity: j < pips ? 0.8 : 0.3 }} />
                             ))}
@@ -710,7 +711,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                         <span style={{ color: C.textMuted, fontSize: F.sm, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(148,163,184,0.2)", textUnderlineOffset: 2 }}
                           onClick={() => onPlayerClick && onPlayerClick(g.playerName)}
                         >{dn(g.playerName)}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.green, fontSize: F.md, fontWeight: "bold" }}>{g.newVal}</span>
                           <span style={{ color: C.green, fontSize: F.xs }}>+{gained}</span>
@@ -724,7 +725,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     return (
                       <div key={`ov-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid rgba(96,165,250,0.2)" }}>
                         <span style={{ color: "#93c5fd", fontSize: F.sm }}>📖 {group.players.length} players</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ color: C.blue, fontSize: F.micro }}>ARC</span>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label}</span>
                           <span style={{ color: C.blue, fontSize: F.md, fontWeight: "bold" }}>+{group.amount}</span>
@@ -741,9 +742,9 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                         <span style={{ color: C.textDim, fontSize: F.sm, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(100,116,139,0.2)", textUnderlineOffset: 2 }}
                           onClick={() => onPlayerClick && onPlayerClick(p.playerName)}
                         >{dn(p.playerName)}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 8 }}>
                           <span style={{ color: attr?.color || "#fff", fontSize: F.xs }}>{attr?.label} {p.statVal}</span>
-                          <span style={{ display: "flex", gap: 1 }}>
+                          <span style={{ display: "flex", gap: 2 }}>
                             {[0,1,2,3,4].map(j => (
                               <span key={j} style={{ width: 7, height: 4, background: j < pips ? "#f59e0b" : "rgba(30,41,59,0.6)", opacity: j < pips ? 0.8 : 0.3 }} />
                             ))}

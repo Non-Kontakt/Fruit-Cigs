@@ -5,6 +5,7 @@ import { STORY_ARCS } from "../../data/storyArcs.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex, league, cup, calendarResults, seasonNumber, week, onExitToMenu, storyArcs, setStoryArcs, squad, setSquad, prodigalSon, leagueTier, initialTab, onAchievementCheck, onHoliday, matchweekIndex, prestigeLevel, ovrCap, gameMode = "casual", activeProfileName = null }) {
   const { matchSpeed, setMatchSpeed, soundEnabled, setSoundEnabled, autoSaveEnabled, setAutoSaveEnabled, trainingCardSpeed, setTrainingCardSpeed, matchDetail, setMatchDetail, musicEnabled, setMusicEnabled, musicVolume, setMusicVolume, disabledTracks, setDisabledTracks, instantMatch, setInstantMatch } = settings;
@@ -18,7 +19,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [debugTierConfirm, setDebugTierConfirm] = useState(null); // { tier, name }
   const [inboxFilter, setInboxFilter] = useState("all"); // "all" | "updates" | "stories"
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   const tabStyle = (tab) => ({
     padding: mob ? "10px 13px" : "10px 18px",
@@ -902,7 +903,7 @@ function CalendarView({ calendar, calendarIndex, league, cup, calendarResults, o
     return { opponent, isHome, neutral, result, status: result ? "played" : "pending" };
   };
 
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   return (
     <div style={{

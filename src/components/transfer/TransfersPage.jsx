@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall } from "../../utils/calc.js";
 import { generateTradeId } from "../../utils/transfer.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
@@ -82,7 +83,7 @@ export function TransfersPage({
   const [tradeTarget, setTradeTarget] = useState(null); // { player, club } for TradeProposal
   const [relSortCol,  setRelSortCol]  = useState(null); // null | "club" | "league" | "status" | "pct" | "wk"
   const [relSortDir,  setRelSortDir]  = useState("desc");
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   function handleRelSort(col) {
     if (relSortCol !== col) {

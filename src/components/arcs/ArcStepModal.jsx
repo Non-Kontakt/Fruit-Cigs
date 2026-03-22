@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { getArcById } from "../../utils/arcs.js";
 import { SFX } from "../../utils/sfx.js";
 import { F, C, FONT, MODAL, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday }) {
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const [animated, setAnimated] = useState(false);
 
   // Fire SFX and start animation when THIS modal actually mounts/appears

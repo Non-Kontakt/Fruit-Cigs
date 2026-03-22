@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { ATTRIBUTES, TRAINING_FOCUSES } from "../../data/training.js";
 import { ALL_POSITIONS } from "../../data/positions.js";
 import { getOverall, getOvrProgress, getAttrColor, getPosColor, progressToPips, getPositionTrainingWeeks } from "../../utils/calc.js";
-import { getNatFlag, getNatLabel } from "../../utils/player.js";
+import { getNatFlag, getNatLabel, displayName } from "../../utils/player.js";
 import { getPlayerValue, getRelationshipTier } from "../../utils/transfer.js";
 import { Sparkline } from "../charts/Sparkline.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20 }) {
   const effectiveCap = player.isLegend ? player.legendCap
@@ -17,7 +18,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
   const ovrPips = Math.min(4, Math.floor(getOvrProgress(player) * 5)); // 0–4; 5 would mean already levelled up
   const [showChart, setShowChart] = useState(false);
   const [confirmRelease, setConfirmRelease] = useState(false);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const isShortlisted = shortlist?.some(p =>
     (p.id && p.id === player.id) || (p.name === player.name && p.clubName === (player.clubName || ""))
   );
@@ -66,7 +67,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                   </span>
                 ))}
               </span>
-              <span style={{ color: C.text, fontSize: mob ? F.xl : F.h3 }}>{player.name}</span>
+              <span style={{ color: C.text, fontSize: mob ? F.xl : F.h3 }}>{displayName(player.name, mob)}</span>
               {player.birthName && <span style={{ color: C.textDim, fontSize: F.xs, marginLeft: 6 }}>({player.birthName})</span>}
             </div>
             <div style={{ color: C.textDim, fontSize: mob ? F.xs : F.sm, display: "flex", alignItems: "center", flexWrap: "wrap", gap: mob ? 2 : 0 }}>
@@ -464,7 +465,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
               </div>
               <div style={{ fontSize: mob ? F.md : F.lg, color: C.text, marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
                 <span style={{ background: getPosColor(player.position), color: C.bg, padding: "3px 9px", fontSize: F.sm, fontWeight: "bold" }}>{player.position}</span>
-                {player.name}
+                {displayName(player.name, mob)}
               </div>
               <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: 23, lineHeight: 1.8 }}>
                 This cannot be undone.

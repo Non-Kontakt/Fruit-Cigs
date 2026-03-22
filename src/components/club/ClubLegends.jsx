@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { sortStandings } from "../../utils/league.js";
-import { getNatFlag, inferNationality } from "../../utils/player.js";
+import { getNatFlag, inferNationality, displayName } from "../../utils/player.js";
 import { OvrProgressChart } from "../charts/OvrCharts.jsx";
 import { F, C, FONT } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRatingTracker, league, seasonNumber, leagueTier, squad, ovrHistory, ovrCap = 20 }) {
   const [tab, setTab] = useState("records");
@@ -248,7 +249,7 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
     { id: "seasons", label: "SEASONS" },
   ];
 
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   return (
     <div style={{ fontFamily: FONT }}>
@@ -422,7 +423,7 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
                           display: "inline-block",
                         }}>
                           <span style={{ fontSize: F.sm, marginRight: 2 }}>{getNatFlag(player.nationality || inferNationality(player.name))}</span>
-                          {player.name}
+                          {displayName(player.name, mob)}
                         </div>
                         <div style={{ fontSize: F.xs, color: C.gold, marginTop: 2 }}>
                           ★ {player.avgRating.toFixed(1)} · S{player.season}

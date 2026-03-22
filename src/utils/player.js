@@ -817,3 +817,10 @@ export function shortName(name) {
   const initials = parts.slice(0, -1).map(p => p[0]).join("-");
   return `${initials}.${surname}`;
 }
+
+/** Mobile-aware player name: abbreviated on small screens, full on desktop.
+ *  Pass mob from useMobile() to keep reactivity explicit. */
+export function displayName(name, mob) {
+  const mobile = mob !== undefined ? mob : (typeof window !== "undefined" && window.innerWidth <= 768);
+  return mobile ? shortName(name) : (name || "");
+}

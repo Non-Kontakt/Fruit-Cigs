@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import { FONT, F, C, BTN, MODAL } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { getOverall } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
+import { useMobile } from "../../hooks/useMobile.js";
 
 // 5v5 formation: 1 GK, 1 DEF, 2 MID, 1 ATK
 const FIVE_SLOTS = [
@@ -13,6 +15,7 @@ const FIVE_SLOTS = [
 ];
 
 export function FiveASidePicker({ squad, ovrCap, onConfirm, onClose, roundLabel, opponentName, initialSelection }) {
+  const mob = useMobile();
   const [selected, setSelected] = useState(() => {
     if (initialSelection && initialSelection.length === 5) return [...initialSelection];
     return [null, null, null, null, null];
@@ -81,7 +84,7 @@ export function FiveASidePicker({ squad, ovrCap, onConfirm, onClose, roundLabel,
               {chosen ? (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <span style={{ color: C.text, fontSize: F.sm }}>{chosen.name}</span>
+                    <span style={{ color: C.text, fontSize: F.sm }}>{displayName(chosen.name, mob)}</span>
                     <span style={{ color: POS_COLORS[chosen.position] || C.textMuted, fontSize: F.xs, marginLeft: 8 }}>{chosen.position}</span>
                     <span style={{ color: C.textDim, fontSize: F.xs, marginLeft: 8 }}>OVR {getOverall(chosen)}</span>
                   </div>
@@ -97,7 +100,7 @@ export function FiveASidePicker({ squad, ovrCap, onConfirm, onClose, roundLabel,
                       border: `1px solid ${C.bgInput}`, borderRadius: 4,
                     }}>
                       <span style={{ color: POS_COLORS[p.position] || C.text }}>{p.position}</span>
-                      {" "}{p.name.split(" ").pop()} <span style={{ color: C.textDim }}>{getOverall(p)}</span>
+                      {" "}{displayName(p.name, mob)} <span style={{ color: C.textDim }}>{getOverall(p)}</span>
                     </button>
                   ))}
                   {available.length === 0 && <span style={{ color: C.red, fontSize: F.xs }}>No eligible players!</span>}

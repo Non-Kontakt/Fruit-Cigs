@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { getAttrColor, getPosColor } from "../../utils/calc.js";
+import { displayName } from "../../utils/player.js";
 import { SFX } from "../../utils/sfx.js";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function OvrLevelUpCelebration({ levelUps, onDone, isOnHoliday, ovrCap = 20 }) {
   const [visible, setVisible] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [numberVisible, setNumberVisible] = useState(false);
   const transitioning = useRef(false);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 50);
@@ -130,7 +132,7 @@ export function OvrLevelUpCelebration({ levelUps, onDone, isOnHoliday, ovrCap = 
             padding: "5px 12px", fontSize: mob ? F.sm : F.md, fontWeight: "bold",
           }}>{player.position}</span>
           <span style={{ fontSize: mob ? F.md : F.lg, color: C.text }}>
-            {player.name}
+            {displayName(player.name, mob)}
           </span>
         </div>
 

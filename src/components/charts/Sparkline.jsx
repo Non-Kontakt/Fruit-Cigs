@@ -1,8 +1,9 @@
 import React from "react";
 import { F, C, FONT } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function Sparkline({ data, color, width: widthProp, height: heightProp, ovrCap = 20 }) {
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
   const width = widthProp || (mob ? 80 : 120);
   const height = heightProp || (mob ? 22 : 28);
   if (data.length < 2) return null;

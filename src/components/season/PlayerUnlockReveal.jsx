@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { SFX } from "../../utils/sfx.js";
 import { F, C, FONT, Z } from "../../data/tokens";
+import { useMobile } from "../../hooks/useMobile.js";
 
 export function PlayerUnlockReveal({ players, onDone }) {
   const [playerIdx, setPlayerIdx] = useState(0);
   const [phase, setPhase] = useState(0); // 0=dark, 1=silhouette, 2=revealed, 3=stats
   const [statIndex, setStatIndex] = useState(-1);
-  const mob = window.innerWidth <= 768;
+  const mob = useMobile();
 
   const player = players[playerIdx];
   const isLast = playerIdx >= players.length - 1;
