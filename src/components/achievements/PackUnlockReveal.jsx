@@ -127,7 +127,6 @@ export function PackUnlockReveal({ pack, onDone, isOnHoliday }) {
         justifyContent: "center",
         gap: 12,
         padding: mob ? "24px 16px" : "32px 24px",
-        overflow: "hidden",
         // Locked state: dark silhouette; Revealed: pack colors
         background: isRevealed
           ? `linear-gradient(160deg, rgba(${rgbDark}, 0.25) 0%, rgba(${rgb}, 0.08) 100%)`

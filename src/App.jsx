@@ -336,6 +336,8 @@ function FootballManager() {
   }, [unlockedAchievements, calendarIndex, seasonNumber]);
 
   // Check for new pack unlocks when achievements or season state changes
+  const packRevealReady = useRef(false);
+  useEffect(() => { const t = setTimeout(() => { packRevealReady.current = true; }, 3000); return () => clearTimeout(t); }, []);
   useEffect(() => {
     const newPacks = checkPackUnlocks({
       unlockedPacks, unlockedAchievements, seasonNumber,
@@ -343,7 +345,10 @@ function FootballManager() {
     });
     if (newPacks.length > 0) {
       setUnlockedPacks(prev => { const n = new Set(prev); newPacks.forEach(id => n.add(id)); return n; });
-      setPackUnlockQueue(prev => [...prev, ...newPacks]);
+      // Only show reveal modals after initial load settles (not on load/cascade)
+      if (packRevealReady.current) {
+        setPackUnlockQueue(prev => [...prev, ...newPacks]);
+      }
     }
   }, [unlockedAchievements, unlockedPacks, seasonNumber, leagueTier, prestigeLevel]);
 

@@ -258,19 +258,6 @@ export function CigPacksTab({
   // ── grid view ──────────────────────────────────────────────────
   return (
     <div>
-      {/* Section title */}
-      <div style={{
-        fontFamily: FONT,
-        fontSize: mob ? F.xs : F.sm,
-        color: C.textMuted,
-        letterSpacing: 2,
-        textTransform: "uppercase",
-        marginBottom: 14,
-        textAlign: "center",
-      }}>
-        Cigarette Packs
-      </div>
-
       {/* Grid */}
       <div style={{
         display: "grid",

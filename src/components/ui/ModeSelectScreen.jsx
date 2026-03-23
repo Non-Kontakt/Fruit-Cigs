@@ -48,7 +48,7 @@ export function ModeSelectScreen({ slotNumber, onSelect, onBack }) {
         padding: "16px",
       }}>
         <div style={{ textAlign: "center", maxWidth: 380, width: "90%" }}>
-          <div style={{ fontSize: "2em", marginBottom: 16 }}>{m.icon}</div>
+          <div style={{ fontSize: "2em", marginBottom: 16, width: 48, height: 48, lineHeight: "48px", textAlign: "center" }}>{m.icon}</div>
           <div style={{ fontSize: F.xl, color: m.color, marginBottom: 16 }}>{m.label} MODE</div>
           {confirming === "ironman" && (
             <div style={{ fontSize: F.sm, color: C.textMuted, marginBottom: 24, lineHeight: 2 }}>
@@ -114,7 +114,7 @@ export function ModeSelectScreen({ slotNumber, onSelect, onBack }) {
                 textAlign: "left",
               }}
             >
-              <div style={{ fontSize: "1.8em", marginBottom: 14 }}>{m.icon}</div>
+              <div style={{ fontSize: "1.8em", marginBottom: 14, width: 44, height: 44, lineHeight: "44px", textAlign: "center" }}>{m.icon}</div>
               <div style={{ fontSize: F.lg, color: m.color, marginBottom: 20, letterSpacing: 2 }}>{m.label}</div>
               {m.lines.map((line, i) => (
                 <div key={i} style={{ fontSize: F.sm, color: line ? C.textMuted : "transparent", marginBottom: 6, lineHeight: 1.6 }}>
