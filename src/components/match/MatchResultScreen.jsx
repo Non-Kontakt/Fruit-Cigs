@@ -533,7 +533,10 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                 <span style={{ color: C.bgInput, fontSize: F.xs }}>INJ</span>
               </div>
             );
-            const displayRating = finished ? pr.rating : computeLiveRating(pr, ev, isGK);
+            const liveRating = computeLiveRating(pr, ev, isGK);
+            const displayRating = liveRating != null && finished
+              ? Math.min(liveRating, pr.rating)  // cap late-game spikes at full time
+              : liveRating ?? (finished ? pr.rating : null);
             const rColor = !displayRating ? C.textDim
               : displayRating >= 8 ? C.green : displayRating >= 7 ? "#84cc16" : displayRating >= 6 ? "#eab308" : displayRating >= 5 ? "#f97316" : C.red;
             return (
