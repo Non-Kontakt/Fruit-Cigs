@@ -1793,7 +1793,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        const tp = { ...msg.trialPlayerData };
+        const tp = { ...msg.trialPlayerData, seasonStartOvr: getOverall(msg.trialPlayerData) };
         setSquad(prev => [...prev, tp]);
         setTrialPlayer(tp);
         SFX.reveal();
@@ -1833,7 +1833,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        const pp = { ...msg.prodigalPlayerData };
+        const pp = { ...msg.prodigalPlayerData, seasonStartOvr: getOverall(msg.prodigalPlayerData) };
         setSquad(prev => [...prev, pp]);
         setProdigalSon(prev => prev ? { ...prev, phase: "active" } : prev);
         SFX.reveal();
@@ -1847,7 +1847,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        const fa = { ...msg.freeAgentData, isFreeAgent: false, fromTransferInsider: true };
+        const fa = { ...msg.freeAgentData, isFreeAgent: false, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData) };
         setSquad(prev => [...prev, fa]);
         setPendingFreeAgent(null);
         setFreeAgentSignings(prev => prev + 1);
@@ -1864,7 +1864,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false }]);
+        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, seasonStartOvr: getOverall(chosen) }]);
         SFX.reveal();
         // The other 2 go to top AI team — boost their strength slightly
         const rivalIdx = msg.poachRivalIdx;
