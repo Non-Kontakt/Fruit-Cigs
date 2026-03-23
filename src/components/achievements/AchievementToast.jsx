@@ -77,12 +77,15 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
         boxShadow: `0 0 24px rgba(250,204,21,0.2), 0 4px 16px rgba(0,0,0,0.4)`,
         minHeight: mob ? 56 : 64,
       }}>
-        {/* Filter tip — the held end, ~20% from edge */}
+        {/* Filter tip — icon + held end */}
         <div style={{
-          width: mob ? 12 : 16,
+          width: mob ? 38 : 46,
           background: `linear-gradient(135deg, #1e293b 0%, #0f172a 100%)`,
           flexShrink: 0,
-        }} />
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <span style={{ fontSize: mob ? F.lg : F.h3 }}>{ach.icon}</span>
+        </div>
 
         {/* Pack color strip — inset like a menthol/popper band */}
         <div style={{
@@ -91,20 +94,16 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
           flexShrink: 0,
         }} />
 
-        {/* Body — dark background with pack-tinted gradient */}
+        {/* Body — dark background */}
         <div style={{
           flex: 1,
           background: `linear-gradient(135deg, #1e293b 0%, #2a2a4e 100%)`,
           padding: mob ? "12px 12px" : "14px 16px",
-          display: "flex", alignItems: "center", gap: mob ? 8 : 12,
+          display: "flex", alignItems: "center",
           position: "relative",
         }}>
-          {/* Achievement icon */}
-          <span style={{ fontSize: mob ? F.lg : F.h3, flexShrink: 0 }}>{ach.icon}</span>
-
           {/* Text content */}
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: mob ? F.micro : F.xs, color: stripColor, letterSpacing: mob ? 1 : 2, marginBottom: 3, fontWeight: "bold" }}>CIG UNLOCKED</div>
             <div style={{ fontSize: mob ? F.sm : F.md, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ach.name}</div>
             <div style={{ fontSize: mob ? F.micro : F.xs, color: C.textMuted, marginTop: 2 }}>{ach.desc}</div>
           </div>
