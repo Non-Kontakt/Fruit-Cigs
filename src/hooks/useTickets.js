@@ -239,6 +239,7 @@ export function useTickets({
       statProgress: {}, training: null, gains: {}, history: [degradedAttrs],
       injury: null, tags: ["legend"], injuryHistory: {},
       isTestimonial: true,
+      seasonStartOvr: getOverall({ attrs: degradedAttrs, position: career.retiredPosition }),
     };
     setTestimonialPlayer(tempPlayer);
     setSquad(prev => [...prev, tempPlayer]);
