@@ -482,7 +482,7 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   }
 
   // Generate substitution events (3 per team, between 55-85 min)
-  const generateSubs = (team) => {
+  const generateSubs = (team, side) => {
     const bench = getBench(team);
     const playing = getPlayingSquad(team);
     const subCount = Math.min(3, bench.length);
@@ -499,7 +499,8 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
       subbedOff.add(off.name);
       subbedOn.add(on.name);
       subEvents.push({
-        minute: min, type: "sub",
+        minute: min, type: "sub", side,
+        playerOff: off.name, playerOn: on.name,
         text: `🔄 Substitution for ${team.name}: ${on.name} replaces ${off.name}`,
         flash: false,
       });
@@ -508,8 +509,8 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   };
 
   // Add subs for both teams
-  events.push(...generateSubs(homeTeam));
-  events.push(...generateSubs(awayTeam));
+  events.push(...generateSubs(homeTeam, "home"));
+  events.push(...generateSubs(awayTeam, "away"));
 
   // Commentary events
   const commentaryTemplates = [

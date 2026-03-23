@@ -16,7 +16,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const [finished, setFinished] = useState(instantMatch);
   const wasAlwaysFast = React.useRef(initialSpeed === 2 || isHighlights || instantMatch);
   const wasAlwaysNormal = React.useRef(initialSpeed === 1 && !isHighlights && !instantMatch);
-  const [showRatings, setShowRatings] = useState(false);
+  const [activeTab, setActiveTab] = useState("feed"); // "feed" | "ratings"
 
   // Auto-close result screen when on holiday
   // Use ref for onDone to avoid effect resetting on every App.jsx re-render
@@ -371,161 +371,191 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         </div>
         )}
 
-        {/* Event ticker — fills remaining space */}
-        <div style={{
-          flex: 1, overflowY: "auto",
-          minHeight: 0,
-          marginBottom: 14,
-          border: `1px solid ${C.bgCard}`,
-          background: "rgba(15,15,35,0.6)",
-        }} ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-          {displayEvents.map((evt, i) => (
-            <div key={i} style={{
-              display: "flex", gap: 12, padding: "8px 15px",
-              borderBottom: "1px solid rgba(30,41,59,0.4)",
-              fontSize: F.sm,
-              color: evt.type === "goal" ? evt.flashColor :
-                     evt.type === "motm" ? C.blue :
-                     evt.type === "red_card" ? C.red :
-                     evt.type === "halftime" || evt.type === "fulltime" ? C.textMuted :
-                     evt.type === "card" ? C.amber :
-                     evt.flash ? C.text : C.slate,
-              background: evt.type === "goal" ? `${evt.flashColor}08` :
-                          evt.type === "motm" ? "rgba(96,165,250,0.06)" :
-                          evt.type === "red_card" ? "rgba(239,68,68,0.06)" : "transparent",
-              fontWeight: evt.type === "goal" || evt.type === "motm" || evt.type === "red_card" ? "bold" : "normal",
-            }}>
-              <span style={{ color: C.bgInput, minWidth: 36 }}>{evt.minute}'</span>
-              <span>{evt.text}</span>
-            </div>
-          ))}
-          {displayEvents.length === 0 && (
-            <div style={{ padding: 16, textAlign: "center", color: C.bgInput, fontSize: F.xs }}>
-              Waiting for kick off...
-            </div>
-          )}
-          {/* Penalty kicks in the ticker */}
-          {penPhase && penalties && penalties.kicks.slice(0, penKickIdx).map((kick, i) => (
-            <div key={`pen-${i}`} style={{
-              padding: "8px 16px", borderBottom: "1px solid #1a1a2e",
-              display: "flex", gap: 10, fontSize: F.xs,
-              background: kick.suddenDeath ? "rgba(250,204,21,0.05)" : "transparent",
-            }}>
-              <span style={{ color: C.gold, minWidth: 31, textAlign: "right" }}>
-                {kick.suddenDeath ? "SD" : `P${kick.round}`}
-              </span>
-              <span style={{
-                color: kick.scored ? C.green : C.red, flex: 1,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {kick.scored ? "⚽" : "✕"} {kick.player} ({kick.side === "home" ? homeTeam.name : awayTeam.name})
-                {kick.scored ? " SCORES!" : " MISSES!"}
-              </span>
-            </div>
+        {/* Tab buttons — always visible */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 6, flexShrink: 0 }}>
+          {[{ id: "feed", label: "FEED" }, { id: "ratings", label: "RATINGS" }].map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              flex: 1, padding: "7px", fontFamily: FONT, fontSize: F.xs, cursor: "pointer", letterSpacing: 1,
+              background: activeTab === t.id ? "rgba(74,222,128,0.1)" : "rgba(30,41,59,0.3)",
+              border: activeTab === t.id ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+              color: activeTab === t.id ? C.green : C.textMuted,
+            }}>{t.label}</button>
           ))}
         </div>
 
-        {/* Post-match: ratings and continue */}
-        {finished && (!penalties || penPhase === "done") && (
-          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
-            <button onClick={() => setShowRatings(!showRatings)} style={{
-              width: "100%", padding: "10px", marginBottom: showRatings ? 8 : 0,
-              background: "rgba(30, 41, 59, 0.3)",
-              border: `1px solid ${C.bgInput}`, color: C.textMuted,
-              fontFamily: FONT,
-              fontSize: F.xs, cursor: "pointer", letterSpacing: 1,
-              flexShrink: 0,
-            }}>
-              {showRatings ? "HIDE" : "SHOW"} PLAYER RATINGS
-            </button>
-
-            {showRatings && result.playerRatings && (() => {
-              // Build slot position map: player ID → formation slot position
-              const slotPosMap = {};
-              if (formation && slotAssignments) {
-                slotAssignments.forEach((pid, slotIdx) => {
-                  if (!pid || !formation[slotIdx]) return;
-                  slotPosMap[pid] = formation[slotIdx].pos;
-                });
-              } else if (formation && startingXI) {
-                startingXI.forEach((pid, i) => {
-                  if (!pid || !formation[i]) return;
-                  slotPosMap[pid] = formation[i].pos;
-                });
-              }
-              const getPos = (pr) => slotPosMap[pr.id] || pr.position;
-              const starters = result.playerRatings
-                .filter(pr => !pr.isSub)
-                .sort((a, b) => (POSITION_ORDER[getPos(a)] ?? 99) - (POSITION_ORDER[getPos(b)] ?? 99));
-              const subs = result.playerRatings.filter(pr => pr.isSub);
-              const side = result.isPlayerHome ? "home" : "away";
-              const renderRow = (pr, i) => {
-                if (!pr.rating && !pr.isSub) return (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 13px" }}>
-                    <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: C.bgInput, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
-                    <span style={{ color: C.bgInput, fontSize: F.xs }}>INJ</span>
-                  </div>
-                );
-                if (!pr.rating && pr.isSub) return (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 13px" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", opacity: 0.5 }}>{getPos(pr)}</span>
-                      <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: C.slate, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
-                    </span>
-                    <span style={{ color: C.slate, fontSize: F.md, fontWeight: "bold" }}>—</span>
-                  </div>
-                );
-                const rColor = pr.rating >= 8 ? C.green : pr.rating >= 7 ? "#84cc16" : pr.rating >= 6 ? "#eab308" : pr.rating >= 5 ? "#f97316" : C.red;
-                const goals = result.scorers?.[`${side}|${pr.name}`] || 0;
-                const assists = result.assisters?.[`${side}|${pr.name}`] || 0;
-                return (
-                  <div key={i} style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: pr.isSub ? "6px 13px" : "7px 13px",
-                    background: pr.rating >= 8 ? "rgba(74,222,128,0.05)" : "transparent",
-                  }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold" }}>{getPos(pr)}</span>
-                      <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: pr.isSub ? C.textMuted : C.text, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
-                      {pr.isSub && pr.minutesPlayed > 0 && <span style={{ color: C.slate, fontSize: F.micro }}>{pr.minutesPlayed}'</span>}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      {goals > 0 && <span style={{ fontSize: F.xs }}>{"⚽".repeat(goals)}</span>}
-                      {assists > 0 && <span style={{ fontSize: F.xs, color: "#38bdf8" }}>{"🎯".repeat(assists)}</span>}
-                      <span style={{ color: rColor, fontSize: F.md, fontWeight: "bold" }}>{pr.rating.toFixed(1)}</span>
-                    </span>
-                  </div>
-                );
-              };
-              return (
-                <div style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, marginBottom: 8 }}>
-                  {starters.map((pr, i) => renderRow(pr, i))}
-                  {subs.length > 0 && (
-                    <>
-                      <div style={{ borderTop: `1px solid ${C.bgCard}`, margin: "4px 10px", display: "flex", alignItems: "center", gap: 6, paddingTop: 4 }}>
-                        <span style={{ color: C.bgInput, fontSize: F.micro, letterSpacing: 1 }}>SUBS</span>
-                      </div>
-                      {subs.map((pr, i) => renderRow(pr, starters.length + i))}
-                    </>
-                  )}
-                </div>
-              );
-            })()}
-
-            <button onClick={handleDone} style={{
-              display: "block", width: "100%", marginTop: 8,
-              padding: "12px",
-              background: `${resultColor}15`,
-              border: `2px solid ${resultColor}`,
-              color: resultColor,
-              fontFamily: FONT,
-              fontSize: F.lg, cursor: "pointer", letterSpacing: 1,
-              animation: "glow 2s ease infinite",
-              flexShrink: 0,
-            }}>
-              CONTINUE ▶
-            </button>
+        {/* FEED tab — event ticker */}
+        {activeTab === "feed" && (
+          <div style={{
+            flex: 1, overflowY: "auto",
+            minHeight: 0,
+            marginBottom: 8,
+            border: `1px solid ${C.bgCard}`,
+            background: "rgba(15,15,35,0.6)",
+          }} ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+            {displayEvents.map((evt, i) => (
+              <div key={i} style={{
+                display: "flex", gap: 12, padding: "8px 15px",
+                borderBottom: "1px solid rgba(30,41,59,0.4)",
+                fontSize: F.sm,
+                color: evt.type === "goal" ? evt.flashColor :
+                       evt.type === "motm" ? C.blue :
+                       evt.type === "red_card" ? C.red :
+                       evt.type === "halftime" || evt.type === "fulltime" ? C.textMuted :
+                       evt.type === "card" ? C.amber :
+                       evt.flash ? C.text : C.slate,
+                background: evt.type === "goal" ? `${evt.flashColor}08` :
+                            evt.type === "motm" ? "rgba(96,165,250,0.06)" :
+                            evt.type === "red_card" ? "rgba(239,68,68,0.06)" : "transparent",
+                fontWeight: evt.type === "goal" || evt.type === "motm" || evt.type === "red_card" ? "bold" : "normal",
+              }}>
+                <span style={{ color: C.bgInput, minWidth: 36 }}>{evt.minute}'</span>
+                <span>{evt.text}</span>
+              </div>
+            ))}
+            {displayEvents.length === 0 && (
+              <div style={{ padding: 16, textAlign: "center", color: C.bgInput, fontSize: F.xs }}>
+                Waiting for kick off...
+              </div>
+            )}
+            {/* Penalty kicks in the ticker */}
+            {penPhase && penalties && penalties.kicks.slice(0, penKickIdx).map((kick, i) => (
+              <div key={`pen-${i}`} style={{
+                padding: "8px 16px", borderBottom: "1px solid #1a1a2e",
+                display: "flex", gap: 10, fontSize: F.xs,
+                background: kick.suddenDeath ? "rgba(250,204,21,0.05)" : "transparent",
+              }}>
+                <span style={{ color: C.gold, minWidth: 31, textAlign: "right" }}>
+                  {kick.suddenDeath ? "SD" : `P${kick.round}`}
+                </span>
+                <span style={{
+                  color: kick.scored ? C.green : C.red, flex: 1,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {kick.scored ? "⚽" : "✕"} {kick.player} ({kick.side === "home" ? homeTeam.name : awayTeam.name})
+                  {kick.scored ? " SCORES!" : " MISSES!"}
+                </span>
+              </div>
+            ))}
           </div>
+        )}
+
+        {/* RATINGS tab — live player ratings */}
+        {activeTab === "ratings" && result.playerRatings && (() => {
+          const playerSide = result.isPlayerHome ? "home" : "away";
+
+          // Aggregate events per player from the live feed so far
+          const live = {};
+          const initLive = (name) => { if (!live[name]) live[name] = { goals: 0, assists: 0, card: null, subOff: null, subOn: null }; return live[name]; };
+          shownEvents.forEach(ev => {
+            if (ev.type === "goal" && ev.side === playerSide) {
+              if (ev.player) initLive(ev.player).goals++;
+              if (ev.assister) initLive(ev.assister).assists++;
+            }
+            if ((ev.type === "card" || ev.type === "red_card") && ev.cardPlayer) {
+              const isPlayer = ev.side ? ev.side === playerSide : (result.isPlayerHome ? ev.cardTeamName === homeTeam.name : ev.cardTeamName === awayTeam.name);
+              if (isPlayer) initLive(ev.cardPlayer).card = ev.type === "red_card" ? "red" : "yellow";
+            }
+            if (ev.type === "sub" && ev.side === playerSide) {
+              if (ev.playerOff) initLive(ev.playerOff).subOff = ev.minute;
+              if (ev.playerOn) initLive(ev.playerOn).subOn = ev.minute;
+            }
+          });
+
+          // Build slot position map: player ID → formation slot position
+          const slotPosMap = {};
+          if (formation && slotAssignments) {
+            slotAssignments.forEach((pid, slotIdx) => {
+              if (!pid || !formation[slotIdx]) return;
+              slotPosMap[pid] = formation[slotIdx].pos;
+            });
+          } else if (formation && startingXI) {
+            startingXI.forEach((pid, i) => {
+              if (!pid || !formation[i]) return;
+              slotPosMap[pid] = formation[i].pos;
+            });
+          }
+          const getPos = (pr) => slotPosMap[pr.id] || pr.position;
+          const starters = result.playerRatings
+            .filter(pr => !pr.isSub)
+            .sort((a, b) => (POSITION_ORDER[getPos(a)] ?? 99) - (POSITION_ORDER[getPos(b)] ?? 99));
+          const subs = result.playerRatings.filter(pr => pr.isSub);
+
+          const renderRow = (pr, i) => {
+            const ev = live[pr.name] || {};
+            const subOff = ev.subOff;
+            const subOn = ev.subOn;
+            const dimmed = subOff != null; // subbed off
+            if (!pr.rating && !pr.isSub) return (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 13px" }}>
+                <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: C.bgInput, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
+                <span style={{ color: C.bgInput, fontSize: F.xs }}>INJ</span>
+              </div>
+            );
+            const rColor = !finished || !pr.rating ? C.textDim
+              : pr.rating >= 8 ? C.green : pr.rating >= 7 ? "#84cc16" : pr.rating >= 6 ? "#eab308" : pr.rating >= 5 ? "#f97316" : C.red;
+            return (
+              <div key={i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "7px 13px",
+                opacity: dimmed ? 0.5 : 1,
+                background: finished && pr.rating >= 8 ? "rgba(74,222,128,0.05)" : "transparent",
+              }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
+                  <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: dimmed ? C.textMuted : pr.isSub ? C.textMuted : C.text, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
+                  {subOff != null && <span style={{ color: C.red, fontSize: F.micro }}>↓{subOff}'</span>}
+                  {subOn != null && <span style={{ color: C.green, fontSize: F.micro }}>↑{subOn}'</span>}
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {ev.goals > 0 && <span style={{ fontSize: F.xs }}>{"⚽".repeat(ev.goals)}</span>}
+                  {ev.assists > 0 && <span style={{ fontSize: F.xs, color: "#38bdf8" }}>{"🎯".repeat(ev.assists)}</span>}
+                  {ev.card === "yellow" && <span style={{ fontSize: F.xs }}>🟨</span>}
+                  {ev.card === "red" && <span style={{ fontSize: F.xs }}>🟥</span>}
+                  <span style={{ color: rColor, fontSize: F.md, fontWeight: "bold", minWidth: 28, textAlign: "right" }}>
+                    {finished && pr.rating ? pr.rating.toFixed(1) : "—"}
+                  </span>
+                </span>
+              </div>
+            );
+          };
+
+          return (
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, marginBottom: 8, border: `1px solid ${C.bgCard}`, background: "rgba(15,15,35,0.6)" }}>
+              {starters.map((pr, i) => renderRow(pr, i))}
+              {subs.length > 0 && (
+                <>
+                  <div style={{ borderTop: `1px solid ${C.bgCard}`, margin: "4px 10px", display: "flex", alignItems: "center", gap: 6, paddingTop: 4 }}>
+                    <span style={{ color: C.bgInput, fontSize: F.micro, letterSpacing: 1 }}>SUBS</span>
+                  </div>
+                  {subs.map((pr, i) => renderRow(pr, starters.length + i))}
+                </>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* RATINGS tab with no playerRatings yet */}
+        {activeTab === "ratings" && !result.playerRatings && (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: F.xs, marginBottom: 8 }}>
+            Ratings available after kick off
+          </div>
+        )}
+
+        {/* Continue button — post-match only */}
+        {finished && (!penalties || penPhase === "done") && (
+          <button onClick={handleDone} style={{
+            display: "block", width: "100%",
+            padding: "12px",
+            background: `${resultColor}15`,
+            border: `2px solid ${resultColor}`,
+            color: resultColor,
+            fontFamily: FONT,
+            fontSize: F.lg, cursor: "pointer", letterSpacing: 1,
+            animation: "glow 2s ease infinite",
+            flexShrink: 0,
+          }}>
+            CONTINUE ▶
+          </button>
         )}
       </div>
 
