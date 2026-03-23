@@ -445,15 +445,15 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
 
           // Aggregate events per player from the live feed so far
           const live = {};
-          const initLive = (name) => { if (!live[name]) live[name] = { goals: 0, assists: 0, card: null, subOff: null, subOn: null }; return live[name]; };
+          const initLive = (name) => { if (!live[name]) live[name] = { goalMinutes: [], assistMinutes: [], card: null, cardMinute: null, subOff: null, subOn: null }; return live[name]; };
           shownEvents.forEach(ev => {
             if (ev.type === "goal" && ev.side === playerSide) {
-              if (ev.player) initLive(ev.player).goals++;
-              if (ev.assister) initLive(ev.assister).assists++;
+              if (ev.player) initLive(ev.player).goalMinutes.push(ev.minute);
+              if (ev.assister) initLive(ev.assister).assistMinutes.push(ev.minute);
             }
             if ((ev.type === "card" || ev.type === "red_card") && ev.cardPlayer) {
               const isPlayer = ev.side ? ev.side === playerSide : (result.isPlayerHome ? ev.cardTeamName === homeTeam.name : ev.cardTeamName === awayTeam.name);
-              if (isPlayer) initLive(ev.cardPlayer).card = ev.type === "red_card" ? "red" : "yellow";
+              if (isPlayer) { const e = initLive(ev.cardPlayer); e.card = ev.type === "red_card" ? "red" : "yellow"; e.cardMinute = ev.minute; }
             }
             if (ev.type === "sub" && ev.side === playerSide) {
               if (ev.playerOff) initLive(ev.playerOff).subOff = ev.minute;
@@ -462,6 +462,33 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           });
 
           // Build slot position map: player ID → formation slot position
+          // Compute a live rating that progresses toward the final value as minutes tick,
+          // with immediate spikes from goals/assists/cards.
+          // Anchored at 6.2 (Sofascore-style neutral baseline), ease-in-out curve.
+          // Live rating: base converges fully to the final value by 90' (no dampening),
+          // with decaying event spikes that fade over ~20 mins as the base catches up.
+          // No jump at full time — by 89' the base is already essentially the final rating.
+          const computeLiveRating = (pr, ev) => {
+            if (!pr.rating) return null;
+            if (pr.isSub && ev.subOn == null) return null; // not on pitch yet
+            const startMin = ev.subOn ?? 0;
+            const endMin = ev.subOff ?? minute;
+            const minutesActive = Math.max(1, Math.min(90, endMin - startMin));
+            const t = minutesActive / 90;
+            // Ease-in-out, fully converges to pr.rating at t=1
+            const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            let r = 6.2 + (pr.rating - 6.2) * ease;
+            // Decaying spikes: peak at event minute, fade to 0 over 20 mins.
+            // As they fade the base progression catches up (final already bakes them in).
+            const decay = (evMin) => Math.max(0, 1 - (minute - evMin) / 20);
+            ev.goalMinutes.forEach(m => r += 1.2 * decay(m));
+            ev.assistMinutes.forEach(m => r += 0.6 * decay(m));
+            // Cards: persistent drag for the rest of the match
+            if (ev.card === "yellow") r -= 0.4;
+            if (ev.card === "red") r -= 2.0;
+            return Math.max(1.0, Math.min(9.9, r));
+          };
+
           const slotPosMap = {};
           if (formation && slotAssignments) {
             slotAssignments.forEach((pid, slotIdx) => {
@@ -484,21 +511,22 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             const ev = live[pr.name] || {};
             const subOff = ev.subOff;
             const subOn = ev.subOn;
-            const dimmed = subOff != null; // subbed off
+            const dimmed = subOff != null;
             if (!pr.rating && !pr.isSub) return (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 13px" }}>
                 <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: C.bgInput, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
                 <span style={{ color: C.bgInput, fontSize: F.xs }}>INJ</span>
               </div>
             );
-            const rColor = !finished || !pr.rating ? C.textDim
-              : pr.rating >= 8 ? C.green : pr.rating >= 7 ? "#84cc16" : pr.rating >= 6 ? "#eab308" : pr.rating >= 5 ? "#f97316" : C.red;
+            const displayRating = finished ? pr.rating : computeLiveRating(pr, ev);
+            const rColor = !displayRating ? C.textDim
+              : displayRating >= 8 ? C.green : displayRating >= 7 ? "#84cc16" : displayRating >= 6 ? "#eab308" : displayRating >= 5 ? "#f97316" : C.red;
             return (
               <div key={i} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "7px 13px",
                 opacity: dimmed ? 0.5 : 1,
-                background: finished && pr.rating >= 8 ? "rgba(74,222,128,0.05)" : "transparent",
+                background: displayRating >= 8 ? "rgba(74,222,128,0.05)" : "transparent",
               }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
@@ -507,12 +535,12 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                   {subOn != null && <span style={{ color: C.green, fontSize: F.micro }}>↑{subOn}'</span>}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  {ev.goals > 0 && <span style={{ fontSize: F.xs }}>{"⚽".repeat(ev.goals)}</span>}
-                  {ev.assists > 0 && <span style={{ fontSize: F.xs, color: "#38bdf8" }}>{"🎯".repeat(ev.assists)}</span>}
+                  {ev.goalMinutes?.length > 0 && <span style={{ fontSize: F.xs }}>{"⚽".repeat(ev.goalMinutes.length)}</span>}
+                  {ev.assistMinutes?.length > 0 && <span style={{ fontSize: F.xs, color: "#38bdf8" }}>{"🎯".repeat(ev.assistMinutes.length)}</span>}
                   {ev.card === "yellow" && <span style={{ fontSize: F.xs }}>🟨</span>}
                   {ev.card === "red" && <span style={{ fontSize: F.xs }}>🟥</span>}
                   <span style={{ color: rColor, fontSize: F.md, fontWeight: "bold", minWidth: 28, textAlign: "right" }}>
-                    {finished && pr.rating ? pr.rating.toFixed(1) : "—"}
+                    {displayRating ? displayRating.toFixed(1) : "—"}
                   </span>
                 </span>
               </div>
