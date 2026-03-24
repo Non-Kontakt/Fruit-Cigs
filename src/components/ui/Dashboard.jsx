@@ -198,16 +198,17 @@ export function Dashboard({
   const bestRated = useMemo(() => {
     if (!playerRatingTracker) return null;
     let best = null;
-    Object.entries(playerRatingTracker).forEach(([name, ratings]) => {
+    Object.entries(playerRatingTracker).forEach(([id, ratings]) => {
       if (!ratings || ratings.length === 0) return;
       const recent = ratings.slice(-5);
       const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+      const p = squad?.find(pl => pl.id === id);
       if (!best || avg > best.avg) {
-        best = { name, avg };
+        best = { name: p?.name || id, avg };
       }
     });
     return best;
-  }, [playerRatingTracker]);
+  }, [playerRatingTracker, squad]);
 
   // Injured players (with name + weeksLeft for display)
   const injuredPlayers = useMemo(() => {

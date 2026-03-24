@@ -1080,7 +1080,17 @@ function FootballManager() {
       setPrevStartingXI(s.prevStartingXI || null);
       setMotmTracker(s.motmTracker || {});
       setStScoredConsecutive(s.stScoredConsecutive || 0);
-      setPlayerRatingTracker(s.playerRatingTracker || {});
+      // Migrate name-keyed playerRatingTracker to ID-keyed
+      let _loadedTracker = s.playerRatingTracker || {};
+      if (Object.keys(_loadedTracker).length > 0) {
+        const _firstKey = Object.keys(_loadedTracker)[0];
+        if (_firstKey.includes(' ') || (!_firstKey.startsWith('p_') && !_firstKey.startsWith('ai_'))) {
+          const _migrated = {};
+          (s.squad || []).forEach(p => { if (p.name && p.id && _loadedTracker[p.name]) _migrated[p.id] = _loadedTracker[p.name]; });
+          _loadedTracker = _migrated;
+        }
+      }
+      setPlayerRatingTracker(_loadedTracker);
       setPlayerSeasonStats(s.playerSeasonStats || {});
       setBeatenTeams(new Set(s.beatenTeams || []));
       setRetiringPlayers(new Set(s.retiringPlayers || []));
@@ -5151,7 +5161,7 @@ function FootballManager() {
                           if (playerMatch.playerRatings) {
                             setPlayerRatingTracker(prev => {
                               const next = { ...prev };
-                              playerMatch.playerRatings.forEach(pr => { if (pr.rating !== null) { if (!next[pr.name]) next[pr.name] = []; next[pr.name] = [...next[pr.name], pr.rating]; } });
+                              playerMatch.playerRatings.forEach(pr => { if (pr.rating !== null && pr.id) { if (!next[pr.id]) next[pr.id] = []; next[pr.id] = [...next[pr.id], pr.rating]; } });
                               return next;
                             });
                           }
@@ -6096,7 +6106,7 @@ function FootballManager() {
           const isDragging = dragPlayer?.id === player.id;
           const isMobileSelected = selectedForMove?.id === player.id;
           const pStats = playerSeasonStats[player.name] || { goals: 0, assists: 0, yellows: 0, reds: 0, apps: 0, motm: 0 };
-          const ratings = playerRatingTracker[player.name] || [];
+          const ratings = playerRatingTracker[player.id] || [];
           const avgRating = ratings.length > 0 ? (ratings.reduce((s, r) => s + r, 0) / ratings.length).toFixed(1) : "—";
 
           const rowBg = isMobileSelected ? "rgba(74,222,128,0.15)" : isDragging ? "rgba(74,222,128,0.1)" : isInjured ? "rgba(239,68,68,0.08)" : idx % 2 === 0 ? "transparent" : "rgba(30, 41, 59, 0.15)";
@@ -7873,7 +7883,7 @@ function FootballManager() {
             if (matchResult.playerRatings) {
               setPlayerRatingTracker(prev => {
                 const next = { ...prev };
-                matchResult.playerRatings.forEach(pr => { if (pr.rating !== null) { if (!next[pr.name]) next[pr.name] = []; next[pr.name] = [...next[pr.name], pr.rating]; } });
+                matchResult.playerRatings.forEach(pr => { if (pr.rating !== null && pr.id) { if (!next[pr.id]) next[pr.id] = []; next[pr.id] = [...next[pr.id], pr.rating]; } });
                 return next;
               });
             }
@@ -9377,7 +9387,7 @@ function FootballManager() {
                 if (playerSeasonStats && archiveSquad) {
                   archiveSquad.forEach(p => {
                     const s = playerSeasonStats[p.name] || {};
-                    const ratings = (playerRatingTracker || {})[p.name] || [];
+                    const ratings = (playerRatingTracker || {})[p.id] || [];
                     const avgR = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
                     if ((s.apps || 0) < 5) return;
                     totsCandidates.push({ name: p.name, position: p.position, teamName: teamName, isPlayerTeam: true, goals: s.goals || 0, avgRating: avgR ? parseFloat(avgR.toFixed(1)) : null, apps: s.apps || 0 });
@@ -9527,9 +9537,9 @@ function FootballManager() {
                   career.yellows += s.yellows || 0;
                   career.reds += s.reds || 0;
                   // Compute avg rating for this season
-                  const ratings = playerRatingTracker[name] || [];
-                  const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   const p = archiveSquad.find(pl => pl.name === name);
+                  const ratings = playerRatingTracker[p?.id] || [];
+                  const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   career.seasons.push({
                     season: seasonNumber,
                     position: p?.position || s.position || "?",
@@ -9589,9 +9599,9 @@ function FootballManager() {
 
                 // Collect all candidates this season for All-Time XI
                 const candidates = Object.entries(playerSeasonStats).map(([name, s]) => {
-                  const ratings = playerRatingTracker[name] || [];
-                  const avgRating = ratings.length >= 3 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   const p = archiveSquad.find(pl => pl.name === name);
+                  const ratings = playerRatingTracker[p?.id] || [];
+                  const avgRating = ratings.length >= 3 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   const position = p?.position || s.position || "?";
                   const nationality = p?.nationality || s.nationality;
                   return { name, position, avgRating, apps: s.apps || 0, season: seasonNumber, nationality };

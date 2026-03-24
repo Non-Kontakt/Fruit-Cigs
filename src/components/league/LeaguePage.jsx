@@ -119,7 +119,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
     if (playerSeasonStats && squad) {
       squad.forEach(p => {
         const s = playerSeasonStats[p.name] || {};
-        const ratings = (playerRatingTracker || {})[p.name] || [];
+        const ratings = (playerRatingTracker || {})[p.id] || [];
         const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
         const goals = s.goals || 0;
         const apps = s.apps || 0;

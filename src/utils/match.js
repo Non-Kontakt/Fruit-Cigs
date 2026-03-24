@@ -930,21 +930,32 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   const homeShotsCount = events.filter(e => (e.type === "shot" || e.type === "chance") && e.side === "home").length;
   const awayShotsCount = events.filter(e => (e.type === "shot" || e.type === "chance") && e.side === "away").length;
 
-  // Scorer tracking — count goals per player name per side
+  // Name → ID lookups for both teams
+  const nameToId = {};
+  for (const p of homeTeam.squad) { if (p.name && p.id) nameToId[`home|${p.name}`] = p.id; }
+  for (const p of awayTeam.squad) { if (p.name && p.id) nameToId[`away|${p.name}`] = p.id; }
+
+  // Scorer tracking — by name (legacy) and by ID (for growth systems)
   const scorers = {};
+  const scorersByID = {};
   for (const g of goalEvents) {
     if (g.player) {
-      const key = `${g.side}|${g.player}`;
-      scorers[key] = (scorers[key] || 0) + 1;
+      const nameKey = `${g.side}|${g.player}`;
+      scorers[nameKey] = (scorers[nameKey] || 0) + 1;
+      const id = nameToId[nameKey];
+      if (id) { const idKey = `${g.side}|${id}`; scorersByID[idKey] = (scorersByID[idKey] || 0) + 1; }
     }
   }
 
-  // Assister tracking — count assists per player name per side
+  // Assister tracking — by name (legacy) and by ID (for growth systems)
   const assisters = {};
+  const assistersByID = {};
   for (const g of goalEvents) {
     if (g.assister) {
-      const key = `${g.side}|${g.assister}`;
-      assisters[key] = (assisters[key] || 0) + 1;
+      const nameKey = `${g.side}|${g.assister}`;
+      assisters[nameKey] = (assisters[nameKey] || 0) + 1;
+      const id = nameToId[nameKey];
+      if (id) { const idKey = `${g.side}|${id}`; assistersByID[idKey] = (assistersByID[idKey] || 0) + 1; }
     }
   }
 
@@ -1002,7 +1013,9 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     homeShots: homeShotsCount,
     awayShots: awayShotsCount,
     scorers,
+    scorersByID,
     assisters,
+    assistersByID,
     motmName,
     commentaryCount: totalCommentaryEvents,
     outfieldInGoal,

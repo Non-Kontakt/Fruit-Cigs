@@ -148,7 +148,8 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
   let liveCandidates = [];
   if (playerSeasonStats && playerRatingTracker && squad) {
     liveCandidates = Object.entries(playerSeasonStats).map(([name, s]) => {
-      const ratings = playerRatingTracker[name] || [];
+      const _p = squad.find(pl => pl.name === name);
+      const ratings = playerRatingTracker[_p?.id] || [];
       const avgRating = ratings.length >= 3 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
       const p = squad.find(pl => pl.name === name);
       const position = p?.position || s.position || "?";
