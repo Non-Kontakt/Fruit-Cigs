@@ -181,7 +181,7 @@ function FootballManager() {
     setStartingXI, setBench, setFormation, setSlotAssignments, setPrevStartingXI,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
     setPendingFreeAgent, setScoutedPlayers,
-    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker,
+    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames,
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
@@ -524,6 +524,7 @@ function FootballManager() {
   const motmTracker = useGameStore(s => s.motmTracker);
   const stScoredConsecutive = useGameStore(s => s.stScoredConsecutive);
   const playerRatingTracker = useGameStore(s => s.playerRatingTracker);
+  const playerRatingNames = useGameStore(s => s.playerRatingNames);
   const playerSeasonStats = useGameStore(s => s.playerSeasonStats);
   const beatenTeams = useGameStore(s => s.beatenTeams);
   const halfwayPosition = useGameStore(s => s.halfwayPosition);
@@ -615,7 +616,7 @@ function FootballManager() {
         consecutiveUnbeaten, consecutiveLosses, consecutiveDraws, consecutiveWins, consecutiveScoreless,
         prevStartingXI,
         motmTracker, stScoredConsecutive,
-        playerRatingTracker, playerSeasonStats,
+        playerRatingTracker, playerRatingNames, playerSeasonStats,
         beatenTeams: [...beatenTeams],
         retiringPlayers: [...retiringPlayers],
         cup,
@@ -1092,6 +1093,7 @@ function FootballManager() {
         }
       }
       setPlayerRatingTracker(_loadedTracker);
+      setPlayerRatingNames(s.playerRatingNames || {});
       setPlayerSeasonStats(s.playerSeasonStats || {});
       setBeatenTeams(new Set(s.beatenTeams || []));
       setRetiringPlayers(new Set(s.retiringPlayers || []));
@@ -5165,6 +5167,11 @@ function FootballManager() {
                               playerMatch.playerRatings.forEach(pr => { if (pr.rating !== null && pr.id) { if (!next[pr.id]) next[pr.id] = []; next[pr.id] = [...next[pr.id], pr.rating]; } });
                               return next;
                             });
+                            setPlayerRatingNames(prev => {
+                              const next = { ...prev };
+                              playerMatch.playerRatings.forEach(pr => { if (pr.id && pr.name) next[pr.id] = pr.name; });
+                              return next;
+                            });
                           }
 
                           // Squad appearance tracking (seasonStarts / seasonSubApps)
@@ -7887,6 +7894,11 @@ function FootballManager() {
                 matchResult.playerRatings.forEach(pr => { if (pr.rating !== null && pr.id) { if (!next[pr.id]) next[pr.id] = []; next[pr.id] = [...next[pr.id], pr.rating]; } });
                 return next;
               });
+              setPlayerRatingNames(prev => {
+                const next = { ...prev };
+                matchResult.playerRatings.forEach(pr => { if (pr.id && pr.name) next[pr.id] = pr.name; });
+                return next;
+              });
             }
 
             setPlayerSeasonStats(prev => {
@@ -9258,6 +9270,7 @@ function FootballManager() {
             setRetiringPlayers(new Set());
             setPlayerSeasonStats({});
             setPlayerRatingTracker({});
+            setPlayerRatingNames({});
             setMotmTracker({});
             // Sentiment partial carry-over on prestige reset
             setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
@@ -9537,9 +9550,11 @@ function FootballManager() {
                   career.motm += s.motm || 0;
                   career.yellows += s.yellows || 0;
                   career.reds += s.reds || 0;
-                  // Compute avg rating for this season (fall back to name scan for traded-away players)
+                  // Compute avg rating — use squad ID, or reverse-lookup from playerRatingNames for traded-away players
                   const p = archiveSquad.find(pl => pl.name === name);
-                  const ratings = p?.id ? (playerRatingTracker[p.id] || []) : [];
+                  let _ratingId = p?.id;
+                  if (!_ratingId) { const _entry = Object.entries(playerRatingNames).find(([, n]) => n === name); _ratingId = _entry?.[0]; }
+                  const ratings = _ratingId ? (playerRatingTracker[_ratingId] || []) : [];
                   const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   career.seasons.push({
                     season: seasonNumber,
@@ -9601,7 +9616,9 @@ function FootballManager() {
                 // Collect all candidates this season for All-Time XI
                 const candidates = Object.entries(playerSeasonStats).map(([name, s]) => {
                   const p = archiveSquad.find(pl => pl.name === name);
-                  const ratings = p?.id ? (playerRatingTracker[p.id] || []) : [];
+                  let _rId = p?.id;
+                  if (!_rId) { const _e = Object.entries(playerRatingNames).find(([, n]) => n === name); _rId = _e?.[0]; }
+                  const ratings = _rId ? (playerRatingTracker[_rId] || []) : [];
                   const avgRating = ratings.length >= 3 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   const position = p?.position || s.position || "?";
                   const nationality = p?.nationality || s.nationality;
@@ -9812,6 +9829,7 @@ function FootballManager() {
               setMotmTracker({});
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});
+              setPlayerRatingNames({});
               setPlayerSeasonStats({});
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));
