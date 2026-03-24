@@ -200,7 +200,8 @@ export function PlayerSearch({
     if (playerSeasonStats) {
       Object.entries(playerSeasonStats).forEach(([name, s]) => {
         const key = `${name}|${teamName}`;
-        const ratings = (playerRatingTracker || {})[name] || [];
+        const _p = squad?.find(pl => pl.name === name);
+        const ratings = (playerRatingTracker || {})[_p?.id] || [];
         map[key] = {
           goals:   s.goals   || 0,
           assists: s.assists  || 0,
