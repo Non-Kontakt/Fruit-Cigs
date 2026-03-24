@@ -257,9 +257,9 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     return [ownExpected, oppExpected];
   };
 
-  // Apply home trait first, then away trait on top (order matters for stacking effects).
-  let [homeXG] = applyTraitToExpectedGoals(homeTeam, homeExpected, awayExpected);
-  let [awayXG, homeAdjFromAway] = applyTraitToExpectedGoals(awayTeam, awayExpected, homeXG);
+  // Apply home trait first (adjusts both own + opp xG), then away trait on top.
+  let [homeXG, awayAdjFromHome] = applyTraitToExpectedGoals(homeTeam, homeExpected, awayExpected);
+  let [awayXG, homeAdjFromAway] = applyTraitToExpectedGoals(awayTeam, awayAdjFromHome || awayExpected, homeXG);
   homeExpected = Math.max(MATCH.XG_ABS_FLOOR, homeAdjFromAway || homeXG);
   awayExpected = Math.max(MATCH.XG_ABS_FLOOR, awayXG);
 
@@ -370,8 +370,16 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   let awayGoals = awayGoals1H + awayGoals2H;
 
   // Defensive: clean sheet bonus goal — if both scoreless, 30% chance of a scrappy set-piece goal
-  if (homeTeam.trait === "defensive" && homeGoals === 0 && awayGoals === 0 && Math.random() < MATCH.DEFENSIVE_CLEAN_SHEET_GOAL_CHANCE) homeGoals++;
-  if (awayTeam.trait === "defensive" && awayGoals === 0 && homeGoals === 0 && Math.random() < MATCH.DEFENSIVE_CLEAN_SHEET_GOAL_CHANCE) awayGoals++;
+  // Randomise evaluation order to avoid home-first bias when both teams are defensive
+  const defFirst = Math.random() < 0.5 ? "home" : "away";
+  const defChecks = defFirst === "home"
+    ? [{ team: homeTeam, side: "home" }, { team: awayTeam, side: "away" }]
+    : [{ team: awayTeam, side: "away" }, { team: homeTeam, side: "home" }];
+  for (const { team, side } of defChecks) {
+    if (team.trait === "defensive" && homeGoals === 0 && awayGoals === 0 && Math.random() < MATCH.DEFENSIVE_CLEAN_SHEET_GOAL_CHANCE) {
+      if (side === "home") homeGoals++; else awayGoals++;
+    }
+  }
 
   // Detect outfield player in goal (no GK in starting XI)
   let outfieldInGoal = false;
@@ -391,11 +399,11 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     }
   }
 
-  // Pick goal minute based on team trait
-  const pickGoalMinute = (team) => {
-    if (team.trait === "gritty" && Math.random() < MATCH.GRITTY_LATE_CHANCE) return rand(MATCH.GRITTY_LATE_MIN, 90);    // Comeback kings: goals late
-    if (team.trait === "stars" && Math.random() < MATCH.STARS_MID_CHANCE) return rand(MATCH.STARS_MID_MIN, MATCH.STARS_MID_MAX);       // Counter goals mid-second-half
-    return rand(1, 90);
+  // Pick goal minute based on team trait, constrained to a half (1-45 or 46-90)
+  const pickGoalMinute = (team, minMin, maxMin) => {
+    if (team.trait === "gritty" && maxMin >= 75 && Math.random() < MATCH.GRITTY_LATE_CHANCE) return rand(Math.max(minMin, MATCH.GRITTY_LATE_MIN), maxMin);
+    if (team.trait === "stars" && maxMin >= 55 && Math.random() < MATCH.STARS_MID_CHANCE) return rand(Math.max(minMin, MATCH.STARS_MID_MIN), Math.min(maxMin, MATCH.STARS_MID_MAX));
+    return rand(minMin, maxMin);
   };
 
   // Get the actual playing players for a team
@@ -479,51 +487,44 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   // Kick off
   events.push({ minute: 0, type: "kickoff", text: "Kick off! The match is underway.", flash: false });
 
-  // Generate goals at random minutes (trait-aware)
-  // Each goal must land on a unique minute — two goals cannot share a minute
+  // Generate goals at random minutes, respecting the 1H/2H split.
+  // Each goal must land on a unique minute — two goals cannot share a minute.
   const goalMinutes = [];
   const usedGoalMinutes = new Set();
-  const pickUniqueGoalMinute = (team) => {
+  const pickUniqueGoalMinute = (team, minMin, maxMin) => {
     for (let attempt = 0; attempt < 30; attempt++) {
-      const min = pickGoalMinute(team);
+      const min = pickGoalMinute(team, minMin, maxMin);
       if (!usedGoalMinutes.has(min)) { usedGoalMinutes.add(min); return min; }
     }
-    // Fallback: scan sequentially for the first free minute
-    for (let m = 1; m <= 90; m++) {
+    for (let m = minMin; m <= maxMin; m++) {
       if (!usedGoalMinutes.has(m)) { usedGoalMinutes.add(m); return m; }
     }
-    return 90; // absolute last resort (>90 goals, impossible in practice)
+    return maxMin;
   };
-  for (let i = 0; i < homeGoals; i++) {
-    const min = pickUniqueGoalMinute(homeTeam);
-    goalMinutes.push(min);
-    const scorer = pickScorer(homeTeam) ?? "Unknown";
-    const assister = pickAssister(homeTeam, scorer);
-    events.push({
-      minute: min, type: "goal", side: "home",
-      player: scorer,
-      assister: assister || undefined,
-      text: assister
-        ? `⚽ GOAL! ${scorer} scores for ${homeTeam.name}! (Assist: ${assister})`
-        : `⚽ GOAL! ${scorer} scores for ${homeTeam.name}!`,
-      flash: true, flashColor: homeTeam.isPlayer ? MATCH.FLASH_PLAYER : MATCH.FLASH_OPP,
-    });
-  }
-  for (let i = 0; i < awayGoals; i++) {
-    const min = pickUniqueGoalMinute(awayTeam);
-    goalMinutes.push(min);
-    const scorer = pickScorer(awayTeam) ?? "Unknown";
-    const assister = pickAssister(awayTeam, scorer);
-    events.push({
-      minute: min, type: "goal", side: "away",
-      player: scorer,
-      assister: assister || undefined,
-      text: assister
-        ? `⚽ GOAL! ${scorer} scores for ${awayTeam.name}! (Assist: ${assister})`
-        : `⚽ GOAL! ${scorer} scores for ${awayTeam.name}!`,
-      flash: true, flashColor: awayTeam.isPlayer ? MATCH.FLASH_PLAYER : MATCH.FLASH_OPP,
-    });
-  }
+
+  const addGoalEvents = (team, side, count, minMin, maxMin) => {
+    for (let i = 0; i < count; i++) {
+      const min = pickUniqueGoalMinute(team, minMin, maxMin);
+      goalMinutes.push(min);
+      const scorer = pickScorer(team) ?? "Unknown";
+      const assister = pickAssister(team, scorer);
+      events.push({
+        minute: min, type: "goal", side,
+        player: scorer,
+        assister: assister || undefined,
+        text: assister
+          ? `⚽ GOAL! ${scorer} scores for ${team.name}! (Assist: ${assister})`
+          : `⚽ GOAL! ${scorer} scores for ${team.name}!`,
+        flash: true, flashColor: team.isPlayer ? MATCH.FLASH_PLAYER : MATCH.FLASH_OPP,
+      });
+    }
+  };
+
+  // 1H goals → minutes 1-45, 2H goals → minutes 46-90
+  addGoalEvents(homeTeam, "home", homeGoals1H, 1, 45);
+  addGoalEvents(awayTeam, "away", awayGoals1H, 1, 45);
+  addGoalEvents(homeTeam, "home", homeGoals2H, 46, 90);
+  addGoalEvents(awayTeam, "away", awayGoals2H, 46, 90);
 
   // Generate substitution events (3 per team, between 55-85 min)
   const generateSubs = (team, side) => {
@@ -980,14 +981,9 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     }
   }
 
-  // Half-time score (goals up to and including minute 45)
-  let htHome = 0, htAway = 0;
-  for (const g of goalEvents) {
-    if (g.minute <= 45) {
-      if (g.side === "home") htHome++;
-      else htAway++;
-    }
-  }
+  // Half-time score — use the known 1H goal counts directly (matches two-phase generation)
+  const htHome = homeGoals1H;
+  const htAway = awayGoals1H;
 
   // Player substitution stats
   const playerTeamName = playerTeamRef?.name;
