@@ -72,15 +72,18 @@ export function getTrainingProgress(currentStat, age, potential, overall, appear
   // Normalize stat to a 1-20 equivalent scale for the progress curve
   // At P0 (cap 20): stat 1-20 maps to 1-20. At P1 (cap 36): stat 1-36 maps to ~1-20.
   const normalized = ovrCap <= 20 ? currentStat : Math.max(1, Math.round((currentStat / ovrCap) * 20));
-  const levelFactor = normalized <= 5 ? 0.28
-    : normalized <= 8 ? 0.20
-    : normalized <= 10 ? 0.15
-    : normalized <= 12 ? 0.11
-    : normalized <= 14 ? 0.08
-    : normalized <= 16 ? 0.06
-    : normalized === 17 ? 0.04
-    : normalized === 18 ? 0.03
-    : 0.015;
+  // Base training rate — ~25-30% reduction from original values.
+  // Combined with form multiplier (Phase 2) and match XP, in-form starters
+  // recover to near-old rates while bench players fall behind.
+  const levelFactor = normalized <= 5 ? 0.20
+    : normalized <= 8 ? 0.14
+    : normalized <= 10 ? 0.10
+    : normalized <= 12 ? 0.08
+    : normalized <= 14 ? 0.055
+    : normalized <= 16 ? 0.04
+    : normalized === 17 ? 0.03
+    : normalized === 18 ? 0.02
+    : 0.01;
   const ageFactor = age < 23 ? 1.3 : age < 28 ? 1.0 : age < 32 ? 0.7 : age < 35 ? 0.5 : 0.2;
   const potentialGap = Math.max(0, potential - overall);
   // Potential bonus: gap-based scaling + flat talent bonus for high-ceiling players.
@@ -89,8 +92,11 @@ export function getTrainingProgress(currentStat, age, potential, overall, appear
   const gapBonus = (potentialGap / Math.max(1, ovrCap)) * 3.0 * Math.max(0.3, appearanceRate);
   const talentFloor = (potential / Math.max(1, ovrCap)) * 0.3;
   const potentialBonus = 1 + gapBonus + talentFloor;
+  // Dynamic potential: training beyond potential continues at 15% speed (glacial but not zero).
+  // Breakouts (Phase 3) raise potential itself, so this just prevents the hard wall feeling.
+  const beyondPotentialMult = overall >= potential ? 0.15 : 1.0;
   const variance = 0.7 + Math.random() * 0.6;
-  return levelFactor * ageFactor * potentialBonus * variance;
+  return levelFactor * ageFactor * potentialBonus * beyondPotentialMult * variance;
 }
 
 // Out-of-position effectiveness multipliers (applied to xG in match simulation)

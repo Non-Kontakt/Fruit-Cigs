@@ -123,6 +123,7 @@ export const useGameStore = create((set, get) => ({
   stScoredConsecutive: 0,
   playerRatingTracker: {},
   playerRatingNames: {},  // { [playerId]: playerName } — companion map for reverse lookup of traded players
+  playerMatchLog: {},     // { [playerId]: Array<{ goals, assists, rating, motm, cleanSheet, cup, away, oppStrength, winningGoal, vsLeader, season, calendarIndex }> } — last 20 per player
   playerSeasonStats: {},
   beatenTeams: new Set(),
   playerInjuryCount: {},
@@ -286,6 +287,7 @@ export const useGameStore = create((set, get) => ({
   setStScoredConsecutive: (val) => set(s => ({ stScoredConsecutive: typeof val === "function" ? val(s.stScoredConsecutive) : val })),
   setPlayerRatingTracker: (val) => set(s => ({ playerRatingTracker: typeof val === "function" ? val(s.playerRatingTracker) : val })),
   setPlayerRatingNames: (val) => set(s => ({ playerRatingNames: typeof val === "function" ? val(s.playerRatingNames) : val })),
+  setPlayerMatchLog: (val) => set(s => ({ playerMatchLog: typeof val === "function" ? val(s.playerMatchLog) : val })),
   setPlayerSeasonStats: (val) => set(s => ({ playerSeasonStats: typeof val === "function" ? val(s.playerSeasonStats) : val })),
   setBeatenTeams: (val) => set(s => ({ beatenTeams: typeof val === "function" ? val(s.beatenTeams) : val })),
   setPlayerInjuryCount: (val) => set(s => ({ playerInjuryCount: typeof val === "function" ? val(s.playerInjuryCount) : val })),
@@ -420,6 +422,7 @@ export const useGameStore = create((set, get) => ({
     stScoredConsecutive: 0,
     playerRatingTracker: {},
     playerRatingNames: {},
+    playerMatchLog: {},
     playerSeasonStats: {},
     beatenTeams: new Set(),
     playerInjuryCount: {},

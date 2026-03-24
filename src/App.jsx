@@ -181,7 +181,7 @@ function FootballManager() {
     setStartingXI, setBench, setFormation, setSlotAssignments, setPrevStartingXI,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
     setPendingFreeAgent, setScoutedPlayers,
-    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames,
+    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames, setPlayerMatchLog,
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
@@ -525,6 +525,7 @@ function FootballManager() {
   const stScoredConsecutive = useGameStore(s => s.stScoredConsecutive);
   const playerRatingTracker = useGameStore(s => s.playerRatingTracker);
   const playerRatingNames = useGameStore(s => s.playerRatingNames);
+  const playerMatchLog = useGameStore(s => s.playerMatchLog);
   const playerSeasonStats = useGameStore(s => s.playerSeasonStats);
   const beatenTeams = useGameStore(s => s.beatenTeams);
   const halfwayPosition = useGameStore(s => s.halfwayPosition);
@@ -616,7 +617,7 @@ function FootballManager() {
         consecutiveUnbeaten, consecutiveLosses, consecutiveDraws, consecutiveWins, consecutiveScoreless,
         prevStartingXI,
         motmTracker, stScoredConsecutive,
-        playerRatingTracker, playerRatingNames, playerSeasonStats,
+        playerRatingTracker, playerRatingNames, playerMatchLog, playerSeasonStats,
         beatenTeams: [...beatenTeams],
         retiringPlayers: [...retiringPlayers],
         cup,
@@ -1094,6 +1095,7 @@ function FootballManager() {
       }
       setPlayerRatingTracker(_loadedTracker);
       setPlayerRatingNames(s.playerRatingNames || {});
+      setPlayerMatchLog(s.playerMatchLog || {});
       setPlayerSeasonStats(s.playerSeasonStats || {});
       setBeatenTeams(new Set(s.beatenTeams || []));
       setRetiringPlayers(new Set(s.retiringPlayers || []));
@@ -3651,6 +3653,69 @@ function FootballManager() {
   }, [processing, summerData, squad, playerSeasonStats, league, leagueTier, seasonNumber,
       storyArcs, prodigalSon, trialPlayer, trialHistory, consecutiveWins, halfwayPosition, cup]);
 
+  // Shared helper: update playerMatchLog after any match (league, cup, or holiday)
+  const updateMatchLog = (matchResult, isPlayerHome, xiIds, isCup, leagueRef) => {
+    const side = isPlayerHome ? "home" : "away";
+    const oppGoals = isPlayerHome ? matchResult.awayGoals : matchResult.homeGoals;
+    const playerGoals = isPlayerHome ? matchResult.homeGoals : matchResult.awayGoals;
+    const isCleanSheet = oppGoals === 0;
+
+    // Winning goal scorer — the goal that gave the decisive lead (oppGoals + 1)
+    let winningGoalScorer = null;
+    if (playerGoals > oppGoals && matchResult.events) {
+      const goalEvents = matchResult.events.filter(e => e.type === "goal").sort((a, b) => a.minute - b.minute);
+      const target = oppGoals + 1;
+      let h = 0, a = 0;
+      for (const g of goalEvents) {
+        if (g.side === "home") h++; else a++;
+        const pg = isPlayerHome ? h : a;
+        if (pg === target && g.side === side) { winningGoalScorer = g.player; break; }
+      }
+    }
+
+    // Opponent strength + league leader check
+    let oppStrength = 0.5;
+    let vsLeader = false;
+    if (leagueRef?.teams) {
+      const oppTeam = isPlayerHome ? leagueRef.teams[matchResult.away] : leagueRef.teams[matchResult.home];
+      oppStrength = oppTeam?.strength || 0.5;
+      if (leagueRef.table) {
+        const sorted = [...leagueRef.table].sort((x, y) => y.points - x.points || (y.goalsFor - y.goalsAgainst) - (x.goalsFor - x.goalsAgainst));
+        const oppIdx = isPlayerHome ? matchResult.away : matchResult.home;
+        vsLeader = sorted[0]?.teamIndex === oppIdx;
+      }
+    }
+
+    setPlayerMatchLog(prev => {
+      const next = { ...prev };
+      const appeared = new Set(xiIds);
+      if (matchResult.playerRatings) {
+        matchResult.playerRatings.forEach(pr => { if (pr.isSub && pr.minutesPlayed > 0 && pr.id) appeared.add(pr.id); });
+      }
+      for (const pid of appeared) {
+        const rEntry = matchResult.playerRatings?.find(r => r.id === pid);
+        const goals = matchResult.scorersByID?.[`${side}|${pid}`] || 0;
+        const assists = matchResult.assistersByID?.[`${side}|${pid}`] || 0;
+        const entry = {
+          goals, assists,
+          rating: rEntry?.rating || 0,
+          motm: matchResult.motmName === rEntry?.name,
+          cleanSheet: isCleanSheet,
+          cup: isCup,
+          away: !isPlayerHome,
+          oppStrength,
+          winningGoal: winningGoalScorer != null && rEntry?.name === winningGoalScorer,
+          vsLeader,
+          season: useGameStore.getState().seasonNumber,
+          calendarIndex: useGameStore.getState().calendarIndex,
+        };
+        if (!next[pid]) next[pid] = [];
+        next[pid] = [...next[pid], entry].slice(-20);
+      }
+      return next;
+    });
+  };
+
   const AUTO_TRAINING = {
     GK: "balanced", CB: "defending", LB: "physical", RB: "pace",
     CM: "physical", AM: "passing", LW: "pace", RW: "shooting", ST: "shooting",
@@ -4727,6 +4792,9 @@ function FootballManager() {
                         }
                       }
 
+                      // Update per-player match log (holiday dynasty match)
+                      updateMatchLog(result, isPlayerHome, currentXI, true, null);
+
                       // Calendar result + advance
                       const pGoals = isPlayerHome ? hg : ag;
                       const oGoals = isPlayerHome ? ag : hg;
@@ -4882,6 +4950,9 @@ function FootballManager() {
                         }
                         return p;
                       }));
+                      // Update per-player match log (holiday cup match)
+                      updateMatchLog(result, isPlayerHome, currentXI, true, null);
+
                       // Holiday testimonial cleanup after cup match
                       const _holTestiCup = useGameStore.getState().testimonialPlayer;
                       if (_holTestiCup) {
@@ -5173,6 +5244,9 @@ function FootballManager() {
                               return next;
                             });
                           }
+
+                          // Update per-player match log (holiday league match)
+                          updateMatchLog(playerMatch, pIsHome, currentXI, false, updatedLeague);
 
                           // Squad appearance tracking (seasonStarts / seasonSubApps)
                           setSquad(prev => prev.map(p => {
@@ -7901,6 +7975,9 @@ function FootballManager() {
               });
             }
 
+            // Update per-player match log for breakout/form tracking
+            updateMatchLog(matchResult, playerIsHome, startingXI, false, league);
+
             setPlayerSeasonStats(prev => {
               const next = { ...prev };
               const side = playerIsHome ? "home" : "away";
@@ -8833,6 +8910,9 @@ function FootballManager() {
               }
               return p;
             }));
+
+            // Update per-player match log (cup match)
+            updateMatchLog(cupMatchResult, cupMatchResult.isPlayerHome, startingXI, true, null);
 
             // Track formations won with for Formation Roulette achievement
             if (winner.isPlayer && formation) {
