@@ -7909,16 +7909,16 @@ function FootballManager() {
               const _oppGoals = playerIsHome ? matchResult.awayGoals : matchResult.homeGoals;
               const _playerGoals = playerIsHome ? matchResult.homeGoals : matchResult.awayGoals;
               const _isCleanSheet = _oppGoals === 0;
-              // Determine winning goal scorer
+              // Determine winning goal scorer — the goal that gave the decisive lead (oppGoals + 1)
               let _winningGoalScorer = null;
               if (_playerGoals > _oppGoals && matchResult.events) {
                 const _goalEvents = matchResult.events.filter(e => e.type === "goal").sort((a, b) => a.minute - b.minute);
+                const _targetGoal = _oppGoals + 1;
                 let _ph = 0, _pa = 0;
                 for (const g of _goalEvents) {
                   if (g.side === "home") _ph++; else _pa++;
                   const _pg = playerIsHome ? _ph : _pa;
-                  const _og = playerIsHome ? _pa : _ph;
-                  if (_pg > _og && _pg === _playerGoals && g.side === _side) _winningGoalScorer = g.player;
+                  if (_pg === _targetGoal && g.side === _side) { _winningGoalScorer = g.player; break; }
                 }
               }
               // Check if opponent is league leader
@@ -8904,12 +8904,12 @@ function FootballManager() {
               let _cupWGScorer = null;
               if (_cupPlayerGoals > _cupOppGoals && cupMatchResult.events) {
                 const _ge = cupMatchResult.events.filter(e => e.type === "goal").sort((a, b) => a.minute - b.minute);
+                const _cupTarget = _cupOppGoals + 1;
                 let _h = 0, _a = 0;
                 for (const g of _ge) {
                   if (g.side === "home") _h++; else _a++;
                   const _pg = cupMatchResult.isPlayerHome ? _h : _a;
-                  const _og = cupMatchResult.isPlayerHome ? _a : _h;
-                  if (_pg > _og && _pg === _cupPlayerGoals && g.side === _cupSide) _cupWGScorer = g.player;
+                  if (_pg === _cupTarget && g.side === _cupSide) { _cupWGScorer = g.player; break; }
                 }
               }
               setPlayerMatchLog(prev => {
