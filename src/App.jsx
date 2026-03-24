@@ -1083,8 +1083,9 @@ function FootballManager() {
       // Migrate name-keyed playerRatingTracker to ID-keyed
       let _loadedTracker = s.playerRatingTracker || {};
       if (Object.keys(_loadedTracker).length > 0) {
-        const _firstKey = Object.keys(_loadedTracker)[0];
-        if (_firstKey.includes(' ') || (!_firstKey.startsWith('p_') && !_firstKey.startsWith('ai_'))) {
+        const _squadIds = new Set((s.squad || []).map(p => p.id).filter(Boolean));
+        const _alreadyIdKeyed = Object.keys(_loadedTracker).some(k => _squadIds.has(k));
+        if (!_alreadyIdKeyed) {
           const _migrated = {};
           (s.squad || []).forEach(p => { if (p.name && p.id && _loadedTracker[p.name]) _migrated[p.id] = _loadedTracker[p.name]; });
           _loadedTracker = _migrated;
@@ -9536,9 +9537,9 @@ function FootballManager() {
                   career.motm += s.motm || 0;
                   career.yellows += s.yellows || 0;
                   career.reds += s.reds || 0;
-                  // Compute avg rating for this season
+                  // Compute avg rating for this season (fall back to name scan for traded-away players)
                   const p = archiveSquad.find(pl => pl.name === name);
-                  const ratings = playerRatingTracker[p?.id] || [];
+                  const ratings = p?.id ? (playerRatingTracker[p.id] || []) : [];
                   const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   career.seasons.push({
                     season: seasonNumber,
@@ -9600,7 +9601,7 @@ function FootballManager() {
                 // Collect all candidates this season for All-Time XI
                 const candidates = Object.entries(playerSeasonStats).map(([name, s]) => {
                   const p = archiveSquad.find(pl => pl.name === name);
-                  const ratings = playerRatingTracker[p?.id] || [];
+                  const ratings = p?.id ? (playerRatingTracker[p.id] || []) : [];
                   const avgRating = ratings.length >= 3 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
                   const position = p?.position || s.position || "?";
                   const nationality = p?.nationality || s.nationality;
