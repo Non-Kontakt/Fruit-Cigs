@@ -16,6 +16,60 @@ import { initStoryArcs } from "../utils/arcs.js";
  *   useGameStore.getState().setSquad(newSquad);
  *   useGameStore.getState().setSquad(prev => prev.map(...));
  */
+// Fields that use Set in-memory but must be serialized as arrays for JSON
+const SET_FIELDS = [
+  "retiringPlayers",
+  "beatenTeams",
+  "trainedThisWeek",
+  "lopsidedWarned",
+  "unlockedAchievements",
+  "unlockedPacks",
+  "usedTicketTypes",
+  "formationsWonWith",
+  "tradedWithClubs",
+];
+
+// Fields that use Map in-memory but must be serialized as plain objects for JSON
+const MAP_FIELDS = [
+  "breakoutsThisSeason",
+];
+
+/**
+ * Convert Sets → arrays and Maps → plain objects for JSON.stringify.
+ * Only touches keys present in the input — safe to call on partial state.
+ */
+export function serializeState(state) {
+  const out = { ...state };
+  for (const key of SET_FIELDS) {
+    if (out[key] instanceof Set) out[key] = [...out[key]];
+  }
+  for (const key of MAP_FIELDS) {
+    if (out[key] instanceof Map) out[key] = Object.fromEntries(out[key]);
+  }
+  return out;
+}
+
+/**
+ * Convert arrays → Sets and plain objects → Maps when loading from JSON.
+ * Only touches keys present in the input — safe to call on partial state.
+ * Applies defensive defaults so missing/corrupt fields don't throw.
+ */
+export function hydrateState(saved) {
+  const out = { ...saved };
+  for (const key of SET_FIELDS) {
+    if (key in out) out[key] = new Set(Array.isArray(out[key]) ? out[key] : []);
+  }
+  for (const key of MAP_FIELDS) {
+    if (key in out) {
+      const raw = out[key];
+      out[key] = new Map(
+        raw && typeof raw === "object" && !Array.isArray(raw) ? Object.entries(raw) : []
+      );
+    }
+  }
+  return out;
+}
+
 export const useGameStore = create((set, get) => ({
   // === Core game state ===
   squad: null,
