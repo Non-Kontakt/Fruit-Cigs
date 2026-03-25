@@ -154,7 +154,7 @@ function FootballManager() {
   const reporterName = useGameStore(s => s.reporterName);
   const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => {
-    const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p) }));
+    const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
     useGameStore.getState().setSquad(sq);
     return sq;
   });
@@ -1811,7 +1811,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        const tp = { ...msg.trialPlayerData, seasonStartOvr: getOverall(msg.trialPlayerData) };
+        const tp = { ...msg.trialPlayerData, seasonStartOvr: getOverall(msg.trialPlayerData), seasonStartAttrs: { ...msg.trialPlayerData.attrs } };
         setSquad(prev => [...prev, tp]);
         setTrialPlayer(tp);
         SFX.reveal();
@@ -1851,7 +1851,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        const pp = { ...msg.prodigalPlayerData, seasonStartOvr: getOverall(msg.prodigalPlayerData) };
+        const pp = { ...msg.prodigalPlayerData, seasonStartOvr: getOverall(msg.prodigalPlayerData), seasonStartAttrs: { ...msg.prodigalPlayerData.attrs } };
         setSquad(prev => [...prev, pp]);
         setProdigalSon(prev => prev ? { ...prev, phase: "active" } : prev);
         SFX.reveal();
@@ -1865,7 +1865,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        const fa = { ...msg.freeAgentData, isFreeAgent: false, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData) };
+        const fa = { ...msg.freeAgentData, isFreeAgent: false, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData), seasonStartAttrs: { ...msg.freeAgentData.attrs } };
         setSquad(prev => [...prev, fa]);
         setPendingFreeAgent(null);
         setFreeAgentSignings(prev => prev + 1);
@@ -1882,7 +1882,7 @@ function FootballManager() {
           setSquadFullAlert(true);
           return false;
         }
-        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, seasonStartOvr: getOverall(chosen) }]);
+        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, seasonStartOvr: getOverall(chosen), seasonStartAttrs: { ...chosen.attrs } }]);
         SFX.reveal();
         // The other 2 go to top AI team — boost their strength slightly
         const rivalIdx = msg.poachRivalIdx;
@@ -6429,11 +6429,14 @@ function FootballManager() {
                     <>
                       {ATTRIBUTES.map(attr => {
                         const val = player.attrs[attr.key];
-                        const gained = player.gains[attr.key];
+                        const seasonDelta = player.seasonStartAttrs ? val - (player.seasonStartAttrs[attr.key] || 0) : 0;
+                        const weekGain = player.gains?.[attr.key];
                         return (
                           <span key={attr.key} style={{ fontSize: F.md, textAlign: "center", color: getAttrColor(val, player.legendCap || ovrCap), position: "relative" }}>
                             {val}
-                            {gained && <span style={{ position: "absolute", top: -6, right: 0, fontSize: F.sm, color: gained >= 2 ? C.gold : C.green, animation: "pulse 1s ease infinite" }}>+{gained}</span>}
+                            {weekGain ? <span style={{ position: "absolute", top: -6, right: 0, fontSize: F.sm, color: weekGain >= 2 ? C.gold : C.green, animation: "pulse 1s ease infinite" }}>+{weekGain}</span>
+                            : seasonDelta > 0 ? <span style={{ position: "absolute", top: -6, right: 0, fontSize: F.xs, color: C.green }}>+{seasonDelta}</span>
+                            : null}
                           </span>
                         );
                       })}
@@ -9367,7 +9370,7 @@ function FootballManager() {
             // Reset game state
             setPrestigeLevel(newPrestige);
             setLeagueTier(NUM_TIERS);
-            setSquad(fullSquad.map(p => ({ ...p, seasonStartOvr: getOverall(p) })));
+            setSquad(fullSquad.map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } })));
             const newXI = autoSelectXI(freshSquad, formation);
             setStartingXI(newXI);
             setBench(autoSelectBench(freshSquad, newXI));
@@ -9454,7 +9457,7 @@ function FootballManager() {
           onDone={(chosen) => {
             if (chosen.length > 0) {
               // Stamp joinedSeason for Band of Brothers tracking
-              const stamped = chosen.map(p => ({ ...p, joinedSeason: (seasonNumber || 1) + 1, seasonStartOvr: getOverall(p) }));
+              const stamped = chosen.map(p => ({ ...p, joinedSeason: (seasonNumber || 1) + 1, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
               setSquad(prev => [...prev, ...stamped]);
             }
             // Remember Me? — recruited an ex-trial player
@@ -9865,7 +9868,7 @@ function FootballManager() {
                 }
                 const newRetiring = checkRetirements(aged, seasonNumber + 1);
                 setRetiringPlayers(newRetiring);
-                return aged.map(p => ({ ...p, seasonStartOvr: getOverall(p) }));
+                return aged.map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
               });
               const rosters = summerData.newRosters || leagueRosters || initLeagueRosters();
 
