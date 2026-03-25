@@ -19,6 +19,7 @@ import { pickNationality, pickAINationality, generateNameForNation, getNatFlag, 
 import { getArcById, getArcsForCat, getValidTargets, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, initStoryArcs, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "./utils/arcs.js";
 import { getTeamStrength, generateFixtures, simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
 import { initLeagueRosters, normalizeRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, computeCalendarIndex, getLeagueMatchdaysPlayed, getCupForTier, initCup, advanceCupRound, buildNextCupRound } from "./utils/league.js";
+import { checkBreakouts } from "./utils/breakouts.js";
 import { SFX, BGM, BGM_TRACKS } from "./utils/sfx.js";
 import * as Tone from "tone";
 import { useMobile } from "./hooks/useMobile.js";
@@ -181,7 +182,7 @@ function FootballManager() {
     setStartingXI, setBench, setFormation, setSlotAssignments, setPrevStartingXI,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
     setPendingFreeAgent, setScoutedPlayers,
-    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames, setPlayerMatchLog,
+    setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames, setPlayerMatchLog, setBreakoutsThisSeason,
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
@@ -526,6 +527,7 @@ function FootballManager() {
   const playerRatingTracker = useGameStore(s => s.playerRatingTracker);
   const playerRatingNames = useGameStore(s => s.playerRatingNames);
   const playerMatchLog = useGameStore(s => s.playerMatchLog);
+  const breakoutsThisSeason = useGameStore(s => s.breakoutsThisSeason);
   const playerSeasonStats = useGameStore(s => s.playerSeasonStats);
   const beatenTeams = useGameStore(s => s.beatenTeams);
   const halfwayPosition = useGameStore(s => s.halfwayPosition);
@@ -617,7 +619,7 @@ function FootballManager() {
         consecutiveUnbeaten, consecutiveLosses, consecutiveDraws, consecutiveWins, consecutiveScoreless,
         prevStartingXI,
         motmTracker, stScoredConsecutive,
-        playerRatingTracker, playerRatingNames, playerMatchLog, playerSeasonStats,
+        playerRatingTracker, playerRatingNames, playerMatchLog, breakoutsThisSeason: [...breakoutsThisSeason], playerSeasonStats,
         beatenTeams: [...beatenTeams],
         retiringPlayers: [...retiringPlayers],
         cup,
@@ -1096,6 +1098,7 @@ function FootballManager() {
       setPlayerRatingTracker(_loadedTracker);
       setPlayerRatingNames(s.playerRatingNames || {});
       setPlayerMatchLog(s.playerMatchLog || {});
+      setBreakoutsThisSeason(new Set(Array.isArray(s.breakoutsThisSeason) ? s.breakoutsThisSeason : []));
       setPlayerSeasonStats(s.playerSeasonStats || {});
       setBeatenTeams(new Set(s.beatenTeams || []));
       setRetiringPlayers(new Set(s.retiringPlayers || []));
@@ -3773,6 +3776,51 @@ function FootballManager() {
       }
       return p;
     }));
+
+    // Breakout check — evaluate triggers against the fresh match log
+    try {
+      const freshLog = useGameStore.getState().playerMatchLog;
+      const freshSquad = useGameStore.getState().squad;
+      const freshBreakouts = useGameStore.getState().breakoutsThisSeason;
+      const _bOvrCap = getOvrCap(useGameStore.getState().prestigeLevel || 0);
+      const breakoutResults = checkBreakouts(freshSquad, freshLog, freshBreakouts, _bOvrCap);
+
+      for (const bo of breakoutResults) {
+        // Apply attr gains + potential bump
+        setSquad(prev => prev.map(p => {
+          if (p.id !== bo.playerId) return p;
+          const newAttrs = { ...p.attrs };
+          Object.entries(bo.attrGains).forEach(([attr, gain]) => {
+            newAttrs[attr] = Math.min(_bOvrCap, (newAttrs[attr] || 0) + gain);
+          });
+          const newPotential = Math.min(_bOvrCap, (p.potential || 0) + bo.potentialGain);
+          return { ...p, attrs: newAttrs, potential: newPotential };
+        }));
+
+        // Mark as broken out this season
+        setBreakoutsThisSeason(prev => { const next = new Set(prev); next.add(bo.playerId); return next; });
+
+        // Inbox message
+        const gainStr = Object.entries(bo.attrGains)
+          .filter(([, v]) => v > 0)
+          .map(([k, v]) => `${k.toUpperCase()} +${v}`)
+          .join(", ");
+        const potStr = bo.potentialGain > 0 ? " Potential +1." : "";
+        setInboxMessages(prev => [...prev, {
+          id: `breakout_${bo.playerId}_${Date.now()}`,
+          icon: "\uD83D\uDCA5", // 💥
+          color: "#facc15",
+          title: `BREAKOUT: ${bo.playerName}`,
+          body: `${bo.playerName} ${bo.trigger.narrative}! This is a breakout moment.\n\n${gainStr}${potStr}`,
+          type: "breakout",
+          season: useGameStore.getState().seasonNumber,
+          calendarIndex: useGameStore.getState().calendarIndex,
+          read: false,
+        }]);
+      }
+    } catch (err) {
+      console.error("Breakout check error:", err);
+    }
   };
 
   const AUTO_TRAINING = {
