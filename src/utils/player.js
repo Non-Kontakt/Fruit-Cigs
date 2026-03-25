@@ -139,8 +139,8 @@ export function generatePlayer(position, index, ovrCap = 20) {
   const { name } = generateNameForNation(natCode);
   const age = rand(17, 33);
 
-  const baseMin = age < 21 ? 1 : age < 28 ? 2 : 3;
-  const baseMax = age < 21 ? 6 : age < 28 ? 8 : 10;
+  const baseMin = age < 21 ? 1 : age < 28 ? 1 : 2;
+  const baseMax = age < 21 ? 4 : age < 28 ? 5 : 7;
 
   const biases = BIAS_FULL;
 
@@ -149,7 +149,7 @@ export function generatePlayer(position, index, ovrCap = 20) {
     const bias = (biases[type] && biases[type][key]) || 0;
     // Roll twice, take lower — skews distribution toward lower end while allowing rare highs
     const roll = Math.min(rand(baseMin, baseMax), rand(baseMin, baseMax));
-    attrs[key] = Math.max(1, Math.min(14, roll + bias));
+    attrs[key] = Math.max(1, Math.min(10, roll + bias));
   });
 
   // Potential is relative to actual OVR — younger players have larger upside

@@ -4475,17 +4475,27 @@ function FootballManager() {
                       setShowLineupWarning("match");
                       return;
                     }
-                    // Altitude Trials: enforce minimum forward slots in formation
-                    const atkMod = getModifier(leagueTier);
-                    if (atkMod.minAtkPlayers) {
-                      const fwdPositions = new Set(["LW", "RW", "ST"]);
-                      const atkCount = formation ? formation.filter(slot => fwdPositions.has(slot.pos)).length : 0;
-                      if (atkCount < atkMod.minAtkPlayers) {
-                        setInboxMessages(prev => [...prev, createInboxMessage(
-                          MSG.atkBlock(atkMod.minAtkPlayers, atkCount),
-                          { calendarIndex, seasonNumber },
-                        )]);
-                        return;
+                    // Altitude Trials: enforce rotation between consecutive matches
+                    const _rotMod = getModifier(leagueTier);
+                    if (_rotMod.rotationRequired && prevStartingXI && prevStartingXI.length > 0) {
+                      const fitPlayers = squad.filter(p => !p.injury && !p.isLegend).length;
+                      const requiredChanges = fitPlayers < 13 ? 0 : fitPlayers < 15 ? 1 : _rotMod.rotationRequired;
+                      if (requiredChanges > 0) {
+                        const prevNonGK = prevStartingXI.filter(id => { const p = squad.find(pl => pl.id === id); return p && p.position !== "GK"; });
+                        const currNonGK = startingXI.filter(id => { const p = squad.find(pl => pl.id === id); return p && p.position !== "GK"; });
+                        const changes = currNonGK.filter(id => !prevNonGK.includes(id)).length;
+                        if (changes < requiredChanges) {
+                          setInboxMessages(prev => [...prev, createInboxMessage({
+                            id: `msg_rotation_block_${Date.now()}`,
+                            icon: "\uD83C\uDFD4\uFE0F",
+                            title: "Rotation Required",
+                            body: fitPlayers < 15
+                              ? `The board requires at least 1 change to the starting XI between matches (reduced due to squad fitness). You've made ${changes}.`
+                              : `The board requires at least ${requiredChanges} changes to the starting XI between matches. You've made ${changes}. The altitude demands rotation.`,
+                            color: "#f59e0b",
+                          }, { calendarIndex, seasonNumber })]);
+                          return;
+                        }
                       }
                     }
                     // Mini-tournament: use 5v5 squad from squad page
@@ -9488,6 +9498,7 @@ function FootballManager() {
             setPlayerRatingTracker({});
             setPlayerRatingNames({});
             setBreakoutsThisSeason(new Map());
+            setPrevStartingXI(null);
             setMotmTracker({});
             // Sentiment partial carry-over on prestige reset
             setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
@@ -10098,6 +10109,7 @@ function FootballManager() {
               setPlayerRatingTracker({});
               setPlayerRatingNames({});
               setBreakoutsThisSeason(new Map());
+              setPrevStartingXI(null);
               setPlayerSeasonStats({});
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));

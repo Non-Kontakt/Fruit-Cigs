@@ -3,7 +3,7 @@ export const LEAGUE_DEFS = {
     name: "Intergalactic Elite",
     shortName: "IE",
     color: "#c084fc",
-    ovrMin: 17, ovrMax: 20,
+    ovrMin: 18, ovrMax: 20,
     natMix: [["ALN",70],["BRA",8],["ARG",6],["FRA",5],["ESP",4],["GER",4],["NGA",3]],
     teams: [
       { name: "Nebula FC",      color: "#c084fc", strength: 0.95, trait: "dominant" },
@@ -22,7 +22,7 @@ export const LEAGUE_DEFS = {
     name: "World XI Invitational",
     shortName: "WXII",
     color: "#fbbf24",
-    ovrMin: 15, ovrMax: 18,
+    ovrMin: 16, ovrMax: 19,
     natMix: [["BRA",14],["ARG",11],["FRA",11],["ESP",9],["GER",7],["POR",7],["ITA",6],["NED",5],["ENG",5],["NGA",4],["HRV",4],["JPN",3],["KOR",3],["BEL",2],["COL",2],["SEN",2],["URY",2],["GHA",1.5],["SRB",1.5]],
     teams: [
       { name: "World Select",     color: "#fbbf24", strength: 0.90, trait: "stars",        natMix: [["BRA",40],["ARG",25],["COL",15],["URY",10],["POR",10]] },
@@ -41,7 +41,7 @@ export const LEAGUE_DEFS = {
     name: "Euro Dynasty",
     shortName: "Euro",
     color: "#1e3a8a",
-    ovrMin: 13, ovrMax: 16,
+    ovrMin: 14, ovrMax: 17,
     natMix: [["ESP",14],["FRA",14],["GER",11],["ITA",11],["POR",9],["NED",7],["HRV",4],["TUR",4],["SWE",4],["ENG",4],["BRA",3],["ARG",3],["BEL",3],["SRB",2],["SUI",2],["POL",1.5],["DEN",1.5],["AUT",1],["GRE",1]],
     teams: [
       { name: "Castilia FC",   color: "#e2e8f0", strength: 0.90, trait: "dominant" },
@@ -60,7 +60,7 @@ export const LEAGUE_DEFS = {
     name: "Saudi Super League",
     shortName: "SSL",
     color: "#22c55e",
-    ovrMin: 11, ovrMax: 14,
+    ovrMin: 12, ovrMax: 15,
     natMix: [["SAU",52],["BRA",11],["ARG",7],["FRA",5],["ESP",4],["POR",4],["NGA",3],["MAR",3],["CIV",2],["ENG",2],["SEN",2],["EGY",2],["COL",1.5],["GHA",1.5]],
     teams: [
       { name: "Al-Badiyah",    color: "#3b82f6", strength: 0.90, trait: "dominant" },
@@ -174,7 +174,7 @@ export const LEAGUE_DEFS = {
     name: "The Alley",
     shortName: "Alley",
     color: "#94a3b8",
-    ovrMin: 3, ovrMax: 5,
+    ovrMin: 2, ovrMax: 4,
     natMix: [["ENG",78],["SCO",5],["WAL",5],["IRL",4],["NIR",4],["FRA",1],["ESP",1],["BRA",1],["POR",1]],
     teams: [
       { name: "Eastfield",  color: "#84cc16", strength: 0.85, trait: "gritty" },
@@ -193,7 +193,7 @@ export const LEAGUE_DEFS = {
     name: "Concrete Schoolyard",
     shortName: "Yard",
     color: "#64748b",
-    ovrMin: 1, ovrMax: 4,
+    ovrMin: 1, ovrMax: 3,
     natMix: [["ENG",85],["SCO",4],["WAL",3],["IRL",3],["NIR",3],["FRA",1],["ESP",1]],
     teams: [
       { name: "Dog & Duck",     color: "#f59e0b", strength: 0.85, trait: "gritty" },

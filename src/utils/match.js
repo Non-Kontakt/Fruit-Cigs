@@ -563,7 +563,7 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     { type: "shot", weight: 4, gen: (team, opp) => { const p = namedPlayer(team); return { text: `Good save! ${p}'s effort is tipped over the bar.`, flash: false }; }},
     { type: "chance", weight: 3, gen: (team, opp) => { const p = namedPlayer(team); return { text: `${p} breaks through on goal... but fires over!`, flash: true, flashColor: MATCH.FLASH_CHANCE }; }},
     { type: "foul", weight: 4, gen: (team, opp) => { const p = namedPlayer(opp); return { text: `Free kick. ${p} is brought down in midfield.`, flash: false }; }},
-    { type: "card", weight: 1, gen: (team, opp) => { const p = namedPlayer(team); return { text: `🟨 Yellow card! ${p} goes into the book.`, flash: true, flashColor: MATCH.FLASH_CHANCE, cardPlayer: p, cardTeamName: team.name }; }},
+    { type: "card", weight: 1 * (modifiers.cardFrequencyMult || 1), gen: (team, opp) => { const p = namedPlayer(team); return { text: `🟨 Yellow card! ${p} goes into the book.`, flash: true, flashColor: MATCH.FLASH_CHANCE, cardPlayer: p, cardTeamName: team.name }; }},
     { type: "possession", weight: 5, gen: (team, opp) => ({ text: `${team.name} building patiently from the back...`, flash: false }) },
     { type: "possession", weight: 3, gen: (team, opp) => ({ text: `Good spell of pressure from ${team.name}.`, flash: false }) },
     { type: "tackle", weight: 3, gen: (team, opp) => { const p = namedPlayer(team); return { text: `Crunching tackle from ${p}!`, flash: false }; }},
@@ -598,7 +598,7 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     if (t === "physical") {
       for (let i = 0; i < rand(MATCH.PHYSICAL_COMMENTARY_MIN, MATCH.PHYSICAL_COMMENTARY_MAX); i++) {
         const min = rand(1, 90);
-        if (Math.random() < MATCH.PHYSICAL_CARD_CHANCE && !modifiers.noCards) {
+        if (Math.random() < MATCH.PHYSICAL_CARD_CHANCE * (modifiers.cardFrequencyMult || 1) && !modifiers.noCards) {
           const p = namedPlayer(team);
           events.push({ minute: min, type: "card", side, text: `🟨 Yellow card! ${p} goes into the book for a late challenge.`, flash: true, flashColor: MATCH.FLASH_CHANCE, cardPlayer: p, cardTeamName: team.name });
         } else {
@@ -633,7 +633,7 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     if (t === "flair") {
       for (let i = 0; i < rand(MATCH.FLAIR_COMMENTARY_MIN, MATCH.FLAIR_COMMENTARY_MAX); i++) {
         const min = rand(1, 90);
-        if (Math.random() < MATCH.FLAIR_CARD_CHANCE && !modifiers.noCards) {
+        if (Math.random() < MATCH.FLAIR_CARD_CHANCE * (modifiers.cardFrequencyMult || 1) && !modifiers.noCards) {
           const p = namedPlayer(team);
           events.push({ minute: min, type: "card", side, text: `🟨 Yellow card! ${p} is booked for simulation! The referee wasn't fooled.`, flash: true, flashColor: MATCH.FLASH_CHANCE, cardPlayer: p, cardTeamName: team.name });
         } else {
