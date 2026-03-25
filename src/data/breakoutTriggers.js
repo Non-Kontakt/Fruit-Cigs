@@ -8,7 +8,18 @@
  *
  * Triggers are shuffled before evaluation so the player can't predict
  * which fires. Only one breakout per player per season.
+ *
+ * Target: ~25-30% per player-season, balanced across positions.
  */
+
+function _consecutive(entries) {
+  for (let j = 1; j < entries.length; j++) {
+    if (entries[j].calendarIndex != null && entries[j - 1].calendarIndex != null) {
+      if (entries[j].calendarIndex - entries[j - 1].calendarIndex > 3) return false;
+    }
+  }
+  return true;
+}
 
 export const BREAKOUT_TRIGGERS = {
   FWD: [
@@ -19,118 +30,89 @@ export const BREAKOUT_TRIGGERS = {
       check: (log, i) => log[i]?.goals >= 3,
     },
     {
-      id: "four_goals",
-      label: "Unstoppable",
-      narrative: "scored four in a single match — absolutely devastating",
-      check: (log, i) => log[i]?.goals >= 4,
-    },
-    {
-      id: "streak_scorer_4",
-      label: "On Fire",
+      id: "scoring_streak_4",
+      label: "In-Form",
       narrative: "has scored in four consecutive matches — red-hot form",
       check: (log, i) => {
         if (i < 3) return false;
-        const window = log.slice(i - 3, i + 1);
-        if (window.length < 4) return false;
-        return window.every(m => m.goals > 0) && _isConsecutive(window);
-      },
-    },
-    {
-      id: "cup_brace",
-      label: "Cup Specialist",
-      narrative: "delivered a brace in the cup — lives for the big occasion",
-      check: (log, i) => log[i]?.cup && log[i]?.goals >= 2,
-    },
-    {
-      id: "winning_goal_3of5",
-      label: "Match Winner",
-      narrative: "keeps scoring the goals that matter most",
-      check: (log, i) => {
-        if (i < 4) return false;
-        const window = log.slice(i - 4, i + 1);
-        return window.filter(m => m.winningGoal).length >= 3;
+        const w = log.slice(i - 3, i + 1);
+        return w.every(m => m.goals > 0) && _consecutive(w);
       },
     },
     {
       id: "back_to_back_brace",
-      label: "Double Double",
+      label: "2 For 2",
       narrative: "scored a brace in back-to-back matches — clinical",
-      check: (log, i) => i >= 1 && log[i]?.goals >= 2 && log[i - 1]?.goals >= 2,
+      check: (log, i) => i >= 1 && log[i]?.goals >= 2 && log[i - 1]?.goals >= 2 && _consecutive([log[i-1], log[i]]),
     },
     {
-      id: "volume_scorer",
-      label: "Goal Machine",
-      narrative: "has five goals in the last eight matches — unstoppable form",
+      id: "fwd_volume",
+      label: "Eat My Goal",
+      narrative: "five goals in the last seven matches — relentless",
       check: (log, i) => {
-        if (i < 7) return false;
-        const window = log.slice(i - 7, i + 1);
-        return window.reduce((s, m) => s + m.goals, 0) >= 5;
+        if (i < 6) return false;
+        return log.slice(i - 6, i + 1).reduce((s, m) => s + m.goals, 0) >= 5;
       },
     },
     {
-      id: "vs_leader",
-      label: "Giant Killer",
-      narrative: "scored against the league leaders — fearless",
-      check: (log, i) => log[i]?.vsLeader && log[i]?.goals > 0,
+      id: "false_nine",
+      label: "The Firmino Role",
+      narrative: "assisted in three of the last five matches — defenders stay pressed",
+      check: (log, i) => {
+        if (i < 4) return false;
+        return log.slice(i - 4, i + 1).filter(m => m.assists > 0).length >= 3;
+      },
+    },
+    {
+      id: "match_winner_3of6",
+      label: "Clutch",
+      narrative: "scored the winning goal three times in six matches — delivers when it matters",
+      check: (log, i) => {
+        if (i < 5) return false;
+        return log.slice(i - 5, i + 1).filter(m => m.winningGoal).length >= 3;
+      },
     },
   ],
 
   MID: [
     {
       id: "triple_assist",
-      label: "Playmaker Supreme",
+      label: "Thread The Needle",
       narrative: "delivered three assists in a single match — pulling all the strings",
       check: (log, i) => log[i]?.assists >= 3,
     },
     {
-      id: "assist_streak_4",
-      label: "Creative Genius",
-      narrative: "has assisted in four straight matches — the ultimate creator",
+      id: "assist_streak_3",
+      label: "Cheeky Nandos",
+      narrative: "assisted in three straight matches — cheeky",
       check: (log, i) => {
-        if (i < 3) return false;
-        const window = log.slice(i - 3, i + 1);
-        if (window.length < 4) return false;
-        return window.every(m => m.assists > 0) && _isConsecutive(window);
+        if (i < 2) return false;
+        const w = log.slice(i - 2, i + 1);
+        return w.every(m => m.assists > 0) && _consecutive(w);
       },
     },
     {
-      id: "goal_and_assist_twice",
-      label: "Complete Midfielder",
-      narrative: "goal and assist in the same match — twice in five games",
+      id: "goal_and_assist_x2",
+      label: "The Pivot",
+      narrative: "a goal and an assist in the same match — twice in six games",
       check: (log, i) => {
-        if (i < 4) return false;
-        const window = log.slice(i - 4, i + 1);
-        return window.filter(m => m.goals > 0 && m.assists > 0).length >= 2;
+        if (i < 5) return false;
+        return log.slice(i - 5, i + 1).filter(m => m.goals > 0 && m.assists > 0).length >= 2;
       },
     },
     {
-      id: "cup_assists",
-      label: "Cup Creator",
-      narrative: "delivered two assists in a cup match — thrives under pressure",
-      check: (log, i) => log[i]?.cup && log[i]?.assists >= 2,
-    },
-    {
-      id: "mid_motm_3of5",
-      label: "Midfield Maestro",
-      narrative: "named MOTM three times in five matches — running the show",
+      id: "mid_assist_volume",
+      label: "Pulling It Back",
+      narrative: "four assists in the last six matches — nobody creates like this",
       check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 3;
+        if (i < 5) return false;
+        return log.slice(i - 5, i + 1).reduce((s, m) => s + m.assists, 0) >= 4;
       },
     },
     {
-      id: "assist_volume",
-      label: "Assist King",
-      narrative: "four assists in the last five matches — nobody creates like this",
-      check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).reduce((s, m) => s + m.assists, 0) >= 4;
-      },
-    },
-    {
-      id: "scoring_midfielder",
-      label: "Box-to-Box Threat",
-      narrative: "scored in three of the last six matches from midfield",
+      id: "mid_scorer_3of6",
+      label: "Box-To-Box",
+      narrative: "scored in three of the last six matches from midfield — a goal threat from deep",
       check: (log, i) => {
         if (i < 5) return false;
         return log.slice(i - 5, i + 1).filter(m => m.goals > 0).length >= 3;
@@ -142,170 +124,108 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "clean_sheets_5of7",
       label: "Rock Solid",
-      narrative: "five clean sheets in seven games — an absolute wall",
+      narrative: "five clean sheets in seven matches — an absolute wall",
       check: (log, i) => {
         if (i < 6) return false;
         return log.slice(i - 6, i + 1).filter(m => m.cleanSheet).length >= 5;
       },
     },
     {
-      id: "away_clean_sheets_3",
-      label: "Away Day Wall",
-      narrative: "three consecutive away clean sheets — impenetrable on the road",
-      check: (log, i) => {
-        const awayMatches = log.slice(0, i + 1).filter(m => m.away);
-        if (awayMatches.length < 3) return false;
-        return awayMatches.slice(-3).every(m => m.cleanSheet);
-      },
-    },
-    {
-      id: "def_motm_3of5",
-      label: "Defensive Colossus",
-      narrative: "named MOTM as a defender three times in five matches",
-      check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 3;
-      },
-    },
-    {
-      id: "marauding_defender",
-      label: "Marauding Defender",
-      narrative: "clean sheet and a goal or assist in the same match — twice in six games",
-      check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).filter(m => m.cleanSheet && (m.goals > 0 || m.assists > 0)).length >= 2;
-      },
-    },
-    {
       id: "clean_streak_4",
-      label: "Fortress",
+      label: "No Leaks",
       narrative: "four clean sheets in a row — nothing gets through",
       check: (log, i) => {
         if (i < 3) return false;
-        const window = log.slice(i - 3, i + 1);
-        return window.every(m => m.cleanSheet) && _isConsecutive(window);
+        const w = log.slice(i - 3, i + 1);
+        return w.every(m => m.cleanSheet) && _consecutive(w);
       },
     },
     {
-      id: "cup_def_motm",
-      label: "Cup Warrior",
-      narrative: "MOTM in two cup matches as a defender — built for the big stage",
-      check: (log, i) => {
-        const cupMatches = log.slice(0, i + 1).filter(m => m.cup && m.motm);
-        return cupMatches.length >= 2;
-      },
-    },
-    {
-      id: "def_consistency",
-      label: "Mr. Reliable",
-      narrative: "averaged 7.5+ over six consecutive matches — never lets the team down",
+      id: "def_motm_3of6",
+      label: "Rolls Royce",
+      narrative: "named MOTM as a defender three times in six matches — class is permanent",
       check: (log, i) => {
         if (i < 5) return false;
-        const window = log.slice(i - 5, i + 1);
-        if (!_isConsecutive(window)) return false;
-        const avg = window.reduce((s, m) => s + m.rating, 0) / window.length;
-        return avg >= 7.5;
+        return log.slice(i - 5, i + 1).filter(m => m.motm).length >= 3;
+      },
+    },
+    {
+      id: "marauding_x2",
+      label: "The Bale Role",
+      narrative: "clean sheet with a goal or assist twice in seven matches — fancies himself a galactico",
+      check: (log, i) => {
+        if (i < 6) return false;
+        return log.slice(i - 6, i + 1).filter(m => m.cleanSheet && (m.goals > 0 || m.assists > 0)).length >= 2;
+      },
+    },
+    {
+      id: "def_scorer",
+      label: "Back Post Demon",
+      narrative: "scored in two of the last five matches — a threat from set pieces",
+      check: (log, i) => {
+        if (i < 4) return false;
+        return log.slice(i - 4, i + 1).filter(m => m.goals > 0).length >= 2;
       },
     },
   ],
 
   GK: [
     {
-      id: "gk_clean_sheets_5of7",
+      id: "gk_clean_sheets_4of6",
       label: "Brick Wall",
-      narrative: "five clean sheets in seven games — nothing gets past",
-      check: (log, i) => {
-        if (i < 6) return false;
-        return log.slice(i - 6, i + 1).filter(m => m.cleanSheet).length >= 5;
-      },
-    },
-    {
-      id: "gk_cup_clean_sheets",
-      label: "Cup Keeper",
-      narrative: "clean sheets in two consecutive cup knockout rounds — nerves of steel",
-      check: (log, i) => {
-        const cupMatches = log.slice(0, i + 1).filter(m => m.cup);
-        if (cupMatches.length < 2) return false;
-        return cupMatches.slice(-2).every(m => m.cleanSheet);
-      },
-    },
-    {
-      id: "gk_motm_3of5",
-      label: "Shot Stopper",
-      narrative: "named MOTM three times in five matches — superhuman reflexes",
-      check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 3;
-      },
-    },
-    {
-      id: "gk_clean_streak_4",
-      label: "Impenetrable",
-      narrative: "four clean sheets in a row — an unbeatable run",
-      check: (log, i) => {
-        if (i < 3) return false;
-        const window = log.slice(i - 3, i + 1);
-        return window.every(m => m.cleanSheet) && _isConsecutive(window);
-      },
-    },
-    {
-      id: "gk_consistency",
-      label: "Safe Hands",
-      narrative: "averaged 7.5+ over six consecutive matches — total command of the box",
+      narrative: "four clean sheets in six matches — nothing gets past",
       check: (log, i) => {
         if (i < 5) return false;
-        const window = log.slice(i - 5, i + 1);
-        if (!_isConsecutive(window)) return false;
-        const avg = window.reduce((s, m) => s + m.rating, 0) / window.length;
-        return avg >= 7.5;
+        return log.slice(i - 5, i + 1).filter(m => m.cleanSheet).length >= 4;
       },
+    },
+    {
+      id: "gk_clean_streak_3",
+      label: "Impenetrable",
+      narrative: "three clean sheets in a row — an unbeatable run",
+      check: (log, i) => {
+        if (i < 2) return false;
+        const w = log.slice(i - 2, i + 1);
+        return w.every(m => m.cleanSheet) && _consecutive(w);
+      },
+    },
+    {
+      id: "gk_motm_2of5",
+      label: "Shot Stopper",
+      narrative: "named MOTM twice in five matches — superhuman reflexes",
+      check: (log, i) => {
+        if (i < 4) return false;
+        return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 2;
+      },
+    },
+    {
+      id: "gk_scorer",
+      label: "The Neuer Role",
+      narrative: "the goalkeeper scored — something tells you it won't be his last",
+      check: (log, i) => log[i]?.goals >= 1,
     },
   ],
 
   UNIVERSAL: [
     {
       id: "uni_motm_3of5",
-      label: "Star Performer",
-      narrative: "named MOTM three times in five matches — simply outstanding",
+      label: "Fantasy Favorite",
+      narrative: "named MOTM three times in five matches — the punters will be pleased",
       check: (log, i) => {
         if (i < 4) return false;
         return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 3;
       },
     },
     {
-      id: "avg_rating_8_over_5",
-      label: "Consistent Excellence",
-      narrative: "averaged 8.0+ over five consecutive matches — world-class form",
+      id: "uni_high_avg_5",
+      label: "Pulling His Weight",
+      narrative: "averaged 7.5+ over five consecutive matches — top-class form",
       check: (log, i) => {
         if (i < 4) return false;
-        const window = log.slice(i - 4, i + 1);
-        const avg = window.reduce((s, m) => s + m.rating, 0) / window.length;
-        return avg >= 8.0;
-      },
-    },
-    {
-      id: "exceeding_expectations",
-      label: "Exceeding Expectations",
-      narrative: "consistently rated well above their ability — something special is happening",
-      check: (log, i, ctx) => {
-        if (i < 7) return false;
-        const window = log.slice(i - 7, i + 1);
-        const avgRating = window.reduce((s, m) => s + m.rating, 0) / window.length;
-        // OVR 1-20 maps to threshold 5.9-13.5 — must consistently outperform baseline
-        const threshold = (ctx?.ovr || 10) * 0.4 + 5.5;
-        return avgRating >= threshold;
+        const w = log.slice(i - 4, i + 1);
+        if (!_consecutive(w)) return false;
+        return w.reduce((s, m) => s + m.rating, 0) / w.length >= 7.5;
       },
     },
   ],
 };
-
-// Helper: check if match log entries are within a reasonable calendarIndex window
-// (no more than 3 weeks gap between any two consecutive entries)
-function _isConsecutive(entries) {
-  for (let j = 1; j < entries.length; j++) {
-    if (entries[j].calendarIndex != null && entries[j - 1].calendarIndex != null) {
-      if (entries[j].calendarIndex - entries[j - 1].calendarIndex > 3) return false;
-    }
-  }
-  return true;
-}
