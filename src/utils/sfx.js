@@ -382,6 +382,53 @@ export const SFX = {
     sparkle.triggerAttackRelease("G6", "2n", now + 0.75);
     setTimeout(() => { scale.dispose(); chord.dispose(); filter.dispose(); sparkle.dispose(); }, 4000);
   },
+  async breakout() {
+    if (!await this._ensure()) return;
+    // 8-bit crackly crowd roar — layered noise swell + distorted square chant + lo-fi crackle
+    const now = Tone.now();
+    // Crowd rumble — brown noise swell with bandpass
+    const crowd = new Tone.NoiseSynth({
+      noise: { type: "brown" },
+      envelope: { attack: 0.15, decay: 1.2, sustain: 0.4, release: 0.6 },
+      volume: -10,
+    });
+    const crowdBP = new Tone.Filter({ frequency: 800, type: "bandpass", Q: 0.8 }).toDestination();
+    crowd.connect(crowdBP);
+    crowd.triggerAttackRelease("2n", now);
+    // Crackle layer — white noise burst, hi-pass filtered
+    const crackle = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.2 },
+      volume: -18,
+    });
+    const crackleHP = new Tone.Filter({ frequency: 4000, type: "highpass" }).toDestination();
+    crackle.connect(crackleHP);
+    crackle.triggerAttackRelease("8n", now + 0.05);
+    crackle.triggerAttackRelease("8n", now + 0.25);
+    crackle.triggerAttackRelease("8n", now + 0.5);
+    // 8-bit chant — square wave two-note "OI OI" pattern
+    const chant = new Tone.Synth({
+      oscillator: { type: "square" },
+      envelope: { attack: 0.01, decay: 0.15, sustain: 0.1, release: 0.2 },
+      volume: -14,
+    });
+    const chantLP = new Tone.Filter(1200, "lowpass").toDestination();
+    chant.disconnect(); chant.connect(chantLP);
+    chant.triggerAttackRelease("G3", "16n", now + 0.2);
+    chant.triggerAttackRelease("C4", "16n", now + 0.35);
+    chant.triggerAttackRelease("G3", "16n", now + 0.55);
+    chant.triggerAttackRelease("C4", "16n", now + 0.7);
+    // Final swell — resolved chord
+    const swell = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "square" },
+      envelope: { attack: 0.08, decay: 0.4, sustain: 0.2, release: 0.8 },
+      volume: -12,
+    });
+    const swellLP = new Tone.Filter(2000, "lowpass").toDestination();
+    swell.disconnect(); swell.connect(swellLP);
+    swell.triggerAttackRelease(["C4", "E4", "G4"], "4n", now + 0.9);
+    setTimeout(() => { crowd.dispose(); crowdBP.dispose(); crackle.dispose(); crackleHP.dispose(); chant.dispose(); chantLP.dispose(); swell.dispose(); swellLP.dispose(); }, 4000);
+  },
   async arcStep() {
     if (!await this._ensure()) return;
     // Punchy 8-bit bass success — short ascending bassline with square wave

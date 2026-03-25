@@ -35,6 +35,7 @@ import { OvrLevelUpCelebration } from "./components/ui/OvrLevelUpCelebration.jsx
 import { HolidayOverlay } from "./components/ui/HolidayOverlay.jsx";
 import { WeekTransitionOverlay } from "./components/ui/WeekTransitionOverlay.jsx";
 import { GainPopup } from "./components/gains/GainPopup.jsx";
+import { BreakoutPopup } from "./components/gains/BreakoutPopup.jsx";
 import { MysteryCard } from "./components/gains/MysteryCard.jsx";
 import { MatchResultScreen } from "./components/match/MatchResultScreen.jsx";
 import { ArcStepModal } from "./components/arcs/ArcStepModal.jsx";
@@ -204,6 +205,8 @@ function FootballManager() {
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
   const [swapTarget, setSwapTarget] = useState(null); // injured player being swapped out
   const [gains, setGains] = useState(null);
+  const [pendingBreakouts, setPendingBreakouts] = useState(null); // breakout results to show after match report closes
+  const [showBreakoutPopup, setShowBreakoutPopup] = useState(false); // delayed reveal after match report closes
   const pendingSquad = useGameStore(s => s.pendingSquad);
 
   const pendingLeagueRef = useRef(null); // deferred league table update until match result dismissed
@@ -1420,6 +1423,14 @@ function FootballManager() {
     }
     prevMatchResult.current = matchResult;
   }, [matchResult, teamName, league, saveGame, autoSaveEnabled]);
+
+  // Show breakout popup 1s after match report closes (wait for arc steps too)
+  useEffect(() => {
+    if (pendingBreakouts && !matchResult && !cupMatchResult && !processing && arcStepQueue.length === 0) {
+      const timer = setTimeout(() => setShowBreakoutPopup(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingBreakouts, matchResult, cupMatchResult, processing, arcStepQueue]);
 
   // Ironman auto-save: save after every week advance (training, match, cup skip) and summer phase change
   const ironmanCalendarLoaded = useRef(false);
@@ -3844,6 +3855,17 @@ function FootballManager() {
           { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber: useGameStore.getState().seasonNumber },
         )]);
       }
+
+      // Queue breakout popup (shows after match report closes, skip during holiday)
+      if (breakoutResults.length > 0 && !useGameStore.getState().isOnHoliday) {
+        setPendingBreakouts(breakoutResults.map(bo => ({
+          playerName: bo.playerName,
+          position: bo.playerPosition,
+          trigger: bo.trigger,
+          attrGains: bo.attrGains,
+          potentialGain: bo.potentialGain,
+        })));
+      }
     } catch (err) {
       console.error("Breakout check error:", err);
     }
@@ -4319,12 +4341,14 @@ function FootballManager() {
       margin: "0 auto",
     }}>
       {/* Emergency reset - always accessible at highest z-index */}
-      {(processing || matchResult || gains !== null || ovrLevelUps || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
+      {(processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
         <button onClick={() => {
           setProcessing(false);
           setMatchResult(null);
           setGains(null);
           setOvrLevelUps(null);
+          setShowBreakoutPopup(false);
+          setPendingBreakouts(null);
           setShowCup(false);
           setCupMatchResult(null);
           setSelectedPlayer(null);
@@ -7626,6 +7650,15 @@ function FootballManager() {
             const p = source.find(pl => pl.name === name);
             if (p) setSelectedPlayer(p);
           }}
+          isOnHoliday={isOnHoliday}
+        />
+      )}
+
+      {/* Breakout Popup — shows after match report closes with 1s delay */}
+      {showBreakoutPopup && pendingBreakouts && pendingBreakouts.length > 0 && !matchResult && !cupMatchResult && arcStepQueue.length === 0 && (
+        <BreakoutPopup
+          breakouts={pendingBreakouts}
+          onDone={() => { setShowBreakoutPopup(false); setPendingBreakouts(null); }}
           isOnHoliday={isOnHoliday}
         />
       )}
