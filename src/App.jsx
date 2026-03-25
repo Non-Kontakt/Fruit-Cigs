@@ -10295,7 +10295,7 @@ function FootballManager() {
               setSquad(prev => {
                 let next = [...prev];
                 for (const np of scaledUnlocks) {
-                  if (!next.some(p => p.id === np.id)) next.push(np);
+                  if (!next.some(p => p.id === np.id)) next.push({ ...np, seasonStartOvr: getOverall(np), seasonStartAttrs: { ...np.attrs } });
                 }
                 return next;
               });
