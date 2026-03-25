@@ -990,6 +990,15 @@ export const MSG = {
   rewindMatch,
   atkBlock,
   poachEvent,
+  // Holiday
+  holidaySummary: (body) => ({
+    id: `msg_train_holiday_${Date.now()}`,
+    icon: "\u2708\uFE0F", // ✈️
+    title: "Holiday Training Summary",
+    body,
+    color: "#38bdf8",
+    type: "holiday_summary",
+  }),
   // Breakout
   breakout: (playerName, narrative, gainStr, potStr) => ({
     id: `msg_breakout_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
