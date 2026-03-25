@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { F, C, FONT } from "../../data/tokens";
 import { CIG_PACKS } from "../../data/cigPacks.js";
-import { ACHIEVEMENTS } from "../../data/achievements.js";
+import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { useMobile } from "../../hooks/useMobile.js";
 
 // ── helpers ────────────────────────────────────────────────────────
@@ -362,6 +362,7 @@ function UnlockedCard({ pack, index, mob, onClick }) {
         animation: hovered ? "cigPackFloat 1.5s ease-in-out infinite" : undefined,
         position: "relative",
         zIndex: 1,
+        marginBottom: -4,
       }}>
         {pack.icon}
       </div>
@@ -424,6 +425,19 @@ function UnlockedCard({ pack, index, mob, onClick }) {
       }}>
         {pack.packSize} PACK
       </div>
+      {pack.achievementIds.some(id => PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) && (
+        <div style={{
+          fontFamily: FONT,
+          fontSize: F.micro - 1,
+          color: C.gold,
+          position: "relative",
+          zIndex: 1,
+          opacity: 0.8,
+          marginTop: 2,
+        }}>
+          UNLOCKABLE PLAYER
+        </div>
+      )}
     </div>
   );
 }

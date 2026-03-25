@@ -229,7 +229,7 @@ export const CIG_PACKS = [
     packSize: 15,
     starter: false,
     unlockCondition: { type: "tier_reached", tier: 7 },
-    unlockDesc: "Reach Forest Hills (tier 7)",
+    unlockDesc: "Reach tier 7",
     achievementIds: [
       "invincibles",        // Win league unbeaten
       "centurions",         // Win every league match
@@ -384,7 +384,7 @@ export const CIG_PACKS = [
     packSize: 15,
     starter: false,
     unlockCondition: { type: "tier_reached", tier: 3 },
-    unlockDesc: "Reach Euro Dynasty (tier 3)",
+    unlockDesc: "Reach tier 3",
     achievementIds: [
       "plot_armour",        // Complete first arc
       "page_turner",        // 3 arcs active
@@ -534,7 +534,7 @@ export const CIG_PACKS = [
     packSize: 15,
     starter: false,
     unlockCondition: { type: "tier_reached", tier: 1 },
-    unlockDesc: "Reach Intergalactic Elite (tier 1)",
+    unlockDesc: "Reach the top league",
     achievementIds: [
       "win_saudi",           // Win Saudi Super League
       "win_european",        // Win Euro Dynasty

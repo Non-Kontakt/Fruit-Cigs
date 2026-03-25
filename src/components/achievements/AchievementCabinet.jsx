@@ -25,9 +25,11 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
   const isCasual = gameMode === "casual";
   const mob = useMobile();
   const [tab, setTab] = useState("cigs");
+  const [cigsKey, setCigsKey] = useState(0);
   const [filterCat, setFilterCat] = useState(null);
   const handleTabChange = (newTab) => {
     if (newTab === "cigs" && onViewAchievements) onViewAchievements();
+    if (newTab === "cigs" && tab === "cigs") setCigsKey(k => k + 1); // reset drill-in
     setTab(newTab);
   };
   const [ticketPicker, setTicketPicker] = useState(null);
@@ -235,6 +237,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
 
       {tab === "cigs" && (
         <CigPacksTab
+          key={cigsKey}
           unlockedPacks={unlockedPacks}
           unlocked={unlocked}
           achievementUnlockWeeks={achievementUnlockWeeks}
