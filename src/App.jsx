@@ -922,7 +922,7 @@ function FootballManager() {
       setUnlockedAchievements(s.unlockedAchievements || new Set());
       setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
       if (s.achievementUnlockWeeks) { setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
-      setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.length ?? 0));
+      setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
       setSeasonCards(s.seasonCards || 0);
       setSeasonNumber(s.seasonNumber || 1);
       setLeagueWins(s.leagueWins || 0);
