@@ -35,6 +35,7 @@ export const LEAGUE_MODIFIERS = {
     id: "the_dojo",
     trainingSpeedMult: 1.5,
     cardSkipsTraining: true,
+    cardFrequencyMult: 2.0,
     inboxIntro: {
       icon: "🥋",
       title: "Welcome to The Dojo",
@@ -53,13 +54,13 @@ export const LEAGUE_MODIFIERS = {
   },
   6: {
     id: "altitude_trials",
-    minAtkPlayers: 4,
+    rotationRequired: 2,
     exhaustionInjury: true,
     injuryChanceMult: 1.4,
     inboxIntro: {
       icon: "🏔️",
       title: "Welcome to the Altitude Trials",
-      body: "The air is thin up here. The board demands attacking football — at least 4 forwards (LW/RW/ST) in every starting XI.\n\nThe altitude takes its toll. Injuries are 40% more frequent, and exhaustion is a real risk — though strong physical players cope better.",
+      body: "The air is thin up here. The board demands rotation — at least 2 changes to your starting XI between consecutive matches.\n\nThe altitude takes its toll. Injuries are 40% more frequent, and exhaustion is a real risk — though strong physical players cope better.",
     },
   },
   5: {
