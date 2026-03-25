@@ -67,7 +67,7 @@ import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
 import { buildAIFiveASide } from "./components/match/FiveASidePicker.jsx";
 import { listProfiles, createProfile, readProfile, scanProfileSlots, getSaveKey, unlockAchievementToProfile, updateProfileIronmanVersion, syncProfileIronmanVersion, archiveCareerToMuseum, checkIronmanIntegrity, deleteMuseumEntry } from "./utils/profile.js";
-import { useGameStore } from "./store/gameStore.js";
+import { useGameStore, serializeState, hydrateState } from "./store/gameStore.js";
 
 // Storage polyfill: use window.storage (Claude artifacts) or fall back to localStorage
 if (!window.storage) {
@@ -646,11 +646,11 @@ function FootballManager() {
     if (!teamName || !league || !activeSaveSlot || !useGameStore.getState().activeProfileId) return;
     setSaveStatus("saving");
     try {
-      const saveData = {
+      const saveData = serializeState({
         version: 2,
         teamName, newspaperName, reporterName, squad, league, matchweekIndex,
         startingXI, bench,
-        unlockedAchievements: [...unlockedAchievements], unlockedPacks: [...unlockedPacks], achievementUnlockWeeks, lastSeenAchievementCount,
+        unlockedAchievements, unlockedPacks, achievementUnlockWeeks, lastSeenAchievementCount,
         seasonCards, seasonNumber, leagueWins, leagueTier, prestigeLevel, leagueVersion: 3, lastSeasonMove, matchSpeed,
         soundEnabled, autoSaveEnabled, trainingCardSpeed, matchDetail,
         musicEnabled, musicVolume, disabledTracks: [...disabledTracks], instantMatch,
@@ -660,9 +660,9 @@ function FootballManager() {
         consecutiveUnbeaten, consecutiveLosses, consecutiveDraws, consecutiveWins, consecutiveScoreless,
         prevStartingXI,
         motmTracker, stScoredConsecutive,
-        playerRatingTracker, playerRatingNames, playerMatchLog, breakoutsThisSeason: Object.fromEntries(breakoutsThisSeason), playerSeasonStats,
-        beatenTeams: [...beatenTeams],
-        retiringPlayers: [...retiringPlayers],
+        playerRatingTracker, playerRatingNames, playerMatchLog, breakoutsThisSeason, playerSeasonStats,
+        beatenTeams,
+        retiringPlayers,
         cup,
         summerPhase,
         summerData,
@@ -685,7 +685,7 @@ function FootballManager() {
         trialPlayer,
         trialHistory,
         prodigalSon,
-        lopsidedWarned: [...lopsidedWarned],
+        lopsidedWarned,
         ovrHistory,
         storyArcs,
         allTimeLeagueStats,
@@ -709,8 +709,8 @@ function FootballManager() {
         pendingFreeAgent,
         scoutedPlayers,
         testimonialPlayer,
-        usedTicketTypes: [...usedTicketTypes],
-        formationsWonWith: [...formationsWonWith],
+        usedTicketTypes,
+        formationsWonWith,
         freeAgentSignings,
         holidayMatchesThisSeason,
         fastMatchesThisSeason,
@@ -718,7 +718,7 @@ function FootballManager() {
         totalShortlisted,
         prevSeasonSquadIds,
         tradesMadeInWindow,
-        tradedWithClubs: [...tradedWithClubs],
+        tradedWithClubs,
         fanSentiment, boardSentiment,
         gameMode: useGameStore.getState().gameMode,
         boardWarnCount: useGameStore.getState().boardWarnCount,
@@ -733,7 +733,7 @@ function FootballManager() {
         dynastyCupBracket,
         miniTournamentBracket,
         fiveASideSquad,
-      };
+      });
       // Increment ironman version — update profile AFTER save write succeeds
       // so the profile can never be ahead of the actual saved data
       let ironmanNewVer = null;
@@ -780,7 +780,7 @@ function FootballManager() {
     try {
       const result = await window.storage.get(getSaveKey(useGameStore.getState().activeProfileId, slot));
       if (!result) return false;
-      const s = JSON.parse(result.value);
+      const s = hydrateState(JSON.parse(result.value));
       if (!s || !s.teamName) return false;
       setActiveSaveSlot(slot);
       setTeamName(s.teamName);
@@ -960,10 +960,10 @@ function FootballManager() {
       // matchweekIndex is now derived from calendarIndex — no need to set it
       setStartingXI(s.startingXI);
       setBench(s.bench);
-      setUnlockedAchievements(new Set(s.unlockedAchievements || []));
-      setUnlockedPacks(new Set(s.unlockedPacks || [...STARTER_PACKS]));
+      setUnlockedAchievements(s.unlockedAchievements || new Set());
+      setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
       if (s.achievementUnlockWeeks) { setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
-      setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.length ?? 0));
+      setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
       setSeasonCards(s.seasonCards || 0);
       setSeasonNumber(s.seasonNumber || 1);
       setLeagueWins(s.leagueWins || 0);
@@ -1140,10 +1140,10 @@ function FootballManager() {
       setPlayerRatingTracker(_loadedTracker);
       setPlayerRatingNames(s.playerRatingNames || {});
       setPlayerMatchLog(s.playerMatchLog || {});
-      setBreakoutsThisSeason(new Map(Object.entries(s.breakoutsThisSeason && typeof s.breakoutsThisSeason === "object" && !Array.isArray(s.breakoutsThisSeason) ? s.breakoutsThisSeason : {})));
+      setBreakoutsThisSeason(s.breakoutsThisSeason || new Map());
       setPlayerSeasonStats(s.playerSeasonStats || {});
-      setBeatenTeams(new Set(s.beatenTeams || []));
-      setRetiringPlayers(new Set(s.retiringPlayers || []));
+      setBeatenTeams(s.beatenTeams || new Set());
+      setRetiringPlayers(s.retiringPlayers || new Set());
       // Migrate cup name: strip "The " prefix from renamed cups
       if (s.cup && s.cup.cupName && s.cup.cupName.startsWith("The ")) {
         s.cup.cupName = s.cup.cupName.slice(4);
@@ -1192,7 +1192,7 @@ function FootballManager() {
       if (s.prodigalSon?.phase === "redeemed" && s.prodigalSon?.pendingBoost === undefined) {
         setProdigalSon({ ...s.prodigalSon, pendingBoost: true });
       }
-      setLopsidedWarned(new Set(s.lopsidedWarned || []));
+      setLopsidedWarned(s.lopsidedWarned || new Set());
       setOvrHistory(s.ovrHistory || []);
       const loadedArcs = s.storyArcs || initStoryArcs();
       // Migration v3: reconstruct completed arcs and force reward re-application
@@ -1280,8 +1280,8 @@ function FootballManager() {
       setPendingFreeAgent(s.pendingFreeAgent || null);
       setScoutedPlayers(s.scoutedPlayers || {});
       setTestimonialPlayer(s.testimonialPlayer || null);
-      setUsedTicketTypes(new Set(s.usedTicketTypes || []));
-      setFormationsWonWith(new Set(s.formationsWonWith || []));
+      setUsedTicketTypes(s.usedTicketTypes || new Set());
+      setFormationsWonWith(s.formationsWonWith || new Set());
       setFreeAgentSignings(s.freeAgentSignings || 0);
       setHolidayMatchesThisSeason(s.holidayMatchesThisSeason || 0);
       setFastMatchesThisSeason(s.fastMatchesThisSeason || 0);
@@ -1289,7 +1289,7 @@ function FootballManager() {
       setTotalShortlisted(s.totalShortlisted || 0);
       setPrevSeasonSquadIds(s.prevSeasonSquadIds || null);
       setTradesMadeInWindow(s.tradesMadeInWindow || 0);
-      setTradedWithClubs(new Set(s.tradedWithClubs || []));
+      setTradedWithClubs(s.tradedWithClubs || new Set());
       setPrestigeLevel(s.prestigeLevel || 0);
       // Migration: seed allTimeLeagueStats from clubHistory.playerCareers for existing saves
       if (!s.allTimeLeagueStats && s.clubHistory?.playerCareers) {
@@ -1310,10 +1310,9 @@ function FootballManager() {
       // Migration: grant missing player unlocks for already-unlocked achievements
       // Shows the reveal screen on load so the player gets the full unlock experience
       if (s.unlockedAchievements && s.squad) {
-        const unlockedSet = new Set(s.unlockedAchievements);
         const currentSquadIds = new Set((s.squad || []).map(p => p.id));
         const missingUnlocks = [];
-        for (const achId of unlockedSet) {
+        for (const achId of s.unlockedAchievements) {
           const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === achId);
           if (unlock && unlock.attrs) {
             const unlockId = `unlockable_${unlock.id}`;
