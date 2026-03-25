@@ -54,6 +54,10 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
           // +1 to potential (capped at ovrCap)
           const potentialGain = (p.potential || 0) < ovrCap ? 1 : 0;
 
+          // Skip if no actual reward (all attrs capped + potential maxed)
+          const totalGain = Object.values(attrGains).reduce((s, v) => s + v, 0) + potentialGain;
+          if (totalGain === 0) continue;
+
           results.push({
             playerId: p.id,
             playerName: p.name,

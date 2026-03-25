@@ -3806,17 +3806,10 @@ function FootballManager() {
           .map(([k, v]) => `${k.toUpperCase()} +${v}`)
           .join(", ");
         const potStr = bo.potentialGain > 0 ? " Potential +1." : "";
-        setInboxMessages(prev => [...prev, {
-          id: `breakout_${bo.playerId}_${Date.now()}`,
-          icon: "\uD83D\uDCA5", // 💥
-          color: "#facc15",
-          title: `BREAKOUT: ${bo.playerName}`,
-          body: `${bo.playerName} ${bo.trigger.narrative}! This is a breakout moment.\n\n${gainStr}${potStr}`,
-          type: "breakout",
-          season: useGameStore.getState().seasonNumber,
-          calendarIndex: useGameStore.getState().calendarIndex,
-          read: false,
-        }]);
+        setInboxMessages(prev => [...prev, createInboxMessage(
+          MSG.breakout(bo.playerName, bo.trigger.narrative, gainStr, potStr),
+          { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber: useGameStore.getState().seasonNumber },
+        )]);
       }
     } catch (err) {
       console.error("Breakout check error:", err);
@@ -9458,6 +9451,7 @@ function FootballManager() {
             setPlayerSeasonStats({});
             setPlayerRatingTracker({});
             setPlayerRatingNames({});
+            setBreakoutsThisSeason(new Set());
             setMotmTracker({});
             // Sentiment partial carry-over on prestige reset
             setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
@@ -10017,6 +10011,7 @@ function FootballManager() {
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});
               setPlayerRatingNames({});
+              setBreakoutsThisSeason(new Set());
               setPlayerSeasonStats({});
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));

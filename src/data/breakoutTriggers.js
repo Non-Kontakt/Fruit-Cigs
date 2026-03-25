@@ -182,7 +182,8 @@ export const BREAKOUT_TRIGGERS = {
       narrative: "four clean sheets in a row — nothing gets through",
       check: (log, i) => {
         if (i < 3) return false;
-        return log.slice(i - 3, i + 1).every(m => m.cleanSheet);
+        const window = log.slice(i - 3, i + 1);
+        return window.every(m => m.cleanSheet) && _isConsecutive(window);
       },
     },
     {
@@ -201,6 +202,7 @@ export const BREAKOUT_TRIGGERS = {
       check: (log, i) => {
         if (i < 5) return false;
         const window = log.slice(i - 5, i + 1);
+        if (!_isConsecutive(window)) return false;
         const avg = window.reduce((s, m) => s + m.rating, 0) / window.length;
         return avg >= 7.5;
       },
@@ -242,7 +244,8 @@ export const BREAKOUT_TRIGGERS = {
       narrative: "four clean sheets in a row — an unbeatable run",
       check: (log, i) => {
         if (i < 3) return false;
-        return log.slice(i - 3, i + 1).every(m => m.cleanSheet);
+        const window = log.slice(i - 3, i + 1);
+        return window.every(m => m.cleanSheet) && _isConsecutive(window);
       },
     },
     {
@@ -252,6 +255,7 @@ export const BREAKOUT_TRIGGERS = {
       check: (log, i) => {
         if (i < 5) return false;
         const window = log.slice(i - 5, i + 1);
+        if (!_isConsecutive(window)) return false;
         const avg = window.reduce((s, m) => s + m.rating, 0) / window.length;
         return avg >= 7.5;
       },

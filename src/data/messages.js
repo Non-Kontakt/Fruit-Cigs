@@ -990,4 +990,13 @@ export const MSG = {
   rewindMatch,
   atkBlock,
   poachEvent,
+  // Breakout
+  breakout: (playerName, narrative, gainStr, potStr) => ({
+    id: `msg_breakout_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    icon: "\uD83D\uDCA5", // 💥
+    title: `BREAKOUT: ${playerName}`,
+    body: `${playerName} ${narrative}! This is a breakout moment.\n\n${gainStr}${potStr}`,
+    color: "#facc15",
+    type: "breakout",
+  }),
 };
