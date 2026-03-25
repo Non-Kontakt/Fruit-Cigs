@@ -710,23 +710,23 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
         const starters = getPlayingSquad(team).map(p => p.name).filter(n => !offSet.has(n));
         const subs = subbedOnByTeam[team.name] || [];
         const available = [...starters, ...subs];
+        let changed = false;
         // Re-pick scorer if subbed off
         if (offSet.has(evt.player) && available.length > 0) {
-          const oldScorer = evt.player;
           evt.player = available[rand(0, available.length - 1)];
-          evt.text = evt.text.replace(oldScorer, evt.player);
+          changed = true;
         }
         // Re-pick assister if subbed off
         if (evt.assister && offSet.has(evt.assister)) {
           const assistCandidates = available.filter(n => n !== evt.player);
-          if (assistCandidates.length > 0) {
-            const oldAssister = evt.assister;
-            evt.assister = assistCandidates[rand(0, assistCandidates.length - 1)];
-            evt.text = evt.text.replace(oldAssister, evt.assister);
-          } else {
-            evt.text = evt.text.replace(` (Assist: ${evt.assister})`, "");
-            evt.assister = undefined;
-          }
+          evt.assister = assistCandidates.length > 0 ? assistCandidates[rand(0, assistCandidates.length - 1)] : undefined;
+          changed = true;
+        }
+        // Rebuild text from fields to avoid substring corruption (e.g. player name inside team name)
+        if (changed) {
+          evt.text = evt.assister
+            ? `⚽ GOAL! ${evt.player} scores for ${team.name}! (Assist: ${evt.assister})`
+            : `⚽ GOAL! ${evt.player} scores for ${team.name}!`;
         }
       }
     }
