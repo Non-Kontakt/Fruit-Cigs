@@ -22,7 +22,7 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
   const results = [];
 
   for (const p of squad) {
-    if (breakoutsThisSeason.has(p.id)) continue;
+    if ((breakoutsThisSeason.get(p.id) || 0) >= 2) continue;
     if (p.isLegend || p.isUnlockable) continue;
 
     const log = playerMatchLog[p.id];

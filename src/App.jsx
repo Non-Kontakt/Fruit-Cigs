@@ -619,7 +619,7 @@ function FootballManager() {
         consecutiveUnbeaten, consecutiveLosses, consecutiveDraws, consecutiveWins, consecutiveScoreless,
         prevStartingXI,
         motmTracker, stScoredConsecutive,
-        playerRatingTracker, playerRatingNames, playerMatchLog, breakoutsThisSeason: [...breakoutsThisSeason], playerSeasonStats,
+        playerRatingTracker, playerRatingNames, playerMatchLog, breakoutsThisSeason: Object.fromEntries(breakoutsThisSeason), playerSeasonStats,
         beatenTeams: [...beatenTeams],
         retiringPlayers: [...retiringPlayers],
         cup,
@@ -1098,7 +1098,7 @@ function FootballManager() {
       setPlayerRatingTracker(_loadedTracker);
       setPlayerRatingNames(s.playerRatingNames || {});
       setPlayerMatchLog(s.playerMatchLog || {});
-      setBreakoutsThisSeason(new Set(Array.isArray(s.breakoutsThisSeason) ? s.breakoutsThisSeason : []));
+      setBreakoutsThisSeason(new Map(Object.entries(s.breakoutsThisSeason && typeof s.breakoutsThisSeason === "object" && !Array.isArray(s.breakoutsThisSeason) ? s.breakoutsThisSeason : {})));
       setPlayerSeasonStats(s.playerSeasonStats || {});
       setBeatenTeams(new Set(s.beatenTeams || []));
       setRetiringPlayers(new Set(s.retiringPlayers || []));
@@ -3800,7 +3800,7 @@ function FootballManager() {
         }));
 
         // Mark as broken out this season
-        setBreakoutsThisSeason(prev => { const next = new Set(prev); next.add(bo.playerId); return next; });
+        setBreakoutsThisSeason(prev => { const next = new Map(prev); next.set(bo.playerId, (next.get(bo.playerId) || 0) + 1); return next; });
 
         // Inbox message
         const gainStr = Object.entries(bo.attrGains)
@@ -9453,7 +9453,7 @@ function FootballManager() {
             setPlayerSeasonStats({});
             setPlayerRatingTracker({});
             setPlayerRatingNames({});
-            setBreakoutsThisSeason(new Set());
+            setBreakoutsThisSeason(new Map());
             setMotmTracker({});
             // Sentiment partial carry-over on prestige reset
             setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
@@ -10013,7 +10013,7 @@ function FootballManager() {
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});
               setPlayerRatingNames({});
-              setBreakoutsThisSeason(new Set());
+              setBreakoutsThisSeason(new Map());
               setPlayerSeasonStats({});
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));

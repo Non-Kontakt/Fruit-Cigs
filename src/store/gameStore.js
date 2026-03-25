@@ -124,7 +124,7 @@ export const useGameStore = create((set, get) => ({
   playerRatingTracker: {},
   playerRatingNames: {},  // { [playerId]: playerName } — companion map for reverse lookup of traded players
   playerMatchLog: {},     // { [playerId]: Array<{ goals, assists, rating, motm, cleanSheet, cup, away, oppStrength, winningGoal, vsLeader, season, calendarIndex }> } — last 20 per player
-  breakoutsThisSeason: new Set(),  // player IDs who already broke out this season — one per player per season
+  breakoutsThisSeason: new Map(),  // { playerId => count } — max 2 per player per season
   playerSeasonStats: {},
   beatenTeams: new Set(),
   playerInjuryCount: {},
@@ -425,7 +425,7 @@ export const useGameStore = create((set, get) => ({
     playerRatingTracker: {},
     playerRatingNames: {},
     playerMatchLog: {},
-    breakoutsThisSeason: new Set(),
+    breakoutsThisSeason: new Map(),
     playerSeasonStats: {},
     beatenTeams: new Set(),
     playerInjuryCount: {},
@@ -528,7 +528,7 @@ export const useGameStore = create((set, get) => ({
     stScoredConsecutive: 0,
     playerRatingTracker: {},
     playerRatingNames: {},
-    breakoutsThisSeason: new Set(),
+    breakoutsThisSeason: new Map(),
     playerSeasonStats: {},
     beatenTeams: new Set(),
     playerInjuryCount: {},
