@@ -21,14 +21,13 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
   tickets, retiringPlayers, transferFocus, doubleTrainingWeek,
   twelfthManActive, youthCoupActive, pendingFreeAgent, shortlist, scoutedPlayers, testimonialPlayer,
   rewindableMatches,
-  onUseTicket, onViewAchievements, hasUnseenAchievements = false, gameMode = "casual", isTainted = false }) {
+  onUseTicket, gameMode = "casual", isTainted = false }) {
   const isCasual = gameMode === "casual";
   const mob = useMobile();
   const [tab, setTab] = useState("cigs");
   const [cigsKey, setCigsKey] = useState(0);
   const [filterCat, setFilterCat] = useState(null);
   const handleTabChange = (newTab) => {
-    if (newTab === "cigs" && onViewAchievements) onViewAchievements();
     if (newTab === "cigs" && tab === "cigs") setCigsKey(k => k + 1); // reset drill-in
     setTab(newTab);
   };
@@ -218,7 +217,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {[
-          { id: "cigs", label: `CIG PACKS`, dot: hasUnseenAchievements },
+          { id: "cigs", label: `CIG PACKS` },
           { id: "trophies", label: "TOP SHELF" },
           { id: "players", label: "REGULARS" },
           { id: "tickets", label: `SCRATCH CARDS${tickets?.length ? ` (${new Set(tickets.filter(t => TICKET_DEFS[t.type]).map(t => t.type)).size})` : ""}` },

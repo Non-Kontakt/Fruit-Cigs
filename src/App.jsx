@@ -4755,7 +4755,7 @@ function FootballManager() {
             {cup && <button onClick={() => { if (showCup) setCupKey(k => k + 1); clearAll(); setShowCup(true); }} style={navBtn(showCup, cup.playerEliminated ? C.slate : C.gold)}>🏆 CUP{cup.playerEliminated ? " (OUT)" : ""}</button>}
             <button onClick={() => { if (showTransfers) setTransfersKey(k => k + 1); clearAll(); setShowTransfers(true); }} style={navBtn(showTransfers, C.green)}>🤝 TRANSFERS</button>
             <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>📜 CLUB</button>
-            <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); }} style={navBtn(showAchievements, C.gold)}>🏪 CORNER SHOP{unlockedAchievements.size > lastSeenAchievementCount ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.gold, marginLeft: 6, verticalAlign: "middle", boxShadow: "0 0 6px rgba(250,204,21,0.6)" }} /> : null}</button>
+            <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); setLastSeenAchievementCount(unlockedAchievements.size); }} style={navBtn(showAchievements, C.gold)}>🏪 CORNER SHOP{unlockedAchievements.size > lastSeenAchievementCount ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.gold, marginLeft: 6, verticalAlign: "middle", boxShadow: "0 0 6px rgba(250,204,21,0.6)" }} /> : null}</button>
           </div>
         );
       })()}
@@ -4763,8 +4763,6 @@ function FootballManager() {
       {/* Page content */}
       {showAchievements ? (
         <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} seasonLength={seasonCalendar?.length || DEFAULT_SEASON_LENGTH} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode} isTainted={isTainted}
-          hasUnseenAchievements={unlockedAchievements.size > lastSeenAchievementCount}
-          onViewAchievements={() => setLastSeenAchievementCount(unlockedAchievements.size)}
           tickets={tickets} retiringPlayers={retiringPlayers} transferFocus={transferFocus}
           doubleTrainingWeek={doubleTrainingWeek} twelfthManActive={twelfthManActive}
           youthCoupActive={youthCoupActive} pendingFreeAgent={pendingFreeAgent}
