@@ -250,6 +250,7 @@ export function TransfersPage({
         gains: {},
         history: p.history || [],
         seasonStartOvr: getOverall(p),
+        seasonStartAttrs: { ...p.attrs },
       }));
       return [...updated, ...incoming];
     });
@@ -313,6 +314,7 @@ export function TransfersPage({
       const incoming = offer.aiOffers.map(p => ({
         ...p, training: "balanced", positionTraining: null, statProgress: {}, gains: {}, history: p.history || [],
         seasonStartOvr: getOverall(p),
+        seasonStartAttrs: { ...p.attrs },
       }));
       return [...updated, ...incoming];
     });
