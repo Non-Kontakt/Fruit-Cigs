@@ -18,7 +18,7 @@ export function BreakoutPopup({ breakouts, onDone, isOnHoliday }) {
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 50);
-    if (!isOnHoliday) SFX.breakout();
+    if (!isOnHoliday) { currentIdx === 0 ? SFX.breakout() : SFX.reveal(); }
     setTimeout(() => setStatsVisible(true), 600);
   }, [currentIdx, isOnHoliday]);
 
@@ -118,7 +118,7 @@ export function BreakoutPopup({ breakouts, onDone, isOnHoliday }) {
         <div style={{
           fontSize: F.hero, marginBottom: 6,
           animation: "fireFloat 1.8s ease infinite",
-        }}>*</div>
+        }}>🔥</div>
 
         {/* BREAKOUT label */}
         <div style={{

@@ -1424,13 +1424,13 @@ function FootballManager() {
     prevMatchResult.current = matchResult;
   }, [matchResult, teamName, league, saveGame, autoSaveEnabled]);
 
-  // Show breakout popup 1s after match report closes
+  // Show breakout popup 1s after match report closes (wait for arc steps too)
   useEffect(() => {
-    if (pendingBreakouts && !matchResult && !cupMatchResult && !processing) {
+    if (pendingBreakouts && !matchResult && !cupMatchResult && !processing && arcStepQueue.length === 0) {
       const timer = setTimeout(() => setShowBreakoutPopup(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, [pendingBreakouts, matchResult, cupMatchResult, processing]);
+  }, [pendingBreakouts, matchResult, cupMatchResult, processing, arcStepQueue]);
 
   // Ironman auto-save: save after every week advance (training, match, cup skip) and summer phase change
   const ironmanCalendarLoaded = useRef(false);
@@ -7655,7 +7655,7 @@ function FootballManager() {
       )}
 
       {/* Breakout Popup — shows after match report closes with 1s delay */}
-      {showBreakoutPopup && pendingBreakouts && pendingBreakouts.length > 0 && !matchResult && !cupMatchResult && (
+      {showBreakoutPopup && pendingBreakouts && pendingBreakouts.length > 0 && !matchResult && !cupMatchResult && arcStepQueue.length === 0 && (
         <BreakoutPopup
           breakouts={pendingBreakouts}
           onDone={() => { setShowBreakoutPopup(false); setPendingBreakouts(null); }}
