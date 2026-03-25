@@ -34,7 +34,7 @@ export function WeekTransitionOverlay() {
         <div style={{
           position: "absolute", inset: 8,
           borderRadius: "50%",
-          border: `2px solid ${C.blue || "#60a5fa"}`,
+          border: "2px solid #e8622a",
           animation: "wto-ring 2s ease-out infinite",
         }} />
 
@@ -45,8 +45,8 @@ export function WeekTransitionOverlay() {
           width: 24, height: 24,
           marginTop: -12, marginLeft: -12,
           borderRadius: "50%",
-          background: `radial-gradient(circle at 40% 35%, #93c5fd, ${C.blue || "#60a5fa"} 60%, #3b82f6)`,
-          boxShadow: `0 0 24px 6px rgba(96,165,250,0.35), 0 0 10px 2px rgba(96,165,250,0.5)`,
+          background: "radial-gradient(circle at 40% 35%, #fbbf24, #e8622a 60%, #b91c1c)",
+          boxShadow: "0 0 24px 6px rgba(232,98,42,0.35), 0 0 10px 2px rgba(232,98,42,0.5)",
           animation: "wto-pulse 2s ease-in-out infinite",
         }} />
 

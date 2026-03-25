@@ -46,18 +46,24 @@ export const SFX = {
   },
   async advance() {
     if (!await this._ensure()) return;
-    // Whoosh for advancing week
-    const noise = new Tone.NoiseSynth({
+    // Cigarette burn — crackle + papery fizz
+    const crackle = new Tone.NoiseSynth({
+      noise: { type: "brown" },
+      envelope: { attack: 0.03, decay: 0.6, sustain: 0.3, release: 0.4 },
+      volume: -14,
+    });
+    const crackleFilter = new Tone.Filter({ frequency: 2200, type: "bandpass", Q: 1.5 }).toDestination();
+    crackle.connect(crackleFilter);
+    crackle.triggerAttackRelease("2n");
+    const fizz = new Tone.NoiseSynth({
       noise: { type: "white" },
-      envelope: { attack: 0.02, decay: 0.15, sustain: 0, release: 0.1 },
-      volume: -22,
-    }).toDestination();
-    const filter = new Tone.AutoFilter({ frequency: 8, baseFrequency: 400, octaves: 4 }).toDestination();
-    noise.disconnect();
-    noise.connect(filter);
-    filter.start();
-    noise.triggerAttackRelease("8n");
-    setTimeout(() => { noise.dispose(); filter.dispose(); }, 1000);
+      envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 0.3 },
+      volume: -18,
+    });
+    const fizzFilter = new Tone.Filter({ frequency: 3500, type: "highpass" }).toDestination();
+    fizz.connect(fizzFilter);
+    fizz.triggerAttackRelease("4n");
+    setTimeout(() => { crackle.dispose(); crackleFilter.dispose(); fizz.dispose(); fizzFilter.dispose(); }, 2000);
   },
   async noGains() {
     if (!await this._ensure()) return;
