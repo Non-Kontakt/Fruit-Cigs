@@ -459,7 +459,7 @@ function generateAIReplacement(position, tier, isYouth, prestigeLevel = 0, traje
 // Evolve an AI team's squad for a new season: age players, retire old ones,
 // recruit replacements driven by the team's trait and squad philosophy.
 // Not 1:1 — teams aim toward their targetSize, creating natural variation.
-export function evolveAISquad(squad, tier, trait, philosophy, prestigeLevel = 0, trajectory = 0) {
+export function evolveAISquad(squad, tier, trait, philosophy, prestigeLevel = 0, trajectory = 0, eventsOut = null) {
   // 1. Age everyone +1, backfill missing age/id from old saves
   const aged = squad.map(p => ({
     ...p,
@@ -538,6 +538,29 @@ export function evolveAISquad(squad, tier, trait, philosophy, prestigeLevel = 0,
     replacements.push(uniqueReplacement(pos, isYouth));
   }
 
+  // Rare AI events — applied before trimming so boosted players aren't popped
+  const def = LEAGUE_DEFS[tier] || LEAGUE_DEFS[11];
+  const _offset = getPrestigeOffset(prestigeLevel);
+  const youthReplacements = replacements.filter(p => (p.age || 25) <= 21);
+
+  // Wonderkid (3%): one YOUTH replacement arrives with exceptional potential
+  if (Math.random() < 0.03 && youthReplacements.length > 0) {
+    const wk = youthReplacements[rand(0, youthReplacements.length - 1)];
+    wk.potential = Math.min(ovrCap, def.ovrMax + _offset + 3);
+    wk.age = rand(17, 19);
+    if (eventsOut) eventsOut.push({ type: "wonderkid", playerName: wk.name, position: wk.position, age: wk.age });
+  }
+
+  // Golden generation (1%): 2-3 YOUTH replacements get potential +2
+  if (Math.random() < 0.01 && youthReplacements.length >= 2) {
+    const goldenCount = Math.min(youthReplacements.length, rand(2, 3));
+    const shuffled = [...youthReplacements].sort(() => Math.random() - 0.5);
+    for (let gi = 0; gi < goldenCount; gi++) {
+      shuffled[gi].potential = Math.min(ovrCap, (shuffled[gi].potential || 0) + 2);
+    }
+    if (eventsOut) eventsOut.push({ type: "golden_gen", count: goldenCount });
+  }
+
   // Hard floor: always able to field 11
   const result = [...surviving, ...replacements];
   while (result.length < 11) {
@@ -545,26 +568,6 @@ export function evolveAISquad(squad, tier, trait, philosophy, prestigeLevel = 0,
   }
   // Hard ceiling: never exceed 25 (same as player squad cap)
   while (result.length > 25) result.pop();
-
-  // Rare AI events
-  const def = LEAGUE_DEFS[tier] || LEAGUE_DEFS[11];
-  const _offset = getPrestigeOffset(prestigeLevel);
-
-  // Wonderkid (3%): one youth replacement arrives with exceptional potential
-  if (Math.random() < 0.03 && replacements.length > 0) {
-    const wk = replacements[rand(0, replacements.length - 1)];
-    wk.potential = Math.min(ovrCap, def.ovrMax + _offset + 3);
-    wk.age = rand(17, 19);
-  }
-
-  // Golden generation (1%): 2-3 youth replacements get potential +2
-  if (Math.random() < 0.01 && replacements.length >= 2) {
-    const goldenCount = Math.min(replacements.length, rand(2, 3));
-    const shuffled = [...replacements].sort(() => Math.random() - 0.5);
-    for (let gi = 0; gi < goldenCount; gi++) {
-      shuffled[gi].potential = Math.min(ovrCap, (shuffled[gi].potential || 0) + 2);
-    }
-  }
 
   // Star decline (5% per 28+ above-average player): sharp drop
   const avgOvr = result.reduce((s, p) => s + getOverall({ position: p.position, attrs: p.attrs }), 0) / result.length;

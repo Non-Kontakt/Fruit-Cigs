@@ -9954,11 +9954,12 @@ function FootballManager() {
                 (als.teams || []).forEach(t => { if (t.squad) squadMap.set(t.name, t.squad); });
               });
               // Update AI team trajectories based on season performance
+              // Use leagueTier (tier we PLAYED in), not newTier (destination after promotion/relegation)
               for (let t = 1; t <= NUM_TIERS; t++) {
-                const tierTable = t === newTier ? league?.table
+                const tierTable = t === leagueTier ? league?.table
                   : allLeagueStates[t]?.table;
                 if (!tierTable || !rosters[t]) continue;
-                const tierTeams = t === newTier ? league?.teams
+                const tierTeams = t === leagueTier ? league?.teams
                   : allLeagueStates[t]?.teams;
                 if (!tierTeams) continue;
                 const sorted = sortStandings(tierTable);
@@ -9977,12 +9978,38 @@ function FootballManager() {
               }
 
               const evolvedSquads = new Map();
+              const aiEvents = [];
               for (let t = 1; t <= NUM_TIERS; t++) {
                 for (const cfg of (rosters[t] || [])) {
                   const sq = squadMap.get(cfg.name);
                   if (!sq) continue;
                   if (!cfg.squadPhilosophy) cfg.squadPhilosophy = generateSquadPhilosophy(cfg.trait);
-                  evolvedSquads.set(cfg.name, evolveAISquad(sq, t, cfg.trait, cfg.squadPhilosophy, prestigeLevel, cfg.trajectory || 0));
+                  const teamEvents = [];
+                  evolvedSquads.set(cfg.name, evolveAISquad(sq, t, cfg.trait, cfg.squadPhilosophy, prestigeLevel, cfg.trajectory || 0, teamEvents));
+                  teamEvents.forEach(e => aiEvents.push({ ...e, teamName: cfg.name, tier: t }));
+                }
+              }
+
+              // Inbox messages for rare AI events in the player's new tier
+              const _nextSN = (seasonNumber || 1) + 1;
+              const relevantEvents = aiEvents.filter(e => e.tier === newTier);
+              for (const evt of relevantEvents) {
+                if (evt.type === "wonderkid") {
+                  setInboxMessages(prev => [...prev, createInboxMessage({
+                    id: `msg_ai_wonderkid_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+                    icon: "\u2B50",
+                    title: "Scout Report: Wonderkid",
+                    body: `Sources say ${evt.teamName} have unearthed a generational talent in their youth academy. ${evt.playerName} (${evt.position}, ${evt.age}) is one to watch.`,
+                    color: "#facc15",
+                  }, { calendarIndex: 0, seasonNumber: _nextSN })]);
+                } else if (evt.type === "golden_gen") {
+                  setInboxMessages(prev => [...prev, createInboxMessage({
+                    id: `msg_ai_golden_gen_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+                    icon: "\uD83C\uDF1F",
+                    title: "Scout Report: Golden Generation",
+                    body: `${evt.teamName} have produced an exceptional youth intake this season. ${evt.count} promising talents have emerged from their academy.`,
+                    color: "#facc15",
+                  }, { calendarIndex: 0, seasonNumber: _nextSN })]);
                 }
               }
 
