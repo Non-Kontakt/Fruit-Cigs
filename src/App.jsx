@@ -3867,15 +3867,17 @@ function FootballManager() {
       const breakoutResults = checkBreakouts(freshSquad, freshLog, freshBreakouts, _bOvrCap);
 
       for (const bo of breakoutResults) {
-        // Apply attr gains + potential bump
+        // Apply attr gains + potential bump + update gains for display
         setSquad(prev => prev.map(p => {
           if (p.id !== bo.playerId) return p;
           const newAttrs = { ...p.attrs };
+          const newGains = { ...(p.gains || {}) };
           Object.entries(bo.attrGains).forEach(([attr, gain]) => {
             newAttrs[attr] = Math.min(_bOvrCap, (newAttrs[attr] || 0) + gain);
+            newGains[attr] = (newGains[attr] || 0) + gain;
           });
           const newPotential = Math.min(_bOvrCap, (p.potential || 0) + bo.potentialGain);
-          return { ...p, attrs: newAttrs, potential: newPotential };
+          return { ...p, attrs: newAttrs, potential: newPotential, gains: newGains };
         }));
 
         // Mark as broken out this season
