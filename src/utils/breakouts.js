@@ -45,7 +45,8 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
       if (usedTriggers && usedTriggers.has(trigger.id)) continue;
       if (trigger.cupOnly && !isCup) continue;
       try {
-        if (trigger.check(log, i, ctx)) {
+        const checkResult = trigger.check(log, i, ctx);
+        if (checkResult) {
           // BREAKOUT! Determine gains — filter to uncapped attrs, fallback to any uncapped
           const primaryAttrs = BREAKOUT_ATTRS[type] || ["technique", "mental", "passing"];
           let rewardable = primaryAttrs.filter(attr => (p.attrs[attr] || 0) < ovrCap);
@@ -70,7 +71,12 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
             playerId: p.id,
             playerName: p.name,
             playerPosition: p.position,
-            trigger: { id: trigger.id, label: trigger.label, narrative: trigger.narrative },
+            trigger: {
+              id: trigger.id, label: trigger.label,
+              narrative: typeof trigger.narrativeFn === "function" && typeof checkResult === "number"
+                ? trigger.narrativeFn(checkResult)
+                : (trigger.narrative || (typeof trigger.narrativeFn === "function" ? trigger.narrativeFn(0) : "")),
+            },
             attrGains,
             potentialGain,
           });

@@ -1,13 +1,19 @@
 /**
  * Breakout Trigger Definitions
  *
- * Each trigger: { id, label, narrative, check(log, i, ctx) }
+ * Each trigger: { id, label, narrative|narrativeFn, check(log, i, ctx) }
  * - log: player's match log array (last 20 entries)
  * - i: index of the most recent match (log.length - 1)
  * - ctx: { ovr } — player's current OVR for relative triggers
  *
+ * Accumulation triggers use _accum() to find the tightest qualifying window
+ * and return the actual window size. They also require the current match to
+ * contribute (recency guard) so breakouts fire when the achievement happens.
+ *
+ * narrativeFn(window) returns dynamic text; narrative is static fallback.
+ *
  * Triggers are shuffled before evaluation so the player can't predict
- * which fires. Only one breakout per player per season.
+ * which fires. Max 2 unique triggers per player per season.
  *
  * Target: ~25-30% per player-season, balanced across positions.
  */
@@ -20,6 +26,34 @@ function _consecutive(entries) {
   }
   return true;
 }
+
+/**
+ * Check accumulation from tightest window outward.
+ * @param {Array} log - match log
+ * @param {number} i - current index
+ * @param {Function} pred - (entry) => boolean, does this entry count?
+ * @param {number} target - how many qualifying entries needed
+ * @param {number} maxWindow - maximum window to check
+ * @returns {number} actual window size, or 0 if not met
+ */
+function _accum(log, i, pred, target, maxWindow) {
+  for (let w = target; w <= Math.min(maxWindow, i + 1); w++) {
+    const slice = log.slice(i - w + 1, i + 1);
+    if (slice.filter(pred).length >= target) return w;
+  }
+  return 0;
+}
+
+/** Same as _accum but sums a numeric field instead of counting booleans */
+function _accumSum(log, i, field, target, maxWindow) {
+  for (let w = target; w <= Math.min(maxWindow, i + 1); w++) {
+    const slice = log.slice(i - w + 1, i + 1);
+    if (slice.reduce((s, m) => s + (m[field] || 0), 0) >= target) return w;
+  }
+  return 0;
+}
+
+const _num = (n) => ["zero","one","two","three","four","five","six","seven","eight","nine","ten"][n] || n;
 
 export const BREAKOUT_TRIGGERS = {
   FWD: [
@@ -48,28 +82,31 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "fwd_volume",
       label: "Eat My Goal",
-      narrative: "five goals in the last seven matches — relentless",
+      narrativeFn: (w) => `five goals in ${_num(w)} matches — relentless`,
       check: (log, i) => {
-        if (i < 6) return false;
-        return log.slice(i - 6, i + 1).reduce((s, m) => s + m.goals, 0) >= 5;
+        if (!log[i]?.goals) return false;
+        const w = _accumSum(log, i, "goals", 5, 7);
+        return w || false;
       },
     },
     {
       id: "false_nine",
       label: "The Firmino Role",
-      narrative: "assisted in three of the last five matches — defenders stay pressed",
+      narrativeFn: (w) => `assisted in three of the last ${_num(w)} matches — defenders stay pressed`,
       check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.assists > 0).length >= 3;
+        if (!log[i]?.assists) return false;
+        const w = _accum(log, i, m => m.assists > 0, 3, 5);
+        return w || false;
       },
     },
     {
       id: "match_winner_3of6",
       label: "Clutch",
-      narrative: "scored the winning goal three times in six matches — delivers when it matters",
+      narrativeFn: (w) => `scored the winning goal three times in ${_num(w)} matches — delivers when it matters`,
       check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).filter(m => m.winningGoal).length >= 3;
+        if (!log[i]?.winningGoal) return false;
+        const w = _accum(log, i, m => m.winningGoal, 3, 6);
+        return w || false;
       },
     },
     {
@@ -101,28 +138,31 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "goal_and_assist_x2",
       label: "The Pivot",
-      narrative: "a goal and an assist in the same match — twice in six games",
+      narrativeFn: (w) => `a goal and an assist in the same match — twice in ${_num(w)} games`,
       check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).filter(m => m.goals > 0 && m.assists > 0).length >= 2;
+        if (!(log[i]?.goals > 0 && log[i]?.assists > 0)) return false;
+        const w = _accum(log, i, m => m.goals > 0 && m.assists > 0, 2, 6);
+        return w || false;
       },
     },
     {
       id: "mid_assist_volume",
       label: "Pulling It Back",
-      narrative: "four assists in the last six matches — nobody creates like this",
+      narrativeFn: (w) => `four assists in the last ${_num(w)} matches — nobody creates like this`,
       check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).reduce((s, m) => s + m.assists, 0) >= 4;
+        if (!log[i]?.assists) return false;
+        const w = _accumSum(log, i, "assists", 4, 6);
+        return w || false;
       },
     },
     {
       id: "mid_scorer_3of6",
       label: "Box-To-Box",
-      narrative: "scored in three of the last six matches from midfield — a goal threat from deep",
+      narrativeFn: (w) => `scored in three of the last ${_num(w)} matches from midfield — a goal threat from deep`,
       check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).filter(m => m.goals > 0).length >= 3;
+        if (!log[i]?.goals) return false;
+        const w = _accum(log, i, m => m.goals > 0, 3, 6);
+        return w || false;
       },
     },
     {
@@ -137,10 +177,11 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "clean_sheets_5of7",
       label: "Rock Solid",
-      narrative: "five clean sheets in seven matches — an absolute wall",
+      narrativeFn: (w) => `five clean sheets in ${_num(w)} matches — an absolute wall`,
       check: (log, i) => {
-        if (i < 6) return false;
-        return log.slice(i - 6, i + 1).filter(m => m.cleanSheet).length >= 5;
+        if (!log[i]?.cleanSheet) return false;
+        const w = _accum(log, i, m => m.cleanSheet, 5, 7);
+        return w || false;
       },
     },
     {
@@ -148,6 +189,7 @@ export const BREAKOUT_TRIGGERS = {
       label: "No Leaks",
       narrative: "four clean sheets in a row — nothing gets through",
       check: (log, i) => {
+        if (!log[i]?.cleanSheet) return false;
         if (i < 3) return false;
         const w = log.slice(i - 3, i + 1);
         return w.every(m => m.cleanSheet) && _consecutive(w);
@@ -156,28 +198,31 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "def_motm_3of6",
       label: "Rolls Royce",
-      narrative: "named MOTM as a defender three times in six matches — class is permanent",
+      narrativeFn: (w) => `named MOTM as a defender three times in ${_num(w)} matches — class is permanent`,
       check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).filter(m => m.motm).length >= 3;
+        if (!log[i]?.motm) return false;
+        const w = _accum(log, i, m => m.motm, 3, 6);
+        return w || false;
       },
     },
     {
       id: "marauding_x2",
       label: "The Bale Role",
-      narrative: "clean sheet with a goal or assist twice in seven matches — fancies himself a galactico",
+      narrativeFn: (w) => `clean sheet with a goal or assist twice in ${_num(w)} matches — fancies himself a galactico`,
       check: (log, i) => {
-        if (i < 6) return false;
-        return log.slice(i - 6, i + 1).filter(m => m.cleanSheet && (m.goals > 0 || m.assists > 0)).length >= 2;
+        if (!(log[i]?.cleanSheet && (log[i]?.goals > 0 || log[i]?.assists > 0))) return false;
+        const w = _accum(log, i, m => m.cleanSheet && (m.goals > 0 || m.assists > 0), 2, 7);
+        return w || false;
       },
     },
     {
       id: "def_scorer",
       label: "Back Post Demon",
-      narrative: "scored in two of the last five matches — a threat from set pieces",
+      narrativeFn: (w) => `scored in two of the last ${_num(w)} matches — a threat from set pieces`,
       check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.goals > 0).length >= 2;
+        if (!log[i]?.goals) return false;
+        const w = _accum(log, i, m => m.goals > 0, 2, 5);
+        return w || false;
       },
     },
     {
@@ -192,10 +237,11 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "gk_clean_sheets_4of6",
       label: "Brick Wall",
-      narrative: "four clean sheets in six matches — nothing gets past",
+      narrativeFn: (w) => `four clean sheets in ${_num(w)} matches — nothing gets past`,
       check: (log, i) => {
-        if (i < 5) return false;
-        return log.slice(i - 5, i + 1).filter(m => m.cleanSheet).length >= 4;
+        if (!log[i]?.cleanSheet) return false;
+        const w = _accum(log, i, m => m.cleanSheet, 4, 6);
+        return w || false;
       },
     },
     {
@@ -203,6 +249,7 @@ export const BREAKOUT_TRIGGERS = {
       label: "Impenetrable",
       narrative: "three clean sheets in a row — an unbeatable run",
       check: (log, i) => {
+        if (!log[i]?.cleanSheet) return false;
         if (i < 2) return false;
         const w = log.slice(i - 2, i + 1);
         return w.every(m => m.cleanSheet) && _consecutive(w);
@@ -211,10 +258,11 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "gk_motm_2of5",
       label: "Shot Stopper",
-      narrative: "named MOTM twice in five matches — superhuman reflexes",
+      narrativeFn: (w) => `named MOTM twice in ${_num(w)} matches — superhuman reflexes`,
       check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 2;
+        if (!log[i]?.motm) return false;
+        const w = _accum(log, i, m => m.motm, 2, 5);
+        return w || false;
       },
     },
     {
@@ -235,10 +283,11 @@ export const BREAKOUT_TRIGGERS = {
     {
       id: "uni_motm_3of5",
       label: "Fantasy Favorite",
-      narrative: "named MOTM three times in five matches — the punters will be pleased",
+      narrativeFn: (w) => `named MOTM three times in ${_num(w)} matches — the punters will be pleased`,
       check: (log, i) => {
-        if (i < 4) return false;
-        return log.slice(i - 4, i + 1).filter(m => m.motm).length >= 3;
+        if (!log[i]?.motm) return false;
+        const w = _accum(log, i, m => m.motm, 3, 5);
+        return w || false;
       },
     },
     {
