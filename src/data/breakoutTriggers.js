@@ -176,6 +176,7 @@ export const BREAKOUT_TRIGGERS = {
   DEF: [
     {
       id: "clean_sheets_5of7",
+      group: "clean_sheet_run",
       label: "Rock Solid",
       narrativeFn: (w) => `five clean sheets in ${_num(w)} matches — an absolute wall`,
       check: (log, i) => {
@@ -186,6 +187,7 @@ export const BREAKOUT_TRIGGERS = {
     },
     {
       id: "clean_streak_4",
+      group: "clean_sheet_run",
       label: "No Leaks",
       narrative: "four clean sheets in a row — nothing gets through",
       check: (log, i) => {
@@ -236,6 +238,7 @@ export const BREAKOUT_TRIGGERS = {
   GK: [
     {
       id: "gk_clean_sheets_4of6",
+      group: "clean_sheet_run",
       label: "Brick Wall",
       narrativeFn: (w) => `four clean sheets in ${_num(w)} matches — nothing gets past`,
       check: (log, i) => {
@@ -246,6 +249,7 @@ export const BREAKOUT_TRIGGERS = {
     },
     {
       id: "gk_clean_streak_3",
+      group: "clean_sheet_run",
       label: "Impenetrable",
       narrative: "three clean sheets in a row — an unbeatable run",
       check: (log, i) => {

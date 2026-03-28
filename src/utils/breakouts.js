@@ -20,6 +20,8 @@ const BREAKOUT_ATTRS = {
  */
 export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCap, isCup = false) {
   const results = [];
+  // Track group+position caps: e.g. "clean_sheet_run|DEF" → only 1 DEF can fire a clean_sheet_run trigger per match
+  const groupCaps = new Set();
 
   for (const p of squad) {
     const raw = breakoutsThisSeason.get(p.id);
@@ -43,6 +45,7 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
 
     for (const trigger of shuffled) {
       if (usedTriggers && usedTriggers.has(trigger.id)) continue;
+      if (trigger.group && groupCaps.has(`${trigger.group}|${type}`)) continue;
       if (trigger.cupOnly && !isCup) continue;
       try {
         const checkResult = trigger.check(log, i, ctx);
@@ -81,6 +84,7 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
             potentialGain,
           });
 
+          if (trigger.group) groupCaps.add(`${trigger.group}|${type}`);
           break; // one breakout per player per check
         }
       } catch (err) {
