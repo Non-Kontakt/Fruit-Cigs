@@ -7772,14 +7772,16 @@ function FootballManager() {
           onDone={(wasAlwaysFast, wasAlwaysNormal) => {
            try {
            // Flush deferred league table update
+           let currentLeague = league;
            if (pendingLeagueRef.current) {
-             setLeague(pendingLeagueRef.current);
+             currentLeague = pendingLeagueRef.current;
+             setLeague(currentLeague);
              pendingLeagueRef.current = null;
            }
            // Tier 8: Track carded player team players so they skip next training
            const dojoMod = getModifier(leagueTier);
            if (dojoMod.cardSkipsTraining && matchResult?.events) {
-             const playerTeamName = league.teams[0]?.name;
+             const playerTeamName = currentLeague.teams[0]?.name;
              const cardedNames = matchResult.events
                .filter(e => (e.type === "card" || e.type === "red_card") && e.cardTeamName === playerTeamName && e.cardPlayer)
                .map(e => e.cardPlayer);
@@ -7789,7 +7791,7 @@ function FootballManager() {
              }
            }
            // === CRITICAL: Calendar advancement FIRST — must always run ===
-           const playerIsHome = league.teams[matchResult.home]?.isPlayer;
+           const playerIsHome = currentLeague.teams[matchResult.home]?.isPlayer;
            const playerGoals = playerIsHome ? matchResult.homeGoals : matchResult.awayGoals;
            const oppGoals = playerIsHome ? matchResult.awayGoals : matchResult.homeGoals;
            const playerWon = playerGoals > oppGoals;
@@ -7806,7 +7808,7 @@ function FootballManager() {
            const cal = useGameStore.getState().seasonCalendar || [];
            while (newCalIdx < cal.length && cal[newCalIdx]?.type === "cup" && useGameStore.getState().cup?.playerEliminated) {
              if (useGameStore.getState().cup && useGameStore.getState().cup.currentRound < useGameStore.getState().cup.rounds.length) {
-               const skipLookup = (name, tier) => (tier === leagueTier ? league : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
+               const skipLookup = (name, tier) => (tier === leagueTier ? currentLeague : allLeagueStates?.[tier])?.teams?.find(t => t.name === name) || null;
                const skipCup = advanceCupRound(useGameStore.getState().cup, squad, startingXI, bench, skipLookup);
                let finCup = skipCup;
                if (finCup.pendingPlayerMatch) {
@@ -7831,9 +7833,9 @@ function FootballManager() {
 
            // Season end check (dynasty entries are pre-built in calendar, no extension needed)
            if (newCalIdx >= cal.length) {
-             const currentTier = league.tier || leagueTier;
+             const currentTier = currentLeague.tier || leagueTier;
              const currentRosters = leagueRosters || initLeagueRosters();
-             const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates);
+             const swapResult = processSeasonSwaps(currentRosters, currentLeague, currentTier, allLeagueStates);
              const position = swapResult.playerPosition;
              let newTier = swapResult.playerNewTier;
              // Safety: promote if eligible — tournament tiers use tournament results
@@ -7855,7 +7857,7 @@ function FootballManager() {
              if (position === 2) setSecondPlaceFinishes(prev => prev + 1);
              setLeagueRosters(swapResult.rosters);
              const newSeasonUnlocks = collectSeasonEndAchievements({
-               position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults,
+               position, currentTier, moveType, newTier, lastSeasonMove, league: currentLeague, leagueResults,
                playerSeasonStats, beatenTeams, unlockedAchievements, clubHistory,
                wonCupThisSeason: useGameStore.getState().unlockedAchievements.has("cup_winner"),
                squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
@@ -7871,7 +7873,7 @@ function FootballManager() {
              if (moveType === "promoted") { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
              if (moveType === "relegated") { setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
              if (position === 1) { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 10)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10)); }
-             setSummerData({ moveType, fromTier: currentTier, toTier: newTier, position, leagueName: league.leagueName || LEAGUE_DEFS[currentTier].name, newLeagueName: LEAGUE_DEFS[newTier].name, newRosters: swapResult.rosters, isInvincible: position === 1 && playerRow?.lost === 0 });
+             setSummerData({ moveType, fromTier: currentTier, toTier: newTier, position, leagueName: currentLeague.leagueName || LEAGUE_DEFS[currentTier].name, newLeagueName: LEAGUE_DEFS[newTier].name, newRosters: swapResult.rosters, isInvincible: position === 1 && playerRow?.lost === 0 });
              setSummerPhase("summary");
 
              // === STORY ARC SEASON-END TRACKING ===
@@ -7890,7 +7892,7 @@ function FootballManager() {
            // === Achievements — run FIRST in isolated block ===
            let stScored = false;
            try {
-            const oppTeam = playerIsHome ? league.teams[matchResult.away] : league.teams[matchResult.home];
+            const oppTeam = playerIsHome ? currentLeague.teams[matchResult.away] : currentLeague.teams[matchResult.home];
             const isHome = playerIsHome;
             const playerSide = playerIsHome ? "home" : "away";
             const starters = startingXI.map(id => squad.find(p => p.id === id)).filter(Boolean);
@@ -7902,13 +7904,13 @@ function FootballManager() {
               }
             }
 
-            const totalFixtures = league.fixtures?.length || DEFAULT_FIXTURE_COUNT;
+            const totalFixtures = currentLeague.fixtures?.length || DEFAULT_FIXTURE_COUNT;
             const halfwayMark = Math.floor(totalFixtures / 2);
             const completedMDs = (matchResult._playedMatchweekIndex ?? (matchweekIndex - 1)) + 1;
             const leagueMod = getModifier(leagueTier);
             if (completedMDs === halfwayMark) {
-              const sorted = sortStandings(league.table);
-              const pos = sorted.findIndex(r => league.teams[r.teamIndex]?.isPlayer) + 1;
+              const sorted = sortStandings(currentLeague.table);
+              const pos = sorted.findIndex(r => currentLeague.teams[r.teamIndex]?.isPlayer) + 1;
               setHalfwayPosition(pos);
               // Saudi Super League: mid-season poach event
               if (leagueMod.poachEvent) {
@@ -7917,7 +7919,7 @@ function FootballManager() {
                 const p3 = generateFreeAgent(leagueTier, ovrCap);
                 setInboxMessages(prev => [...prev, createInboxMessage(
                   MSG.poachEvent(
-                    `Three players have emerged on the Saudi market. Pick one to sign — the other two will be snapped up by ${sorted[1] ? league.teams[sorted[1].teamIndex]?.name : "a rival"}.\n\n` +
+                    `Three players have emerged on the Saudi market. Pick one to sign — the other two will be snapped up by ${sorted[1] ? currentLeague.teams[sorted[1].teamIndex]?.name : "a rival"}.\n\n` +
                     `A) ${p1.name} — ${p1.position}, Age ${p1.age}, OVR ${getOverall(p1)}\n` +
                     `B) ${p2.name} — ${p2.position}, Age ${p2.age}, OVR ${getOverall(p2)}\n` +
                     `C) ${p3.name} — ${p3.position}, Age ${p3.age}, OVR ${getOverall(p3)}`,
@@ -7930,15 +7932,15 @@ function FootballManager() {
 
             // Euro Dynasty: set up Dynasty Cup bracket after final league MD
             if (leagueMod.knockoutAtEnd && completedMDs === totalFixtures) {
-              const sorted = sortStandings(league.table);
-              const top4 = sorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: league.teams[r.teamIndex]?.name }));
+              const sorted = sortStandings(currentLeague.table);
+              const top4 = sorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: currentLeague.teams[r.teamIndex]?.name }));
               setDynastyCupQualifiers(top4);
-              const playerInTop4 = top4.some(t => league.teams[t.teamIndex]?.isPlayer);
+              const playerInTop4 = top4.some(t => currentLeague.teams[t.teamIndex]?.isPlayer);
               if (playerInTop4) {
-                const sf1Home = league.teams[top4[0].teamIndex];
-                const sf1Away = league.teams[top4[3].teamIndex];
-                const sf2Home = league.teams[top4[1].teamIndex];
-                const sf2Away = league.teams[top4[2].teamIndex];
+                const sf1Home = currentLeague.teams[top4[0].teamIndex];
+                const sf1Away = currentLeague.teams[top4[3].teamIndex];
+                const sf2Home = currentLeague.teams[top4[1].teamIndex];
+                const sf2Away = currentLeague.teams[top4[2].teamIndex];
                 const playerInSF1 = sf1Home.isPlayer || sf1Away.isPlayer;
                 setDynastyCupBracket({
                   sf1: { home: sf1Home, away: sf1Away, result: null },
@@ -7957,14 +7959,14 @@ function FootballManager() {
 
             // World XI: set up mini-tournament bracket after final league MD
             if (leagueMod.miniTournament && completedMDs === totalFixtures) {
-              const sorted = sortStandings(league.table);
-              const top4 = sorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: league.teams[r.teamIndex]?.name }));
-              const playerInTop4 = top4.some(t => league.teams[t.teamIndex]?.isPlayer);
+              const sorted = sortStandings(currentLeague.table);
+              const top4 = sorted.slice(0, 4).map(r => ({ teamIndex: r.teamIndex, name: currentLeague.teams[r.teamIndex]?.name }));
+              const playerInTop4 = top4.some(t => currentLeague.teams[t.teamIndex]?.isPlayer);
               if (playerInTop4) {
-                const sf1Home = league.teams[top4[0].teamIndex];
-                const sf1Away = league.teams[top4[3].teamIndex];
-                const sf2Home = league.teams[top4[1].teamIndex];
-                const sf2Away = league.teams[top4[2].teamIndex];
+                const sf1Home = currentLeague.teams[top4[0].teamIndex];
+                const sf1Away = currentLeague.teams[top4[3].teamIndex];
+                const sf2Home = currentLeague.teams[top4[1].teamIndex];
+                const sf2Away = currentLeague.teams[top4[2].teamIndex];
                 const playerInSF1 = sf1Home.isPlayer || sf1Away.isPlayer;
                 setMiniTournamentBracket({
                   sf1: { home: sf1Home, away: sf1Away, leg1: null, leg2: null, winner: null },
@@ -7984,7 +7986,7 @@ function FootballManager() {
 
             const newUnlocks = checkAchievements({
               squad: useGameStore.getState().squad, unlocked: unlockedAchievements, achievableIds,
-              lastMatchResult: matchResult, league, weekGains: null,
+              lastMatchResult: matchResult, league: currentLeague, weekGains: null,
               startingXI, bench, matchweekIndex: completedMDs, seasonCards,
               totalGains, totalMatches: totalMatches + 1,
               seasonCleanSheets: seasonCleanSheets + (oppGoals === 0 ? 1 : 0),
@@ -7996,7 +7998,7 @@ function FootballManager() {
               consecutiveWins: playerWon ? consecutiveWins + 1 : 0,
               prevStartingXI, motmTracker, stScoredConsecutive: stScored ? stScoredConsecutive + 1 : 0,
               playerRatingTracker, beatenTeams,
-              halfwayPosition: completedMDs === Math.floor((league.fixtures?.length || DEFAULT_FIXTURE_COUNT) / 2) ? null : halfwayPosition,
+              halfwayPosition: completedMDs === Math.floor((currentLeague.fixtures?.length || DEFAULT_FIXTURE_COUNT) / 2) ? null : halfwayPosition,
               seasonHomeUnbeaten: (isHome && playerLost) ? false : seasonHomeUnbeaten,
               seasonAwayWins: (!isHome && playerWon) ? seasonAwayWins + 1 : seasonAwayWins,
               seasonAwayGames: !isHome ? seasonAwayGames + 1 : seasonAwayGames,
@@ -8058,8 +8060,8 @@ function FootballManager() {
 
            // === Stats tracking — separate try/catch ===
            try {
-            const playerTeam = league.teams.find(t => t.isPlayer);
-            const oppTeam = playerIsHome ? league.teams[matchResult.away] : league.teams[matchResult.home];
+            const playerTeam = currentLeague.teams.find(t => t.isPlayer);
+            const oppTeam = playerIsHome ? currentLeague.teams[matchResult.away] : currentLeague.teams[matchResult.home];
             const isHome = playerIsHome;
 
             if (matchResult.events) {
