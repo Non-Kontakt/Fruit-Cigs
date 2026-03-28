@@ -3870,7 +3870,7 @@ function FootballManager() {
   const { processGainsDone } = useGainPopupHandler({
     setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning,
     tryUnlockAchievement,
-    pendingTrialAction, revealedInjuryCount, aiPredictionRef,
+    pendingTrialAction, aiPredictionRef,
   });
 
   const AUTO_TRAINING = {

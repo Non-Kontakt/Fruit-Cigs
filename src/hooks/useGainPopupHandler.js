@@ -9,7 +9,6 @@ import { getOvrCap } from "../utils/player.js";
 import { sortStandings, advanceCupRound, buildNextCupRound } from "../utils/league.js";
 import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { BGM } from "../utils/sfx.js";
 
 /**
  * Extracts the GainPopup onDone callback from App.jsx.
@@ -27,7 +26,6 @@ export function useGainPopupHandler({
   tryUnlockAchievement,
   // Refs
   pendingTrialAction,
-  revealedInjuryCount,
   aiPredictionRef,
 }) {
   const processGainsDone = useCallback((gains) => {
@@ -512,7 +510,7 @@ export function useGainPopupHandler({
         s.setMatchPending(true);
       }
     }
-  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement, pendingTrialAction, revealedInjuryCount, aiPredictionRef]);
+  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement, pendingTrialAction, aiPredictionRef]);
 
   return { processGainsDone };
 }
