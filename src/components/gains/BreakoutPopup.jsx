@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, EMOJI } from "../../data/tokens";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { SFX } from "../../utils/sfx.js";
@@ -116,7 +116,7 @@ export function BreakoutPopup({ breakouts, onDone, isOnHoliday }) {
 
         {/* Fire icon */}
         <div style={{
-          fontSize: F.hero, marginBottom: 6,
+          ...EMOJI, fontSize: 36, marginBottom: 6,
           animation: "fireFloat 1.8s ease infinite",
         }}>🔥</div>
 

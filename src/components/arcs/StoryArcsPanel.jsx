@@ -3,7 +3,7 @@ import { ARC_CATS, ARC_CAT_LABELS } from "../../data/storyArcs.js";
 import { getOverall, getPosColor } from "../../utils/calc.js";
 import { getArcById, getArcsForCat, getValidTargets } from "../../utils/arcs.js";
 import { displayName } from "../../utils/player.js";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, EMOJI } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodigalSon, league, leagueTier, onAchievementCheck, week, seasonNumber }) {
@@ -35,7 +35,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
                 fontWeight:"bold", fontFamily:FONT,
                 boxShadow:active?`0 0 9px ${col}44`:"none",
               }}>
-                {done ? <div style={{ width:mob?6:7, height:mob?10:13, borderRight:"2px solid #fff", borderBottom:"2px solid #fff", transform:"rotate(45deg)", marginTop:mob?-2:-2 }} /> : s.t === "focus" ? "⚡" : i+1}
+                {done ? <div style={{ width:mob?6:7, height:mob?10:13, borderRight:"2px solid #fff", borderBottom:"2px solid #fff", transform:"rotate(45deg)", marginTop:mob?-2:-2 }} /> : s.t === "focus" ? <span style={EMOJI}>⚡</span> : i+1}
               </div>
             </React.Fragment>
           );

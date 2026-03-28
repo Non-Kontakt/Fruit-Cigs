@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { C as TC, FONT } from "../../data/tokens";
+import { C as TC, FONT, EMOJI } from "../../data/tokens";
 
 const C = { ...TC };
 const F = { xl: "clamp(12px,3vw,17px)", lg: "clamp(9px,2.5vw,13px)", md: "clamp(7px,2vw,10px)", sm: "clamp(6px,1.5vw,8px)", xs: "clamp(5px,1.2vw,7px)" };
@@ -50,7 +50,7 @@ export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches
         opacity: visible ? 1 : 0, transition: "opacity 0.8s ease",
       }}>
         {/* Icon */}
-        <div style={{ fontSize: "3em", marginBottom: 20, animation: visible ? "fadeIn 0.6s ease" : "none" }}>
+        <div style={{ ...EMOJI, fontSize: "3em", marginBottom: 20, animation: visible ? "fadeIn 0.6s ease" : "none" }}>
           📋
         </div>
 
