@@ -67,7 +67,7 @@ export function hydrateState(saved) {
     if (key in out) {
       const raw = out[key];
       if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-        const entries = Object.entries(raw).map(([k, v]) => [k, Array.isArray(v) ? new Set(v) : v]);
+        const entries = Object.entries(raw).map(([k, v]) => [k, Array.isArray(v) ? new Set(v) : new Set()]);
         out[key] = new Map(entries);
       } else {
         out[key] = new Map();
