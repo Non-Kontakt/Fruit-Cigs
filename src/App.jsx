@@ -1445,12 +1445,6 @@ function FootballManager() {
     setFiveASideSquad,
   });
 
-  const { processMatchDone } = useMatchResult({
-    setMatchResult, setAchievementQueue,
-    tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
-    pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef, achievableIdsRef,
-  });
-
   // Init league once team name is set (only if not loaded from save)
   useEffect(() => {
     if (teamName && !league) {
@@ -3865,6 +3859,12 @@ function FootballManager() {
       console.error("Breakout check error:", err);
     }
   };
+
+  const { processMatchDone } = useMatchResult({
+    setMatchResult, setAchievementQueue,
+    tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
+    pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef, achievableIdsRef,
+  });
 
   const AUTO_TRAINING = {
     GK: "balanced", CB: "defending", LB: "physical", RB: "pace",
