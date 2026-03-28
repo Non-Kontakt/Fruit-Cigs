@@ -14,15 +14,17 @@ const BREAKOUT_ATTRS = {
  * Check if any player triggered a breakout after a match.
  * @param {Array} squad - player squad
  * @param {Object} playerMatchLog - { playerId: [MatchLogEntry...] }
- * @param {Map} breakoutsThisSeason - { playerId => count } — max 2 per player per season
+ * @param {Map} breakoutsThisSeason - { playerId => Set<triggerId> } — max 2 unique triggers per player per season
  * @param {number} ovrCap - current OVR cap
  * @returns {Array<{ playerId, playerName, playerPosition, trigger, attrGains, potentialGain }>}
  */
-export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCap) {
+export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCap, isCup = false) {
   const results = [];
 
   for (const p of squad) {
-    if ((breakoutsThisSeason.get(p.id) || 0) >= 2) continue;
+    const raw = breakoutsThisSeason.get(p.id);
+    const usedTriggers = raw instanceof Set ? raw : null; // defensive: old saves may have number
+    if (usedTriggers && usedTriggers.size >= 2) continue;
     if (p.isLegend || p.isUnlockable) continue;
 
     const log = playerMatchLog[p.id];
@@ -40,6 +42,8 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
     const shuffled = [...allTriggers].sort(() => Math.random() - 0.5);
 
     for (const trigger of shuffled) {
+      if (usedTriggers && usedTriggers.has(trigger.id)) continue;
+      if (trigger.cupOnly && !isCup) continue;
       try {
         if (trigger.check(log, i, ctx)) {
           // BREAKOUT! Determine gains — filter to uncapped attrs, fallback to any uncapped
@@ -51,7 +55,7 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
           const selected = [...rewardable].sort(() => Math.random() - 0.5).slice(0, 2);
           const attrGains = {};
           for (const attr of selected) {
-            const gain = rand(2, 3);
+            const gain = rand(1, 2);
             attrGains[attr] = Math.min(gain, ovrCap - (p.attrs[attr] || 0));
           }
 

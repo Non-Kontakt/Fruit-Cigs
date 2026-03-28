@@ -3864,7 +3864,7 @@ function FootballManager() {
       const freshSquad = useGameStore.getState().squad;
       const freshBreakouts = useGameStore.getState().breakoutsThisSeason;
       const _bOvrCap = getOvrCap(useGameStore.getState().prestigeLevel || 0);
-      const breakoutResults = checkBreakouts(freshSquad, freshLog, freshBreakouts, _bOvrCap);
+      const breakoutResults = checkBreakouts(freshSquad, freshLog, freshBreakouts, _bOvrCap, isCup);
 
       for (const bo of breakoutResults) {
         // Apply attr gains + potential bump + update gains for display
@@ -3881,7 +3881,7 @@ function FootballManager() {
         }));
 
         // Mark as broken out this season
-        setBreakoutsThisSeason(prev => { const next = new Map(prev); next.set(bo.playerId, (next.get(bo.playerId) || 0) + 1); return next; });
+        setBreakoutsThisSeason(prev => { const next = new Map(prev); const used = new Set(next.get(bo.playerId) || []); used.add(bo.trigger.id); next.set(bo.playerId, used); return next; });
 
         // Inbox message
         const gainStr = Object.entries(bo.attrGains)
@@ -9574,6 +9574,7 @@ function FootballManager() {
             setPlayerSeasonStats({});
             setPlayerRatingTracker({});
             setPlayerRatingNames({});
+            setPlayerMatchLog({});
             setBreakoutsThisSeason(new Map());
             setPrevStartingXI(null);
             setMotmTracker({});
@@ -10185,6 +10186,7 @@ function FootballManager() {
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});
               setPlayerRatingNames({});
+              setPlayerMatchLog({});
               setBreakoutsThisSeason(new Map());
               setPrevStartingXI(null);
               setPlayerSeasonStats({});

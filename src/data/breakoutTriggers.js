@@ -76,6 +76,7 @@ export const BREAKOUT_TRIGGERS = {
       id: "fwd_cup_hero",
       label: "Cup Fever",
       narrative: "scored a brace in a cup match — lives for the big occasion",
+      cupOnly: true,
       check: (log, i) => log[i]?.cup && log[i]?.goals >= 2,
     },
   ],

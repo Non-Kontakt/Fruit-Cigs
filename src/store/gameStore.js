@@ -44,7 +44,11 @@ export function serializeState(state) {
     if (out[key] instanceof Set) out[key] = [...out[key]];
   }
   for (const key of MAP_FIELDS) {
-    if (out[key] instanceof Map) out[key] = Object.fromEntries(out[key]);
+    if (out[key] instanceof Map) {
+      const obj = {};
+      for (const [k, v] of out[key]) { obj[k] = v instanceof Set ? [...v] : v; }
+      out[key] = obj;
+    }
   }
   return out;
 }
@@ -62,9 +66,17 @@ export function hydrateState(saved) {
   for (const key of MAP_FIELDS) {
     if (key in out) {
       const raw = out[key];
-      out[key] = new Map(
-        raw && typeof raw === "object" && !Array.isArray(raw) ? Object.entries(raw) : []
-      );
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const entries = Object.entries(raw).map(([k, v]) => {
+          if (Array.isArray(v)) return [k, new Set(v)];
+          // Legacy saves stored numeric counts — convert to placeholder IDs to preserve the cap
+          if (typeof v === "number" && v > 0) return [k, new Set(Array.from({ length: v }, (_, i) => `__legacy_${i}`))];
+          return [k, new Set()];
+        });
+        out[key] = new Map(entries);
+      } else {
+        out[key] = new Map();
+      }
     }
   }
   return out;
@@ -582,6 +594,7 @@ export const useGameStore = create((set, get) => ({
     stScoredConsecutive: 0,
     playerRatingTracker: {},
     playerRatingNames: {},
+    playerMatchLog: {},
     breakoutsThisSeason: new Map(),
     playerSeasonStats: {},
     beatenTeams: new Set(),
