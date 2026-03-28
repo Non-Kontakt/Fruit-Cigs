@@ -1,4 +1,4 @@
-import { C as TC, FONT } from "../../data/tokens";
+import { C as TC, FONT, EMOJI } from "../../data/tokens";
 import { displayName } from "../../utils/player.js";
 import { useMobile } from "../../hooks/useMobile.js";
 
@@ -62,7 +62,7 @@ export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" })
 
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 36, paddingBottom: 24, borderBottom: `1px solid ${C.dim}` }}>
-          <div style={{ fontSize: "2.4em", marginBottom: 16 }}>📋</div>
+          <div style={{ ...EMOJI, fontSize: "2.4em", marginBottom: 16 }}>📋</div>
           <div style={{ fontSize: F.hero, color: C.red, letterSpacing: 2, marginBottom: 12, lineHeight: 1.4 }}>
             {career?.teamName || "Unknown Club"}
           </div>
