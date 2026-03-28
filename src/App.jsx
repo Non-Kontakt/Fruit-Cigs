@@ -66,7 +66,7 @@ import { ModeSelectScreen } from "./components/ui/ModeSelectScreen.jsx";
 import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
 import { buildAIFiveASide } from "./components/match/FiveASidePicker.jsx";
-import { listProfiles, createProfile, readProfile, scanProfileSlots, getSaveKey, unlockAchievementToProfile, updateProfileIronmanVersion, syncProfileIronmanVersion, archiveCareerToMuseum, checkIronmanIntegrity, deleteMuseumEntry } from "./utils/profile.js";
+import { listProfiles, createProfile, readProfile, scanProfileSlots, getSaveKey, unlockAchievementToProfile, archiveCareerToMuseum, deleteMuseumEntry } from "./utils/profile.js";
 import { useGameStore, serializeState, hydrateState } from "./store/gameStore.js";
 
 // Storage polyfill: use window.storage (Claude artifacts) or fall back to localStorage
@@ -169,7 +169,7 @@ function FootballManager() {
     setActiveProfileId, setGameMode, setGameOver,
     setBoardWarnCount, setUltimatumActive, setUltimatumTarget,
     setUltimatumPtsEarned, setUltimatumGamesLeft, setUltimatumCupPending,
-    setIronmanSaveVersion, setDoubleTrainingWeek, setTwelfthManActive,
+    setDoubleTrainingWeek, setTwelfthManActive,
     setYouthCoupActive, setTestimonialPlayer,
     setDynastyCupBracket, setMiniTournamentBracket,
     setSeasonNumber, setLeagueTier, setLeagueWins, setPrestigeLevel,
@@ -554,10 +554,6 @@ function FootballManager() {
   const ultimatumGamesLeft = useGameStore(s => s.ultimatumGamesLeft);
   const ultimatumCupPending = useGameStore(s => s.ultimatumCupPending);
 
-  // === Ironman integrity ===
-  const ironmanSaveVersion = useGameStore(s => s.ironmanSaveVersion);
-  const [isTainted, setIsTainted] = useState(false);
-
   const readsThisWeek = useGameStore(s => s.readsThisWeek);
   const lopsidedWarned = useGameStore(s => s.lopsidedWarned);
   // Persistent club history — survives across seasons
@@ -727,27 +723,14 @@ function FootballManager() {
         ultimatumPtsEarned: useGameStore.getState().ultimatumPtsEarned,
         ultimatumGamesLeft: useGameStore.getState().ultimatumGamesLeft,
         ultimatumCupPending: useGameStore.getState().ultimatumCupPending,
-        ironmanSaveVersion: useGameStore.getState().ironmanSaveVersion,
-        isTainted,
+        trainedThisWeek: useGameStore.getState().trainedThisWeek,
         dynastyCupQualifiers,
         dynastyCupBracket,
         miniTournamentBracket,
         fiveASideSquad,
       });
-      // Increment ironman version — update profile AFTER save write succeeds
-      // so the profile can never be ahead of the actual saved data
-      let ironmanNewVer = null;
-      if (useGameStore.getState().gameMode === "ironman") {
-        ironmanNewVer = useGameStore.getState().ironmanSaveVersion + 1;
-        setIronmanSaveVersion(ironmanNewVer);
-        saveData.ironmanSaveVersion = ironmanNewVer;
-      }
       const saveKey = getSaveKey(useGameStore.getState().activeProfileId, activeSaveSlot);
       await window.storage.set(saveKey, JSON.stringify(saveData));
-      // Only update profile version after save is confirmed written
-      if (ironmanNewVer !== null) {
-        await updateProfileIronmanVersion(useGameStore.getState().activeProfileId, ironmanNewVer, activeSaveSlot);
-      }
       // Update slot summary for quick display
       setSaveSlotSummaries(prev => {
         const next = [...prev];
@@ -1001,33 +984,7 @@ function FootballManager() {
       setUltimatumPtsEarned(s.ultimatumPtsEarned || 0);
       setUltimatumGamesLeft(s.ultimatumGamesLeft || 0);
       setUltimatumCupPending(s.ultimatumCupPending || false);
-      const loadedIronmanVer = s.ironmanSaveVersion || 0;
-      setIronmanSaveVersion(loadedIronmanVer);
-      // Integrity check for Ironman saves
-      if ((s.gameMode || "casual") === "ironman" && useGameStore.getState().activeProfileId) {
-        // Force-sync profile version to match the loaded save BEFORE the check.
-        // This prevents false positives from the race condition where auto-save
-        // updates the profile version but Vite reload/crash interrupts before the
-        // save file is fully written, leaving profile ahead of the actual save.
-        if (loadedIronmanVer > 0) {
-          await syncProfileIronmanVersion(useGameStore.getState().activeProfileId, loadedIronmanVer, slot);
-        }
-        const prof = await readProfile(useGameStore.getState().activeProfileId).catch(() => null);
-        const integrity = checkIronmanIntegrity({ ironmanSaveVersion: loadedIronmanVer }, prof, slot);
-        setIsTainted(!integrity.valid);
-        if (!integrity.valid) {
-          setTimeout(() => setInboxMessages(prev => {
-            // Don't add duplicate integrity warnings
-            if (prev.some(m => m.id === "msg_tainted")) return prev;
-            return [...prev, createInboxMessage(
-              MSG.taintedSave(),
-              { calendarIndex: s.calendarIndex || 0, seasonNumber: s.seasonNumber || 1 },
-            )];
-          }), 1000);
-        }
-      } else {
-        setIsTainted(s.isTainted || false);
-      }
+      setTrainedThisWeek(s.trainedThisWeek || new Set());
       // Migrate clubHistory league names to current LEAGUE_DEFS names
       if (s.clubHistory) {
         if (s.clubHistory.bestSeasonFinish?.tier && LEAGUE_DEFS[s.clubHistory.bestSeasonFinish.tier]) {
@@ -4764,7 +4721,7 @@ function FootballManager() {
 
       {/* Page content */}
       {showAchievements ? (
-        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} seasonLength={seasonCalendar?.length || DEFAULT_SEASON_LENGTH} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode} isTainted={isTainted}
+        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} seasonLength={seasonCalendar?.length || DEFAULT_SEASON_LENGTH} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode}
           tickets={tickets} retiringPlayers={retiringPlayers} transferFocus={transferFocus}
           doubleTrainingWeek={doubleTrainingWeek} twelfthManActive={twelfthManActive}
           youthCoupActive={youthCoupActive} pendingFreeAgent={pendingFreeAgent}

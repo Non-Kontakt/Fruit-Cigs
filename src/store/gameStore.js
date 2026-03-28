@@ -116,9 +116,6 @@ export const useGameStore = create((set, get) => ({
   ultimatumGamesLeft: 0,
   ultimatumCupPending: false,
 
-  // === Ironman integrity ===
-  ironmanSaveVersion: 0,
-
   // === Tickets ===
   doubleTrainingWeek: false,
   twelfthManActive: false,
@@ -297,8 +294,6 @@ export const useGameStore = create((set, get) => ({
   setUltimatumGamesLeft: (val) => set(s => ({ ultimatumGamesLeft: typeof val === "function" ? val(s.ultimatumGamesLeft) : val })),
   setUltimatumCupPending: (val) => set({ ultimatumCupPending: val }),
 
-  setIronmanSaveVersion: (val) => set(s => ({ ironmanSaveVersion: typeof val === "function" ? val(s.ironmanSaveVersion) : val })),
-
   setDoubleTrainingWeek: (val) => set({ doubleTrainingWeek: val }),
   setTwelfthManActive: (val) => set({ twelfthManActive: val }),
   setYouthCoupActive: (val) => set({ youthCoupActive: val }),
@@ -436,7 +431,6 @@ export const useGameStore = create((set, get) => ({
     ultimatumPtsEarned: 0,
     ultimatumGamesLeft: 0,
     ultimatumCupPending: false,
-    ironmanSaveVersion: 0,
     doubleTrainingWeek: false,
     twelfthManActive: false,
     youthCoupActive: false,
@@ -619,7 +613,7 @@ export const useGameStore = create((set, get) => ({
     // NOTE: seasonNumber, leagueTier, leagueWins, prestigeLevel, totalGains, totalMatches, secondPlaceFinishes, ovrHistory, clubHistory, allTimeLeagueStats, recentScorelines, formation are intentionally preserved.
     // NOTE: trialHistory, careerMilestones are career-spanning and intentionally preserved.
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
-    // ironmanSaveVersion, gameOver are intentionally preserved.
+    // gameOver are intentionally preserved.
     // NOTE: unlockedAchievements, achievementUnlockWeeks, inboxMessages, usedTicketTypes, freeAgentSignings, totalShortlisted, tradesMadeInWindow, tradedWithClubs, prevSeasonSquadIds are intentionally preserved.
     // NOTE: clubRelationships, transferFocus, transferWindowOpen, transferWindowWeeksRemaining, transferOffers, loanedOutPlayers, loanedInPlayers, transferHistory, shortlist, tickets, pendingTicketBoosts, storyArcs, leagueRosters, allLeagueStates, teamName, newspaperName, reporterName are intentionally preserved.
     // Prestige flow sets sentiment via partial carry-over formula, not hard reset.

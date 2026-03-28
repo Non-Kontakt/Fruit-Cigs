@@ -21,7 +21,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
   tickets, retiringPlayers, transferFocus, doubleTrainingWeek,
   twelfthManActive, youthCoupActive, pendingFreeAgent, shortlist, scoutedPlayers, testimonialPlayer,
   rewindableMatches,
-  onUseTicket, gameMode = "casual", isTainted = false }) {
+  onUseTicket, gameMode = "casual" }) {
   const isCasual = gameMode === "casual";
   const mob = useMobile();
   const [tab, setTab] = useState("cigs");

@@ -68,36 +68,6 @@ export async function unlockAchievementToProfile(profileId, achievementId) {
   } catch { /* non-critical */ }
 }
 
-export async function updateProfileIronmanVersion(profileId, version, slot) {
-  try {
-    const profile = await readProfile(profileId);
-    if (!profile) return;
-    // Track per-slot so starting a new career in a different slot doesn't poison the check
-    const slotVersions = profile.slotVersions || {};
-    const slotKey = String(slot || 0);
-    if (version > (slotVersions[slotKey] || 0)) {
-      profile.slotVersions = { ...slotVersions, [slotKey]: version };
-      // Keep the global field for backwards compat (not used for integrity check)
-      profile.lastIronmanVersion = Math.max(profile.lastIronmanVersion || 0, version);
-      await writeProfile(profileId, profile);
-    }
-  } catch { /* non-critical */ }
-}
-
-// Force-sync profile slot version to match a loaded save.
-// Called after the integrity check on load to prevent false positives
-// from the old race condition where profile could get ahead of save data.
-export async function syncProfileIronmanVersion(profileId, version, slot) {
-  try {
-    const profile = await readProfile(profileId);
-    if (!profile) return;
-    const slotVersions = profile.slotVersions || {};
-    const slotKey = String(slot || 0);
-    profile.slotVersions = { ...slotVersions, [slotKey]: version };
-    await writeProfile(profileId, profile);
-  } catch { /* non-critical */ }
-}
-
 export async function archiveCareerToMuseum(profileId, careerSnapshot) {
   try {
     const profile = await readProfile(profileId);
@@ -122,24 +92,6 @@ export async function deleteMuseumEntry(profileId, archivedAt) {
     profile.museum = (profile.museum || []).filter(e => e.archivedAt !== archivedAt);
     await writeProfile(profileId, profile);
   } catch { /* non-critical */ }
-}
-
-export function checkIronmanIntegrity(save, profile, slot) {
-  if (!save || !profile) return { valid: true };
-  // Version 0 in save means no auto-save has happened yet — always valid
-  const saveVersion = save.ironmanSaveVersion || 0;
-  if (saveVersion === 0) return { valid: true };
-  // Use per-slot version to avoid false positives when starting a new career in a different slot
-  const slotVersions = profile.slotVersions || {};
-  const slotKey = String(slot || 0);
-  const profileVersion = slotVersions[slotKey] || 0;
-  // Allow a small gap (≤2) to tolerate race conditions where auto-save updates
-  // the profile version but a crash/reload prevents the save file from being written.
-  // Real save-scumming shows a much larger version gap.
-  if (saveVersion < profileVersion - 2) {
-    return { valid: false, reason: `Save version (${saveVersion}) predates furthest progress (${profileVersion})` };
-  }
-  return { valid: true };
 }
 
 export async function scanProfileSlots(profileId) {

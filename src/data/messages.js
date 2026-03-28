@@ -32,14 +32,6 @@ const boardExpectations = (leagueTier) => ({
   color: C.textMuted,
 });
 
-const taintedSave = () => ({
-  id: "msg_tainted",
-  icon: "\u26A0", // ⚠
-  color: C.lightRed,
-  title: "Integrity Warning",
-  body: "Ironman integrity check failed \u2014 this save appears to have been restored from a previous point. Achievements are suspended for this career.",
-});
-
 // ---------------------------------------------------------------------------
 // BOARD
 // ---------------------------------------------------------------------------
@@ -889,7 +881,6 @@ export const MSG = {
   // System
   welcome,
   boardExpectations,
-  taintedSave,
   // Board
   boardReward,
   boardUltimatum,
