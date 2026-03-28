@@ -2762,7 +2762,7 @@ function FootballManager() {
       // but holiday path returns early, so we must do it here using fresh squad data)
       try {
         const freshTP = useGameStore.getState().squad.find(p => p.isTrial);
-        if (freshTP) {
+        if (freshTP && useGameStore.getState().matchweekIndex > (freshTP.trialStartMatchweek ?? -1)) {
           const wasInXI = startingXI.includes(freshTP.id);
           const twl = freshTP.trialWeeksLeft - 1;
           const tns = (freshTP.trialStarts || 0) + (wasInXI ? 1 : 0);
