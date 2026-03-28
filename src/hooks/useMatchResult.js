@@ -11,7 +11,7 @@ import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resol
 import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound } from "../utils/league.js";
 import { checkAchievements } from "../utils/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { SFX, BGM } from "../utils/sfx.js";
+import { BGM } from "../utils/sfx.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
@@ -352,7 +352,7 @@ export function useMatchResult({
           const pred = aiPredictionRef.current;
           const predCorrect = pred.home === matchResult.homeGoals && pred.away === matchResult.awayGoals;
           if (predCorrect) {
-            const leagueNow = pendingLeagueRef.current || useGameStore.getState().league;
+            const leagueNow = currentLeague;
             if (leagueNow) {
               const oppIdx = playerIsHome ? matchResult.away : matchResult.home;
               const playerIdx = playerIsHome ? matchResult.home : matchResult.away;
