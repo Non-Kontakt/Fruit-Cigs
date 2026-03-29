@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { POSITION_TYPES, POSITION_ORDER, POS_COLORS, SUB_COLOR, TOTAL_SLOTS } from "./data/positions.js";
 import { ATTRIBUTES, TRAINING_FOCUSES } from "./data/training.js";
-import { DEFAULT_FORMATION } from "./data/formations.js";
-import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achievements.js";
-import { LEAGUE_DEFS, NUM_TIERS, AI_BENCH_POSITIONS } from "./data/leagues.js";
+import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achievements.js";
+import { LEAGUE_DEFS, NUM_TIERS } from "./data/leagues.js";
 import { ARC_TICKET_POOL, ARC_CATS, STORY_ARCS } from "./data/storyArcs.js";
-import { CIG_PACKS, STARTER_PACKS } from "./data/cigPacks.js";
+import { CIG_PACKS } from "./data/cigPacks.js";
 import { checkPackUnlocks, isPackComplete } from "./utils/packUnlocks.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
 import { MSG } from "./data/messages.js";
 import { getModifier } from "./data/leagueModifiers.js";
 import { rand, getOverall, getAttrColor, getPosColor, getPositionTrainingWeeks, pickRandom } from "./utils/calc.js";
 import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./utils/formation.js";
-import { pickAINationality, generateNameForNation, generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, generateFreeAgent, getOvrCap, displayName } from "./utils/player.js";
-import { getArcById, checkArcCond, applyArcFx, initStoryArcs, getFocusNarrative, resolveSeasonEndArcs } from "./utils/arcs.js";
+import { generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, getOvrCap, displayName } from "./utils/player.js";
+import { resolveSeasonEndArcs } from "./utils/arcs.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
 import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound } from "./utils/league.js";
 import { checkBreakouts } from "./utils/breakouts.js";
@@ -61,7 +60,7 @@ import { ModeSelectScreen } from "./components/ui/ModeSelectScreen.jsx";
 import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
 import { buildAIFiveASide } from "./components/match/FiveASidePicker.jsx";
-import { listProfiles, createProfile, readProfile, scanProfileSlots, getSaveKey, deleteMuseumEntry } from "./utils/profile.js";
+import { listProfiles, createProfile, readProfile, scanProfileSlots, deleteMuseumEntry } from "./utils/profile.js";
 import { useGameStore } from "./store/gameStore.js";
 
 // Storage polyfill: use window.storage (Claude artifacts) or fall back to localStorage
@@ -144,8 +143,13 @@ function generateNewspaperName(teamName) {
 }
 const DEFAULT_SEASON_LENGTH = 48;
 const DEFAULT_FIXTURE_COUNT = 18;
+const SQUAD_CAP = 25;
+const AUTO_TRAINING = {
+  GK: "balanced", CB: "defending", LB: "physical", RB: "pace",
+  CM: "physical", AM: "passing", LW: "pace", RW: "shooting", ST: "shooting",
+};
 
-function FootballManager() {
+function FruitCigs() {
   const teamName = useGameStore(s => s.teamName);
   const newspaperName = useGameStore(s => s.newspaperName);
   const reporterName = useGameStore(s => s.reporterName);
@@ -1136,7 +1140,7 @@ function FootballManager() {
   }, [squad, formation]);
 
   const handleInboxChoice = useCallback((msg, choice) => {
-    const SQUAD_CAP = 25;
+
     if (msg.type === "trial_offer") {
       if (choice === "accept" && msg.trialPlayerData) {
         if (useGameStore.getState().squad.filter(p => !p.isLegend).length >= SQUAD_CAP) {
@@ -1451,10 +1455,6 @@ function FootballManager() {
     pendingTrialAction, aiPredictionRef,
   });
 
-  const AUTO_TRAINING = {
-    GK: "balanced", CB: "defending", LB: "physical", RB: "pace",
-    CM: "physical", AM: "passing", LW: "pace", RW: "shooting", ST: "shooting",
-  };
   const assignAllGeneral = useCallback(() => {
     let cmCount = 0;
     setSquad(prev => prev.map(p => {
@@ -6734,4 +6734,4 @@ function FootballManager() {
   );
 }
 
-export default FootballManager;
+export default FruitCigs;
