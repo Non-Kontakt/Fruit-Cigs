@@ -2,15 +2,14 @@ import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
 import { getSaveKey, archiveCareerToMuseum } from "../utils/profile.js";
 import { ATTRIBUTES } from "../data/training.js";
-import { POSITION_TYPES } from "../data/positions.js";
+import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS, AI_BENCH_POSITIONS } from "../data/leagues.js";
 import { STORY_ARCS } from "../data/storyArcs.js";
 import { STARTER_PACKS } from "../data/cigPacks.js";
 import { UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { DEFAULT_FORMATION } from "../data/formations.js";
-import { TOTAL_SLOTS } from "../data/positions.js";
 import { getModifier } from "../data/leagueModifiers.js";
-import { rand, getOverall, pickRandom } from "../utils/calc.js";
+import { rand, getOverall } from "../utils/calc.js";
 import { getOvrCap, pickAINationality, generateNameForNation, inferNationality, generateSquadPhilosophy } from "../utils/player.js";
 import { initStoryArcs } from "../utils/arcs.js";
 import { simulateMatchweek } from "../utils/match.js";
@@ -165,18 +164,18 @@ export function useSaveGame({
 
   // Load game from storage
   const loadGame = useCallback(async (slotOverride) => {
-    const st = useGameStore.getState();
+    const store = useGameStore.getState();
     const slot = slotOverride || activeSaveSlot;
-    if (!slot || !st.activeProfileId) return false;
+    if (!slot || !store.activeProfileId) return false;
     try {
-      const result = await window.storage.get(getSaveKey(st.activeProfileId, slot));
+      const result = await window.storage.get(getSaveKey(store.activeProfileId, slot));
       if (!result) return false;
       const s = hydrateState(JSON.parse(result.value));
       if (!s || !s.teamName) return false;
       setActiveSaveSlot(slot);
-      st.setTeamName(s.teamName);
-      st.setNewspaperName(s.newspaperName || generateNewspaperName(s.teamName));
-      st.setReporterName(s.reporterName || generateReporterName());
+      store.setTeamName(s.teamName);
+      store.setNewspaperName(s.newspaperName || generateNewspaperName(s.teamName));
+      store.setReporterName(s.reporterName || generateReporterName());
       // Migrate: add nationality, statProgress, and potential to existing players if missing
       const loadOvrCap = getOvrCap(s.prestigeLevel || 0);
       const migratedSquad = (s.squad || []).map(p => {
@@ -190,7 +189,7 @@ export function useSaveGame({
         }
         return migrated;
       });
-      st.setSquad(migratedSquad);
+      store.setSquad(migratedSquad);
       // Migrate: patch AI team squad members with names/nationalities + add bench if missing
       if (s.league?.teams) {
         s.league.teams.forEach(team => {
@@ -335,46 +334,46 @@ export function useSaveGame({
         });
       }
 
-      st.setLeague(s.league);
-      st.setStartingXI(s.startingXI);
-      st.setBench(s.bench);
-      st.setUnlockedAchievements(s.unlockedAchievements || new Set());
-      st.setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
-      if (s.achievementUnlockWeeks) { st.setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
-      st.setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
-      st.setSeasonCards(s.seasonCards || 0);
-      st.setSeasonNumber(s.seasonNumber || 1);
-      st.setLeagueWins(s.leagueWins || 0);
-      st.setLeagueTier(migratedTier);
-      st.setLastSeasonMove(s.lastSeasonMove || null);
+      store.setLeague(s.league);
+      store.setStartingXI(s.startingXI);
+      store.setBench(s.bench);
+      store.setUnlockedAchievements(s.unlockedAchievements || new Set());
+      store.setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
+      if (s.achievementUnlockWeeks) { store.setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
+      store.setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
+      store.setSeasonCards(s.seasonCards || 0);
+      store.setSeasonNumber(s.seasonNumber || 1);
+      store.setLeagueWins(s.leagueWins || 0);
+      store.setLeagueTier(migratedTier);
+      store.setLastSeasonMove(s.lastSeasonMove || null);
       loadSettings(s);
-      st.setTotalGains(s.totalGains || 0);
-      st.setTotalMatches(s.totalMatches || 0);
-      st.setSeasonCleanSheets(s.seasonCleanSheets || 0);
-      st.setSeasonGoalsFor(s.seasonGoalsFor || 0);
-      st.setSeasonDraws(s.seasonDraws || 0);
-      st.setSeasonHomeUnbeaten(s.seasonHomeUnbeaten !== false);
-      st.setSeasonAwayWins(s.seasonAwayWins || 0);
-      st.setSeasonAwayGames(s.seasonAwayGames || 0);
-      st.setConsecutiveUnbeaten(s.consecutiveUnbeaten || 0);
-      st.setConsecutiveLosses(s.consecutiveLosses || 0);
-      st.setConsecutiveDraws(s.consecutiveDraws || 0);
-      st.setConsecutiveWins(s.consecutiveWins || 0);
-      st.setConsecutiveScoreless(s.consecutiveScoreless || 0);
-      st.setFanSentiment(s.fanSentiment ?? 50);
-      st.setBoardSentiment(s.boardSentiment ?? 50);
-      st.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);
-      st.setDynastyCupBracket(s.dynastyCupBracket || null);
-      st.setMiniTournamentBracket(s.miniTournamentBracket || null);
-      st.setFiveASideSquad(s.fiveASideSquad || null);
-      st.setGameMode(s.gameMode || "casual");
-      st.setBoardWarnCount(s.boardWarnCount || 0);
-      st.setUltimatumActive(s.ultimatumActive || false);
-      st.setUltimatumTarget(s.ultimatumTarget || 0);
-      st.setUltimatumPtsEarned(s.ultimatumPtsEarned || 0);
-      st.setUltimatumGamesLeft(s.ultimatumGamesLeft || 0);
-      st.setUltimatumCupPending(s.ultimatumCupPending || false);
-      st.setTrainedThisWeek(s.trainedThisWeek || new Set());
+      store.setTotalGains(s.totalGains || 0);
+      store.setTotalMatches(s.totalMatches || 0);
+      store.setSeasonCleanSheets(s.seasonCleanSheets || 0);
+      store.setSeasonGoalsFor(s.seasonGoalsFor || 0);
+      store.setSeasonDraws(s.seasonDraws || 0);
+      store.setSeasonHomeUnbeaten(s.seasonHomeUnbeaten !== false);
+      store.setSeasonAwayWins(s.seasonAwayWins || 0);
+      store.setSeasonAwayGames(s.seasonAwayGames || 0);
+      store.setConsecutiveUnbeaten(s.consecutiveUnbeaten || 0);
+      store.setConsecutiveLosses(s.consecutiveLosses || 0);
+      store.setConsecutiveDraws(s.consecutiveDraws || 0);
+      store.setConsecutiveWins(s.consecutiveWins || 0);
+      store.setConsecutiveScoreless(s.consecutiveScoreless || 0);
+      store.setFanSentiment(s.fanSentiment ?? 50);
+      store.setBoardSentiment(s.boardSentiment ?? 50);
+      store.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);
+      store.setDynastyCupBracket(s.dynastyCupBracket || null);
+      store.setMiniTournamentBracket(s.miniTournamentBracket || null);
+      store.setFiveASideSquad(s.fiveASideSquad || null);
+      store.setGameMode(s.gameMode || "casual");
+      store.setBoardWarnCount(s.boardWarnCount || 0);
+      store.setUltimatumActive(s.ultimatumActive || false);
+      store.setUltimatumTarget(s.ultimatumTarget || 0);
+      store.setUltimatumPtsEarned(s.ultimatumPtsEarned || 0);
+      store.setUltimatumGamesLeft(s.ultimatumGamesLeft || 0);
+      store.setUltimatumCupPending(s.ultimatumCupPending || false);
+      store.setTrainedThisWeek(s.trainedThisWeek || new Set());
       // Migrate clubHistory league names
       if (s.clubHistory) {
         if (s.clubHistory.bestSeasonFinish?.tier && LEAGUE_DEFS[s.clubHistory.bestSeasonFinish.tier]) {
@@ -398,7 +397,7 @@ export function useSaveGame({
         }
       }
       if (s.clubHistory && s.clubHistory.totalWins > 0) {
-        st.setClubHistory(s.clubHistory);
+        store.setClubHistory(s.clubHistory);
       } else if (s.seasonNumber > 1 && !s.clubHistory?.totalWins) {
         // Migration: backfill clubHistory from available save data
         const h = {
@@ -456,11 +455,11 @@ export function useSaveGame({
             result: i < (s.seasonNumber || 1) - 1 ? "stayed" : (s.lastSeasonMove || "stayed"),
           });
         }
-        st.setClubHistory(h);
+        store.setClubHistory(h);
       }
-      st.setPrevStartingXI(s.prevStartingXI || null);
-      st.setMotmTracker(s.motmTracker || {});
-      st.setStScoredConsecutive(s.stScoredConsecutive || 0);
+      store.setPrevStartingXI(s.prevStartingXI || null);
+      store.setMotmTracker(s.motmTracker || {});
+      store.setStScoredConsecutive(s.stScoredConsecutive || 0);
       // Migrate name-keyed playerRatingTracker to ID-keyed
       let _loadedTracker = s.playerRatingTracker || {};
       if (Object.keys(_loadedTracker).length > 0) {
@@ -472,59 +471,59 @@ export function useSaveGame({
           _loadedTracker = _migrated;
         }
       }
-      st.setPlayerRatingTracker(_loadedTracker);
-      st.setPlayerRatingNames(s.playerRatingNames || {});
-      st.setPlayerMatchLog(s.playerMatchLog || {});
-      st.setBreakoutsThisSeason(s.breakoutsThisSeason || new Map());
-      st.setPlayerSeasonStats(s.playerSeasonStats || {});
-      st.setBeatenTeams(s.beatenTeams || new Set());
-      st.setRetiringPlayers(s.retiringPlayers || new Set());
+      store.setPlayerRatingTracker(_loadedTracker);
+      store.setPlayerRatingNames(s.playerRatingNames || {});
+      store.setPlayerMatchLog(s.playerMatchLog || {});
+      store.setBreakoutsThisSeason(s.breakoutsThisSeason || new Map());
+      store.setPlayerSeasonStats(s.playerSeasonStats || {});
+      store.setBeatenTeams(s.beatenTeams || new Set());
+      store.setRetiringPlayers(s.retiringPlayers || new Set());
       // Migrate cup name: strip "The " prefix
       if (s.cup && s.cup.cupName && s.cup.cupName.startsWith("The ")) {
         s.cup.cupName = s.cup.cupName.slice(4);
       }
-      st.setCup(s.cup || initCup(s.teamName, migratedTier, s.leagueRosters));
+      store.setCup(s.cup || initCup(s.teamName, migratedTier, s.leagueRosters));
       // Migration: convert summerPhase="summary" to "break"
       const rawSummerPhase = s.summerPhase || null;
       const loadedSummerPhase = rawSummerPhase === "summary" ? "break" : rawSummerPhase;
       const loadedSummerData = rawSummerPhase === "summary"
         ? { ...(s.summerData || {}), weeksLeft: s.summerData?.weeksLeft ?? 5 }
         : (s.summerData || null);
-      st.setSummerPhase(loadedSummerPhase);
-      st.setSummerData(loadedSummerData);
+      store.setSummerPhase(loadedSummerPhase);
+      store.setSummerData(loadedSummerData);
       const migratedRosters = s.leagueRosters ? normalizeRosters({ ...s.leagueRosters }) : null;
-      st.setLeagueRosters(migratedRosters);
-      st.setHalfwayPosition(s.halfwayPosition ?? null);
-      st.setRecentScorelines(s.recentScorelines || []);
-      st.setSecondPlaceFinishes(s.secondPlaceFinishes || 0);
-      st.setPlayerInjuryCount(s.playerInjuryCount || {});
-      st.setSeasonInjuryLog(s.seasonInjuryLog || {});
-      st.setCareerMilestones(s.careerMilestones || {});
-      st.setBenchStreaks(s.benchStreaks || {});
-      st.setHighScoringMatches(s.highScoringMatches || 0);
+      store.setLeagueRosters(migratedRosters);
+      store.setHalfwayPosition(s.halfwayPosition ?? null);
+      store.setRecentScorelines(s.recentScorelines || []);
+      store.setSecondPlaceFinishes(s.secondPlaceFinishes || 0);
+      store.setPlayerInjuryCount(s.playerInjuryCount || {});
+      store.setSeasonInjuryLog(s.seasonInjuryLog || {});
+      store.setCareerMilestones(s.careerMilestones || {});
+      store.setBenchStreaks(s.benchStreaks || {});
+      store.setHighScoringMatches(s.highScoringMatches || 0);
       // Calendar migration: rebuild if not present
       if (s.seasonCalendar) {
-        st.setSeasonCalendar(s.seasonCalendar);
-        st.setCalendarIndex(s.calendarIndex || 0);
+        store.setSeasonCalendar(s.seasonCalendar);
+        store.setCalendarIndex(s.calendarIndex || 0);
       } else if (s.league?.fixtures) {
         const cal = buildSeasonCalendar(s.league.fixtures.length, s.cup, !!getModifier(migratedTier).knockoutAtEnd, !!getModifier(migratedTier).miniTournament);
-        st.setSeasonCalendar(cal);
-        st.setCalendarIndex(computeCalendarIndex(cal, s.matchweekIndex || 0, s.cup));
+        store.setSeasonCalendar(cal);
+        store.setCalendarIndex(computeCalendarIndex(cal, s.matchweekIndex || 0, s.cup));
       }
-      st.setCalendarResults(s.calendarResults || {});
-      st.setLeagueResults(s.leagueResults || {});
+      store.setCalendarResults(s.calendarResults || {});
+      store.setLeagueResults(s.leagueResults || {});
       const loadedMessages = (s.inboxMessages || []).map((m, i) => m.seq != null ? m : { ...m, seq: i });
-      st.setInboxMessages(loadedMessages);
+      store.setInboxMessages(loadedMessages);
       const maxSeq = loadedMessages.reduce((mx, m) => Math.max(mx, m.seq ?? -1), -1);
       seedMessageSeq(s._messageSeq != null ? Math.max(s._messageSeq, maxSeq + 1) : maxSeq + 1);
-      st.setTrialPlayer(s.trialPlayer || null);
-      st.setTrialHistory(s.trialHistory || []);
-      st.setProdigalSon(s.prodigalSon || null);
+      store.setTrialPlayer(s.trialPlayer || null);
+      store.setTrialHistory(s.trialHistory || []);
+      store.setProdigalSon(s.prodigalSon || null);
       if (s.prodigalSon?.phase === "redeemed" && s.prodigalSon?.pendingBoost === undefined) {
-        st.setProdigalSon({ ...s.prodigalSon, pendingBoost: true });
+        store.setProdigalSon({ ...s.prodigalSon, pendingBoost: true });
       }
-      st.setLopsidedWarned(s.lopsidedWarned || new Set());
-      st.setOvrHistory(s.ovrHistory || []);
+      store.setLopsidedWarned(s.lopsidedWarned || new Set());
+      store.setOvrHistory(s.ovrHistory || []);
       const loadedArcs = s.storyArcs || initStoryArcs();
       // Migration v3: reconstruct completed arcs
       if (!loadedArcs._arcRewardV3) {
@@ -545,21 +544,21 @@ export function useSaveGame({
         }
         loadedArcs._arcRewardV3 = true;
       }
-      st.setStoryArcs(loadedArcs);
-      st.setAllTimeLeagueStats(s.allTimeLeagueStats || { scorers: {}, assisters: {}, cards: {} });
+      store.setStoryArcs(loadedArcs);
+      store.setAllTimeLeagueStats(s.allTimeLeagueStats || { scorers: {}, assisters: {}, cards: {} });
       // Load formation
       if (s.formation && s.formation.length === 11) {
-        st.setFormation(s.formation.map(slot => ({...slot})));
+        store.setFormation(s.formation.map(slot => ({...slot})));
       } else {
-        st.setFormation(DEFAULT_FORMATION.map(slot => ({...slot})));
+        store.setFormation(DEFAULT_FORMATION.map(slot => ({...slot})));
       }
       // Load slot assignments
       if (s.slotAssignments && Array.isArray(s.slotAssignments) && s.slotAssignments.length >= 11) {
         const loaded = [...s.slotAssignments];
         while (loaded.length < TOTAL_SLOTS) loaded.push(null);
-        st.setSlotAssignments(loaded);
+        store.setSlotAssignments(loaded);
       } else {
-        st.setSlotAssignments(null);
+        store.setSlotAssignments(null);
       }
       // Load AI league states
       if (s.allLeagueStates && Object.keys(s.allLeagueStates).length > 0) {
@@ -574,7 +573,7 @@ export function useSaveGame({
             });
           }
         }
-        st.setAllLeagueStates(s.allLeagueStates);
+        store.setAllLeagueStates(s.allLeagueStates);
       } else if (migratedRosters) {
         const freshAILeagues = {};
         for (let t = 1; t <= NUM_TIERS; t++) {
@@ -589,36 +588,36 @@ export function useSaveGame({
             freshAILeagues[t] = ai;
           }
         }
-        st.setAllLeagueStates(freshAILeagues);
+        store.setAllLeagueStates(freshAILeagues);
       }
-      st.setClubRelationships(s.clubRelationships || {});
-      st.setTransferFocus(Array.isArray(s.transferFocus) ? s.transferFocus : (s.transferFocus ? [s.transferFocus] : []));
-      st.setTransferWindowOpen(s.transferWindowOpen || false);
-      st.setTransferWindowWeeksRemaining(s.transferWindowWeeksRemaining || 0);
-      st.setTransferOffers(s.transferOffers || []);
-      st.setLoanedOutPlayers(s.loanedOutPlayers || []);
-      st.setLoanedInPlayers(s.loanedInPlayers || []);
-      st.setTransferHistory(s.transferHistory || []);
-      st.setShortlist(s.shortlist || []);
-      st.setTickets(s.tickets || []);
-      st.setPendingTicketBoosts(s.pendingTicketBoosts || []);
-      st.setDoubleTrainingWeek(s.doubleTrainingWeek || false);
-      st.setTwelfthManActive(s.twelfthManActive || false);
-      st.setYouthCoupActive(s.youthCoupActive || false);
-      st.setPendingFreeAgent(s.pendingFreeAgent || null);
-      st.setScoutedPlayers(s.scoutedPlayers || {});
-      st.setTestimonialPlayer(s.testimonialPlayer || null);
-      st.setUsedTicketTypes(s.usedTicketTypes || new Set());
-      st.setFormationsWonWith(s.formationsWonWith || new Set());
-      st.setFreeAgentSignings(s.freeAgentSignings || 0);
-      st.setHolidayMatchesThisSeason(s.holidayMatchesThisSeason || 0);
-      st.setFastMatchesThisSeason(s.fastMatchesThisSeason || 0);
-      st.setGkCleanSheets(s.gkCleanSheets || {});
-      st.setTotalShortlisted(s.totalShortlisted || 0);
-      st.setPrevSeasonSquadIds(s.prevSeasonSquadIds || null);
-      st.setTradesMadeInWindow(s.tradesMadeInWindow || 0);
-      st.setTradedWithClubs(s.tradedWithClubs || new Set());
-      st.setPrestigeLevel(s.prestigeLevel || 0);
+      store.setClubRelationships(s.clubRelationships || {});
+      store.setTransferFocus(Array.isArray(s.transferFocus) ? s.transferFocus : (s.transferFocus ? [s.transferFocus] : []));
+      store.setTransferWindowOpen(s.transferWindowOpen || false);
+      store.setTransferWindowWeeksRemaining(s.transferWindowWeeksRemaining || 0);
+      store.setTransferOffers(s.transferOffers || []);
+      store.setLoanedOutPlayers(s.loanedOutPlayers || []);
+      store.setLoanedInPlayers(s.loanedInPlayers || []);
+      store.setTransferHistory(s.transferHistory || []);
+      store.setShortlist(s.shortlist || []);
+      store.setTickets(s.tickets || []);
+      store.setPendingTicketBoosts(s.pendingTicketBoosts || []);
+      store.setDoubleTrainingWeek(s.doubleTrainingWeek || false);
+      store.setTwelfthManActive(s.twelfthManActive || false);
+      store.setYouthCoupActive(s.youthCoupActive || false);
+      store.setPendingFreeAgent(s.pendingFreeAgent || null);
+      store.setScoutedPlayers(s.scoutedPlayers || {});
+      store.setTestimonialPlayer(s.testimonialPlayer || null);
+      store.setUsedTicketTypes(s.usedTicketTypes || new Set());
+      store.setFormationsWonWith(s.formationsWonWith || new Set());
+      store.setFreeAgentSignings(s.freeAgentSignings || 0);
+      store.setHolidayMatchesThisSeason(s.holidayMatchesThisSeason || 0);
+      store.setFastMatchesThisSeason(s.fastMatchesThisSeason || 0);
+      store.setGkCleanSheets(s.gkCleanSheets || {});
+      store.setTotalShortlisted(s.totalShortlisted || 0);
+      store.setPrevSeasonSquadIds(s.prevSeasonSquadIds || null);
+      store.setTradesMadeInWindow(s.tradesMadeInWindow || 0);
+      store.setTradedWithClubs(s.tradedWithClubs || new Set());
+      store.setPrestigeLevel(s.prestigeLevel || 0);
       // Migration: seed allTimeLeagueStats from clubHistory
       if (!s.allTimeLeagueStats && s.clubHistory?.playerCareers) {
         const seeded = { scorers: {}, assisters: {}, cards: {} };
@@ -627,13 +626,13 @@ export function useSaveGame({
           if (c.assists > 0) seeded.assisters[`${name}|${s.teamName}`] = c.assists;
           if ((c.yellows || 0) + (c.reds || 0) > 0) seeded.cards[`${name}|${s.teamName}`] = (c.yellows || 0) + (c.reds || 0);
         });
-        st.setAllTimeLeagueStats(seeded);
+        store.setAllTimeLeagueStats(seeded);
       }
       // Migration: backfill initial OVR snapshot
       if (!s.ovrHistory || s.ovrHistory.length === 0) {
         const snap = {};
         (s.squad || []).forEach(p => { snap[`${p.name}|${p.position}`] = getOverall(p); });
-        st.setOvrHistory([{ w: (s.calendarIndex || 0) + 1, s: s.seasonNumber || 1, p: snap }]);
+        store.setOvrHistory([{ w: (s.calendarIndex || 0) + 1, s: s.seasonNumber || 1, p: snap }]);
       }
       // Migration: grant missing player unlocks
       if (s.unlockedAchievements && s.squad) {
