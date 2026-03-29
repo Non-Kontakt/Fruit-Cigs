@@ -5,11 +5,13 @@ import { LEAGUE_DEFS } from "../data/leagues.js";
 import { ARC_TICKET_POOL } from "../data/storyArcs.js";
 import { MSG } from "../data/messages.js";
 import { getModifier } from "../data/leagueModifiers.js";
-import { getOverall, pickRandom } from "../utils/calc.js";
+import { getOverall, pickRandom, rand } from "../utils/calc.js";
 import { getOvrCap } from "../utils/player.js";
 import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative } from "../utils/arcs.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { generateAITransferOffers } from "../utils/transfer.js";
+
+const FILTER_LABELS = { DEF: "Defenders", MID: "Midfielders", FWD: "Forwards", GK: "Goalkeepers" };
 
 /**
  * Extracts the season-end flow from App.jsx:
@@ -74,8 +76,7 @@ export function useSeasonFlow({
           Object.keys(p.attrs).forEach(k => { if ((p.attrs[k] || 0) > (pre[k] || 0)) gainCountSE++; });
         });
         if (intendedBoostSE && targetExistsSE && gainCountSE === 0) {
-          const shuffled = [...ARC_TICKET_POOL].sort(() => Math.random() - 0.5);
-          const pick = shuffled[0];
+          const pick = pickRandom(ARC_TICKET_POOL);
           s.setTickets(prev => [...prev, { id: `t_arc_se_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: pick }]);
         }
 
@@ -151,8 +152,6 @@ export function useSeasonFlow({
     if (!useGameStore.getState().isOnHoliday) setWeekTransition(true);
     const wl = summerData?.weeksLeft ?? 5;
 
-    const FILTER_LABELS = { DEF: "Defenders", MID: "Midfielders", FWD: "Forwards", GK: "Goalkeepers" };
-
     if (wl === 5) {
       // Week 1: Apply any pending arc final rewards missed due to timing bugs.
       // SeasonEndReveal fires on the NEXT click (wl=4) to avoid overlap with gains popup.
@@ -186,8 +185,7 @@ export function useSeasonFlow({
             });
           });
           if (intendedBoostGP && targetExistsGP && gainCountGP === 0) {
-            const _atp = ["double_session", "miracle_cream", "twelfth_man", "relation_boost", "transfer_insider", "youth_coup", "rewind", "random_attr"];
-            const pick = pickRandom(_atp);
+            const pick = pickRandom(ARC_TICKET_POOL);
             s.setTickets(prev => [...prev, { id: `t_arc_gp_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: pick }]);
           }
           s.setArcStepQueue(q => [...q, {
@@ -328,7 +326,7 @@ export function useSeasonFlow({
         const pick = chosen.find(c => c.id === p.id);
         if (!pick) return p;
         const attr = pickRandom(attrKeys);
-        const amt = Math.floor(Math.random() * 3) + 1;
+        const amt = rand(1, 3);
         const oldVal = p.attrs[attr] || 0;
         const newVal = Math.min(p.legendCap || ovrCap, oldVal + amt);
         arcBoosts.push({ playerName: p.name, playerPosition: p.position, attr, oldVal, newVal, isArcBoost: true, sourceKey: "well_rested" });
