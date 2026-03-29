@@ -149,7 +149,7 @@ const AUTO_TRAINING = {
   CM: "physical", AM: "passing", LW: "pace", RW: "shooting", ST: "shooting",
 };
 
-function FootballManager() {
+function FruitCigs() {
   const teamName = useGameStore(s => s.teamName);
   const newspaperName = useGameStore(s => s.newspaperName);
   const reporterName = useGameStore(s => s.reporterName);
@@ -6734,4 +6734,4 @@ function FootballManager() {
   );
 }
 
-export default FootballManager;
+export default FruitCigs;
