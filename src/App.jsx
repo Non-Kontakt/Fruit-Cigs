@@ -1397,7 +1397,8 @@ function FruitCigs() {
       const freshSquad = useGameStore.getState().squad;
       const freshBreakouts = useGameStore.getState().breakoutsThisSeason;
       const _bOvrCap = getOvrCap(useGameStore.getState().prestigeLevel || 0);
-      const breakoutResults = checkBreakouts(freshSquad, freshLog, freshBreakouts, _bOvrCap, isCup);
+      const matchdaySquad = freshSquad.filter(p => appeared.has(p.id));
+      const breakoutResults = checkBreakouts(matchdaySquad, freshLog, freshBreakouts, _bOvrCap, isCup);
 
       for (const bo of breakoutResults) {
         // Apply attr gains + potential bump + update gains for display
@@ -5468,7 +5469,7 @@ function FruitCigs() {
               const bodyParts = [`⚽ ${resultLine}${cupScorerStr ? ` (${cupScorerStr})` : ""}`];
               if (otherResults.length > 0) bodyParts.push(`\n${otherResults.join("\n")}`);
               if (!playerWonCup) bodyParts.push(`\n❌ You have been eliminated from ${cupName}.`);
-              else if (isFinal) bodyParts.push(`\n🏆 You have won ${cupName}!`);
+              else if (isFinal) bodyParts.push(`\n🏆 You have won the ${cupName}!`);
               else bodyParts.push(`\n✅ Through to the next round.`);
               setInboxMessages(prev => [...prev, createInboxMessage(
                 MSG.cupRoundResult(cupName, roundName, bodyParts.join("")),

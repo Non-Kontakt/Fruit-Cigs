@@ -52,8 +52,7 @@ export const Z = {
 };
 
 // The one font — every element uses this
-// Emoji fonts listed before monospace so browsers allocate correct glyph metrics
-export const FONT = "'Press Start 2P', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', monospace";
+export const FONT = "'Press Start 2P', monospace";
 
 // Emoji style token — spread onto elements where emojis clip in tight containers
 // Usage: <span style={{ ...EMOJI, fontSize: F.lg }}>🔥</span>

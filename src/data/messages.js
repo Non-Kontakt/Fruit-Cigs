@@ -995,7 +995,7 @@ export const MSG = {
     id: `msg_breakout_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
     icon: "\uD83D\uDCA5", // 💥
     title: `BREAKOUT: ${playerName}`,
-    body: `${playerName} ${narrative}! This is a breakout moment.\n\n${gainStr}${potStr}`,
+    body: `${playerName} ${narrative}!\n\n${gainStr}${potStr}`,
     color: "#facc15",
     type: "breakout",
   }),

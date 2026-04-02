@@ -1,5 +1,5 @@
 import { ATTRIBUTES } from "../data/training.js";
-import { POS_GROUP, POSITION_TYPES } from "../data/positions.js";
+import { POS_GROUP, POSITION_TYPES, POS_COLORS } from "../data/positions.js";
 
 export function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -56,11 +56,7 @@ export function getAttrColor(val, cap = 20) {
 }
 
 export function getPosColor(pos) {
-  const type = POSITION_TYPES[pos];
-  if (type === "GK") return "#eab308";
-  if (type === "DEF") return "#3b82f6";
-  if (type === "MID") return "#22c55e";
-  return "#ef4444";
+  return POS_COLORS[pos] || "#ef4444";
 }
 
 export function progressToPips(progress) {
