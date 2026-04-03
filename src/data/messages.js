@@ -998,7 +998,7 @@ export const MSG = {
     body: `Hey Boss, good news! ${playerName} has reached an elite level in ${cappedAttr} and now would benefit from focussing on other aspects of their game in training such as ${suggestedAttr}. Should I move them onto that or do you want to handle it yourself?`,
     color: "#4ade80",
     type: "stat_cap",
-    choices: [{ label: "You Handle It", value: "switch_training", data: { suggestedKey } }, { label: "I'll Sort It", value: "dismiss" }],
+    choices: [{ label: "Go Ahead", value: "switch_training", data: { suggestedKey } }, { label: "I'll Handle It", value: "dismiss" }],
     _playerName: playerName,
   }),
   // Breakout

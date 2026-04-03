@@ -1393,7 +1393,8 @@ export function useAdvanceWeek({
         // Suggest a position-relevant non-capped attr
         const pp = newSquad.find(p => p.id === cap.playerId);
         if (!pp) continue;
-        const nonCapped = ATTRIBUTES.filter(a => (pp.attrs[a.key] || 0) < ovrCap && a.key !== cap.attr);
+        const playerCap = pp.legendCap || ovrCap;
+        const nonCapped = ATTRIBUTES.filter(a => (pp.attrs[a.key] || 0) < playerCap && a.key !== cap.attr);
         if (nonCapped.length === 0) continue; // fully maxed player, no suggestion needed
         // Prefer attrs relevant to position: use training focus mapping
         const posRelevant = { GK: ["defending","mental","physical"], CB: ["defending","physical","pace"], LB: ["physical","pace","defending"], RB: ["pace","physical","defending"], CM: ["passing","technique","mental"], AM: ["passing","technique","shooting"], LW: ["pace","technique","shooting"], RW: ["shooting","pace","technique"], ST: ["shooting","pace","technique"] };
