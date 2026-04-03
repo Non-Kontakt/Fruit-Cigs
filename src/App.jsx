@@ -1147,7 +1147,7 @@ function FruitCigs() {
           setSquadFullAlert(true);
           return false;
         }
-        const tp = { ...msg.trialPlayerData, seasonStartOvr: getOverall(msg.trialPlayerData), seasonStartAttrs: { ...msg.trialPlayerData.attrs }, trialStartMatchweek: matchweekIndex };
+        const tp = { ...msg.trialPlayerData, seasonStartOvr: getOverall(msg.trialPlayerData), seasonStartAttrs: { ...msg.trialPlayerData.attrs }, trialStartMatchweek: calendarIndex };
         setSquad(prev => [...prev, tp]);
         setTrialPlayer(tp);
         SFX.reveal();
@@ -5016,9 +5016,16 @@ function FruitCigs() {
                 setCalendarResults(prev => ({ ...prev, [cupMatchResult._calendarIndex]: { playerGoals: mhg, oppGoals: mag, won: mhg > mag, draw: mhg === mag, oppName: (cupMatchResult.cupAway || cupMatchResult.cupHome)?.name || "?" } }));
               } else if (mRound === "third_place") {
                 // 3rd-place playoff
-                const tpWinner = mPens
-                  ? (mPens.winner === "home" ? cupMatchResult.cupHome : cupMatchResult.cupAway)
-                  : (mhg > mag ? cupMatchResult.cupHome : mhg < mag ? cupMatchResult.cupAway : cupMatchResult.cupHome);
+                let tpWinner;
+                if (mPens) {
+                  tpWinner = mPens.winner === "home" ? cupMatchResult.cupHome : cupMatchResult.cupAway;
+                } else if (mhg !== mag) {
+                  tpWinner = mhg > mag ? cupMatchResult.cupHome : cupMatchResult.cupAway;
+                } else {
+                  // Draw without penalties — shouldn't happen, generate pens as fallback
+                  const fallbackPens = generatePenaltyShootout(cupMatchResult.cupHome, cupMatchResult.cupAway, cupMatchResult.events || [], null, null, getModifier(leagueTier));
+                  tpWinner = fallbackPens.winner === "home" ? cupMatchResult.cupHome : cupMatchResult.cupAway;
+                }
                 const playerWon3rd = tpWinner.isPlayer;
                 setMiniTournamentBracket(prev => ({
                   ...prev,
@@ -5046,7 +5053,7 @@ function FruitCigs() {
                   )]);
                 }
                 setInboxMessages(prev => [...prev, createInboxMessage(
-                  MSG.mini3rdResult(playerWon3rd, mhg, mag),
+                  MSG.mini3rdResult(playerWon3rd, mhg, mag, mPens),
                   { calendarIndex, seasonNumber },
                 )]);
                 setCalendarResults(prev => ({ ...prev, [cupMatchResult._calendarIndex]: { playerGoals: mhg, oppGoals: mag, won: playerWon3rd, draw: false, oppName: (cupMatchResult.cupAway || cupMatchResult.cupHome)?.name || "?" } }));

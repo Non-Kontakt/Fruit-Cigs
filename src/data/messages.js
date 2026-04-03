@@ -548,13 +548,13 @@ const miniFinalResult = (body) => ({
   color: "#fbbf24",
 });
 
-const mini3rdResult = (playerWon, mhg, mag) => ({
+const mini3rdResult = (playerWon, mhg, mag, pens) => ({
   id: `msg_mini_3rd_${Date.now()}`,
   icon: playerWon ? "\uD83E\uDD49" : "\uD83D\uDE1E", // 🥉 or 😞
   title: playerWon ? "3rd-Place Playoff \u2014 Victory!" : "3rd-Place Playoff \u2014 Defeat",
   body: playerWon
-    ? `You won the 3rd-place playoff ${mhg}-${mag}! You've secured the final promotion spot.`
-    : `You lost the 3rd-place playoff ${mhg}-${mag}. No promotion this season.`,
+    ? `You won the 3rd-place playoff ${mhg}-${mag}${pens ? ` (${pens.homeScore}-${pens.awayScore} pens)` : ""}! You've secured the final promotion spot.`
+    : `You lost the 3rd-place playoff ${mhg}-${mag}${pens ? ` (${pens.homeScore}-${pens.awayScore} pens)` : ""}. No promotion this season.`,
   color: "#fbbf24",
 });
 

@@ -227,6 +227,24 @@ export function generateFixtures(teamCount) {
     }
     wantHome = !wantHome;
   }
+  // Prevent back-to-back matches against the same opponent for team 0 (player)
+  const getPlayerOpp = (week) => {
+    const f = week.find(m => m.home === 0 || m.away === 0);
+    return f ? (f.home === 0 ? f.away : f.home) : null;
+  };
+  for (let i = 0; i < result.length - 1; i++) {
+    if (getPlayerOpp(result[i]) === getPlayerOpp(result[i + 1])) {
+      // Swap with the nearest non-conflicting week
+      for (let j = i + 2; j < result.length; j++) {
+        if (getPlayerOpp(result[j]) !== getPlayerOpp(result[i]) &&
+            (j + 1 >= result.length || getPlayerOpp(result[j]) !== getPlayerOpp(result[j + 1])) &&
+            (i === 0 || getPlayerOpp(result[j]) !== getPlayerOpp(result[i - 1]))) {
+          [result[i + 1], result[j]] = [result[j], result[i + 1]];
+          break;
+        }
+      }
+    }
+  }
   return result;
 }
 
