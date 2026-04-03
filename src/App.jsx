@@ -4082,7 +4082,7 @@ function FruitCigs() {
                   fontSize: F.xs, color: getPosColor(player.position), opacity: 0.6,
                   fontFamily: FONT, flexShrink: 0,
                 }}>{player.position}</span>
-                {isInjured ? <span style={{ fontSize: F.xs, color: C.red, flexShrink: 0, background: "rgba(239,68,68,0.15)", padding: "2px 6px", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 2 }}>INJ {player.injury.weeksLeft}w</span> : ""}{retiringPlayers.has(player.id) ? <span style={{ fontSize: F.xs, color: "#ef444488", flexShrink: 0 }}>RET</span> : ""}{player.isLegend ? <span style={{ fontSize: F.xs, color: C.amber, flexShrink: 0, background: "rgba(251,191,36,0.15)", padding: "2px 6px", border: "1px solid rgba(251,191,36,0.3)" }}>LGN {12 - (player.legendAppearances || 0)}</span> : ""}{player.isTrial ? <span style={{ fontSize: F.xs, color: C.green, flexShrink: 0, background: "rgba(74,222,128,0.15)", padding: "2px 6px", border: "1px solid #4ade8044" }}>TRIAL {player.trialWeeksLeft}w</span> : ""}
+                {isInjured ? <span style={{ fontSize: F.xs, color: C.red, flexShrink: 0, background: "rgba(239,68,68,0.15)", padding: "2px 6px", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 2 }}>INJ {player.injury.weeksLeft}w</span> : ""}{retiringPlayers.has(player.id) ? <span style={{ fontSize: F.xs, color: "#ef444488", flexShrink: 0 }}>RET</span> : ""}{player.isLegend ? <span style={{ fontSize: F.xs, color: C.amber, flexShrink: 0, background: "rgba(251,191,36,0.15)", padding: "2px 6px", border: "1px solid rgba(251,191,36,0.3)" }}>{isMobile ? "" : "LGN "}{12 - (player.legendAppearances || 0)}</span> : ""}{player.isTrial ? <span style={{ fontSize: F.xs, color: C.green, flexShrink: 0, background: "rgba(74,222,128,0.15)", padding: "2px 6px", border: "1px solid #4ade8044" }}>TRIAL {player.trialWeeksLeft}w</span> : ""}
               </span>
               {isMobile ? (
                 <>
@@ -5636,6 +5636,28 @@ function FruitCigs() {
             && summerData.position === 1
             && prestigeLevel < 5;
           if (isPrestigeTrigger) {
+            // Archive the prestige season before resetting
+            setClubHistory(prev => {
+              const h = JSON.parse(JSON.stringify(prev || {}));
+              if (!h.seasonArchive) h.seasonArchive = [];
+              const sorted = sortStandings(league?.table || []);
+              const playerRow = sorted.find(r => league?.teams[r.teamIndex]?.isPlayer);
+              const position = playerRow ? sorted.indexOf(playerRow) + 1 : 0;
+              const points = playerRow?.points || 0;
+              const currentTierVal = summerData.fromTier;
+              if (!h.bestSeasonFinish || currentTierVal < h.bestSeasonFinish.tier || (currentTierVal === h.bestSeasonFinish.tier && position < h.bestSeasonFinish.position)) {
+                h.bestSeasonFinish = { position, tier: currentTierVal, season: seasonNumber, leagueName: summerData.leagueName };
+              }
+              if (points > (h.bestSeasonPoints || 0)) h.bestSeasonPoints = points;
+              let topScorer = null, topGoals = 0;
+              Object.entries(playerSeasonStats).forEach(([name, s]) => { if (s.goals > topGoals) { topGoals = s.goals; topScorer = name; } });
+              h.seasonArchive.push({
+                season: seasonNumber, tier: currentTierVal, leagueName: summerData.leagueName,
+                position, points, topScorer: topScorer ? `${topScorer} (${topGoals})` : "N/A",
+                result: "prestige", prestigeLevel: prestigeLevel || 0,
+              });
+              return h;
+            });
             // Apply IE aging before prestige reset (3 years per season in IE)
             const agingYears = getModifier(summerData.fromTier).agingYearsPerSeason || 1;
             if (agingYears > 1) {

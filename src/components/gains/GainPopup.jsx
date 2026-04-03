@@ -241,7 +241,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ color: nearlyThere ? "#7dd3fc" : C.textMuted, fontSize: F.md, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(148,163,184,0.2)", textUnderlineOffset: 3, display: "inline-flex", alignItems: "center", gap: 10 }}
               onClick={() => onPlayerClick && onPlayerClick(p.playerName)}
-            >⬆ {p.playerPosition && <span style={{ background: getPosColor(p.playerPosition), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", textDecoration: "none" }}>{p.playerPosition}</span>}{dn(p.playerName)}</span>
+            >{!mob && "⬆ "}{p.playerPosition && <span style={{ background: getPosColor(p.playerPosition), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", textDecoration: "none" }}>{p.playerPosition}</span>}{dn(p.playerName)}</span>
             <span style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
               <span style={{ color: attr?.color || "#fff", fontSize: F.sm }}>{attr?.label} {p.statVal}</span>
               <AnimatedPips oldPips={p.oldPips} newPips={filledPips} nearlyThere={nearlyThere} pipCrossed={p.pipCrossed} />

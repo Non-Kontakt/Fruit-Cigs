@@ -88,14 +88,14 @@ const MATCH = {
   // Player ratings — OVR weight halved, event bonuses boosted so performance > baseline quality
   RATE_BASE: 5.5,
   RATE_OVR_SCALE: 1.0,
-  RATE_NOISE: 1.2,
+  RATE_NOISE: 1.8,
   RATE_INJURY: 1.0,
   RATE_GOAL: 1.5,
   RATE_ASSIST: 1.0,
   RATE_CS: 1.2,
   RATE_CS_SUB: 0.6,
-  RATE_WIN: 0.3,
-  RATE_LOSS: 0.3,
+  RATE_WIN: 0.15,
+  RATE_LOSS: 0.15,
   RATE_MIN: 4.0,
   RATE_MAX: 10.0,
   RATE_SUB_THRESHOLD: 10,
@@ -587,8 +587,17 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
       const availableOff = playing.filter(p => !subbedOff.has(p.name) && POSITION_TYPES[p.position] !== "GK");
       const availableOn = bench.filter(p => !subbedOn.has(p.name));
       if (availableOff.length === 0 || availableOn.length === 0) break;
-      const off = availableOff[rand(0, availableOff.length - 1)];
-      const on = availableOn[rand(0, availableOn.length - 1)];
+      // Prefer subbing off lower-OVR players (weighted random)
+      const offWeights = availableOff.map(p => Math.max(1, 20 - getOverall(p)));
+      const offTotal = offWeights.reduce((s, w) => s + w, 0);
+      let offRoll = Math.random() * offTotal;
+      let offIdx = 0;
+      for (let w = 0; w < offWeights.length; w++) { offRoll -= offWeights[w]; if (offRoll <= 0) { offIdx = w; break; } }
+      const off = availableOff[offIdx];
+      // Prefer like-for-like position type, fall back to any
+      const offType = POSITION_TYPES[off.position];
+      const sameType = availableOn.filter(p => POSITION_TYPES[p.position] === offType);
+      const on = sameType.length > 0 ? sameType[rand(0, sameType.length - 1)] : availableOn[rand(0, availableOn.length - 1)];
       subbedOff.add(off.name);
       subbedOn.add(on.name);
       subEvents.push({

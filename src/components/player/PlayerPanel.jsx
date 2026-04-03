@@ -58,8 +58,8 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                   <span key={lp} style={{
                     background: getPosColor(lp),
                     color: C.bg,
-                    padding: "6px 14px",
-                    fontSize: mob ? F.lg : F.xl,
+                    padding: mob ? "3px 7px" : "6px 14px",
+                    fontSize: mob ? F.sm : F.xl,
                     fontWeight: "bold",
                     opacity: 0.75,
                   }}>
