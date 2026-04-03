@@ -852,7 +852,7 @@ export function useAdvanceWeek({
       // but holiday path returns early, so we must do it here using fresh squad data)
       try {
         const freshTP = useGameStore.getState().squad.find(p => p.isTrial);
-        if (freshTP && useGameStore.getState().calendarIndex > (freshTP.trialStartWeek ?? -1)) {
+        if (freshTP && useGameStore.getState().calendarIndex > (freshTP.trialStartWeek ?? freshTP.trialStartMatchweek ?? -1)) {
           const wasInXI = startingXI.includes(freshTP.id);
           const twl = freshTP.trialWeeksLeft - 1;
           const tns = (freshTP.trialStarts || 0) + (wasInXI ? 1 : 0);
@@ -1472,7 +1472,7 @@ export function useAdvanceWeek({
 
     // Trial player — compute action but defer squad changes to avoid re-triggering this useEffect
     pendingTrialAction.current = null;
-    if (trialPlayer && calendarIndex > (trialPlayer.trialStartWeek ?? -1)) {
+    if (trialPlayer && calendarIndex > (trialPlayer.trialStartWeek ?? trialPlayer.trialStartMatchweek ?? -1)) {
       const wasInXI = startingXI.includes(trialPlayer.id);
       const newWeeksLeft = trialPlayer.trialWeeksLeft - 1;
       const newStarts = trialPlayer.trialStarts + (wasInXI ? 1 : 0);
