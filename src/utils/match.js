@@ -587,8 +587,9 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
       const availableOff = playing.filter(p => !subbedOff.has(p.name) && POSITION_TYPES[p.position] !== "GK");
       const availableOn = bench.filter(p => !subbedOn.has(p.name));
       if (availableOff.length === 0 || availableOn.length === 0) break;
-      // Prefer subbing off lower-OVR players (weighted random)
-      const offWeights = availableOff.map(p => Math.max(1, 20 - getOverall(p)));
+      // Prefer subbing off lower-OVR players (relative weighted random)
+      const maxOvr = Math.max(...availableOff.map(p => getOverall(p)));
+      const offWeights = availableOff.map(p => Math.max(1, maxOvr - getOverall(p) + 1));
       const offTotal = offWeights.reduce((s, w) => s + w, 0);
       let offRoll = Math.random() * offTotal;
       let offIdx = 0;
