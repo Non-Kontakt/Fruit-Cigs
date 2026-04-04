@@ -27,7 +27,10 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
   // Track position type caps: max 1 breakout per position type per check
   const typeCaps = new Set();
 
-  for (const p of squad) {
+  // Shuffle squad to prevent order bias in position-type cap
+  const shuffledSquad = [...squad].sort(() => Math.random() - 0.5);
+
+  for (const p of shuffledSquad) {
     const raw = breakoutsThisSeason.get(p.id);
     // Support both old format (Set) and new format ({ triggers: Set, lastLogIndex: number })
     const entry = raw instanceof Set ? { triggers: raw, lastLogIndex: -99 } : (raw || { triggers: new Set(), lastLogIndex: -99 });
@@ -43,7 +46,7 @@ export function checkBreakouts(squad, playerMatchLog, breakoutsThisSeason, ovrCa
 
     const i = log.length - 1;
     // Cooldown: skip if this player broke out too recently
-    if (i - entry.lastLogIndex < BREAKOUT_COOLDOWN) continue;
+    if (i - entry.lastLogIndex <= BREAKOUT_COOLDOWN) continue;
     const ovr = getOverall(p);
     const ctx = { ovr };
 
