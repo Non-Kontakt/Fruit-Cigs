@@ -12,17 +12,15 @@ import { groupGoalsByScorer, buildScorerDisplayMap, formatScorerName } from "../
  * in step with the commentary feed in slow/fast/highlights modes and is
  * fully populated on arrival for instant matches.
  *
- * Goals are grouped by scorer so a brace becomes one row
- * ("28', 31' Watkins" on mobile / "Watkins 28' (Yorke), 31'" on desktop)
- * rather than two stacked rows. Mobile drops assists; desktop keeps them
- * per goal where they exist.
+ * Goals are grouped by scorer so a brace becomes one row instead of two.
+ * Mobile drops assists; desktop stacks the assister(s) on a sub-line
+ * beneath the scorer to avoid the line being truncated when the column
+ * is narrow.
  */
 export function ScorerStrip({
   events,
   homeSquad = null,
   awaySquad = null,
-  homeIsPlayer = false,
-  awayIsPlayer = false,
   isMobile = false,
 }) {
   const { home, away } = useMemo(() => groupGoalsByScorer(events), [events]);
@@ -78,42 +76,57 @@ export function ScorerStrip({
         flexShrink: 0,
         fontFamily: FONT,
       }}>
-        <div style={{
-          flex: 1, minWidth: 0,
-          borderLeft: homeIsPlayer ? `2px solid ${C.green}` : "none",
-          paddingLeft: homeIsPlayer ? 6 : 0,
-        }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {home.map((entry, i) => renderEntry(entry, `h-${i}`, false))}
         </div>
-        <div style={{
-          flex: 1, minWidth: 0,
-          borderRight: awayIsPlayer ? `2px solid ${C.green}` : "none",
-          paddingRight: awayIsPlayer ? 6 : 0,
-        }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {away.map((entry, i) => renderEntry(entry, `a-${i}`, true))}
         </div>
       </div>
     );
   }
 
-  // === Desktop full version ("Watkins 28' (Yorke), 31'") ===
-  // Goals are grouped per scorer; each goal can carry its own assister.
-  // Comma-separated minute parts keep the line compact even for braces.
-  const renderEntry = (entry, key) => {
-    const parts = entry.goals.map(g => {
-      const min = g.minute != null ? `${g.minute}'` : "";
-      return g.assister ? `${min} (${formatScorerName(g.assister)})` : min;
-    }).filter(Boolean);
+  // === Desktop ===
+  // Scorer + minutes on the first line; if any of the goals had an
+  // assister, render a sub-line beneath listing them. Stacking keeps the
+  // line short enough that it doesn't get truncated when the column is
+  // narrow.
+  const renderEntry = (entry, key, alignRight) => {
+    const minuteParts = entry.goals
+      .map(g => g.minute != null ? `${g.minute}'` : "")
+      .filter(Boolean);
+    const assistedGoals = entry.goals.filter(g => g.assister);
+    let assistLine = null;
+    if (assistedGoals.length > 0) {
+      // For multi-goal entries, prefix each assister with its minute so the
+      // user can match assist → goal. For single-goal entries the prefix is
+      // redundant, so just render the bare name.
+      const parts = assistedGoals.map(g =>
+        entry.goals.length > 1
+          ? `${g.minute}' ${formatScorerName(g.assister)}`
+          : formatScorerName(g.assister)
+      );
+      assistLine = `(${parts.join(", ")})`;
+    }
     return (
       <div key={key} style={{
         fontSize: F.sm, lineHeight: 1.5, color: C.text,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        textAlign: alignRight ? "right" : "left",
       }}>
-        <span>{formatScorerName(entry.player)}</span>
-        {parts.length > 0 && (
-          <span style={{ color: C.textMuted, marginLeft: 4 }}>
-            {parts.join(", ")}
-          </span>
+        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span>{formatScorerName(entry.player)}</span>
+          {minuteParts.length > 0 && (
+            <span style={{ color: C.textMuted, marginLeft: 4 }}>{minuteParts.join(", ")}</span>
+          )}
+        </div>
+        {assistLine && (
+          <div style={{
+            fontSize: F.xs, color: C.textDim,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {assistLine}
+          </div>
         )}
       </div>
     );
@@ -130,19 +143,11 @@ export function ScorerStrip({
       flexShrink: 0,
       fontFamily: FONT,
     }}>
-      <div style={{
-        flex: 1, minWidth: 0, textAlign: "left",
-        borderLeft: homeIsPlayer ? `2px solid ${C.green}` : "none",
-        paddingLeft: homeIsPlayer ? 8 : 0,
-      }}>
-        {home.map((entry, i) => renderEntry(entry, `h-${i}`))}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {home.map((entry, i) => renderEntry(entry, `h-${i}`, false))}
       </div>
-      <div style={{
-        flex: 1, minWidth: 0, textAlign: "right",
-        borderRight: awayIsPlayer ? `2px solid ${C.green}` : "none",
-        paddingRight: awayIsPlayer ? 8 : 0,
-      }}>
-        {away.map((entry, i) => renderEntry(entry, `a-${i}`))}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {away.map((entry, i) => renderEntry(entry, `a-${i}`, true))}
       </div>
     </div>
   );
