@@ -165,39 +165,82 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   <div style={{ fontSize: F.md, color: C.textMuted, lineHeight: 1.6, whiteSpace: "pre-line" }}>
                     {msg.body}
                   </div>
-                  {/* Choice result display */}
-                  {msg.choiceResult && (
-                    <div style={{ fontSize: mob ? F.xs : F.sm, color: msg.choiceResult === "accept" ? C.green : C.lightRed, marginTop: 9, fontStyle: "italic" }}>
-                      ✓ {msg.choiceResult === "accept" ? (msg.type === "prodigal_offer" ? "You welcomed him back." : msg.type === "free_agent_offer" ? "You signed the player." : "You accepted the trial.") : "You declined."}
-                    </div>
-                  )}
+                  {/* Choice result display. Resolution-style choices
+                      (accept/decline) keep their bespoke copy. Non-binary
+                      choices fall through to the per-choice `resultText`
+                      (or label) so e.g. "You Handle It" / "I'll Set It Up"
+                      no longer both render as a red "You declined." */}
+                  {msg.choiceResult && (() => {
+                    const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
+                    const isAccept = msg.choiceResult === "accept";
+                    const isDecline = msg.choiceResult === "decline";
+                    const acceptCopy = msg.type === "prodigal_offer" ? "You welcomed him back."
+                      : msg.type === "free_agent_offer" ? "You signed the player."
+                      : "You accepted the trial.";
+                    const text = isAccept ? acceptCopy
+                      : isDecline ? "You declined."
+                      : (chosen?.resultText || chosen?.label || "Chosen");
+                    const color = isAccept ? C.green
+                      : isDecline ? C.lightRed
+                      : C.textMuted;
+                    return (
+                      <div style={{ fontSize: mob ? F.xs : F.sm, color, marginTop: 9, fontStyle: "italic" }}>
+                        ✓ {text}
+                      </div>
+                    );
+                  })()}
                   {/* Follow-up info */}
                   {msg.followUp && (
                     <div style={{ fontSize: mob ? F.xs : F.sm, color: C.amber, marginTop: 7, lineHeight: 1.5 }}>
                       {msg.followUp}
                     </div>
                   )}
-                  {/* Choice buttons (only show if not yet resolved) */}
+                  {/* Choice buttons (only show if not yet resolved). For
+                      binary accept/decline messages, "accept" gets green
+                      and "decline" gets red (legacy contract). For other
+                      messages the first choice is the primary green path
+                      and the rest are neutral, so e.g. "You Handle It" vs
+                      "I'll Set It Up" don't both render as a red decline. */}
                   {msg.choices && !msg.choiceResult && (
                     <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
-                      {msg.choices.map((choice) => (
-                        <button key={choice.value} onClick={(e) => {
-                          e.stopPropagation();
-                          // onInboxChoice returns false if blocked (e.g. squad full)
-                          if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
-                          setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
-                        }} style={{
-                          padding: mob ? "10px 17px" : "10px 24px",
-                          fontSize: mob ? F.xs : F.sm,
-                          fontFamily: FONT,
-                          background: choice.value === "accept" ? "rgba(74,222,128,0.15)" : "rgba(239,68,68,0.1)",
-                          border: `1px solid ${choice.value === "accept" ? C.green : C.red}`,
-                          color: choice.value === "accept" ? C.green : C.lightRed,
-                          cursor: "pointer",
-                        }}>
-                          {choice.label}
-                        </button>
-                      ))}
+                      {msg.choices.map((choice, ci) => {
+                        const hasAcceptDecline = msg.choices.some(c => c.value === "accept" || c.value === "decline");
+                        let accent;
+                        if (hasAcceptDecline) {
+                          accent = choice.value === "accept" ? "primary"
+                            : choice.value === "decline" ? "danger"
+                            : "neutral";
+                        } else {
+                          accent = ci === 0 ? "primary" : "neutral";
+                        }
+                        const bg = accent === "primary" ? "rgba(74,222,128,0.15)"
+                          : accent === "danger" ? "rgba(239,68,68,0.1)"
+                          : "rgba(148,163,184,0.08)";
+                        const borderColor = accent === "primary" ? C.green
+                          : accent === "danger" ? C.red
+                          : C.textMuted;
+                        const textColor = accent === "primary" ? C.green
+                          : accent === "danger" ? C.lightRed
+                          : C.textMuted;
+                        return (
+                          <button key={choice.value} onClick={(e) => {
+                            e.stopPropagation();
+                            // onInboxChoice returns false if blocked (e.g. squad full)
+                            if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
+                            setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
+                          }} style={{
+                            padding: mob ? "10px 17px" : "10px 24px",
+                            fontSize: mob ? F.xs : F.sm,
+                            fontFamily: FONT,
+                            background: bg,
+                            border: `1px solid ${borderColor}`,
+                            color: textColor,
+                            cursor: "pointer",
+                          }}>
+                            {choice.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

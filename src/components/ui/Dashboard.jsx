@@ -478,11 +478,22 @@ export function Dashboard({
                     {msg.body.split("\n")[0]}
                   </div>
                 )}
-                {msg.choiceResult && (
-                  <div style={{ fontSize: F.xs, color: msg.choiceResult === "accept" ? C.green : msg.choiceResult === "decline" ? C.lightRed : C.textMuted, marginTop: 4, fontStyle: "italic" }}>
-                    {msg.choiceResult === "accept" ? "Accepted" : msg.choiceResult === "decline" ? "Declined" : (msg.choices?.find(c => c.value === msg.choiceResult)?.label || "Chosen")}
-                  </div>
-                )}
+                {msg.choiceResult && (() => {
+                  const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
+                  const isAccept = msg.choiceResult === "accept";
+                  const isDecline = msg.choiceResult === "decline";
+                  const text = isAccept ? "Accepted"
+                    : isDecline ? "Declined"
+                    : (chosen?.resultText || chosen?.label || "Chosen");
+                  const color = isAccept ? C.green
+                    : isDecline ? C.lightRed
+                    : C.textMuted;
+                  return (
+                    <div style={{ fontSize: F.xs, color, marginTop: 4, fontStyle: "italic" }}>
+                      {text}
+                    </div>
+                  );
+                })()}
                 {msg.followUp && (
                   <div style={{ fontSize: F.xs, color: C.amber, marginTop: 4, lineHeight: 1.5 }}>{msg.followUp}</div>
                 )}

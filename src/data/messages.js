@@ -101,7 +101,10 @@ const asstMgrTrainingIntro = () => ({
   body: "Boss, now that we've got a match under our belt, I wanted to have a word about training.\n\nEach week, your players can be assigned a training focus \u2014 shooting, defending, pace, the lot. It's how they improve over time. Without it, they'll stay exactly where they are.\n\nYou can set it up on the Squad page, or if you'd rather focus on tactics and transfers, I'm happy to put everyone on a general programme for now. Your call.",
   type: "asst_mgr_training_intro",
   visibleFromIndex: 2,
-  choices: [{ label: "You Handle It", value: "delegate" }, { label: "I'll Set It Up", value: "manual" }],
+  choices: [
+    { label: "You Handle It", value: "delegate", resultText: "Asst. Manager has set everyone to a balanced training programme." },
+    { label: "I'll Set It Up", value: "manual",  resultText: "You'll set training assignments yourself on the Squad page." },
+  ],
 });
 
 const trainingReport = (weekNum, body) => ({
@@ -129,7 +132,10 @@ const trainingNudge = (introDeclined) => ({
     ? "Boss, I know you said you'd handle training yourself, but we're 5 games in and none of the lads have a programme.\n\nAt this rate they won't improve at all this season. Want me to step in and put everyone on a general regime? You can always fine-tune it later."
     : "Boss, we're 5 matchdays in and the lads still aren't training.\n\nThey're not going to get any better on their own. Say the word and I'll put everyone on a general programme \u2014 you can always change it later on the Squad page.",
   type: "asst_mgr_training_nudge",
-  choices: [{ label: "Go On Then", value: "delegate" }, { label: "Leave It", value: "dismiss" }],
+  choices: [
+    { label: "Go On Then", value: "delegate", resultText: "Asst. Manager has stepped in — squad on a balanced programme." },
+    { label: "Leave It",   value: "dismiss",  resultText: "You're holding off on training for now." },
+  ],
 });
 
 const disciplinePenalty = (playerNames) => ({
