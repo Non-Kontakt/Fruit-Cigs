@@ -5,6 +5,7 @@ import { STORY_ARCS } from "../../data/storyArcs.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
+import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ManagerAvatar } from "../ui/ManagerAvatar.jsx";
 
@@ -165,27 +166,15 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   <div style={{ fontSize: F.md, color: C.textMuted, lineHeight: 1.6, whiteSpace: "pre-line" }}>
                     {msg.body}
                   </div>
-                  {/* Choice result display. Resolution-style choices
-                      (accept/decline) keep their bespoke copy. Non-binary
-                      choices fall through to the per-choice `resultText`
-                      (or label) so e.g. "You Handle It" / "I'll Set It Up"
-                      no longer both render as a red "You declined." */}
+                  {/* Choice result line — colour, icon and copy all come
+                      from the chosen option's metadata (tone + resultText)
+                      via the shared resolver. */}
                   {msg.choiceResult && (() => {
                     const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
-                    const isAccept = msg.choiceResult === "accept";
-                    const isDecline = msg.choiceResult === "decline";
-                    const acceptCopy = msg.type === "prodigal_offer" ? "You welcomed him back."
-                      : msg.type === "free_agent_offer" ? "You signed the player."
-                      : "You accepted the trial.";
-                    const text = isAccept ? acceptCopy
-                      : isDecline ? "You declined."
-                      : (chosen?.resultText || chosen?.label || "Chosen");
-                    const color = isAccept ? C.green
-                      : isDecline ? C.lightRed
-                      : C.textMuted;
+                    const { color, icon, text } = getChoiceResult(msg, chosen);
                     return (
                       <div style={{ fontSize: mob ? F.xs : F.sm, color, marginTop: 9, fontStyle: "italic" }}>
-                        ✓ {text}
+                        {icon ? `${icon} ${text}` : text}
                       </div>
                     );
                   })()}
@@ -195,33 +184,14 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                       {msg.followUp}
                     </div>
                   )}
-                  {/* Choice buttons (only show if not yet resolved). For
-                      binary accept/decline messages, "accept" gets green
-                      and "decline" gets red (legacy contract). For other
-                      messages the first choice is the primary green path
-                      and the rest are neutral, so e.g. "You Handle It" vs
-                      "I'll Set It Up" don't both render as a red decline. */}
+                  {/* Choice buttons (only show if not yet resolved). Tone
+                      comes from each choice's explicit `tone` metadata via
+                      the shared resolver — no value-name heuristics, no
+                      first-position-wins guessing. */}
                   {msg.choices && !msg.choiceResult && (
                     <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
-                      {msg.choices.map((choice, ci) => {
-                        const hasAcceptDecline = msg.choices.some(c => c.value === "accept" || c.value === "decline");
-                        let accent;
-                        if (hasAcceptDecline) {
-                          accent = choice.value === "accept" ? "primary"
-                            : choice.value === "decline" ? "danger"
-                            : "neutral";
-                        } else {
-                          accent = ci === 0 ? "primary" : "neutral";
-                        }
-                        const bg = accent === "primary" ? "rgba(74,222,128,0.15)"
-                          : accent === "danger" ? "rgba(239,68,68,0.1)"
-                          : "rgba(148,163,184,0.08)";
-                        const borderColor = accent === "primary" ? C.green
-                          : accent === "danger" ? C.red
-                          : C.textMuted;
-                        const textColor = accent === "primary" ? C.green
-                          : accent === "danger" ? C.lightRed
-                          : C.textMuted;
+                      {msg.choices.map((choice) => {
+                        const style = getChoiceButtonStyle(choice);
                         return (
                           <button key={choice.value} onClick={(e) => {
                             e.stopPropagation();
@@ -232,9 +202,9 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                             padding: mob ? "10px 17px" : "10px 24px",
                             fontSize: mob ? F.xs : F.sm,
                             fontFamily: FONT,
-                            background: bg,
-                            border: `1px solid ${borderColor}`,
-                            color: textColor,
+                            background: style.background,
+                            border: `1px solid ${style.border}`,
+                            color: style.color,
                             cursor: "pointer",
                           }}>
                             {choice.label}

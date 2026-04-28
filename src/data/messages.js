@@ -102,8 +102,8 @@ const asstMgrTrainingIntro = () => ({
   type: "asst_mgr_training_intro",
   visibleFromIndex: 2,
   choices: [
-    { label: "You Handle It", value: "delegate", resultText: "Asst. Manager has set everyone to a balanced training programme." },
-    { label: "I'll Set It Up", value: "manual",  resultText: "You'll set training assignments yourself on the Squad page." },
+    { label: "You Handle It",  value: "delegate", tone: "primary", resultText: "Asst. Manager has put everyone on a balanced training programme." },
+    { label: "I'll Set It Up", value: "manual",   tone: "neutral", resultText: "You'll set training assignments yourself on the Squad page." },
   ],
 });
 
@@ -133,8 +133,8 @@ const trainingNudge = (introDeclined) => ({
     : "Boss, we're 5 matchdays in and the lads still aren't training.\n\nThey're not going to get any better on their own. Say the word and I'll put everyone on a general programme \u2014 you can always change it later on the Squad page.",
   type: "asst_mgr_training_nudge",
   choices: [
-    { label: "Go On Then", value: "delegate", resultText: "Asst. Manager has stepped in — squad on a balanced programme." },
-    { label: "Leave It",   value: "dismiss",  resultText: "You're holding off on training for now." },
+    { label: "Go On Then", value: "delegate", tone: "primary", resultText: "Asst. Manager stepped in — squad on a balanced programme." },
+    { label: "Leave It",   value: "dismiss",  tone: "neutral", resultText: "You're holding off on training for now." },
   ],
 });
 
@@ -189,7 +189,10 @@ const trialOffer = (player, trialWeek) => ({
   type: "trial_offer",
   trialPlayerData: player,
   visibleFromIndex: trialWeek - 1,
-  choices: [{ label: "Accept Trial", value: "accept" }, { label: "Decline", value: "decline" }],
+  choices: [
+    { label: "Accept Trial", value: "accept",  tone: "primary", resultText: "You took on the trial." },
+    { label: "Decline",      value: "decline", tone: "neutral", resultText: "You passed on the trial." },
+  ],
 });
 
 const trialDeclinedRival = (playerName, playerFlag, rivalName, trialAtWeek) => ({
@@ -598,7 +601,10 @@ const prodigalOffer = (player, formerClub, offerWeek) => ({
   visibleFromIndex: offerWeek - 1,
   type: "prodigal_offer",
   prodigalPlayerData: player,
-  choices: [{ label: "Sign Him", value: "accept" }, { label: "Pass", value: "decline" }],
+  choices: [
+    { label: "Sign Him", value: "accept",  tone: "primary", resultText: "You welcomed him back." },
+    { label: "Pass",     value: "decline", tone: "neutral", resultText: "You passed on the return." },
+  ],
 });
 
 const prodigalStart = (name) => ({
@@ -761,7 +767,10 @@ const transferInsider = (player, ovr) => ({
   color: "#34d399",
   type: "free_agent_offer",
   freeAgentData: player,
-  choices: [{ label: "Sign Player", value: "accept" }, { label: "Pass", value: "decline" }],
+  choices: [
+    { label: "Sign Player", value: "accept",  tone: "primary", resultText: "You signed the player." },
+    { label: "Pass",        value: "decline", tone: "neutral", resultText: "You passed on the deal." },
+  ],
 });
 
 const saudiAgent = (player, ovr) => ({
@@ -772,7 +781,10 @@ const saudiAgent = (player, ovr) => ({
   color: "#d4a017",
   type: "free_agent_offer",
   freeAgentData: player,
-  choices: [{ label: "Sign Player", value: "accept" }, { label: "Pass", value: "decline" }],
+  choices: [
+    { label: "Sign Player", value: "accept",  tone: "primary", resultText: "You signed the player." },
+    { label: "Pass",        value: "decline", tone: "neutral", resultText: "You passed on the deal." },
+  ],
 });
 
 const scoutDossier = (playerName, body) => ({
@@ -883,9 +895,10 @@ const poachEvent = (body, players, rivalIdx) => ({
   poachPlayers: players,
   poachRivalIdx: rivalIdx,
   choices: [
-    { label: `Sign ${players[0].name}`, value: "0" },
-    { label: `Sign ${players[1].name}`, value: "1" },
-    { label: `Sign ${players[2].name}`, value: "2" },
+    // Three equivalent positive choices — all primary, no first-position bias.
+    { label: `Sign ${players[0].name}`, value: "0", tone: "primary", resultText: `You signed ${players[0].name}.` },
+    { label: `Sign ${players[1].name}`, value: "1", tone: "primary", resultText: `You signed ${players[1].name}.` },
+    { label: `Sign ${players[2].name}`, value: "2", tone: "primary", resultText: `You signed ${players[2].name}.` },
   ],
 });
 
@@ -1015,7 +1028,10 @@ export const MSG = {
     body: `Hey Boss, good news! ${playerName} has reached an elite level in ${cappedAttr} and now would benefit from focussing on other aspects of their game in training such as ${suggestedAttr}. Should I move them onto that or do you want to handle it yourself?`,
     color: "#4ade80",
     type: "stat_cap",
-    choices: [{ label: "Go Ahead", value: "switch_training", data: { suggestedKey } }, { label: "I'll Handle It", value: "dismiss" }],
+    choices: [
+      { label: "Go Ahead",     value: "switch_training", data: { suggestedKey }, tone: "primary", resultText: `Switched ${playerName}'s training to ${suggestedAttr}.` },
+      { label: "I'll Handle It", value: "dismiss",                                tone: "neutral", resultText: `You'll set ${playerName}'s training yourself.` },
+    ],
     _playerName: playerName,
   }),
   // Breakout

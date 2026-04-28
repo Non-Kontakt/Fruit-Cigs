@@ -3,10 +3,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 
-// `?reset` URL trigger: wipe browser storage and strip the query before
-// mount. Lets us bookmark e.g. /Fruit-Cigs/?reset for a clean slate on
-// each click without the F12 console dance.
-if (new URLSearchParams(window.location.search).has("reset")) {
+// Dev-only `?reset` URL trigger: wipe browser storage and strip the query
+// before mount. Bookmark `/Fruit-Cigs/?reset` on the dev server for a
+// clean slate without the F12 console dance. Gated on `import.meta.env.DEV`
+// so the deployed Pages build doesn't honour it — a stranger sharing a
+// `?reset` link should never be able to silently nuke a player's saves.
+if (import.meta.env.DEV && new URLSearchParams(window.location.search).has("reset")) {
   try { localStorage.clear(); } catch (e) {}
   try { sessionStorage.clear(); } catch (e) {}
   const url = new URL(window.location.href);

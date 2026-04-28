@@ -1341,7 +1341,10 @@ function FruitCigs() {
     }
     if (msg.type === "asst_mgr_training_intro" || msg.type === "asst_mgr_training_nudge") {
       if (choice === "delegate") {
-        setSquad(prev => prev.map(p => ({ ...p, training: p.training || "balanced" })));
+        // Force-overwrite every player's training. The message promises
+        // "I'm happy to put everyone on a general programme" — so honour
+        // that even for players who already had a different focus set.
+        setSquad(prev => prev.map(p => ({ ...p, training: "balanced" })));
         setTrainedThisWeek(new Set(useGameStore.getState().squad.map(p => p.id)));
       }
     }
