@@ -40,6 +40,29 @@ test.describe("full-app flows", () => {
     await shot(page, testInfo.project.name, "flow-fresh-newgame");
   });
 
+  test("squad page renders the full player list", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Navigate to the squad page via the real nav, like a player would.
+    await page.getByText("SQUAD", { exact: false }).first().click();
+    await page.waitForTimeout(400);
+
+    // Auto-assign a lineup so the list shows the real XI/bench/reserve mix
+    // a player actually manages, not a fresh unassigned roster.
+    await page.getByText("ASST XI", { exact: false }).first().click();
+    await page.waitForFunction(() => (window.__fc.getState().startingXI || []).length === 11, null, { timeout: 5_000 });
+    await page.waitForTimeout(300);
+
+    // Sanity: the roster actually rendered (a squad is 16+ players).
+    const squadSize = await page.evaluate(() => window.__fc.getState().squad.length);
+    expect(squadSize, "squad should be generated").toBeGreaterThanOrEqual(16);
+
+    await shot(page, testInfo.project.name, "flow-squad-page");
+  });
+
   test("save round-trips through localStorage and resumes", async ({ page }, testInfo) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
