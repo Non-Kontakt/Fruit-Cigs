@@ -28,6 +28,7 @@ export function Dashboard({
   gameMode = "casual",
   showLineupWarning = false, onDismissLineupWarning, onLineupWarningGoToSquad, onLineupWarningPlayAnyway,
   rotationWarning = null, onDismissRotationWarning, onRotationWarningGoToSquad,
+  latestHeadline = null,
 }) {
   const mob = useMobile();
 
@@ -122,13 +123,22 @@ export function Dashboard({
 
   // Headline
   const headline = useMemo(() => {
+    const recordSub = playerRow
+      ? `W${record.w} D${record.d} L${record.l} · GF ${seasonGoalsFor || 0} · ${playerRow.pos}${playerRow.pos === 1 ? "st" : playerRow.pos === 2 ? "nd" : playerRow.pos === 3 ? "rd" : "th"} in ${leagueDef.name || "League"}`
+      : null;
     // Last result from calendarResults
-    if (!calendarResults || !seasonCalendar) return { main: "THE SEASON AWAITS", sub: null };
+    if (!calendarResults || !seasonCalendar) return { main: "THE SEASON AWAITS", byline: null, sub: null };
     const sorted = Object.entries(calendarResults)
       .map(([k, v]) => ({ idx: Number(k), ...v }))
       .filter(r => !r.spectator)
       .sort((a, b) => b.idx - a.idx);
-    if (sorted.length === 0) return { main: "THE SEASON AWAITS", sub: null };
+    if (sorted.length === 0) return { main: "THE SEASON AWAITS", byline: null, sub: null };
+    // Prefer the generated back page for the latest result — the template
+    // pools live in utils/headlines.js; the copy below is the fallback for
+    // saves that predate them.
+    if (latestHeadline?.headline && latestHeadline.season === seasonNumber) {
+      return { main: latestHeadline.headline, byline: latestHeadline.byline || null, sub: recordSub };
+    }
     const last = sorted[0];
     const calEntry = seasonCalendar[last.idx];
     const tn = (teamName || "CITY").toUpperCase();
@@ -187,12 +197,8 @@ export function Dashboard({
       }
     }
 
-    const sub = playerRow
-      ? `W${record.w} D${record.d} L${record.l} \u00B7 GF ${seasonGoalsFor || 0} \u00B7 ${playerRow.pos}${playerRow.pos === 1 ? "st" : playerRow.pos === 2 ? "nd" : playerRow.pos === 3 ? "rd" : "th"} in ${leagueDef.name || "League"}`
-      : null;
-
-    return { main, sub };
-  }, [calendarResults, seasonCalendar, league, teamName, playerRow, record, seasonGoalsFor, leagueDef, cup]);
+    return { main, byline: null, sub: recordSub };
+  }, [calendarResults, seasonCalendar, league, teamName, playerRow, record, seasonGoalsFor, leagueDef, cup, latestHeadline, seasonNumber]);
 
   // Top scorers (squad)
   const topScorer = useMemo(() => {
@@ -397,6 +403,17 @@ export function Dashboard({
         }}>
           {headline.main}
         </div>
+        {headline.byline && (
+          <div style={{
+            fontSize: F.xs,
+            color: C.textDim,
+            fontStyle: "italic",
+            marginTop: 5,
+            letterSpacing: 1,
+          }}>
+            {headline.byline}
+          </div>
+        )}
         {headline.sub && (
           <div style={{
             fontSize: F.xs,

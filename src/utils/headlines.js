@@ -328,6 +328,40 @@ const TEMPLATES = {
 };
 
 // ---------------------------------------------------------------------------
+// Season-defining front pages — the rare editions worth forwarding to the
+// manager's inbox rather than living only on the dashboard masthead.
+// ---------------------------------------------------------------------------
+const SEASON_TEMPLATES = {
+  champions: [
+    (tn, ln) => `CHAMPIONS! ${tn} CROWNED KINGS OF ${ln}`,
+    (tn, ln) => `${tn} WIN THE LOT — ${ln} TITLE SEALED`,
+    (tn, ln) => `GLORY DAYS: ${tn} ARE ${ln} CHAMPIONS`,
+    (tn, ln) => `THE TITLE COMES HOME — ${tn} TOP OF ${ln}`,
+    (tn) => `PUT IT ON THE HONOURS BOARD: ${tn}, CHAMPIONS`,
+  ],
+  promoted: [
+    (tn, ln) => `GOING UP! ${tn} SEAL PROMOTION FROM ${ln}`,
+    (tn) => `NEXT STOP, THE BIG TIME — ${tn} PROMOTED`,
+    (tn, ln) => `UP AND AWAY: ${tn} CLIMB OUT OF ${ln}`,
+    (tn) => `PROMOTION PARTY — DRINKS ON THE HOUSE AT ${tn}`,
+  ],
+  relegated: [
+    (tn, ln) => `DOWN AND OUT — ${tn} RELEGATED FROM ${ln}`,
+    (tn) => `THE DROP CLAIMS ${tn}`,
+    (tn, ln) => `DARK DAY: ${tn} SENT DOWN FROM ${ln}`,
+    (tn) => `ROCK BOTTOM — RELEGATION CONFIRMED FOR ${tn}`,
+  ],
+};
+
+export function generateSeasonHeadline({ type, teamName, leagueName }) {
+  const pool = SEASON_TEMPLATES[type];
+  if (!pool) return null;
+  const tn = (teamName || "WE").toUpperCase();
+  const ln = (leagueName || "THE LEAGUE").toUpperCase();
+  return pickRandom(pool)(tn, ln);
+}
+
+// ---------------------------------------------------------------------------
 // generateMatchHeadline
 // ---------------------------------------------------------------------------
 export function generateMatchHeadline(ctx = {}) {

@@ -72,6 +72,8 @@ export function useSaveGame({
         consecutiveUnbeaten: s.consecutiveUnbeaten, consecutiveLosses: s.consecutiveLosses,
         consecutiveDraws: s.consecutiveDraws, consecutiveWins: s.consecutiveWins,
         consecutiveScoreless: s.consecutiveScoreless,
+        consecutiveCleanSheets: s.consecutiveCleanSheets,
+        latestHeadline: s.latestHeadline,
         prevStartingXI: s.prevStartingXI,
         motmTracker: s.motmTracker, stScoredConsecutive: s.stScoredConsecutive,
         playerRatingTracker: s.playerRatingTracker, playerRatingNames: s.playerRatingNames,
@@ -375,6 +377,8 @@ export function useSaveGame({
       store.setConsecutiveDraws(s.consecutiveDraws || 0);
       store.setConsecutiveWins(s.consecutiveWins || 0);
       store.setConsecutiveScoreless(s.consecutiveScoreless || 0);
+      store.setConsecutiveCleanSheets(s.consecutiveCleanSheets || 0);
+      store.setLatestHeadline(s.latestHeadline || null);
       store.setFanSentiment(s.fanSentiment ?? 50);
       store.setBoardSentiment(s.boardSentiment ?? 50);
       store.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);

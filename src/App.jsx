@@ -241,6 +241,7 @@ function FruitCigs() {
   const teamName = useGameStore(s => s.teamName);
   const newspaperName = useGameStore(s => s.newspaperName);
   const reporterName = useGameStore(s => s.reporterName);
+  const latestHeadline = useGameStore(s => s.latestHeadline);
   const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => {
     const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
@@ -4905,6 +4906,7 @@ function FruitCigs() {
             advanceWeek();
           }
         }}
+        latestHeadline={latestHeadline}
         rotationWarning={rotationWarning}
         onDismissRotationWarning={() => setRotationWarning(null)}
         onRotationWarningGoToSquad={() => {
