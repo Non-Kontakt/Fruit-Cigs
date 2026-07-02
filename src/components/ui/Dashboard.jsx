@@ -133,13 +133,14 @@ export function Dashboard({
       .filter(r => !r.spectator)
       .sort((a, b) => b.idx - a.idx);
     if (sorted.length === 0) return { main: "THE SEASON AWAITS", byline: null, sub: null };
-    // Prefer the generated back page for the latest result — the template
-    // pools live in utils/headlines.js; the copy below is the fallback for
-    // saves that predate them.
-    if (latestHeadline?.headline && latestHeadline.season === seasonNumber) {
+    const last = sorted[0];
+    // Prefer the generated back page — but only when it belongs to the
+    // latest played result. Result paths that don't generate headlines yet
+    // (cup, holiday) must fall through to the fallback copy below rather
+    // than leave a stale front page up.
+    if (latestHeadline?.headline && latestHeadline.season === seasonNumber && latestHeadline.calendarIndex === last.idx) {
       return { main: latestHeadline.headline, byline: latestHeadline.byline || null, sub: recordSub };
     }
-    const last = sorted[0];
     const calEntry = seasonCalendar[last.idx];
     const tn = (teamName || "CITY").toUpperCase();
 

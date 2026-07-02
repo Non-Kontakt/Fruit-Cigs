@@ -559,6 +559,7 @@ export function useMatchResult({
               seasonBiggestWin: playerWon && goalDiff >= 4 && goalDiff > (s.clubHistory?.biggestWin?.diff || 0),
             }),
             season: s.seasonNumber,
+            calendarIndex: calIdx,
           });
         }
 

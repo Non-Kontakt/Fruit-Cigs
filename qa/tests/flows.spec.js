@@ -198,6 +198,7 @@ test.describe("full-app flows", () => {
           headline: "HAT-TRICK HERO: ROBINSON FIRES RED LION FC PAST DOG & DUCK 3-0",
           byline: "— Trevor Ash reports",
           season: s.seasonNumber,
+          calendarIndex: 0,
         },
       });
     });
@@ -206,5 +207,20 @@ test.describe("full-app flows", () => {
     await expect(page.getByText("HAT-TRICK HERO", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText("Trevor Ash", { exact: false }).first()).toBeVisible();
     await shot(page, testInfo.project.name, "flow-dashboard-headline");
+
+    // Staleness guard: a newer result lands via a path that doesn't generate
+    // headlines (cup/holiday). The old back page must NOT stay up — the
+    // masthead falls back to copy for the newest result.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      window.__fc.setState({
+        calendarResults: {
+          ...s.calendarResults,
+          1: { playerGoals: 0, oppGoals: 2, won: false, draw: false },
+        },
+      });
+    });
+    await page.waitForTimeout(300);
+    await expect(page.getByText("HAT-TRICK HERO", { exact: false })).toHaveCount(0);
   });
 });
