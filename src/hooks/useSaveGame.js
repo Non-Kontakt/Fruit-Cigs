@@ -10,7 +10,7 @@ import { UNLOCKABLE_PLAYERS, TIER_WIN_ACHS } from "../data/achievements.js";
 import { DEFAULT_FORMATION } from "../data/formations.js";
 import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall } from "../utils/calc.js";
-import { getOvrCap, pickAINationality, generateNameForNation, inferNationality, generateSquadPhilosophy } from "../utils/player.js";
+import { getOvrCap, pickAINationality, generateNameForNation, inferNationality, generateSquadPhilosophy, renameDuplicateNames } from "../utils/player.js";
 import { initStoryArcs } from "../utils/arcs.js";
 import { simulateMatchweek } from "../utils/match.js";
 import { normalizeRosters, initLeague, initAILeague, buildSeasonCalendar, computeCalendarIndex, initCup } from "../utils/league.js";
@@ -193,7 +193,7 @@ export function useSaveGame({
       store.setManagerAvatar(s.managerAvatar || randomAvatar());
       // Migrate: add nationality, statProgress, and potential to existing players if missing
       const loadOvrCap = getOvrCap(s.prestigeLevel || 0);
-      const migratedSquad = (s.squad || []).map(p => {
+      const rawMigratedSquad = (s.squad || []).map(p => {
         const migrated = { ...p };
         if (!migrated.nationality) migrated.nationality = inferNationality(migrated.name);
         if (!migrated.statProgress) migrated.statProgress = {};
@@ -204,6 +204,10 @@ export function useSaveGame({
         }
         return migrated;
       });
+      // Repair: rename duplicate names saved before generation guaranteed
+      // per-squad uniqueness (the later duplicate gets a suffix; ids keep
+      // every assignment intact)
+      const migratedSquad = renameDuplicateNames(rawMigratedSquad);
       store.setSquad(migratedSquad);
       // Migrate: patch AI team squad members with names/nationalities + add bench if missing
       if (s.league?.teams) {
@@ -236,6 +240,7 @@ export function useSaveGame({
                 team.squad.push({ name: nd.name, position: pos, attrs, isBench: true, nationality: nc });
               });
             }
+            team.squad = renameDuplicateNames(team.squad);
           }
         });
       }
@@ -638,6 +643,7 @@ export function useSaveGame({
                 team.squad.forEach(p => {
                   if (!p.nationality) p.nationality = pickAINationality(Number(tier));
                 });
+                team.squad = renameDuplicateNames(team.squad);
               }
             });
           }

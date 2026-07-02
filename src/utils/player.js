@@ -63,18 +63,9 @@ function genId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// Retry wrapper — generates objects until a unique name is found.
-// If maxAttempts is exhausted, disambiguate deterministically with a suffix
-// rather than ever handing back a name already in use.
+// Deterministic name disambiguation: suffix a base name until it's free.
 const DISAMBIGUATION_SUFFIXES = ["II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
-export function uniqueGenerate(generatorFn, usedNames, maxAttempts = 20) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const result = generatorFn();
-    if (!usedNames.has(result.name)) { usedNames.add(result.name); return result; }
-  }
-  const result = generatorFn();
-  if (!usedNames.has(result.name)) { usedNames.add(result.name); return result; }
-  const base = result.name;
+function disambiguateName(base, usedNames) {
   let candidate = base;
   let suffixIdx = 0;
   let numericSuffix = 11;
@@ -87,8 +78,42 @@ export function uniqueGenerate(generatorFn, usedNames, maxAttempts = 20) {
       numericSuffix++;
     }
   }
+  return candidate;
+}
+
+// Retry wrapper — generates objects until a unique name is found.
+// If maxAttempts is exhausted, disambiguate deterministically with a suffix
+// rather than ever handing back a name already in use.
+export function uniqueGenerate(generatorFn, usedNames, maxAttempts = 20) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const result = generatorFn();
+    if (!usedNames.has(result.name)) { usedNames.add(result.name); return result; }
+  }
+  const result = generatorFn();
+  if (!usedNames.has(result.name)) { usedNames.add(result.name); return result; }
+  const candidate = disambiguateName(result.name, usedNames);
   usedNames.add(candidate);
   return { ...result, name: candidate };
+}
+
+// Save repair: rename later occurrences of a duplicated name within one
+// squad (saves written before generation guaranteed uniqueness). First
+// occurrence keeps the name; ids and everything else are untouched. Returns
+// the same array reference when nothing needed renaming, so callers can
+// cheaply detect whether a repair happened.
+export function renameDuplicateNames(squad) {
+  if (!Array.isArray(squad) || squad.length === 0) return squad;
+  const seen = new Set();
+  let changed = false;
+  const repaired = squad.map(p => {
+    if (!p?.name) return p;
+    if (!seen.has(p.name)) { seen.add(p.name); return p; }
+    const fresh = disambiguateName(p.name, seen);
+    seen.add(fresh);
+    changed = true;
+    return { ...p, name: fresh };
+  });
+  return changed ? repaired : squad;
 }
 
 export function getFirstName(name) { return (name || "").split(" ")[0]; }
