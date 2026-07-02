@@ -3453,9 +3453,13 @@ function FruitCigs() {
       )}
 
       {isMobile && selectedForMove && !swapTarget && (
+        // Fixed, not in-flow — an in-flow banner here pushes the whole
+        // squad list down the moment a row is tapped, making it look like
+        // the list jumped under the player's thumb.
         <div style={{
+          position: "fixed", left: 8, right: 8, bottom: 34, zIndex: Z.bar,
           background: "rgba(74,222,128,0.12)", border: `1px solid ${C.green}`,
-          padding: "10px 16px", marginBottom: 12, display: "flex", alignItems: "center",
+          padding: "10px 16px", display: "flex", alignItems: "center",
           justifyContent: "space-between", gap: 12,
           fontFamily: FONT,
         }}>

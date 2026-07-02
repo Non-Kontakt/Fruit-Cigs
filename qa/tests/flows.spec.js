@@ -79,4 +79,41 @@ test.describe("full-app flows", () => {
     const resumed = await page.evaluate(() => window.__fc.getState().league != null);
     expect(resumed, "league should hydrate from the injected save").toBe(true);
   });
+
+  test("mobile: selecting a squad player does not shift the list", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile", "mobile-only");
+
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Navigate to the squad page via the real nav, like a player would.
+    await page.getByText("SQUAD", { exact: false }).first().click();
+    await page.waitForTimeout(400);
+
+    // Names are shortened on mobile (displayName), so match on the surname —
+    // it survives the abbreviation either way.
+    const surname = await page.evaluate(() => {
+      const name = window.__fc.getState().squad[5].name;
+      return name.split(" ").pop();
+    });
+
+    // Exclude the "selected" banner, which echoes the same player's full
+    // name once tapped and would otherwise steal the .first() match.
+    const row = page.getByText(surname, { exact: false }).filter({ hasNotText: "selected" }).first();
+    await expect(row).toBeVisible({ timeout: 5_000 });
+
+    const before = await row.boundingBox();
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+
+    await row.click();
+    await page.waitForTimeout(300);
+
+    const after = await row.boundingBox();
+    const scrollAfter = await page.evaluate(() => window.scrollY);
+
+    expect(Math.abs(after.y - before.y), "row should not shift vertically on selection").toBeLessThan(2);
+    expect(Math.abs(scrollAfter - scrollBefore), "page should not scroll on selection").toBeLessThan(2);
+  });
 });
