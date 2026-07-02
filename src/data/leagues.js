@@ -211,6 +211,20 @@ export const LEAGUE_DEFS = {
 
 export const NUM_TIERS = 11;
 
+// Stand-in names for when an AI team must be renamed — the tier defs reuse
+// plausible club names, so a player can register the same name as a built-in
+// team. The clashing AI club takes the first free name from this list.
+export const RESERVE_TEAM_NAMES = [
+  "Nag's Head",
+  "Fox & Hounds",
+  "White Hart",
+  "Queen's Arms",
+  "Black Swan",
+  "Coach & Horses",
+  "Royal Oak",
+  "Ship Inn",
+];
+
 export const TEAM_CONFIGS = LEAGUE_DEFS[11].teams; // backwards compat for any stray references
 
 export const TEAM_TRAITS = {

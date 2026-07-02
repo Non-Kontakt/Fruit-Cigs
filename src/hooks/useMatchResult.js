@@ -117,8 +117,8 @@ export function useMatchResult({
       // === Season end check ===
       if (newCalIdx >= cal.length) {
         const currentTier = currentLeague.tier || s.leagueTier;
-        const currentRosters = s.leagueRosters || initLeagueRosters();
-        const swapResult = processSeasonSwaps(currentRosters, currentLeague, currentTier, s.allLeagueStates);
+        const currentRosters = s.leagueRosters || initLeagueRosters(s.teamName);
+        const swapResult = processSeasonSwaps(currentRosters, currentLeague, currentTier, s.allLeagueStates, s.teamName);
         const position = swapResult.playerPosition;
         let newTier = swapResult.playerNewTier;
         const _mod = getModifier(currentTier);

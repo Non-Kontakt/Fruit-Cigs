@@ -16,7 +16,7 @@ export function useDebug({
 }) {
 
   const onDebugJumpTier = useCallback((tier) => {
-    const rosters = leagueRosters || initLeagueRosters();
+    const rosters = leagueRosters || initLeagueRosters(teamName);
     if (!leagueRosters) setLeagueRosters(rosters);
     const newLeague = initLeague(squad, teamName, tier, rosters, null, prestigeLevel);
     setLeague(newLeague);
