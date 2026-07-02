@@ -339,7 +339,7 @@ export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueS
     });
   }
 
-  // Ensure every tier has exactly 9 AI teams — fills any deficit caused by ghost-team loss
+  // Ensure every tier has exactly 10 AI teams — fills any deficit caused by ghost-team loss
   normalizeRosters(newRosters, playerTeamName);
 
   return { rosters: newRosters, playerNewTier, playerPosition: (playerPos ?? 0) + 1 };
