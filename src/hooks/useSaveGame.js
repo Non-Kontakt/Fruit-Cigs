@@ -506,7 +506,7 @@ export function useSaveGame({
         : (s.summerData || null);
       store.setSummerPhase(loadedSummerPhase);
       store.setSummerData(loadedSummerData);
-      const migratedRosters = s.leagueRosters ? normalizeRosters({ ...s.leagueRosters }) : null;
+      const migratedRosters = s.leagueRosters ? normalizeRosters({ ...s.leagueRosters }, s.teamName) : null;
       store.setLeagueRosters(migratedRosters);
       store.setHalfwayPosition(s.halfwayPosition ?? null);
       store.setPreviousLeaguePosition(s.previousLeaguePosition ?? null);

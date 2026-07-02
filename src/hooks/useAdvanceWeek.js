@@ -104,8 +104,8 @@ export function useAdvanceWeek({
           else if (position >= sorted.length - 2 && currentTier < NUM_TIERS) { newTier = currentTier + 1; moveType = "relegated"; }
         }
         // Process roster swaps for recovery path too
-        const currentRosters = leagueRosters || initLeagueRosters();
-        const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates);
+        const currentRosters = leagueRosters || initLeagueRosters(teamName);
+        const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates, teamName);
         s.setLeagueRosters(swapResult.rosters);
         const recoveryPlayerRow = league?.table?.find(r => league.teams[r.teamIndex]?.isPlayer);
         // Detect Dynasty Cup finish for promotion text

@@ -1,15 +1,49 @@
-import { LEAGUE_DEFS, NUM_TIERS } from "../data/leagues.js";
+import { LEAGUE_DEFS, NUM_TIERS, RESERVE_TEAM_CONFIGS } from "../data/leagues.js";
 import { CUP_ROUND_MATCHWEEKS, CUP_ROUND_NAMES, CUP_DEFS } from "../data/cups.js";
 import { TIER_WIN_ACHS } from "../data/achievements.js";
 import { generateAITeam, generateSquadPhilosophy } from "./player.js";
 import { generateFixtures, simulateMatch } from "./match.js";
 import { getModifier } from "../data/leagueModifiers.js";
 
+// The tier defs reuse plausible club names ("Red Lion FC", "Dog & Duck"...),
+// so a player can pick a name that already belongs to an AI team. AI configs
+// matching the player's name must never enter any roster.
+export function collidesWithPlayerName(name, playerTeamName) {
+  return !!playerTeamName && !!name &&
+    name.trim().toLowerCase() === playerTeamName.trim().toLowerCase();
+}
+
+// Rename any config clashing with the player's name, keeping its colours,
+// strength and trait so league line-ups and team counts stay intact. The name
+// pool is sized so every tier stays full — evicting instead would leave the
+// player's league a team short. Mutates namesInUse to track the swap.
+function renameCollisions(configs, playerTeamName, namesInUse) {
+  return configs.map(c => {
+    if (!collidesWithPlayerName(c.name, playerTeamName)) return c;
+    const fresh = RESERVE_TEAM_CONFIGS.find(r => !namesInUse.has(r.name) && !collidesWithPlayerName(r.name, playerTeamName));
+    if (!fresh) return c;
+    namesInUse.delete(c.name);
+    namesInUse.add(fresh.name);
+    return { ...c, name: fresh.name };
+  });
+}
+
 // Ensure every tier has exactly 10 AI teams.
 // AI-only leagues have 10 teams. Player's tier has 9 AI + player = 10.
 // initLeague trims 10 → 9 AI when the player joins; initAILeague uses all 10.
-export function normalizeRosters(rosters) {
+export function normalizeRosters(rosters, playerTeamName = null) {
   const TARGET = 10;
+  // Rename any AI config sharing the player's name (also heals rosters saved
+  // before this guard existed).
+  if (playerTeamName) {
+    const namesInUse = new Set();
+    for (let t = 1; t <= NUM_TIERS; t++) {
+      (rosters[t] || []).forEach(r => namesInUse.add(r.name));
+    }
+    for (let t = 1; t <= NUM_TIERS; t++) {
+      if (rosters[t]) rosters[t] = renameCollisions(rosters[t], playerTeamName, namesInUse);
+    }
+  }
   const allInUse = new Set();
   for (let t = 1; t <= NUM_TIERS; t++) {
     (rosters[t] || []).forEach(r => allInUse.add(r.name));
@@ -22,18 +56,28 @@ export function normalizeRosters(rosters) {
     for (const dt of searchOrder) {
       for (const c of (LEAGUE_DEFS[dt]?.teams || [])) {
         if (rosters[t].length >= TARGET) break;
-        if (!allInUse.has(c.name)) {
+        if (!allInUse.has(c.name) && !collidesWithPlayerName(c.name, playerTeamName)) {
           rosters[t].push({ ...c });
           allInUse.add(c.name);
         }
       }
       if (rosters[t].length >= TARGET) break;
     }
+    // Defs exhausted (they hold 109 names for 110 slots, and a player-name
+    // collision costs one more) — top up from the reserve pool so AI-only
+    // tiers never run a short league.
+    for (const c of RESERVE_TEAM_CONFIGS) {
+      if (rosters[t].length >= TARGET) break;
+      if (!allInUse.has(c.name) && !collidesWithPlayerName(c.name, playerTeamName)) {
+        rosters[t].push({ ...c });
+        allInUse.add(c.name);
+      }
+    }
   }
   return rosters;
 }
 
-export function initLeagueRosters() {
+export function initLeagueRosters(playerTeamName = null) {
   const rosters = {};
   for (let t = 1; t <= NUM_TIERS; t++) {
     rosters[t] = (LEAGUE_DEFS[t]?.teams || []).map(c => ({
@@ -42,7 +86,7 @@ export function initLeagueRosters() {
       trajectory: 0,
     }));
   }
-  return normalizeRosters(rosters);
+  return normalizeRosters(rosters, playerTeamName);
 }
 
 // Helper: sort a league table by points then goal difference (used ~18 times)
@@ -211,7 +255,7 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   return achs.filter(id => !unlockedAchievements.has(id));
 }
 
-export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueStates) {
+export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueStates, playerTeamName = null) {
   const standings = {};
 
   for (let tier = 1; tier <= NUM_TIERS; tier++) {
@@ -295,8 +339,8 @@ export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueS
     });
   }
 
-  // Ensure every tier has exactly 9 AI teams — fills any deficit caused by ghost-team loss
-  normalizeRosters(newRosters);
+  // Ensure every tier has exactly 10 AI teams — fills any deficit caused by ghost-team loss
+  normalizeRosters(newRosters, playerTeamName);
 
   return { rosters: newRosters, playerNewTier, playerPosition: (playerPos ?? 0) + 1 };
 }
@@ -312,31 +356,49 @@ export function initLeague(playerSquad, teamName, tier, rosters, preservedSquads
     aiTeamConfigs = [...leagueDef.teams];
   }
 
+  // An AI team must never share the player's name — rename any collision.
+  // Normally rosters arrive already clean; this catches rosters saved before
+  // the guard existed.
+  if (aiTeamConfigs.some(c => collidesWithPlayerName(c.name, teamName))) {
+    const namesInUse = new Set(aiTeamConfigs.map(c => c.name));
+    if (rosters) {
+      for (let t = 1; t <= NUM_TIERS; t++) {
+        (rosters[t] || []).forEach(r => namesInUse.add(r.name));
+      }
+    }
+    aiTeamConfigs = renameCollisions(aiTeamConfigs, teamName, namesInUse);
+  }
+
   // Ensure exactly 9 AI teams — but never pull teams that are in other tiers' rosters
   while (aiTeamConfigs.length > 9) aiTeamConfigs.pop();
-  if (aiTeamConfigs.length < 9 && rosters) {
+  if (aiTeamConfigs.length < 9) {
     const otherTierNames = new Set();
-    for (let t = 1; t <= NUM_TIERS; t++) {
-      if (t !== tier && rosters[t]) rosters[t].forEach(r => otherTierNames.add(r.name));
+    if (rosters) {
+      for (let t = 1; t <= NUM_TIERS; t++) {
+        if (t !== tier && rosters[t]) rosters[t].forEach(r => otherTierNames.add(r.name));
+      }
     }
     const existing = new Set(aiTeamConfigs.map(c => c.name));
-    // Try to fill from all league defs, avoiding duplicates and other-tier teams
-    for (let t = 1; t <= NUM_TIERS; t++) {
+    // Fill from this tier's defs first, then any other tier's, avoiding
+    // duplicates, other-tier teams, and the player's name
+    const searchOrder = [tier, ...Array.from({ length: NUM_TIERS }, (_, i) => i + 1).filter(x => x !== tier)];
+    for (const t of searchOrder) {
       if (aiTeamConfigs.length >= 9) break;
       (LEAGUE_DEFS[t]?.teams || []).forEach(c => {
         if (aiTeamConfigs.length >= 9) return;
-        if (!existing.has(c.name) && !otherTierNames.has(c.name)) {
-          aiTeamConfigs.push(c);
+        if (!existing.has(c.name) && !otherTierNames.has(c.name) && !collidesWithPlayerName(c.name, teamName)) {
+          aiTeamConfigs.push({ ...c });
           existing.add(c.name);
         }
       });
     }
-  } else {
-    while (aiTeamConfigs.length < 9) {
-      const existing = new Set(aiTeamConfigs.map(c => c.name));
-      const spare = leagueDef.teams.find(c => !existing.has(c.name));
-      if (spare) aiTeamConfigs.push(spare);
-      else break;
+    // Defs exhausted — top up from the reserve pool, same as normalizeRosters
+    for (const c of RESERVE_TEAM_CONFIGS) {
+      if (aiTeamConfigs.length >= 9) break;
+      if (!existing.has(c.name) && !otherTierNames.has(c.name) && !collidesWithPlayerName(c.name, teamName)) {
+        aiTeamConfigs.push({ ...c });
+        existing.add(c.name);
+      }
     }
   }
 

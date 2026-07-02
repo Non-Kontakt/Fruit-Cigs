@@ -211,6 +211,23 @@ export const LEAGUE_DEFS = {
 
 export const NUM_TIERS = 11;
 
+// Stand-in clubs for when the tier defs run out of names. Two consumers:
+// renaming an AI team whose name the player registered for their own club
+// (the renamed team keeps its original colours/strength/trait, only the
+// name is drawn from here), and backfilling a tier that the defs cannot
+// fill to size — the defs hold 109 names for 110 roster slots, and a
+// player-name collision costs one more.
+export const RESERVE_TEAM_CONFIGS = [
+  { name: "Nag's Head",     color: "#a78bfa", strength: 0.55, trait: "gritty" },
+  { name: "Fox & Hounds",   color: "#f97316", strength: 0.48, trait: "methodical" },
+  { name: "White Hart",     color: "#e2e8f0", strength: 0.42, trait: "defensive" },
+  { name: "Queen's Arms",   color: "#ec4899", strength: 0.36, trait: "set_piece" },
+  { name: "Black Swan",     color: "#64748b", strength: 0.30, trait: "flair" },
+  { name: "Coach & Horses", color: "#f59e0b", strength: 0.26, trait: "physical" },
+  { name: "Royal Oak",      color: "#22c55e", strength: 0.22, trait: "dominant" },
+  { name: "Ship Inn",       color: "#06b6d4", strength: 0.18, trait: "free_scoring" },
+];
+
 export const TEAM_CONFIGS = LEAGUE_DEFS[11].teams; // backwards compat for any stray references
 
 export const TEAM_TRAITS = {

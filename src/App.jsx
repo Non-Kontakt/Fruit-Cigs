@@ -878,7 +878,7 @@ function FruitCigs() {
   // Init league once team name is set (only if not loaded from save)
   useEffect(() => {
     if (teamName && !league) {
-      const rosters = leagueRosters || initLeagueRosters();
+      const rosters = leagueRosters || initLeagueRosters(teamName);
       if (!leagueRosters) setLeagueRosters(rosters);
       const newLeague = initLeague(squad, teamName, leagueTier, rosters, null, prestigeLevel);
       setLeague(newLeague);
@@ -5580,8 +5580,8 @@ function FruitCigs() {
             // Check for season end — all calendar entries played
             if (newCupCalIdx >= cal2.length) {
               const currentTier = league.tier || leagueTier;
-              const currentRosters = leagueRosters || initLeagueRosters();
-              const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates);
+              const currentRosters = leagueRosters || initLeagueRosters(teamName);
+              const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates, teamName);
               const position = swapResult.playerPosition;
               let newTier = swapResult.playerNewTier;
               // Safety: promote if eligible — tournament tiers use tournament results
@@ -6049,7 +6049,7 @@ function FruitCigs() {
             setSlotAssignments(null);
 
             // Regenerate leagues
-            const rosters = leagueRosters || initLeagueRosters();
+            const rosters = leagueRosters || initLeagueRosters(teamName);
             if (!leagueRosters) setLeagueRosters(rosters);
             const newLeague = initLeague(fullSquad, teamName, NUM_TIERS, rosters, null, newPrestige);
             setLeague(newLeague);
@@ -6558,7 +6558,7 @@ function FruitCigs() {
                 setRetiringPlayers(newRetiring);
                 return aged.map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
               });
-              const rosters = summerData.newRosters || leagueRosters || initLeagueRosters();
+              const rosters = summerData.newRosters || leagueRosters || initLeagueRosters(teamName);
 
               // Collect all AI squads from current season, then evolve them
               const squadMap = new Map();
