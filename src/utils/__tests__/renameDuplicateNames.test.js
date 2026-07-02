@@ -31,6 +31,17 @@ describe("renameDuplicateNames", () => {
     expect(out[2].name).toBe("Kai Mori III");
   });
 
+  it("never steals a name owned by a player later in the list", () => {
+    // The duplicate must jump to III — taking II would force an innocent
+    // rename of the real Kai Mori II behind it.
+    const squad = [player("a", "Kai Mori"), player("b", "Kai Mori"), player("c", "Kai Mori II")];
+    const out = renameDuplicateNames(squad);
+    expect(out[0].name).toBe("Kai Mori");
+    expect(out[1].name).toBe("Kai Mori III");
+    expect(out[2].name).toBe("Kai Mori II");
+    expect(out[2]).toBe(squad[2]);
+  });
+
   it("handles nameless or empty input gracefully", () => {
     expect(renameDuplicateNames([])).toEqual([]);
     expect(renameDuplicateNames(null)).toBe(null);

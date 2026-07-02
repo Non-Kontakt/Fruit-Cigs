@@ -103,13 +103,18 @@ export function uniqueGenerate(generatorFn, usedNames, maxAttempts = 20) {
 // cheaply detect whether a repair happened.
 export function renameDuplicateNames(squad) {
   if (!Array.isArray(squad) || squad.length === 0) return squad;
+  // Reserve every name in the original squad up front, so a repair never
+  // steals a name another player already legitimately owns further down
+  // the list (which would cascade renames onto innocent players).
+  const taken = new Set();
+  squad.forEach(p => { if (p?.name) taken.add(p.name); });
   const seen = new Set();
   let changed = false;
   const repaired = squad.map(p => {
     if (!p?.name) return p;
     if (!seen.has(p.name)) { seen.add(p.name); return p; }
-    const fresh = disambiguateName(p.name, seen);
-    seen.add(fresh);
+    const fresh = disambiguateName(p.name, taken);
+    taken.add(fresh);
     changed = true;
     return { ...p, name: fresh };
   });
