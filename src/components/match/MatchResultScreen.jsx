@@ -254,6 +254,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                   textDecoration: !homeTeam.isPlayer && homeTeam.squad ? "underline" : "none",
                   textDecorationColor: homeTeam.color || C.slate,
                   textDecorationStyle: "dotted",
+                  textUnderlineOffset: 3,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}
               >{homeTeam.name}</div>
@@ -283,6 +284,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                   textDecoration: !awayTeam.isPlayer && awayTeam.squad ? "underline" : "none",
                   textDecorationColor: awayTeam.color || C.slate,
                   textDecorationStyle: "dotted",
+                  textUnderlineOffset: 3,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}
               >{awayTeam.name}</div>
