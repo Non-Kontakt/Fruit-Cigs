@@ -2,14 +2,16 @@ import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
+import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
-// Component fixture registry for the visual QA harness.
+// Component fixture renderers for the visual QA harness.
 //
-// Each fixture is { id, label, render } — `render()` returns the component
-// mounted with deterministic mock props for one specific visual state. The
-// harness (qa/harness.jsx) picks a fixture by `?c=<id>` and Playwright loops
-// every fixture across desktop + mobile viewports, screenshotting each.
+// Fixture metadata (id/label/clickText) lives in registry.js; this file maps
+// each id to a `render()` that returns the component mounted with
+// deterministic mock props for one specific visual state. The harness
+// (qa/harness.jsx) picks a fixture by `?c=<id>` and Playwright loops every
+// fixture across desktop + mobile viewports, screenshotting each.
 //
 // Fixtures are hand-built, not captured — they exist to freeze the exact
 // states that are painful to reach in-game (a brace, duplicate surnames, a
@@ -196,88 +198,76 @@ const leagueStatsProps = (extra = {}) => ({
 });
 
 // ---------------------------------------------------------------------------
+// Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
+// registry.js — this map just attaches a renderer to each of them, and the
+// assertion below throws at import time if the two drift.
+// ---------------------------------------------------------------------------
 
-export const FIXTURES = [
-  {
-    id: "match-brace", label: "Match — brace by one scorer",
-    render: () => (
-      <MatchResultScreen {...matchProps(matchResult({
+const RENDERERS = {
+  "match-brace": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [
+        beat(14, "Robinson breaks through on goal... but fires over!"),
+        goal("home", "Nathan Robinson", "Alfie Wilson", 28, "#4ade80"),
+        goal("home", "Nathan Robinson", null, 31, "#4ade80"),
+        goal("away", "Max Doherty", "Reece Palmer", 67, "#38bdf8"),
+      ],
+      scorers: [
+        { name: "Nathan Robinson", side: "home" }, { name: "Nathan Robinson", side: "home" },
+        { name: "Max Doherty", side: "away" },
+      ],
+    }))} />
+  ),
+  "match-none": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [beat(22, "Chance for Adams... saved!"), beat(70, "Doherty heads wide.")],
+      scorers: [],
+    }))} />
+  ),
+  "match-dupe-surnames": () => {
+    const dupeHome = { ...homeTeam, squad: [
+      ...homeTeam.squad, { id: "hx", name: "Kevin Adams", position: "CM" },
+    ] };
+    const dupeLeague = { teams: [dupeHome, awayTeam], table };
+    return (
+      <MatchResultScreen {...matchProps({
+        home: 0, away: 1, isPlayerHome: true, penalties: null,
+        playerRatings: ratings(HOME_NAMES, "h"),
         events: [
-          beat(14, "Robinson breaks through on goal... but fires over!"),
-          goal("home", "Nathan Robinson", "Alfie Wilson", 28, "#4ade80"),
-          goal("home", "Nathan Robinson", null, 31, "#4ade80"),
-          goal("away", "Max Doherty", "Reece Palmer", 67, "#38bdf8"),
+          goal("home", "Louie Adams", null, 20, "#4ade80"),
+          goal("home", "Kevin Adams", "Louie Adams", 55, "#4ade80"),
         ],
-        scorers: [
-          { name: "Nathan Robinson", side: "home" }, { name: "Nathan Robinson", side: "home" },
-          { name: "Max Doherty", side: "away" },
-        ],
-      }))} />
-    ),
+        scorers: [{ name: "Louie Adams", side: "home" }, { name: "Kevin Adams", side: "home" }],
+      }, { league: dupeLeague })} />
+    );
   },
-  {
-    id: "match-none", label: "Match — goalless",
-    render: () => (
-      <MatchResultScreen {...matchProps(matchResult({
-        events: [beat(22, "Chance for Adams... saved!"), beat(70, "Doherty heads wide.")],
-        scorers: [],
-      }))} />
-    ),
-  },
-  {
-    id: "match-dupe-surnames", label: "Match — duplicate surnames",
-    render: () => {
-      const dupeHome = { ...homeTeam, squad: [
-        ...homeTeam.squad, { id: "hx", name: "Kevin Adams", position: "CM" },
-      ] };
-      const dupeLeague = { teams: [dupeHome, awayTeam], table };
-      return (
-        <MatchResultScreen {...matchProps({
-          home: 0, away: 1, isPlayerHome: true, penalties: null,
-          playerRatings: ratings(HOME_NAMES, "h"),
-          events: [
-            goal("home", "Louie Adams", null, 20, "#4ade80"),
-            goal("home", "Kevin Adams", "Louie Adams", 55, "#4ade80"),
-          ],
-          scorers: [{ name: "Louie Adams", side: "home" }, { name: "Kevin Adams", side: "home" }],
-        }, { league: dupeLeague })} />
-      );
-    },
-  },
-  {
-    id: "match-highlights", label: "Match — highlights mode",
-    render: () => (
-      <MatchResultScreen {...matchProps(matchResult({
-        events: [goal("home", "Sonny Reid", "Kai Bennett", 40, "#4ade80")],
-        scorers: [{ name: "Sonny Reid", side: "home" }],
-      }), { matchDetail: "highlights" })} />
-    ),
-  },
-  {
-    id: "inbox-asst-training", label: "Inbox — asst. manager training (unresolved)",
-    render: () => <InboxHarness messages={[asstTrainingMsg(false)]} />,
-  },
-  {
-    id: "inbox-asst-training-resolved", label: "Inbox — asst. manager training (resolved)",
-    render: () => <InboxHarness messages={[asstTrainingMsg(true)]} />,
-  },
-  {
-    id: "inbox-trial", label: "Inbox — trial offer (accept/decline)",
-    render: () => <InboxHarness messages={[trialMsg()]} />,
-  },
-  {
-    id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)",
-    render: () => <InboxHarness messages={[poachMsg()]} />,
-  },
-  {
-    // Lands on the TABLE tab; the spec clicks "STATS" (registry.clickText).
-    id: "leaguestats-mid", label: "League — stats tab mid-season",
-    render: () => (
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
-        <LeaguePage {...leagueStatsProps()} />
-      </div>
-    ),
-  },
-];
+  "match-highlights": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [goal("home", "Sonny Reid", "Kai Bennett", 40, "#4ade80")],
+      scorers: [{ name: "Sonny Reid", side: "home" }],
+    }), { matchDetail: "highlights" })} />
+  ),
+  "inbox-asst-training": () => <InboxHarness messages={[asstTrainingMsg(false)]} />,
+  "inbox-asst-training-resolved": () => <InboxHarness messages={[asstTrainingMsg(true)]} />,
+  "inbox-trial": () => <InboxHarness messages={[trialMsg()]} />,
+  "inbox-poach": () => <InboxHarness messages={[poachMsg()]} />,
+  // Lands on the TABLE tab; the spec clicks "STATS" (registry.clickText).
+  "leaguestats-mid": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <LeaguePage {...leagueStatsProps()} />
+    </div>
+  ),
+};
 
+const missingRenderer = REGISTRY.filter(f => !RENDERERS[f.id]).map(f => f.id);
+const orphanedRenderer = Object.keys(RENDERERS).filter(id => !REGISTRY.some(f => f.id === id));
+if (missingRenderer.length || orphanedRenderer.length) {
+  throw new Error(
+    "QA fixture registry/renderer mismatch — " +
+    (missingRenderer.length ? `registry ids with no renderer: ${missingRenderer.join(", ")}. ` : "") +
+    (orphanedRenderer.length ? `renderers with no registry entry: ${orphanedRenderer.join(", ")}.` : "")
+  );
+}
+
+export const FIXTURES = REGISTRY.map(f => ({ ...f, render: RENDERERS[f.id] }));
 export const FIXTURE_MAP = Object.fromEntries(FIXTURES.map(f => [f.id, f]));

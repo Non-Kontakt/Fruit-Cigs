@@ -4,20 +4,35 @@ import { FIXTURES } from "../fixtures/registry.js";
 
 const SHOT_DIR = path.resolve("qa/.artifacts/screenshots");
 
-// Console noise that isn't a real defect in a headless, no-audio-device,
-// no-network context. Anything matching these is dropped before we assert
-// the fixture rendered cleanly.
+// Console noise that isn't a real defect in a headless, no-audio-device
+// context. Anything matching these is dropped before we assert the fixture
+// rendered cleanly.
 const BENIGN = [
   /AudioContext/i, /audiocontext was not allowed/i, /\bTone\b/, /play\(\) (failed|request)/i,
-  /user gesture/i, /autoplay/i, /Failed to load resource/i, /favicon/i,
+  /user gesture/i, /autoplay/i,
 ];
 const isBenign = (msg) => BENIGN.some(re => re.test(msg));
+
+// Resource-load failures are only benign for assets we EXPECT to be absent
+// under the dev server: the favicon and audio files (no audio device, tracks
+// not served). A failed JS chunk, image, or stylesheet must fail the test.
+const EXPECTED_MISSING_RESOURCE = /favicon|\.(mp3|ogg|wav|m4a)(\?|#|$)/i;
 
 for (const fx of FIXTURES) {
   test(`component: ${fx.id}`, async ({ page }, testInfo) => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(String(e)));
-    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+    page.on("console", (m) => {
+      if (m.type() !== "error") return;
+      const text = m.text();
+      if (/Failed to load resource/i.test(text)) {
+        const url = m.location()?.url || "";
+        if (EXPECTED_MISSING_RESOURCE.test(url) || EXPECTED_MISSING_RESOURCE.test(text)) return;
+        errors.push(`${text} (${url || "unknown url"})`);
+        return;
+      }
+      errors.push(text);
+    });
 
     await page.goto(`qa.html?c=${fx.id}`);
     // Wait for the harness to mount the fixture.
