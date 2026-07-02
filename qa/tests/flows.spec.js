@@ -223,4 +223,23 @@ test.describe("full-app flows", () => {
     await page.waitForTimeout(300);
     await expect(page.getByText("HAT-TRICK HERO", { exact: false })).toHaveCount(0);
   });
+
+  test("achievement index lists the collection ledger", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Navigate to the achievement cabinet via the real nav, then to the INDEX tab.
+    await page.getByText("CORNER SHOP", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByText("INDEX", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+
+    await expect(page.getByText("INDEX ·", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    // Fresh game: almost everything is still behind a sealed pack.
+    await expect(page.getByText("hidden cards in sealed packs", { exact: false }).first()).toBeVisible();
+
+    await shot(page, testInfo.project.name, "flow-achievement-index");
+  });
 });
