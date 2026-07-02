@@ -899,7 +899,7 @@ function FruitCigs() {
       setCalendarIndex(0);
 
       // Initialize inbox with welcome messages
-      const trialP = generateTrialPlayer(ovrCap);
+      const trialP = generateTrialPlayer(ovrCap, new Set(squad.map(p => p.name)));
       const trialWeek = rand(2, 5);
       seedMessageSeq(0);
       setInboxMessages([
@@ -6129,7 +6129,7 @@ function FruitCigs() {
 
             // Generate prestige-scaled trial player for new season
             const newCap = getOvrCap(newPrestige);
-            const trialP = generateTrialPlayer(newCap);
+            const trialP = generateTrialPlayer(newCap, new Set(useGameStore.getState().squad.map(p => p.name)));
             const trialWeek = rand(2, 5);
             const nextSeason = (seasonNumber || 1) + 1;
             setInboxMessages(prev => [...prev.filter(m => m.type !== "trial_offer" || m.choiceResult), createInboxMessage(
@@ -6641,7 +6641,7 @@ function FruitCigs() {
                       const rivalOvrCap = getOvrCap(prestigeLevel);
                       const rivalAvgOvr = rivalSquad.length > 0
                         ? Math.round(rivalSquad.reduce((s, p) => s + getOverall(p), 0) / rivalSquad.length) : 8;
-                      const generated = generateFreeAgent(tk, rivalAvgOvr, rivalOvrCap);
+                      const generated = generateFreeAgent(tk, rivalAvgOvr, rivalOvrCap, new Set(rivalSquad.map(p => p.name)));
                       rivalSquad.push({ ...generated, name: entry.name, position: entry.position || generated.position, nationality: entry.nationality, flag: entry.flag });
                     }
                     break;
@@ -6717,7 +6717,7 @@ function FruitCigs() {
               // freeAgentSignings persists across seasons (it's a career stat)
               setCup(newSeasonCup);
               // Generate new trial player for next season
-              const nextTrialP = generateTrialPlayer(ovrCap);
+              const nextTrialP = generateTrialPlayer(ovrCap, new Set(useGameStore.getState().squad.map(p => p.name)));
               // Story arc: trial stat boosts
               const trialBoost = (storyArcs?.bonuses?.trialStatBoost || 0) + (storyArcs?.bonuses?.nextTrialBoost || 0);
               if (trialBoost > 0) {
@@ -6780,7 +6780,7 @@ function FruitCigs() {
                 const tierTeams = (rosters && rosters[newTier]) || LEAGUE_DEFS[newTier]?.teams || [];
                 if (tierTeams.length > 0) {
                   const formerClub = tierTeams[rand(0, tierTeams.length - 1)].name;
-                  const prodigalP = generateProdigalPlayer(formerClub, ovrCap);
+                  const prodigalP = generateProdigalPlayer(formerClub, ovrCap, new Set(useGameStore.getState().squad.map(p => p.name)));
                   const scoutWeek = rand(4, 6);
                   const offerWeek = scoutWeek + 2;
                   setProdigalSon({

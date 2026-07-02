@@ -63,15 +63,32 @@ function genId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// Retry wrapper — generates objects until a unique name is found
-function uniqueGenerate(generatorFn, usedNames, maxAttempts = 10) {
+// Retry wrapper — generates objects until a unique name is found.
+// If maxAttempts is exhausted, disambiguate deterministically with a suffix
+// rather than ever handing back a name already in use.
+const DISAMBIGUATION_SUFFIXES = ["II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+export function uniqueGenerate(generatorFn, usedNames, maxAttempts = 20) {
   for (let i = 0; i < maxAttempts; i++) {
     const result = generatorFn();
     if (!usedNames.has(result.name)) { usedNames.add(result.name); return result; }
   }
   const result = generatorFn();
-  usedNames.add(result.name);
-  return result;
+  if (!usedNames.has(result.name)) { usedNames.add(result.name); return result; }
+  const base = result.name;
+  let candidate = base;
+  let suffixIdx = 0;
+  let numericSuffix = 11;
+  while (usedNames.has(candidate)) {
+    if (suffixIdx < DISAMBIGUATION_SUFFIXES.length) {
+      candidate = `${base} ${DISAMBIGUATION_SUFFIXES[suffixIdx]}`;
+      suffixIdx++;
+    } else {
+      candidate = `${base} ${numericSuffix}`;
+      numericSuffix++;
+    }
+  }
+  usedNames.add(candidate);
+  return { ...result, name: candidate };
 }
 
 export function getFirstName(name) { return (name || "").split(" ")[0]; }
@@ -193,11 +210,8 @@ export function generateSquad(ovrCap = 20) {
   const usedNames = new Set();
   return positions.map((pos, i) => {
     const p = generatePlayer(pos, i, ovrCap);
-    for (let attempt = 0; attempt < 10 && usedNames.has(p.name); attempt++) {
-      const nd = generateNameForNation(p.nationality);
-      p.name = nd.name;
-    }
-    usedNames.add(p.name);
+    const { name } = uniqueGenerate(() => generateNameForNation(p.nationality), usedNames);
+    p.name = name;
     return p;
   });
 }
@@ -271,11 +285,8 @@ export function generatePrestigeSquad(oldCap, newCap) {
       injuryHistory: {},
     };
 
-    for (let attempt = 0; attempt < 10 && usedNames.has(p.name); attempt++) {
-      const nd = generateNameForNation(p.nationality);
-      p.name = nd.name;
-    }
-    usedNames.add(p.name);
+    const { name: uniqueName } = uniqueGenerate(() => generateNameForNation(p.nationality), usedNames);
+    p.name = uniqueName;
     return p;
   });
 }
@@ -764,7 +775,7 @@ export function generateYouthIntake(retiringIds, squad, youthCoup, ovrCap = 20) 
   return candidates;
 }
 
-export function generateFreeAgent(tierStrength, squadAvgOvr, ovrCap = 20) {
+export function generateFreeAgent(tierStrength, squadAvgOvr, ovrCap = 20, usedNames = new Set()) {
   const positions = ["ST","LW","RW","AM","CM","CB","LB","RB","GK"];
   const position = positions[rand(0, positions.length - 1)];
   const age = rand(22, 28);
@@ -782,7 +793,7 @@ export function generateFreeAgent(tierStrength, squadAvgOvr, ovrCap = 20) {
   const ovr = getOverall({ position, attrs });
   const potential = Math.min(ovrCap, ovr + rand(2, 6));
   const natCode = pickNationality();
-  const { name } = generateNameForNation(natCode);
+  const { name } = uniqueGenerate(() => generateNameForNation(natCode), usedNames);
   return {
     id: genId("free"),
     name, position, age, attrs, potential, nationality: natCode,
@@ -791,9 +802,9 @@ export function generateFreeAgent(tierStrength, squadAvgOvr, ovrCap = 20) {
   };
 }
 
-export function generateTrialPlayer(ovrCap = 20) {
+export function generateTrialPlayer(ovrCap = 20, usedNames = new Set()) {
   const natCode = FOREIGN_NATIONS[rand(0, FOREIGN_NATIONS.length - 1)];
-  const { name } = generateNameForNation(natCode);
+  const { name } = uniqueGenerate(() => generateNameForNation(natCode), usedNames);
   const positions = ["ST","LW","RW","AM","CM","CB","LB","RB"];
   const position = positions[rand(0, positions.length - 1)];
   const type = POSITION_TYPES[position];
@@ -823,8 +834,8 @@ export function generateTrialPlayer(ovrCap = 20) {
   };
 }
 
-export function generateProdigalPlayer(formerClub, ovrCap = 20) {
-  const { name } = generateNameForNation("ENG");
+export function generateProdigalPlayer(formerClub, ovrCap = 20, usedNames = new Set()) {
+  const { name } = uniqueGenerate(() => generateNameForNation("ENG"), usedNames);
   const positions = ["ST", "AM", "CM"];
   const position = positions[rand(0, positions.length - 1)];
   // Scale attrs as % of cap — prodigal son is a polished technical player
