@@ -4734,6 +4734,13 @@ function FruitCigs() {
       }}>
         TAP PLAYER TO SELECT · TAP AGAIN TO VIEW · TAP ANOTHER TO SWAP
       </div>)}
+      {/* The fixed selection banner floats over the page bottom — reserve
+          scroll room below the list so the last rows can still be reached
+          and tapped as swap targets while it's up. Appending height at the
+          page tail moves nothing that's on screen. */}
+      {isMobile && selectedForMove && !swapTarget && (
+        <div style={{ height: 72 }} />
+      )}
 
       {/* Player detail panel */}
       {selectedPlayer && (
