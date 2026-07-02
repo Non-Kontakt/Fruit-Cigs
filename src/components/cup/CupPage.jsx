@@ -7,7 +7,7 @@ import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, cupKey as makeCupKey } from "../../utils/competitionStats.js";
 
-export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlayerClick, onTeamClick, seasonCupStatsByCup = null, allTimeCupStatsByCup = null, seasonCupStatsAvailable = true }) {
+export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, league, allLeagueStates, onPlayerClick, onTeamClick, seasonCupStatsByCup = null, allTimeCupStatsByCup = null, seasonCupStatsAvailable = true }) {
   // Stats tab + selectors operate on the current cup's slot.
   const currentCupKey = cup?.cupName ? makeCupKey(cup.cupName) : null;
   const seasonCupStats = (seasonCupStatsByCup && currentCupKey) ? (seasonCupStatsByCup[currentCupKey] || null) : null;
@@ -24,6 +24,20 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
     });
     return map;
   }, [leagueRosters]);
+
+  // Cup match objects are lightweight stubs (name/tier/isPlayer) with no
+  // squad — squads live on the live league team objects. Build a name→team
+  // lookup across the player's league and every AI tier so Team of the Cup
+  // can resolve real rosters without attaching squads to the cup itself
+  // (the cup is serialized into saves).
+  const teamByName = React.useMemo(() => {
+    const map = new Map();
+    (league?.teams || []).forEach(t => map.set(t.name, t));
+    Object.values(allLeagueStates || {}).forEach(state => {
+      (state?.teams || []).forEach(t => map.set(t.name, t));
+    });
+    return map;
+  }, [league, allLeagueStates]);
 
   const resolvedTier = (team) => (team && liveTierByName[team.name] != null) ? liveTierByName[team.name] : team?.tier;
   const tierColor = (tier) => (LEAGUE_DEFS[tier]?.color) || C.textMuted;
@@ -148,6 +162,9 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
 
   // Team of the Cup — best XI based on cup performance (goals + wins + round reached)
   const teamOfCup = React.useMemo(() => {
+    // TOTC is an end-of-cup award — keep the "in progress" fallback truthful
+    // until there's actually a winner.
+    if (!cup?.winner) return [];
     if (!cup?.rounds) return [];
     // Build pool of players from all teams that played
     const candidates = [];
@@ -157,7 +174,8 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
       (round.matches || []).forEach(match => {
         if (!match.result || match.result.bye) return;
         [match.home, match.away].forEach(team => {
-          if (!team?.squad) return;
+          if (!team) return;
+          if (!teamByName.get(team.name)?.squad) return;
           const tName = team.name;
           if (!teamRoundReached[tName] || rIdx > teamRoundReached[tName]) {
             teamRoundReached[tName] = rIdx;
@@ -168,15 +186,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
 
     // For each team, score their starters based on: round reached, team goals, and whether they won
     Object.entries(teamRoundReached).forEach(([tName, maxRound]) => {
-      // Find the team object from any round they appeared in
-      let teamObj = null;
-      for (const round of cup.rounds) {
-        for (const match of (round.matches || [])) {
-          if (match.home?.name === tName) { teamObj = match.home; break; }
-          if (match.away?.name === tName) { teamObj = match.away; break; }
-        }
-        if (teamObj) break;
-      }
+      const teamObj = teamByName.get(tName);
       if (!teamObj?.squad) return;
 
       const stats = cupStats.teamGoals[tName] || { scored: 0, wins: 0, played: 0 };
@@ -211,7 +221,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
       }
     }
     return xi;
-  }, [cup, cupStats]);
+  }, [cup, cupStats, teamByName]);
 
   const cupHistory = (clubHistory?.cupHistory || []);
 
@@ -561,7 +571,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, onPlaye
               </div>
             ) : (
               <div style={{ textAlign: "center", padding: 24, fontSize: F.sm, color: C.bgInput }}>
-                Cup matches still in progress
+                {!cup?.winner ? "Cup matches still in progress" : "Team of the Cup unavailable for this save"}
               </div>
             )}
           </div>
