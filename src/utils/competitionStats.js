@@ -323,6 +323,10 @@ export function rollIntoAllTime(allTime, season) {
  */
 export function mergeStatsAcrossTiers(statsByTier) {
   const players = {};
+  // Best single-tier goal tally per key — identity must compare spell vs
+  // spell, not spell vs the accumulated sum, or an early small spell can
+  // outrank a later dominant one.
+  const bestSpellGoals = {};
   if (!statsByTier) return { players };
 
   for (const blob of Object.values(statsByTier)) {
@@ -330,6 +334,7 @@ export function mergeStatsAcrossTiers(statsByTier) {
     for (const [key, entry] of Object.entries(blob.players)) {
       const prev = players[key];
       if (!prev) {
+        bestSpellGoals[key] = entry.goals || 0;
         players[key] = {
           key,
           playerId: entry.playerId || null,
@@ -346,7 +351,8 @@ export function mergeStatsAcrossTiers(statsByTier) {
       }
       // Identity comes from whichever tier entry has the most goals — the
       // player's dominant spell — not the most recently merged one.
-      const useNewIdentity = (entry.goals || 0) > (prev.goals || 0);
+      const useNewIdentity = (entry.goals || 0) > bestSpellGoals[key];
+      if (useNewIdentity) bestSpellGoals[key] = entry.goals || 0;
       players[key] = {
         ...prev,
         name: useNewIdentity ? (entry.name || prev.name) : prev.name,
