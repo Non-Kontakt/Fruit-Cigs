@@ -241,6 +241,7 @@ function FruitCigs() {
   const teamName = useGameStore(s => s.teamName);
   const newspaperName = useGameStore(s => s.newspaperName);
   const reporterName = useGameStore(s => s.reporterName);
+  const latestHeadline = useGameStore(s => s.latestHeadline);
   const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => {
     const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
@@ -264,7 +265,7 @@ function FruitCigs() {
     setTotalGains, setTotalMatches, setSeasonCleanSheets, setSeasonGoalsFor,
     setSeasonDraws, setSeasonHomeUnbeaten, setSeasonAwayWins, setSeasonAwayGames,
     setConsecutiveUnbeaten, setConsecutiveLosses, setConsecutiveDraws,
-    setConsecutiveWins, setConsecutiveScoreless,
+    setConsecutiveWins, setConsecutiveScoreless, setConsecutiveCleanSheets,
     setHalfwayPosition, setPreviousLeaguePosition, setRecentScorelines, setSecondPlaceFinishes,
     setOvrHistory, setClubHistory, setAllTimeLeagueStatsByTier, setSeasonLeagueStatsByTier, setSeasonLeagueStatsAvailable,
     setSeasonCupStatsByCup, setAllTimeCupStatsByCup, setSeasonCupStatsAvailable,
@@ -3090,6 +3091,7 @@ function FruitCigs() {
                           if (isDraw) { setConsecutiveDraws(prev => prev + 1); setConsecutiveWins(0); } else setConsecutiveDraws(0);
                           if (pWon) setConsecutiveWins(prev => prev + 1); else setConsecutiveWins(0);
                           if (pGoals === 0) setConsecutiveScoreless(prev => prev + 1); else setConsecutiveScoreless(0);
+                          if (oGoals === 0) setConsecutiveCleanSheets(prev => prev + 1); else setConsecutiveCleanSheets(0);
                           // Fan & Board Sentiment (holiday league match)
                           { const _holFanMult = getModifier(leagueTier).fanSentimentMult || 1;
                           setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment +
@@ -4905,6 +4907,7 @@ function FruitCigs() {
             advanceWeek();
           }
         }}
+        latestHeadline={latestHeadline}
         rotationWarning={rotationWarning}
         onDismissRotationWarning={() => setRotationWarning(null)}
         onRotationWarningGoToSquad={() => {

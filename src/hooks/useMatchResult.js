@@ -14,6 +14,7 @@ import { findCareerKey } from "../utils/careerLedger.js";
 import { checkAchievements } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
+import { generateMatchHeadline, generateSeasonHeadline } from "../utils/headlines.js";
 import { BGM } from "../utils/sfx.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
@@ -137,6 +138,23 @@ export function useMatchResult({
         if (position === 1) s.setLeagueWins(prev => prev + 1);
         if (position === 2) s.setSecondPlaceFinishes(prev => prev + 1);
         s.setLeagueRosters(swapResult.rosters);
+        // Season-defining back pages get forwarded to the inbox by the
+        // assistant — title wins beat promotion copy when both apply.
+        const backPageType = position === 1 ? "champions" : moveType === "promoted" ? "promoted" : moveType === "relegated" ? "relegated" : null;
+        if (backPageType) {
+          const backPage = generateSeasonHeadline({
+            type: backPageType, teamName: s.teamName,
+            leagueName: currentLeague.leagueName || LEAGUE_DEFS[currentTier]?.name,
+          });
+          if (backPage) {
+            s.setInboxMessages(prev => [...prev, createInboxMessage({
+              id: `msg_fwd_backpage_s${s.seasonNumber}`,
+              icon: "📰", color: "#60a5fa",
+              title: `FWD: ${backPage}`,
+              body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${backPage}"\n— ${s.newspaperName || "the local paper"}`,
+            }, { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber })]);
+          }
+        }
         const newSeasonUnlocks = collectSeasonEndAchievements({
           position, currentTier, moveType, newTier, lastSeasonMove: s.lastSeasonMove, league: currentLeague, leagueResults: s.leagueResults,
           playerSeasonStats: s.playerSeasonStats, seasonLeagueStats: s.seasonLeagueStatsByTier?.[currentTier] || null,
@@ -468,6 +486,7 @@ export function useMatchResult({
         if (isDraw) { s.setConsecutiveDraws(prev => prev + 1); s.setConsecutiveWins(0); } else s.setConsecutiveDraws(0);
         if (playerWon) s.setConsecutiveWins(prev => prev + 1); else s.setConsecutiveWins(0);
         if (playerGoals === 0) s.setConsecutiveScoreless(prev => prev + 1); else s.setConsecutiveScoreless(0);
+        if (oppGoals === 0) s.setConsecutiveCleanSheets(prev => prev + 1); else s.setConsecutiveCleanSheets(0);
 
         if (playerWon && s.formation) {
           const formKey = s.formation.map(sl => sl.pos).join("-");
@@ -509,6 +528,40 @@ export function useMatchResult({
         s.setStScoredConsecutive(prev => stScored ? prev + 1 : 0);
 
         if (matchResult.motmName) s.setMotmTracker(prev => ({ ...prev, [matchResult.motmName]: (prev[matchResult.motmName] || 0) + 1 }));
+
+        // Back page: one headline per match — the most newsworthy angle wins.
+        // Record flags come from clubHistory's pre-update values so the paper
+        // only claims records the ledger actually supports.
+        {
+          const playerSide = playerIsHome ? "home" : "away";
+          const headlineScorers = Object.entries(matchResult.scorers || {})
+            .filter(([key]) => key.startsWith(`${playerSide}|`))
+            .map(([key, count]) => ({ name: key.split("|")[1], goals: count }));
+          const postTable = sortStandings(currentLeague.table || []);
+          const postPos = postTable.findIndex(r => currentLeague.teams[r.teamIndex]?.isPlayer) + 1;
+          const prePos = useGameStore.getState().previousLeaguePosition;
+          s.setLatestHeadline({
+            ...generateMatchHeadline({
+              teamName: s.teamName,
+              opponentName: oppTeam?.name,
+              playerGoals, oppGoals, home: playerIsHome,
+              competition: "league",
+              reporterName: s.reporterName,
+              scorers: headlineScorers,
+              motmName: matchResult.motmName,
+              cleanSheet: oppGoals === 0,
+              cleanSheetStreak: oppGoals === 0 ? s.consecutiveCleanSheets + 1 : 0,
+              winStreak: newConsWins, lossStreak: newConsLosses, unbeatenRun: newConsUnbeaten,
+              wentTop: postPos === 1 && (prePos == null || prePos > 1),
+              position: postPos, prevPosition: prePos,
+              boardSentiment: s.boardSentiment,
+              recordUnbeatenRun: !playerLost && newConsUnbeaten >= 8 && newConsUnbeaten > (s.clubHistory?.bestUnbeatenRun || 0),
+              seasonBiggestWin: playerWon && goalDiff >= 4 && goalDiff > (s.clubHistory?.biggestWin?.diff || 0),
+            }),
+            season: s.seasonNumber,
+            calendarIndex: calIdx,
+          });
+        }
 
         if (matchResult.playerRatings) {
           s.setPlayerRatingTracker(prev => {

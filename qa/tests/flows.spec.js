@@ -180,4 +180,47 @@ test.describe("full-app flows", () => {
     expect(Math.abs(after.y - before.y), "row should not shift vertically on selection").toBeLessThan(2);
     expect(Math.abs(scrollAfter - scrollBefore), "page should not scroll on selection").toBeLessThan(2);
   });
+
+  test("dashboard renders the latest back-page headline", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Leave state the way processMatchDone would: one played result plus the
+    // generated back page for it. The masthead should print both.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      window.__fc.setState({
+        calendarResults: { 0: { playerGoals: 3, oppGoals: 0, won: true, draw: false } },
+        latestHeadline: {
+          category: "hattrick",
+          headline: "HAT-TRICK HERO: ROBINSON FIRES RED LION FC PAST DOG & DUCK 3-0",
+          byline: "— Trevor Ash reports",
+          season: s.seasonNumber,
+          calendarIndex: 0,
+        },
+      });
+    });
+    await page.waitForTimeout(300);
+
+    await expect(page.getByText("HAT-TRICK HERO", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Trevor Ash", { exact: false }).first()).toBeVisible();
+    await shot(page, testInfo.project.name, "flow-dashboard-headline");
+
+    // Staleness guard: a newer result lands via a path that doesn't generate
+    // headlines (cup/holiday). The old back page must NOT stay up — the
+    // masthead falls back to copy for the newest result.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      window.__fc.setState({
+        calendarResults: {
+          ...s.calendarResults,
+          1: { playerGoals: 0, oppGoals: 2, won: false, draw: false },
+        },
+      });
+    });
+    await page.waitForTimeout(300);
+    await expect(page.getByText("HAT-TRICK HERO", { exact: false })).toHaveCount(0);
+  });
 });
