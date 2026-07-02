@@ -27,6 +27,7 @@ export function Dashboard({
   ultimatumActive = false, ultimatumPtsEarned = 0, ultimatumTarget = 0, ultimatumGamesLeft = 0,
   gameMode = "casual",
   showLineupWarning = false, onDismissLineupWarning, onLineupWarningGoToSquad, onLineupWarningPlayAnyway,
+  rotationWarning = null, onDismissRotationWarning, onRotationWarningGoToSquad,
 }) {
   const mob = useMobile();
 
@@ -920,6 +921,64 @@ export function Dashboard({
                 letterSpacing: 1,
               }}>
                 PLAY ANYWAY
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ ROTATION REQUIRED MODAL ═══ */}
+      {rotationWarning && (
+        <div style={{ ...MODAL.backdrop, zIndex: Z.confirm }}>
+          <div style={{
+            ...MODAL.box,
+            border: `3px solid ${C.amber}`,
+            padding: mob ? "30px 20px" : "40px 44px",
+            width: mob ? "90%" : "auto",
+            boxShadow: "0 0 50px rgba(251,191,36,0.25), inset 0 0 80px rgba(0,0,0,0.6)",
+          }}>
+            <div style={{
+              fontSize: mob ? F.md : F.lg,
+              color: C.amber,
+              marginBottom: 18,
+              letterSpacing: 2,
+            }}>
+              🏔️ ROTATION REQUIRED
+            </div>
+            <div style={{
+              fontSize: mob ? F.xs : F.sm,
+              color: C.text,
+              lineHeight: 1.8,
+              marginBottom: 28,
+            }}>
+              {rotationWarning.reduced
+                ? `The board requires at least 1 change to the starting XI between matches (reduced due to squad fitness). You've made ${rotationWarning.changes}.`
+                : `The board requires at least ${rotationWarning.required} changes to the starting XI between matches. You've made ${rotationWarning.changes}. The altitude demands rotation.`}
+            </div>
+            <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={onRotationWarningGoToSquad} style={{
+                padding: mob ? "12px 20px" : "15px 30px",
+                fontSize: mob ? F.xs : F.md,
+                fontFamily: FONT,
+                background: "rgba(74,222,128,0.15)",
+                border: `2px solid ${C.green}`,
+                color: C.green,
+                cursor: "pointer",
+                letterSpacing: 1,
+              }}>
+                GO TO SQUAD
+              </button>
+              <button onClick={onDismissRotationWarning} style={{
+                padding: mob ? "12px 20px" : "15px 30px",
+                fontSize: mob ? F.xs : F.md,
+                fontFamily: FONT,
+                background: "rgba(30,41,59,0.8)",
+                border: `1px solid ${C.slate}`,
+                color: C.textMuted,
+                cursor: "pointer",
+                letterSpacing: 1,
+              }}>
+                CLOSE
               </button>
             </div>
           </div>

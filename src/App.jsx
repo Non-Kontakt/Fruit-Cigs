@@ -391,6 +391,7 @@ function FruitCigs() {
   const tradedWithClubs = useGameStore(s => s.tradedWithClubs);
   const startingXI = useGameStore(s => s.startingXI);
   const [showLineupWarning, setShowLineupWarning] = useState(null); // null | "advance" | "match"
+  const [rotationWarning, setRotationWarning] = useState(null); // null | { changes, required, reduced }
   const bench = useGameStore(s => s.bench);
   const [dragPlayer, setDragPlayer] = useState(null);
   const isMobile = useMobile();
@@ -2253,15 +2254,7 @@ function FruitCigs() {
                         const currNonGK = startingXI.filter(id => { const p = squad.find(pl => pl.id === id); return p && p.position !== "GK"; });
                         const changes = currNonGK.filter(id => !prevNonGK.includes(id)).length;
                         if (changes < requiredChanges) {
-                          setInboxMessages(prev => [...prev, createInboxMessage({
-                            id: `msg_rotation_block_${Date.now()}`,
-                            icon: "\uD83C\uDFD4\uFE0F",
-                            title: "Rotation Required",
-                            body: fitPlayers < 15
-                              ? `The board requires at least 1 change to the starting XI between matches (reduced due to squad fitness). You've made ${changes}.`
-                              : `The board requires at least ${requiredChanges} changes to the starting XI between matches. You've made ${changes}. The altitude demands rotation.`,
-                            color: "#f59e0b",
-                          }, { calendarIndex, seasonNumber })]);
+                          setRotationWarning({ changes, required: requiredChanges, reduced: fitPlayers < 15 });
                           return;
                         }
                       }
@@ -4845,6 +4838,14 @@ function FruitCigs() {
           } else {
             advanceWeek();
           }
+        }}
+        rotationWarning={rotationWarning}
+        onDismissRotationWarning={() => setRotationWarning(null)}
+        onRotationWarningGoToSquad={() => {
+          setRotationWarning(null);
+          setShowAchievements(false); setShowTable(false); setShowCalendar(false);
+          setShowCup(false); setShowTransfers(false); setShowLegends(false);
+          setShowSquad(true);
         }}
       />
       )}
