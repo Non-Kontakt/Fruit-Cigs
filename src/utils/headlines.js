@@ -32,6 +32,14 @@ function hattrickScorer(ctx) {
   return ctx.scorers.find(s => s.goals >= 3) || null;
 }
 
+// 3 -> "3RD", 4 -> "4TH", 21 -> "21ST" — for streak copy.
+function ordinal(n) {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}TH`;
+  const last = n % 10;
+  return `${n}${last === 1 ? "ST" : last === 2 ? "ND" : last === 3 ? "RD" : "TH"}`;
+}
+
 // ---------------------------------------------------------------------------
 // selectHeadlineCategory — deterministic, first match wins
 // ---------------------------------------------------------------------------
@@ -147,11 +155,11 @@ const TEMPLATES = {
     if (ctx.recordUnbeatenRun) {
       const run = ctx.unbeatenRun ?? "record";
       return pickRandom([
-        () => `RECORD BREAKERS! ${tn} STRETCH UNBEATEN RUN TO ${run} AFTER ${on}`,
-        () => `HISTORY IN THE MAKING — ${tn}'S ${run}-MATCH UNBEATEN RUN IS A CLUB RECORD`,
-        () => `${tn} REWRITE THE RECORD BOOKS: ${run} UNBEATEN AND COUNTING`,
-        () => `NO ONE CAN LIVE WITH THEM — ${tn} SET NEW UNBEATEN RECORD VS ${on}`,
-        () => `${run} AND STILL GOING — ${tn}'S RECORD RUN CONTINUES PAST ${on}`,
+        () => `${run} NOT OUT! ${tn} STRETCH UNBEATEN RUN PAST ${on}`,
+        () => `HISTORY IN THE MAKING — ${tn} NOW ${run} MATCHES WITHOUT DEFEAT`,
+        () => `WHO STOPS THEM? ${tn} HIT ${run} UNBEATEN AND COUNTING`,
+        () => `NO ONE CAN LIVE WITH THEM — ${tn} UNBEATEN IN ${run} AFTER ${on}`,
+        () => `${run} AND STILL GOING — ${tn}'S GREAT RUN CONTINUES PAST ${on}`,
       ])();
     }
     return pickRandom([
@@ -213,22 +221,27 @@ const TEMPLATES = {
     const { tn, on } = names(ctx);
     const streak = (ctx.winStreak ?? 0) >= 4 ? ctx.winStreak : ctx.unbeatenRun;
     const label = (ctx.winStreak ?? 0) >= 4 ? "WINS" : "UNBEATEN";
-    return pickRandom([
-      () => `UNSTOPPABLE! ${tn} MAKE IT ${streak} ${label} IN A ROW AFTER ${d.pg}-${d.og} OVER ${on}`,
-      () => `${tn} ON FIRE — ${streak}-MATCH ${label} RUN CONTINUES PAST ${on}`,
+    // A draw can extend an unbeaten run — keep win-flavoured copy for wins only.
+    const neutral = [
       () => `NOBODY CAN STOP THEM: ${tn}'S ${streak}-GAME ${label} STREAK ROLLS ON`,
       () => `${streak} AND COUNTING — ${tn} ${d.pg}-${d.og} ${on} EXTENDS THE RUN`,
+      () => `${tn} MARCH ON — ${streak}-MATCH RUN INTACT AFTER ${d.pg}-${d.og} WITH ${on}`,
+    ];
+    const winOnly = [
+      () => `UNSTOPPABLE! ${tn} MAKE IT ${streak} ${label} IN A ROW AFTER ${d.pg}-${d.og} OVER ${on}`,
+      () => `${tn} ON FIRE — ${streak}-MATCH ${label} RUN CONTINUES PAST ${on}`,
       () => `FORM OF THEIR LIVES: ${tn} MAKE IT ${streak} ${label} WITH WIN OVER ${on}`,
       () => `${tn} SWEEPING ALL BEFORE THEM — ${streak}-MATCH RUN AFTER ${d.pg}-${d.og} VS ${on}`,
-    ])();
+    ];
+    return pickRandom(d.won ? [...winOnly, ...neutral] : neutral)();
   },
   streak_cold: (ctx, d) => {
     const { tn, on } = names(ctx);
     const streak = ctx.lossStreak ?? 0;
     return pickRandom([
-      () => `${tn} SINK TO ${streak}TH STRAIGHT DEFEAT — ${d.pg}-${d.og} TO ${on}`,
+      () => `${tn} SINK TO ${ordinal(streak)} STRAIGHT DEFEAT — ${d.pg}-${d.og} TO ${on}`,
       () => `WON'T STOP LOSING: ${tn} MAKE IT ${streak} DEFEATS IN A ROW AFTER ${on} LOSS`,
-      () => `FREE FALL CONTINUES — ${tn} LOSE ${streak}TH ON THE BOUNCE TO ${on}`,
+      () => `FREE FALL CONTINUES — ${tn} LOSE ${ordinal(streak)} ON THE BOUNCE TO ${on}`,
       () => `${streak} AND SINKING: ${tn} ${d.pg}-${d.og} ${on} SPELLS FURTHER MISERY`,
       () => `CRISIS DEEPENS — ${tn} EXTEND WINLESS RUN TO ${streak} WITH LOSS TO ${on}`,
       () => `NO END IN SIGHT: ${on} MAKE IT ${streak} STRAIGHT LOSSES FOR STRUGGLING ${tn}`,
@@ -248,7 +261,7 @@ const TEMPLATES = {
   thrashing_win: (ctx, d) => {
     const { tn, on } = names(ctx);
     return pickRandom([
-      () => `${tn} PUT ${d.margin} PAST ${on} IN ${d.pg}-${d.og} DEMOLITION`,
+      () => `${tn} PUT ${d.pg} PAST ${on} IN ${d.pg}-${d.og} DEMOLITION`,
       () => `HUMILIATION FOR ${on} AS ${tn} RUN RIOT ${d.pg}-${d.og}`,
       () => `${tn} GO GOAL CRAZY — ${on} TAKEN APART ${d.pg}-${d.og}`,
       () => `NO MERCY: ${tn} THRASH ${on} ${d.pg}-${d.og}`,
@@ -261,7 +274,7 @@ const TEMPLATES = {
     return pickRandom([
       () => `SHAMBLES! ${tn} TORN APART ${d.pg}-${d.og} BY ${on}`,
       () => `EMBARRASSMENT AT THE PUB — ${tn} HUMILIATED ${d.pg}-${d.og} BY ${on}`,
-      () => `${tn} CAVE IN — ${on} PUT ${d.margin} PAST THEM IN ${d.og}-${d.pg} MAULING`,
+      () => `${tn} CAVE IN — ${on} PUT ${d.og} PAST THEM IN ${d.og}-${d.pg} MAULING`,
       () => `RED-FACED ${tn} SUFFER ${d.pg}-${d.og} HAMMERING FROM ${on}`,
       () => `NOWHERE TO HIDE: ${tn} DEMOLISHED ${d.pg}-${d.og} BY ${on}`,
       () => `CHAOS AND CRINGE — ${tn} FALL APART IN ${d.pg}-${d.og} DEFEAT TO ${on}`,
@@ -271,10 +284,10 @@ const TEMPLATES = {
     const { tn, on } = names(ctx);
     const streak = ctx.cleanSheetStreak ?? 0;
     return pickRandom([
-      () => `FORTRESS ${tn}! ${streak}TH CLEAN SHEET IN A ROW IN ${d.pg}-${d.og} WIN OVER ${on}`,
+      () => `FORTRESS ${tn}! ${ordinal(streak)} CLEAN SHEET IN A ROW IN ${d.pg}-${d.og} WIN OVER ${on}`,
       () => `NOTHING GETS PAST THEM — ${tn} MAKE IT ${streak} SHUTOUTS ON THE BOUNCE`,
       () => `${tn} DEFENCE UNBREAKABLE: ${streak} CLEAN SHEETS RUNNING AFTER ${on} WIN`,
-      () => `LOCKED OUT: ${on} CAN'T SCORE AS ${tn} POST ${streak}TH STRAIGHT CLEAN SHEET`,
+      () => `LOCKED OUT: ${on} CAN'T SCORE AS ${tn} POST ${ordinal(streak)} STRAIGHT CLEAN SHEET`,
       () => `IRON CURTAIN — ${tn}'S ${streak}-MATCH CLEAN SHEET RUN CONTINUES VS ${on}`,
     ])();
   },
