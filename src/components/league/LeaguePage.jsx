@@ -773,6 +773,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                         textDecoration: row.teamIndex != null ? "underline" : "none",
                         textDecorationColor: row.color || C.slate,
                         textDecorationStyle: "dotted",
+                        textUnderlineOffset: 3,
                       }}>
                         {row.name}
                       </span>
