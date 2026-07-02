@@ -4662,18 +4662,50 @@ function FruitCigs() {
               const xiCount = allPlayers.filter(p => playerChipMap[p.id] !== undefined && playerChipMap[p.id] < 11).length;
               const subCount = allPlayers.filter(p => playerChipMap[p.id] !== undefined && playerChipMap[p.id] >= 11).length;
 
+              const hasReserves = allPlayers.length > xiCount + subCount;
+
               return allPlayers.map((p, i) => {
                 const section = playerChipMap[p.id] !== undefined
                   ? (playerChipMap[p.id] < 11 ? "starting" : "bench")
                   : "reserves";
                 return (
                   <React.Fragment key={p.id}>
-                    {/* Subtle divider between XI / subs / unassigned */}
-                    {i === xiCount && xiCount > 0 && (
-                      <div style={{ height: 2, background: "#4ade8022", margin: "0" }} />
+                    {/* Section headers between XI / bench / unassigned */}
+                    {i === 0 && xiCount > 0 && (
+                      <div style={{
+                        padding: "8px 12px",
+                        background: "rgba(74,222,128,0.06)",
+                        borderTop: "2px solid rgba(74,222,128,0.25)",
+                        borderBottom: "1px solid rgba(74,222,128,0.12)",
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ fontSize: isMobile ? F.xs : F.sm, color: C.green, letterSpacing: 2 }}>STARTING XI</span>
+                        <span style={{ fontSize: isMobile ? F.xs : F.sm, color: "rgba(74,222,128,0.6)", marginLeft: "auto" }}>{xiCount}/11</span>
+                      </div>
                     )}
-                    {i === xiCount + subCount && subCount > 0 && (
-                      <div style={{ height: 2, background: "#60a5fa22", margin: "0" }} />
+                    {i === xiCount && subCount > 0 && (
+                      <div style={{
+                        padding: "8px 12px",
+                        background: "rgba(96,165,250,0.06)",
+                        borderTop: "2px solid rgba(96,165,250,0.25)",
+                        borderBottom: "1px solid rgba(96,165,250,0.12)",
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ fontSize: isMobile ? F.xs : F.sm, color: C.blue, letterSpacing: 2 }}>BENCH</span>
+                        <span style={{ fontSize: isMobile ? F.xs : F.sm, color: "rgba(96,165,250,0.6)", marginLeft: "auto" }}>{subCount}/5</span>
+                      </div>
+                    )}
+                    {i === xiCount + subCount && (xiCount > 0 || subCount > 0) && hasReserves && (
+                      <div style={{
+                        padding: "8px 12px",
+                        background: "rgba(148,163,184,0.06)",
+                        borderTop: "2px solid rgba(148,163,184,0.25)",
+                        borderBottom: "1px solid rgba(148,163,184,0.12)",
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ fontSize: isMobile ? F.xs : F.sm, color: C.textMuted, letterSpacing: 2 }}>RESERVES</span>
+                        <span style={{ fontSize: isMobile ? F.xs : F.sm, color: "rgba(148,163,184,0.6)", marginLeft: "auto" }}>{allPlayers.length - xiCount - subCount}</span>
+                      </div>
                     )}
                     {renderPlayerRow(p, i, section)}
                   </React.Fragment>
