@@ -8,13 +8,17 @@ import { displayName } from "../../utils/player.js";
 import { AITeamPanel } from "./AITeamPanel.jsx";
 import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
-import { getTopScorers, getTopAssisters, getMostYellows, getMostReds } from "../../utils/competitionStats.js";
+import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers } from "../../utils/competitionStats.js";
 
 export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, playerSeasonStats, playerRatingTracker, squad, startingXI, bench, seasonNumber, clubHistory, allTimeLeagueStatsByTier, allLeagueStates, leagueTier: leagueTierProp, onPlayerClick, onTeamClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, dynastyCupBracket, miniTournamentBracket, ovrCap = 20, seasonLeagueStatsByTier = null, seasonLeagueStatsAvailable = true }) {
   const [activeTab, setActiveTab] = useState("leagues");
   const [selectedMD, setSelectedMD] = useState(Math.max(0, matchweekIndex - 1));
   const [viewTeamData, setViewTeamData] = useState(null); // { team, tableRow, seasonGoals, seasonAssists }
   const [selectedSimTier, setSelectedSimTier] = useState(null);
+  // All-Time tab only: "tier" shows the selected division's record book
+  // (today's default behaviour), "all" merges every division into one
+  // career-wide view via mergeStatsAcrossTiers.
+  const [allTimeScope, setAllTimeScope] = useState("tier");
   const mob = useMobile();
 
   const sorted = [...league.table].sort((a, b) => {
@@ -192,13 +196,31 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
   // Reusable tier-chip strip — used by leagues, stats, and alltime tabs so
   // the user can browse other divisions' tables, current-season stats, and
   // all-time records via the same control.
-  const renderTierChips = () => (
+  //
+  // `showAllOption` (All-Time tab only) prepends an "ALL" chip that merges
+  // every division's records into one career-wide view instead of showing
+  // a single division's book.
+  const renderTierChips = ({ showAllOption = false } = {}) => (
     <div style={{ display: "flex", gap: 4, marginBottom: 14, flexWrap: "wrap" }}>
+      {showAllOption && (
+        <button onClick={() => setAllTimeScope("all")} style={{
+          padding: mob ? "7px 9px" : "7px 12px",
+          fontSize: mob ? F.micro : F.xs,
+          fontFamily: FONT,
+          background: allTimeScope === "all" ? `${C.purple}22` : "transparent",
+          border: `1px solid ${allTimeScope === "all" ? C.purple : C.bgInput}`,
+          color: allTimeScope === "all" ? C.purple : C.textDim,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}>
+          ALL
+        </button>
+      )}
       {visibleTiers.map(t2 => {
         const def = LEAGUE_DEFS[t2];
-        const isActive = t2 === displayTier;
+        const isActive = t2 === displayTier && !(showAllOption && allTimeScope === "all");
         return (
-          <button key={t2} onClick={() => setSelectedSimTier(t2)} style={{
+          <button key={t2} onClick={() => { setAllTimeScope("tier"); setSelectedSimTier(t2); }} style={{
             padding: mob ? "7px 9px" : "7px 12px",
             fontSize: mob ? F.micro : F.xs,
             fontFamily: FONT,
@@ -828,13 +850,28 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
         })()}
 
         {activeTab === "alltime" && (() => {
-          // All-time league records are tier-scoped: read the selected tier's
-          // slot (via displayTier — chip selection) from allTimeLeagueStatsByTier
-          // and merge in that tier's in-progress season blob. No team-name
-          // filter — the tier slot itself defines what counts as a Div N
-          // record. Promoted/relegated team entries stay where they were
-          // earned, regardless of which division they're in now.
-          const tierAllTime = allTimeLeagueStatsByTier?.[displayTier] || null;
+          // All-time league records are tier-scoped by default: read the
+          // selected tier's slot (via displayTier — chip selection) from
+          // allTimeLeagueStatsByTier and merge in that tier's in-progress
+          // season blob. No team-name filter — the tier slot itself defines
+          // what counts as a Div N record. Promoted/relegated team entries
+          // stay where they were earned, regardless of which division
+          // they're in now.
+          //
+          // The "ALL" chip switches to a career-wide view: AI teams get
+          // promoted/relegated nearly every season, so a single division's
+          // board only shows an AI player's contribution since their team's
+          // latest arrival there. mergeStatsAcrossTiers sums a player's
+          // record across every division so their full career shows up
+          // alongside the per-division books.
+          const isAllDivisions = allTimeScope === "all";
+          const tierAllTime = isAllDivisions
+            ? mergeStatsAcrossTiers(allTimeLeagueStatsByTier || {})
+            : (allTimeLeagueStatsByTier?.[displayTier] || null);
+          const seasonSource = isAllDivisions
+            ? mergeStatsAcrossTiers(seasonLeagueStatsByTier || {})
+            : seasonLeagueStats;
+
           const merged = {};
           const acc = (entry) => {
             const key = entry.key;
@@ -851,41 +888,42 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
             if (entry.teamName) m.teamName = entry.teamName;
           };
           Object.values(tierAllTime?.players || {}).forEach(acc);
-          Object.values(seasonLeagueStats?.players || {}).forEach(acc);
+          Object.values(seasonSource?.players || {}).forEach(acc);
 
           const rows = Object.values(merged).map(p => ({
             name: p.name, teamName: p.teamName,
             goals: p.goals, assists: p.assists,
             yellows: p.yellows || 0, reds: p.reds || 0,
-            isPlayerTeam: p.teamName === teamName && isPlayerDisplayTier,
+            isPlayerTeam: p.teamName === teamName && (isAllDivisions || isPlayerDisplayTier),
           }));
 
           const scorerList = rows.filter(r => r.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 20);
           const assisterList = rows.filter(r => r.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 20);
           const yellowList = rows.filter(r => r.yellows > 0).sort((a, b) => b.yellows - a.yellows).slice(0, 20);
           const redList = rows.filter(r => r.reds > 0).sort((a, b) => b.reds - a.reds).slice(0, 20);
+          const scopeSuffix = isAllDivisions ? " — ALL DIVISIONS" : "";
 
           return (
             <div style={{ padding: mob ? "20px 14px" : "24px" }}>
-              {renderTierChips()}
+              {renderTierChips({ showAllOption: true })}
               <div style={{ marginTop: 18 }}>
                 {renderRankedList({
-                  title: "TOP SCORERS", icon: "⚽",
+                  title: `TOP SCORERS${scopeSuffix}`, icon: "⚽",
                   list: scorerList, valueField: "goals", valueColor: C.green,
                   emptyText: "No goals on record yet",
                 })}
                 {renderRankedList({
-                  title: "TOP ASSISTS", icon: "🎯",
+                  title: `TOP ASSISTS${scopeSuffix}`, icon: "🎯",
                   list: assisterList, valueField: "assists", valueColor: "#38bdf8",
                   emptyText: "No assists on record yet",
                 })}
                 {renderRankedList({
-                  title: "MOST YELLOW CARDS", icon: "🟨",
+                  title: `MOST YELLOW CARDS${scopeSuffix}`, icon: "🟨",
                   list: yellowList, valueField: "yellows", valueColor: C.amber,
                   emptyText: "No yellows on record yet",
                 })}
                 {renderRankedList({
-                  title: "MOST RED CARDS", icon: "🟥",
+                  title: `MOST RED CARDS${scopeSuffix}`, icon: "🟥",
                   list: redList, valueField: "reds", valueColor: C.red,
                   emptyText: "No reds on record yet",
                 })}

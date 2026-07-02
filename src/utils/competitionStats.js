@@ -303,5 +303,72 @@ export function rollIntoAllTime(allTime, season) {
   };
 }
 
+/**
+ * Merge per-tier competitionStats blobs into a single career-wide blob.
+ *
+ * AI teams are promoted/relegated most seasons, so a player's per-tier
+ * all-time board only reflects their contribution since their team's most
+ * recent arrival in that division. This sums the same player key across
+ * every tier so their full career shows up in one place, additive to (not
+ * a replacement for) the per-division record books.
+ *
+ * Identity fields (name/teamName/position) are taken from whichever tier's
+ * entry has the most goals for that key, so display shows the player's
+ * most notable spell rather than an arbitrary last-write-wins pick.
+ *
+ * Pure — returns a new blob; never mutates any input.
+ *
+ * @param {object} statsByTier - { [tier]: competitionStatsBlob }
+ * @returns {{players: object}}
+ */
+export function mergeStatsAcrossTiers(statsByTier) {
+  const players = {};
+  // Best single-tier goal tally per key — identity must compare spell vs
+  // spell, not spell vs the accumulated sum, or an early small spell can
+  // outrank a later dominant one.
+  const bestSpellGoals = {};
+  if (!statsByTier) return { players };
+
+  for (const blob of Object.values(statsByTier)) {
+    if (!blob || !blob.players) continue;
+    for (const [key, entry] of Object.entries(blob.players)) {
+      const prev = players[key];
+      if (!prev) {
+        bestSpellGoals[key] = entry.goals || 0;
+        players[key] = {
+          key,
+          playerId: entry.playerId || null,
+          name: entry.name || "",
+          teamId: entry.teamId ?? null,
+          teamName: entry.teamName || "",
+          position: entry.position || null,
+          goals: entry.goals || 0,
+          assists: entry.assists || 0,
+          yellows: entry.yellows || 0,
+          reds: entry.reds || 0,
+        };
+        continue;
+      }
+      // Identity comes from whichever tier entry has the most goals — the
+      // player's dominant spell — not the most recently merged one.
+      const useNewIdentity = (entry.goals || 0) > bestSpellGoals[key];
+      if (useNewIdentity) bestSpellGoals[key] = entry.goals || 0;
+      players[key] = {
+        ...prev,
+        name: useNewIdentity ? (entry.name || prev.name) : prev.name,
+        teamId: useNewIdentity ? (entry.teamId ?? prev.teamId) : prev.teamId,
+        teamName: useNewIdentity ? (entry.teamName || prev.teamName) : prev.teamName,
+        position: useNewIdentity ? (entry.position || prev.position) : prev.position,
+        goals: (prev.goals || 0) + (entry.goals || 0),
+        assists: (prev.assists || 0) + (entry.assists || 0),
+        yellows: (prev.yellows || 0) + (entry.yellows || 0),
+        reds: (prev.reds || 0) + (entry.reds || 0),
+      };
+    }
+  }
+
+  return { players };
+}
+
 // Internal — exposed only for tests
 export const __test = { playerKey, compositeFallbackKey };
