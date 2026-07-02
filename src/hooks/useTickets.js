@@ -146,7 +146,7 @@ export function useTickets({
   const useTicketTransferInsider = useCallback((ticketId) => {
     const currentSquad = useGameStore.getState().squad;
     const avgOvr = Math.round(currentSquad.reduce((s, p) => s + getOverall(p), 0) / currentSquad.length);
-    const agent = generateFreeAgent(leagueTier, avgOvr, ovrCap);
+    const agent = generateFreeAgent(leagueTier, avgOvr, ovrCap, new Set(currentSquad.map(p => p.name)));
     setPendingFreeAgent(agent);
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "transfer_insider"]));
@@ -261,7 +261,7 @@ export function useTickets({
   const useTicketSaudiAgent = useCallback((ticketId) => {
     const currentSquad = useGameStore.getState().squad;
     const avgOvr = Math.round(currentSquad.reduce((s, p) => s + getOverall(p), 0) / currentSquad.length);
-    const agent = generateFreeAgent(leagueTier, avgOvr, ovrCap);
+    const agent = generateFreeAgent(leagueTier, avgOvr, ovrCap, new Set(currentSquad.map(p => p.name)));
     setPendingFreeAgent(agent);
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "saudi_agent"]));

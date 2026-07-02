@@ -322,7 +322,7 @@ export function AITeamPanel({
           }}>
             {starters.map(p => (
               <PlayerRow
-                key={p.name} player={p}
+                key={p.id || p.name} player={p}
                 matchGoals={matchGoals}
                 seasonGoals={seasonGoals}
                 seasonAssists={seasonAssists}
@@ -343,7 +343,7 @@ export function AITeamPanel({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
                 {bench.map(p => (
                   <PlayerRow
-                    key={p.name} player={p}
+                    key={p.id || p.name} player={p}
                     matchGoals={matchGoals}
                     seasonGoals={seasonGoals}
                     seasonAssists={seasonAssists}
