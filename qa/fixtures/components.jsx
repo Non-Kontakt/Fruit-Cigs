@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
+import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -197,6 +198,54 @@ const leagueStatsProps = (extra = {}) => ({
   ...extra,
 });
 
+// --- Cup — Team of the Cup --------------------------------------------------
+
+// Cup match objects only ever carry name/tier stubs (no squad — see
+// CupPage's teamOfCup memo), so the fixture mirrors that: squads live on the
+// separate `league` prop and get resolved by team name.
+function withBench(squad) {
+  return squad.map(p => ({ ...p, isBench: false }));
+}
+
+const totcLeague = {
+  teams: [
+    { name: "Home Rovers", tier: 8, isPlayer: true, squad: withBench(makeSquad("tr", HOME_NAMES)) },
+    { name: "Away Town", tier: 9, isPlayer: false, squad: withBench(makeSquad("at", AWAY_NAMES)) },
+    { name: "Home Reserves", tier: 10, isPlayer: false, squad: withBench(makeSquad("hr", HOME_NAMES)) },
+    { name: "Away Reserves", tier: 11, isPlayer: false, squad: withBench(makeSquad("ar", AWAY_NAMES)) },
+  ],
+};
+
+const totcCup = {
+  cupName: "The Concrete Cup", cupIcon: "🏆", cupColor: "#facc15",
+  rounds: [
+    {
+      name: "Semi-Finals", matchweek: 30,
+      matches: [
+        {
+          home: { name: "Home Rovers", tier: 8 }, away: { name: "Away Town", tier: 9 },
+          result: { homeGoals: 3, awayGoals: 1, winner: { name: "Home Rovers" } },
+        },
+        {
+          home: { name: "Home Reserves", tier: 10 }, away: { name: "Away Reserves", tier: 11 },
+          result: { homeGoals: 0, awayGoals: 2, winner: { name: "Away Reserves" } },
+        },
+      ],
+    },
+    {
+      name: "Final", matchweek: 34,
+      matches: [
+        {
+          home: { name: "Home Rovers", tier: 8 }, away: { name: "Away Reserves", tier: 11 },
+          result: { homeGoals: 2, awayGoals: 1, winner: { name: "Home Rovers" } },
+        },
+      ],
+    },
+  ],
+  currentRound: 2,
+  winner: { name: "Home Rovers" },
+};
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -255,6 +304,21 @@ const RENDERERS = {
   "leaguestats-mid": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
       <LeaguePage {...leagueStatsProps()} />
+    </div>
+  ),
+  // Lands on the BRACKET tab; the spec clicks "TOTC" (registry.clickText).
+  "cup-totc": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <CupPage
+        cup={totcCup}
+        clubHistory={{ cupHistory: [] }}
+        seasonNumber={2}
+        leagueRosters={{ 11: [{ name: "Home Rovers" }] }}
+        league={totcLeague}
+        allLeagueStates={{}}
+        onPlayerClick={noop}
+        onTeamClick={noop}
+      />
     </div>
   ),
 };

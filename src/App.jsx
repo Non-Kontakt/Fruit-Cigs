@@ -3340,6 +3340,8 @@ function FruitCigs() {
           clubHistory={clubHistory}
           seasonNumber={seasonNumber}
           leagueRosters={leagueRosters}
+          league={league}
+          allLeagueStates={allLeagueStates}
           seasonCupStatsByCup={seasonCupStatsByCup}
           allTimeCupStatsByCup={allTimeCupStatsByCup}
           seasonCupStatsAvailable={seasonCupStatsAvailable}

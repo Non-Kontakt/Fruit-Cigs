@@ -20,6 +20,7 @@ export const FIXTURES = [
   { id: "inbox-trial", label: "Inbox — trial offer (accept/decline)" },
   { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)" },
   { id: "leaguestats-mid", label: "League — stats tab mid-season", clickText: "STATS" },
+  { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },
 ];
 
 export const FIXTURE_IDS = FIXTURES.map(f => f.id);
