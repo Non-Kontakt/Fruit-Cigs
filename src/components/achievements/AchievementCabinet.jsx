@@ -33,7 +33,6 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
     setTab(newTab);
   };
   const [ticketPicker, setTicketPicker] = useState(null);
-  const achStyleId = React.useRef("ach-styles-" + Math.random().toString(36).slice(2, 8));
   const ticketPickerPanelRef = useRef(null);
 
   // Trophy data from club history
@@ -80,110 +79,6 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
     return `S${u.season} W${u.week}`;
   };
 
-  React.useEffect(() => {
-    if (document.getElementById(achStyleId.current)) return;
-    const style = document.createElement("style");
-    style.id = achStyleId.current;
-    style.textContent = `
-      @keyframes legendaryBorderFlow {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 200% 50%; }
-      }
-      @keyframes legendaryPulse {
-        0%, 100% { opacity: 0.03; }
-        50% { opacity: 0.08; }
-      }
-      @keyframes floatSpark {
-        0% { opacity: 0; transform: translateY(0) scale(0); }
-        15% { opacity: 1; transform: translateY(-4px) scale(1); }
-        85% { opacity: 1; transform: translateY(-12px) scale(0.8); }
-        100% { opacity: 0; transform: translateY(-16px) scale(0); }
-      }
-
-      /* Shared tier card structure */
-      .ach-tiered {
-        position: relative;
-        overflow: hidden;
-        border: none !important;
-        padding: 0 !important;
-      }
-      .ach-tiered-border {
-        position: absolute;
-        inset: -2px;
-        background-size: 200% 100%;
-        animation: legendaryBorderFlow 3s linear infinite;
-        z-index: 0;
-        pointer-events: none;
-      }
-      .ach-tiered-inner {
-        position: relative;
-        z-index: 1;
-        background: rgba(10,10,26,0.95);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        height: 100%;
-        overflow: hidden;
-      }
-      .ach-tiered-inner::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        animation: legendaryPulse 4s ease-in-out infinite;
-        pointer-events: none;
-      }
-      .ach-sparkle {
-        position: absolute;
-        pointer-events: none;
-        z-index: 3;
-        font-size: 8px;
-        filter: drop-shadow(0 0 2px currentColor);
-      }
-      .ach-sparkle::before { content: '\\2726'; }
-      .ach-sparkle:nth-child(1) { right: 6%; bottom: 15%; animation: floatSpark 2.4s ease-out infinite; }
-      .ach-sparkle:nth-child(2) { right: 18%; bottom: 5%; animation: floatSpark 2.8s ease-out infinite 0.5s; }
-      .ach-sparkle:nth-child(3) { right: 32%; bottom: 20%; animation: floatSpark 3.0s ease-out infinite 1.0s; }
-      .ach-sparkle:nth-child(4) { right: 46%; bottom: 8%; animation: floatSpark 2.6s ease-out infinite 1.5s; }
-      .ach-sparkle:nth-child(5) { right: 58%; bottom: 18%; animation: floatSpark 2.9s ease-out infinite 0.3s; }
-      .ach-sparkle:nth-child(6) { right: 70%; bottom: 10%; animation: floatSpark 2.5s ease-out infinite 0.8s; }
-      .ach-sparkle:nth-child(7) { right: 82%; bottom: 22%; animation: floatSpark 3.1s ease-out infinite 1.3s; }
-      .ach-sparkle:nth-child(8) { right: 12%; bottom: 25%; animation: floatSpark 2.7s ease-out infinite 1.8s; }
-      .ach-sparkle:nth-child(9) { right: 40%; bottom: 28%; animation: floatSpark 2.3s ease-out infinite 2.1s; }
-      .ach-sparkle:nth-child(10) { right: 65%; bottom: 5%; animation: floatSpark 2.8s ease-out infinite 0.6s; }
-
-      /* PRESTIGIOUS — gold */
-      .ach-tier-gold .ach-tiered-border {
-        background: linear-gradient(90deg, rgba(250,204,21,0.6), rgba(245,158,11,0.2), rgba(251,191,36,0.6), rgba(245,158,11,0.2), rgba(250,204,21,0.6));
-        background-size: 200% 100%;
-      }
-      .ach-tier-gold .ach-tiered-inner::before {
-        background: radial-gradient(ellipse at 30% 50%, rgba(250,204,21,0.06) 0%, transparent 70%);
-      }
-      .ach-tier-gold .ach-sparkle { color: #facc15; }
-
-      /* LEGENDARY — purple */
-      .ach-tier-purple .ach-tiered-border {
-        background: linear-gradient(90deg, rgba(168,85,247,0.6), rgba(124,58,237,0.2), rgba(192,132,252,0.6), rgba(124,58,237,0.2), rgba(168,85,247,0.6));
-        background-size: 200% 100%;
-      }
-      .ach-tier-purple .ach-tiered-inner::before {
-        background: radial-gradient(ellipse at 30% 50%, rgba(168,85,247,0.06) 0%, transparent 70%);
-      }
-      .ach-tier-purple .ach-sparkle { color: #c084fc; }
-
-      /* PLAYER UNLOCK — green */
-      .ach-tier-green .ach-tiered-border {
-        background: linear-gradient(90deg, rgba(74,222,128,0.6), rgba(34,197,94,0.2), rgba(134,239,172,0.6), rgba(34,197,94,0.2), rgba(74,222,128,0.6));
-        background-size: 200% 100%;
-      }
-      .ach-tier-green .ach-tiered-inner::before {
-        background: radial-gradient(ellipse at 30% 50%, rgba(74,222,128,0.06) 0%, transparent 70%);
-      }
-      .ach-tier-green .ach-sparkle { color: #4ade80; }
-    `;
-    document.head.appendChild(style);
-    return () => { const el = document.getElementById(achStyleId.current); if (el) el.remove(); };
-  }, []);
 
   // Ticket picker is rendered below the full grid; auto-scroll to keep it visible on mobile.
   useEffect(() => {
