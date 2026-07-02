@@ -5,6 +5,7 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getEffectiveSlots, detectFormationName } from "../../utils/formation.js";
 import { displayName } from "../../utils/player.js";
 import { getVisibleMessages, getUnreadCount } from "../../utils/messageUtils.js";
+import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
 import { buildTickerBeats } from "../../utils/tickerBeats.js";
 import { useMobile } from "../../hooks/useMobile.js";
 
@@ -478,18 +479,22 @@ export function Dashboard({
                     {msg.body.split("\n")[0]}
                   </div>
                 )}
-                {msg.choiceResult && (
-                  <div style={{ fontSize: F.xs, color: msg.choiceResult === "accept" ? C.green : msg.choiceResult === "decline" ? C.lightRed : C.textMuted, marginTop: 4, fontStyle: "italic" }}>
-                    {msg.choiceResult === "accept" ? "Accepted" : msg.choiceResult === "decline" ? "Declined" : (msg.choices?.find(c => c.value === msg.choiceResult)?.label || "Chosen")}
-                  </div>
-                )}
+                {msg.choiceResult && (() => {
+                  const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
+                  const { color, icon, text } = getChoiceResult(msg, chosen);
+                  return (
+                    <div style={{ fontSize: F.xs, color, marginTop: 4, fontStyle: "italic" }}>
+                      {icon ? `${icon} ${text}` : text}
+                    </div>
+                  );
+                })()}
                 {msg.followUp && (
                   <div style={{ fontSize: F.xs, color: C.amber, marginTop: 4, lineHeight: 1.5 }}>{msg.followUp}</div>
                 )}
                 {msg.choices && !msg.choiceResult && (
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    {msg.choices.map((choice, ci) => {
-                      const isAccept = choice.value === "accept" || choice.value === "decline" ? choice.value === "accept" : ci === 0;
+                    {msg.choices.map((choice) => {
+                      const style = getChoiceButtonStyle(msg, choice);
                       return <button key={choice.value} onClick={() => {
                         if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
                         if (setInboxMessages) {
@@ -497,9 +502,9 @@ export function Dashboard({
                         }
                       }} style={{
                         padding: "6px 10px", fontSize: F.xs, fontFamily: FONT,
-                        background: isAccept ? "rgba(74,222,128,0.12)" : "rgba(148,163,184,0.08)",
-                        border: `1px solid ${isAccept ? C.green : C.textMuted}`,
-                        color: isAccept ? C.green : C.textMuted,
+                        background: style.background,
+                        border: `1px solid ${style.border}`,
+                        color: style.color,
                         cursor: "pointer",
                       }}>{choice.label}</button>;
                     })}

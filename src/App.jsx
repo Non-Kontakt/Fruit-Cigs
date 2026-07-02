@@ -1341,7 +1341,9 @@ function FruitCigs() {
     }
     if (msg.type === "asst_mgr_training_intro" || msg.type === "asst_mgr_training_nudge") {
       if (choice === "delegate") {
-        setSquad(prev => prev.map(p => ({ ...p, training: p.training || "balanced" })));
+        // Assistant delegation fills gaps, but never interrupts deliberate
+        // focus choices or position training.
+        setSquad(prev => prev.map(p => p.positionTraining ? p : { ...p, training: p.training || "balanced" }));
         setTrainedThisWeek(new Set(useGameStore.getState().squad.map(p => p.id)));
       }
     }

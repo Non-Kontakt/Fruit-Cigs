@@ -5,6 +5,7 @@ import { STORY_ARCS } from "../../data/storyArcs.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
+import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ManagerAvatar } from "../ui/ManagerAvatar.jsx";
 
@@ -165,39 +166,51 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   <div style={{ fontSize: F.md, color: C.textMuted, lineHeight: 1.6, whiteSpace: "pre-line" }}>
                     {msg.body}
                   </div>
-                  {/* Choice result display */}
-                  {msg.choiceResult && (
-                    <div style={{ fontSize: mob ? F.xs : F.sm, color: msg.choiceResult === "accept" ? C.green : C.lightRed, marginTop: 9, fontStyle: "italic" }}>
-                      ✓ {msg.choiceResult === "accept" ? (msg.type === "prodigal_offer" ? "You welcomed him back." : msg.type === "free_agent_offer" ? "You signed the player." : "You accepted the trial.") : "You declined."}
-                    </div>
-                  )}
+                  {/* Choice result line — colour, icon and copy all come
+                      from the chosen option's metadata (tone + resultText)
+                      via the shared resolver. */}
+                  {msg.choiceResult && (() => {
+                    const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
+                    const { color, icon, text } = getChoiceResult(msg, chosen);
+                    return (
+                      <div style={{ fontSize: mob ? F.xs : F.sm, color, marginTop: 9, fontStyle: "italic" }}>
+                        {icon ? `${icon} ${text}` : text}
+                      </div>
+                    );
+                  })()}
                   {/* Follow-up info */}
                   {msg.followUp && (
                     <div style={{ fontSize: mob ? F.xs : F.sm, color: C.amber, marginTop: 7, lineHeight: 1.5 }}>
                       {msg.followUp}
                     </div>
                   )}
-                  {/* Choice buttons (only show if not yet resolved) */}
+                  {/* Choice buttons (only show if not yet resolved). Tone
+                      comes from each choice's explicit `tone` metadata via
+                      the shared resolver — no value-name heuristics, no
+                      first-position-wins guessing. */}
                   {msg.choices && !msg.choiceResult && (
                     <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
-                      {msg.choices.map((choice) => (
-                        <button key={choice.value} onClick={(e) => {
-                          e.stopPropagation();
-                          // onInboxChoice returns false if blocked (e.g. squad full)
-                          if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
-                          setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
-                        }} style={{
-                          padding: mob ? "10px 17px" : "10px 24px",
-                          fontSize: mob ? F.xs : F.sm,
-                          fontFamily: FONT,
-                          background: choice.value === "accept" ? "rgba(74,222,128,0.15)" : "rgba(239,68,68,0.1)",
-                          border: `1px solid ${choice.value === "accept" ? C.green : C.red}`,
-                          color: choice.value === "accept" ? C.green : C.lightRed,
-                          cursor: "pointer",
-                        }}>
-                          {choice.label}
-                        </button>
-                      ))}
+                      {msg.choices.map((choice) => {
+                        const style = getChoiceButtonStyle(msg, choice);
+                        return (
+                          <button key={choice.value} onClick={(e) => {
+                            e.stopPropagation();
+                            // onInboxChoice returns false if blocked (e.g. squad full)
+                            if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
+                            setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
+                          }} style={{
+                            padding: mob ? "10px 17px" : "10px 24px",
+                            fontSize: mob ? F.xs : F.sm,
+                            fontFamily: FONT,
+                            background: style.background,
+                            border: `1px solid ${style.border}`,
+                            color: style.color,
+                            cursor: "pointer",
+                          }}>
+                            {choice.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
