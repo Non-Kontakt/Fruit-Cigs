@@ -63,6 +63,47 @@ test.describe("full-app flows", () => {
     await shot(page, testInfo.project.name, "flow-squad-page");
   });
 
+  test("mobile: section headers move the selected player", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile", "tap-to-move is a mobile interaction");
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+    await page.getByText("SQUAD", { exact: false }).first().click();
+    await page.getByText("ASST XI", { exact: false }).first().click();
+    await page.waitForFunction(() => (window.__fc.getState().startingXI || []).length === 11, null, { timeout: 5_000 });
+    await page.waitForTimeout(300);
+
+    // Pick a bench player whose surname is unique in the squad — mobile rows
+    // shorten first names, so the surname is the reliable tap target.
+    const target = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const surname = (n) => n.split(" ").slice(1).join(" ");
+      for (const id of s.bench) {
+        const p = s.squad.find(pl => pl.id === id);
+        if (p && s.squad.filter(o => surname(o.name) === surname(p.name)).length === 1) {
+          return { id: p.id, surname: surname(p.name) };
+        }
+      }
+      return null;
+    });
+    expect(target, "a bench player with a unique surname should exist").not.toBeNull();
+
+    // Select them, then tap the RESERVES header — the move the selection
+    // banner promises.
+    await page.getByText(target.surname, { exact: false }).first().click();
+    await page.waitForTimeout(200);
+    await page.getByText("RESERVES", { exact: true }).first().click();
+    await page.waitForTimeout(300);
+
+    const after = await page.evaluate((id) => {
+      const s = window.__fc.getState();
+      return { onBench: s.bench.includes(id), inXI: s.startingXI.includes(id) };
+    }, target.id);
+    expect(after.onBench, "player should have left the bench").toBe(false);
+    expect(after.inXI, "player should not have joined the XI").toBe(false);
+  });
+
   test("save round-trips through localStorage and resumes", async ({ page }, testInfo) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
