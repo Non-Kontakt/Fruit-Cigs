@@ -3,6 +3,7 @@ import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
+import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -246,6 +247,16 @@ const totcCup = {
   winner: { name: "Home Rovers" },
 };
 
+// --- Achievement toast ------------------------------------------------------
+
+// Mounts the toast and swaps in a marker div once it self-dismisses, so the
+// spec can assert the auto-dismiss timer actually fired.
+function AchievementToastHarness() {
+  const [done, setDone] = useState(false);
+  if (done) return <div>TOAST DONE</div>;
+  return <AchievementToast achievement="champion" muteSound onDone={() => setDone(true)} />;
+}
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -321,6 +332,7 @@ const RENDERERS = {
       />
     </div>
   ),
+  "achievement-toast": () => <AchievementToastHarness />,
 };
 
 const missingRenderer = REGISTRY.filter(f => !RENDERERS[f.id]).map(f => f.id);

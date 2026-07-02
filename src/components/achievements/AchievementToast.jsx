@@ -4,12 +4,22 @@ import { SFX } from "../../utils/sfx.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
-export function AchievementToast({ achievement, onDone, muteSound }) {
+const AUTO_DISMISS_MS = 5000;
+const REDUCED_MOTION_DISMISS_MS = 6000;
+
+export function AchievementToast({ achievement, onDone, muteSound, sealedPack }) {
   const [visible, setVisible] = useState(false);
+  const [paused, setPaused] = useState(false);
   const mob = useMobile();
   const dismissedRef = useRef(false);
   const touchStartY = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const reducedMotionRef = useRef(
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  );
+  const fallbackTimerRef = useRef(null);
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 50);
@@ -19,12 +29,23 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
   const dismiss = () => {
     if (dismissedRef.current) return;
     dismissedRef.current = true;
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     setVisible(false);
     setSwipeOffset(0);
     setTimeout(onDone, 400);
   };
 
-  const handleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
+  // Reduced motion: no drain bar animation, just a plain timeout.
+  useEffect(() => {
+    if (!reducedMotionRef.current) return;
+    fallbackTimerRef.current = setTimeout(dismiss, REDUCED_MOTION_DISMISS_MS);
+    return () => { if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current); };
+  }, []);
+
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+    setPaused(true);
+  };
   const handleTouchMove = (e) => {
     if (touchStartY.current == null) return;
     const dy = e.touches[0].clientY - touchStartY.current;
@@ -34,6 +55,7 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
     if (swipeOffset < -40) dismiss();
     else setSwipeOffset(0);
     touchStartY.current = null;
+    setPaused(false);
   };
 
   const ach = ACHIEVEMENTS.find(a => a.id === achievement);
@@ -45,6 +67,8 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
       style={{
         position: "fixed",
         top: mob ? `calc(8px + env(safe-area-inset-top, 0px))` : 20,
@@ -57,7 +81,15 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
         maxWidth: mob ? "none" : 480,
       }}
     >
+      <style>{`
+        @keyframes achToastDrain {
+          from { width: 100%; }
+          to   { width: 0%; }
+        }
+      `}</style>
       <div style={{
+        position: "relative",
+        overflow: "hidden",
         background: "linear-gradient(135deg, #0f172a 0%, #1a1a3e 100%)",
         border: "1px solid #1e293b",
         borderLeft: `4px solid ${C.gold}`,
@@ -71,7 +103,26 @@ export function AchievementToast({ achievement, onDone, muteSound }) {
           <div style={{ fontSize: mob ? F.micro : F.xs, color: C.gold, letterSpacing: mob ? 1 : 2, marginBottom: 4 }}>CIG UNLOCKED</div>
           <div style={{ fontSize: mob ? F.sm : F.md, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ach.name}</div>
           <div style={{ fontSize: mob ? F.micro : F.xs, color: C.textMuted, marginTop: 2 }}>{ach.desc}</div>
+          {sealedPack && (
+            <div style={{ fontSize: F.micro, color: C.textDim, letterSpacing: 2, marginTop: 4 }}>FILED TO A SEALED PACK</div>
+          )}
         </div>
+        {!reducedMotionRef.current && (
+          <div
+            onAnimationEnd={dismiss}
+            style={{
+              position: "absolute",
+              left: 0,
+              bottom: 0,
+              height: 3,
+              width: "100%",
+              background: C.green,
+              opacity: 0.6,
+              animation: `achToastDrain ${AUTO_DISMISS_MS}ms linear forwards`,
+              animationPlayState: paused ? "paused" : "running",
+            }}
+          />
+        )}
       </div>
     </div>
   );

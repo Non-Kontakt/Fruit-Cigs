@@ -10,11 +10,20 @@ const hexToRgb = (hex) => {
   return `${r},${g},${b}`;
 };
 
+const AUTO_ADVANCE_MS = 8000;
+const REDUCED_MOTION_AUTO_ADVANCE_MS = 10000;
+
 export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday }) {
   const [phase, setPhase] = useState("enter");   // enter → locked → reveal → shown → exit
   const [dismissed, setDismissed] = useState(false);
+  const [paused, setPaused] = useState(false);
   const doneCalledRef = useRef(false);
   const mob = useMobile();
+  const reducedMotionRef = useRef(
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  );
 
   // Auto-close when on holiday
   useEffect(() => {
@@ -50,6 +59,14 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
     }, 400);
   };
 
+  // Auto-advance once fully revealed, paused on hover; cancelled by manual dismiss.
+  useEffect(() => {
+    if (phase !== "shown" || isOnHoliday || paused) return;
+    const ms = reducedMotionRef.current ? REDUCED_MOTION_AUTO_ADVANCE_MS : AUTO_ADVANCE_MS;
+    const timer = setTimeout(handleDismiss, ms);
+    return () => clearTimeout(timer);
+  }, [phase, paused, isOnHoliday]);
+
   if (!pack) return null;
 
   const rgb = hexToRgb(pack.color);
@@ -60,6 +77,8 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
   return (
     <div
       onClick={handleDismiss}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
       style={{
         position: "fixed",
         inset: 0,

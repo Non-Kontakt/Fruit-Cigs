@@ -55,3 +55,26 @@ for (const fx of FIXTURES) {
     expect(real, `console/page errors in ${fx.id}:\n${real.join("\n")}`).toEqual([]);
   });
 }
+
+// Hover-pause semantics are desktop-only (mirrors the mobile-only skips in
+// flows.spec.js).
+test("achievement toast auto-dismisses", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
+  await page.goto("qa.html?c=achievement-toast");
+  await expect(page.getByText("Champion", { exact: true })).toBeVisible();
+  await page.waitForTimeout(6500);
+  await expect(page.getByText("TOAST DONE")).toBeVisible();
+});
+
+test("achievement toast pauses on hover", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
+  await page.goto("qa.html?c=achievement-toast");
+  const name = page.getByText("Champion", { exact: true });
+  await expect(name).toBeVisible();
+  await name.hover();
+  await page.waitForTimeout(6500);
+  await expect(page.getByText("TOAST DONE")).not.toBeVisible();
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(6000);
+  await expect(page.getByText("TOAST DONE")).toBeVisible();
+});

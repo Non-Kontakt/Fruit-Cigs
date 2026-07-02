@@ -165,10 +165,7 @@ export function useMatchResult({
         }, BGM.getCurrentTrackId());
         if (newSeasonUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
-          const toastableS = newSeasonUnlocks.filter(id => achievableIdsRef.current.has(id));
-          if (toastableS.length > 0) {
-            setAchievementQueue(prev => { const ex = new Set(prev); const f = toastableS.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-          }
+          setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
           for (const id of newSeasonUnlocks) {
             if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
               const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
@@ -354,11 +351,7 @@ export function useMatchResult({
         });
         if (newUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newUnlocks.forEach(id => next.add(id)); return next; });
-          // Toast only for achievements in unlocked packs
-          const toastable = newUnlocks.filter(id => achievableIdsRef.current.has(id));
-          if (toastable.length > 0) {
-            setAchievementQueue(prev => { const ex = new Set(prev); const f = toastable.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-          }
+          setAchievementQueue(prev => { const ex = new Set(prev); const f = newUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
           // Player unlocks fire immediately regardless of pack
           for (const id of newUnlocks) {
             if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {

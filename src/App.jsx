@@ -4,7 +4,7 @@ import { ATTRIBUTES, TRAINING_FOCUSES } from "./data/training.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achievements.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "./data/leagues.js";
 import { ARC_TICKET_POOL, ARC_CATS, STORY_ARCS } from "./data/storyArcs.js";
-import { CIG_PACKS } from "./data/cigPacks.js";
+import { CIG_PACKS, ACH_TO_PACK } from "./data/cigPacks.js";
 import { checkPackUnlocks, isPackComplete } from "./utils/packUnlocks.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
 import { MSG } from "./data/messages.js";
@@ -418,12 +418,10 @@ function FruitCigs() {
   }, [unlockedPacks]);
   const achievableIdsRef = useRef(achievableIds);
   achievableIdsRef.current = achievableIds;
-  // Always record achievement. Toast only if pack is unlocked. Player unlock fires immediately.
+  // Always record achievement and toast it. Player unlock fires immediately.
   const tryUnlockAchievement = useCallback((id) => {
     setUnlockedAchievements(prev => { if (prev.has(id)) return prev; const n = new Set(prev); n.add(id); return n; });
-    if (achievableIdsRef.current.has(id)) {
-      setAchievementQueue(prev => prev.includes(id) ? prev : [...prev, id]);
-    }
+    setAchievementQueue(prev => prev.includes(id) ? prev : [...prev, id]);
     if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
       const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
       const sq = useGameStore.getState().squad;
@@ -5590,10 +5588,7 @@ function FruitCigs() {
 
               if (cupNewUnlocks.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); cupNewUnlocks.forEach(id => next.add(id)); return next; });
-                const cupToastable = cupNewUnlocks.filter(id => achievableIdsRef.current.has(id));
-                if (cupToastable.length > 0) {
-                  setAchievementQueue(prev => { const ex = new Set(prev); const f = cupToastable.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-                }
+                setAchievementQueue(prev => { const ex = new Set(prev); const f = cupNewUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
                 for (const id of cupNewUnlocks) {
                   if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
                     const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
@@ -5684,10 +5679,7 @@ function FruitCigs() {
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });
-                const seasonToastable = newSeasonUnlocks2.filter(id => achievableIdsRef.current.has(id));
-                if (seasonToastable.length > 0) {
-                  setAchievementQueue(prev => { const ex = new Set(prev); const f = seasonToastable.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-                }
+                setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks2.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
                 for (const id of newSeasonUnlocks2) {
                   if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
                     const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
@@ -6961,6 +6953,7 @@ function FruitCigs() {
           key={achievementQueue[0] + "-" + achievementToastKeyRef.current}
           achievement={achievementQueue[0]}
           muteSound={false}
+          sealedPack={!unlockedPacks.has(ACH_TO_PACK[achievementQueue[0]])}
           onDone={() => {
             achievementToastKeyRef.current++;
             setAchievementQueue(prev => prev.slice(1));

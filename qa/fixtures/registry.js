@@ -21,6 +21,7 @@ export const FIXTURES = [
   { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)" },
   { id: "leaguestats-mid", label: "League — stats tab mid-season", clickText: "STATS" },
   { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },
+  { id: "achievement-toast", label: "Achievement — unlock toast (auto-dismiss)" },
 ];
 
 export const FIXTURE_IDS = FIXTURES.map(f => f.id);
