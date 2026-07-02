@@ -4,6 +4,9 @@ import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
+import { CigCard } from "../../src/components/achievements/CigCard.jsx";
+import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
+import { CIG_PACKS } from "../../src/data/cigPacks.js";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -257,6 +260,19 @@ function AchievementToastHarness() {
   return <AchievementToast achievement="champion" muteSound onDone={() => setDone(true)} />;
 }
 
+// --- Cig cards ---------------------------------------------------------
+
+// "champion" is a real, ungraded achievement. "mentality_monsters" is a
+// genuinely legendary one — LEGENDARY_ACHIEVEMENTS also contains a broken
+// id ("nominative_determinism") that matches no real achievement; don't
+// pick that one for a "legendary collected" fixture or the card silently
+// renders as non-legendary.
+const cherryPack = CIG_PACKS.find((p) => p.id === "cherry_cigs");
+const cherryUnlocked = new Set(cherryPack.achievementIds.slice(0, 5));
+const cherryUnlockWeeks = Object.fromEntries(
+  cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
+);
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -333,6 +349,27 @@ const RENDERERS = {
     </div>
   ),
   "achievement-toast": () => <AchievementToastHarness />,
+  "cig-card-states": () => (
+    <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start", background: "#0a0a17", padding: 32, minHeight: "100vh" }}>
+      <div data-testid="cig-card-hidden"><CigCard achievementId="first_win" state="hidden" /></div>
+      <div data-testid="cig-card-uncollected"><CigCard achievementId="clean_sheet" state="uncollected" /></div>
+      <div data-testid="cig-card-collected"><CigCard achievementId="champion" state="collected" unlockWeek={{ season: 2, week: 18 }} /></div>
+      <div data-testid="cig-card-legendary"><CigCard achievementId="mentality_monsters" state="collected" unlockWeek={{ season: 6, week: 3 }} /></div>
+    </div>
+  ),
+  // Lands on the Cherry Cigs pack detail (spec clicks "Cherry Cigs", registry.clickText).
+  "cig-pack-detail": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <CigPacksTab
+        unlockedPacks={new Set(["cherry_cigs"])}
+        unlocked={cherryUnlocked}
+        achievementUnlockWeeks={cherryUnlockWeeks}
+        calendarIndex={16}
+        seasonNumber={1}
+        seasonLength={48}
+      />
+    </div>
+  ),
 };
 
 const missingRenderer = REGISTRY.filter(f => !RENDERERS[f.id]).map(f => f.id);
