@@ -1,17 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { collidesWithPlayerName, initLeague, initLeagueRosters, normalizeRosters, processSeasonSwaps } from "../league.js";
-import { LEAGUE_DEFS, NUM_TIERS, RESERVE_TEAM_NAMES } from "../../data/leagues.js";
+import { LEAGUE_DEFS, NUM_TIERS, RESERVE_TEAM_CONFIGS } from "../../data/leagues.js";
 
 // "Red Lion FC" is a real AI team in the tier-11 defs — the exact collision
-// a player triggers by picking that name for their own club.
+// a player triggers by picking that name for their own club. "Eastfield"
+// covers the same collision in a non-starting tier (tier 10).
 const TAKEN_NAME = "Red Lion FC";
+const TAKEN_NAME_TIER10 = "Eastfield";
+const TARGET = 10;
 
+const RESERVE_NAMES = RESERVE_TEAM_CONFIGS.map(c => c.name);
 const dummySquad = [{ id: "p1", name: "Test Player", position: "ST", attrs: {} }];
 
 function allRosterNames(rosters) {
   const names = [];
   for (let t = 1; t <= NUM_TIERS; t++) (rosters[t] || []).forEach(r => names.push(r.name));
   return names;
+}
+
+function expectFullTiers(rosters) {
+  for (let t = 1; t <= NUM_TIERS; t++) expect(rosters[t]).toHaveLength(TARGET);
 }
 
 describe("collidesWithPlayerName", () => {
@@ -28,24 +36,65 @@ describe("collidesWithPlayerName", () => {
   });
 });
 
-describe("initLeagueRosters with a player name that exists in the defs", () => {
-  it("renames the clashing AI team instead of shrinking any tier", () => {
-    const baseline = initLeagueRosters();
-    const rosters = initLeagueRosters(TAKEN_NAME);
-    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME);
-    for (let t = 1; t <= NUM_TIERS; t++) {
-      expect(rosters[t]).toHaveLength(baseline[t].length);
-    }
+describe("roster fill — every tier reaches 10 AI teams", () => {
+  it("with no player name (defs alone are one name short)", () => {
+    expectFullTiers(initLeagueRosters());
   });
 
+  it("with a tier-11 collision", () => {
+    const rosters = initLeagueRosters(TAKEN_NAME);
+    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME);
+    expectFullTiers(rosters);
+  });
+
+  it("with a non-tier-11 collision", () => {
+    const rosters = initLeagueRosters(TAKEN_NAME_TIER10);
+    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME_TIER10);
+    expectFullTiers(rosters);
+  });
+
+  it("after season-end swaps with a colliding player name", () => {
+    const rosters = initLeagueRosters();
+    const { rosters: newRosters } = processSeasonSwaps(rosters, null, 11, null, TAKEN_NAME);
+    expect(allRosterNames(newRosters)).not.toContain(TAKEN_NAME);
+    expectFullTiers(newRosters);
+  });
+
+  it("after season-end swaps with no player name", () => {
+    const { rosters: newRosters } = processSeasonSwaps(initLeagueRosters(), null, 11, null);
+    expectFullTiers(newRosters);
+  });
+});
+
+describe("collision renaming", () => {
   it("gives the renamed team a reserve name and keeps its identity", () => {
     const rosters = initLeagueRosters(TAKEN_NAME);
     const original = LEAGUE_DEFS[11].teams.find(c => c.name === TAKEN_NAME);
-    const renamed = rosters[11].find(r => RESERVE_TEAM_NAMES.includes(r.name));
+    // The renamed club keeps Red Lion FC's colours/strength/trait — pick it
+    // out by identity, since reserve-named backfill teams also live here.
+    const renamed = rosters[11].find(r =>
+      RESERVE_NAMES.includes(r.name) && r.strength === original.strength && r.color === original.color
+    );
     expect(renamed).toBeDefined();
-    expect(renamed.strength).toBe(original.strength);
-    expect(renamed.color).toBe(original.color);
     expect(renamed.trait).toBe(original.trait);
+  });
+
+  it("renames in existing rosters without changing tier sizes", () => {
+    const rosters = initLeagueRosters();
+    expect(allRosterNames(rosters)).toContain(TAKEN_NAME);
+    normalizeRosters(rosters, TAKEN_NAME);
+    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME);
+    expectFullTiers(rosters);
+  });
+
+  it("never backfills the player's name from the defs", () => {
+    const rosters = initLeagueRosters();
+    // Empty a tier so the deficit fill has to scan every def, including the
+    // colliding one.
+    rosters[11] = [];
+    normalizeRosters(rosters, TAKEN_NAME);
+    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME);
+    expectFullTiers(rosters);
   });
 });
 
@@ -78,35 +127,6 @@ describe("initLeague with a colliding player name", () => {
     expect(matches).toHaveLength(1);
     expect(matches[0].isPlayer).toBe(true);
     expect(league.teams).toHaveLength(10);
-  });
-});
-
-describe("normalizeRosters with a colliding player name", () => {
-  it("renames the collision in existing rosters without changing tier sizes", () => {
-    const rosters = initLeagueRosters();
-    const sizesBefore = {};
-    for (let t = 1; t <= NUM_TIERS; t++) sizesBefore[t] = rosters[t].length;
-    expect(allRosterNames(rosters)).toContain(TAKEN_NAME);
-    normalizeRosters(rosters, TAKEN_NAME);
-    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME);
-    for (let t = 1; t <= NUM_TIERS; t++) expect(rosters[t]).toHaveLength(sizesBefore[t]);
-  });
-
-  it("never backfills the player's name from the defs", () => {
-    const rosters = initLeagueRosters();
-    // Empty a tier so the deficit fill has to scan every def, including the
-    // colliding one.
-    rosters[11] = [];
-    normalizeRosters(rosters, TAKEN_NAME);
-    expect(allRosterNames(rosters)).not.toContain(TAKEN_NAME);
-  });
-});
-
-describe("processSeasonSwaps with a colliding player name", () => {
-  it("keeps season-end roster rebuilds free of the player's name", () => {
-    const rosters = initLeagueRosters();
-    const { rosters: newRosters } = processSeasonSwaps(rosters, null, 11, null, TAKEN_NAME);
-    expect(allRosterNames(newRosters)).not.toContain(TAKEN_NAME);
   });
 });
 

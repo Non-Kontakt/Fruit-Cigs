@@ -1,4 +1,4 @@
-import { LEAGUE_DEFS, NUM_TIERS, RESERVE_TEAM_NAMES } from "../data/leagues.js";
+import { LEAGUE_DEFS, NUM_TIERS, RESERVE_TEAM_CONFIGS } from "../data/leagues.js";
 import { CUP_ROUND_MATCHWEEKS, CUP_ROUND_NAMES, CUP_DEFS } from "../data/cups.js";
 import { TIER_WIN_ACHS } from "../data/achievements.js";
 import { generateAITeam, generateSquadPhilosophy } from "./player.js";
@@ -20,11 +20,11 @@ export function collidesWithPlayerName(name, playerTeamName) {
 function renameCollisions(configs, playerTeamName, namesInUse) {
   return configs.map(c => {
     if (!collidesWithPlayerName(c.name, playerTeamName)) return c;
-    const fresh = RESERVE_TEAM_NAMES.find(n => !namesInUse.has(n) && !collidesWithPlayerName(n, playerTeamName));
+    const fresh = RESERVE_TEAM_CONFIGS.find(r => !namesInUse.has(r.name) && !collidesWithPlayerName(r.name, playerTeamName));
     if (!fresh) return c;
     namesInUse.delete(c.name);
-    namesInUse.add(fresh);
-    return { ...c, name: fresh };
+    namesInUse.add(fresh.name);
+    return { ...c, name: fresh.name };
   });
 }
 
@@ -62,6 +62,16 @@ export function normalizeRosters(rosters, playerTeamName = null) {
         }
       }
       if (rosters[t].length >= TARGET) break;
+    }
+    // Defs exhausted (they hold 109 names for 110 slots, and a player-name
+    // collision costs one more) — top up from the reserve pool so AI-only
+    // tiers never run a short league.
+    for (const c of RESERVE_TEAM_CONFIGS) {
+      if (rosters[t].length >= TARGET) break;
+      if (!allInUse.has(c.name) && !collidesWithPlayerName(c.name, playerTeamName)) {
+        rosters[t].push({ ...c });
+        allInUse.add(c.name);
+      }
     }
   }
   return rosters;
@@ -381,6 +391,14 @@ export function initLeague(playerSquad, teamName, tier, rosters, preservedSquads
           existing.add(c.name);
         }
       });
+    }
+    // Defs exhausted — top up from the reserve pool, same as normalizeRosters
+    for (const c of RESERVE_TEAM_CONFIGS) {
+      if (aiTeamConfigs.length >= 9) break;
+      if (!existing.has(c.name) && !otherTierNames.has(c.name) && !collidesWithPlayerName(c.name, teamName)) {
+        aiTeamConfigs.push({ ...c });
+        existing.add(c.name);
+      }
     }
   }
 
