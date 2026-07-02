@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { F, C, FONT } from "../../data/tokens";
-import { ACHIEVEMENTS, LEGENDARY_ACHIEVEMENTS, PRESTIGIOUS_ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../../data/achievements.js";
+import { ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../../data/achievements.js";
+import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { CUP_DEFS } from "../../data/cups.js";
 import { TICKET_DEFS } from "../../data/tickets.js";
@@ -26,7 +27,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
   const mob = useMobile();
   const [tab, setTab] = useState("cigs");
   const [cigsKey, setCigsKey] = useState(0);
-  const [filterCat, setFilterCat] = useState(null);
+  const [indexSort, setIndexSort] = useState("recent");
   const handleTabChange = (newTab) => {
     if (newTab === "cigs" && tab === "cigs") setCigsKey(k => k + 1); // reset drill-in
     setTab(newTab);
@@ -67,29 +68,17 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
     { key: "ultimate", ...CUP_DEFS.ultimate, wins: cupTrophies[CUP_DEFS.ultimate.name] || 0, visible: CUP_DEFS.ultimate.tiers.some(t => isTierVisible(t)) },
   ];
 
-  const ACH_CATS = [
-    { label: "Matches", icon: "⚽", ids: new Set(["first_win","clean_sheet","bore_draw","no_comment","score_draw","total_football","clinical","smash_grab","snoozefest","fergie_time","last_gasp","comeback","early_exits","hat_trick","all_four_of_them","fox_box","perfect_motm","slim_motm","wonderkid","captain_material","mr_consistent","dirty_harry","seeing_red","rotation","out_of_pos","bench_best","all_or_nothing","bench_fwd","benchwarmer","double_pivot","emergency_gk","safe_hands","family","old_guard","well_seasoned","baby_faced","dads_army","park_the_bus","total_voetbal","asymmetry","super_sub","injections","brace_yourself","up_for_a_corner","needs_must","taxi_for","absolute_cinema","heads_up","fresh_legs","hes_changed_it","whats_he_doing","false_nine","get_it_in_the_mixer","jumpers_for_goalposts","good_engine","liquid_football","lazy_sunday","inverted_wingers","guard_of_honour","not_a_dry_eye","nom_de_guerre","one_more_year","instant_impact","lazarus","made_it_his_own"]) },
-    { label: "Cups & Titles", icon: "🏆", ids: new Set(["cup_winner","cup_upset","cup_final_loss","cup_exit_r32","nerves_of_steel","heartbreak","perfect_five","sudden_death","the_double","wembley","do_it_cold","catenaccio","professional_job","champion","promoted","relegated","top_flight","invincibles","centurions","back_to_back","yo_yo","free_fall","cup_collector","win_sunday","win_non_league","win_conference","win_league_two","win_league_one","win_championship","win_premier","win_saudi","win_european","win_world_xi","win_intergalactic","win_sub_money","win_clubman","win_global","win_ultimate","tinpot_treble","sunday_to_stars","dynasty"]) },
-    { label: "Training", icon: "🏋️", ids: new Set(["first_gain","through_the_roof","duo_boost","tinkerer","only_fans","npc","finish_food","gym_rats","speed_freaks","cursed","stat_15","stat_20","centurion","our_academy","peak_perf","golden_gen","maxed_out","youth_grad","fresh_blood","old_faithful","testimonial","level_up","rising_tide","1up_addict","shape_shifter","new_tricks","sick_as_a_parrot","exceeded_expectations","late_bloomer","the_sick_note","sweat_equity"]) },
-    { label: "The Season", icon: "📅", ids: new Set(["unbeaten_10","draw_specialists","vote_confidence","manager_month","injury_prone","heavy_metal","clean_5","goals_50","no_cutting","fortress","on_the_road","respect_badge","no_cards","great_escape","mid_table","squeaky","tots_league_one","tots_championship","tots_premier","tots_premier_3","tots_premier_5","aguero","flat_track","big_game","efficient_machine","tactical_foul","bag_man","mentality_monsters","shooting_blanks","wooden_spoon","open_all_hours","away_day_merchants","formation_roulette","comeback_season","absentee_landlord"]) },
-    { label: "Career", icon: "🗺️", ids: new Set(["journeyman","season_5","always_bridesmaid","from_the_bottom","reality_check","opportunity_cost","deep_end","trials_hd","remember_me","kolo_kolo","first_name_terms","deja_vu_training","brothers_in_arms","legendary_dynasty","golden_boot","fifty_not_out","remember_the_name","left_on_read","paper_round","prodigal_son","just_a_niggle","all_timers","brexit","true_strike","purist","our_man","on_your_head_son","one_club_man","fan_favourite","veteran","scouts_honour","end_of_an_era","galacticos","all_time_top","century_club","promised_land","cult_hero","worth_the_wait","golden_ticket","ticket_tout","the_network","best_of_friends","the_dossier","moneyball","the_dugout"]) },
-    { label: "Story Arcs", icon: "📖", ids: new Set(["plot_armour","page_turner","speedrun","trilogy","box_set","completionist","the_gaffer","we_go_again","cold_feet","juiced"]) },
-    { label: "Secrets", icon: "🎭", ids: new Set(["mixed_up","enzo_drive","nomin_determ","who_shot_rr","joga_bonito","bayda","old_pace","giant_killing","impossible_job","deja_vu","hand_of_god","salt_wounds","six_seven","its_a_sign","absolute_barclays","forgot_kit","soundtrack","gone_up_one_track","ice_bath_track","training_montage","odds_are_even","the_specialist","binary","impatient"]) },
-  ];
-
-  const absNow = (seasonNumber - 1) * seasonLength + calendarIndex;
   const getAbsWeek = (u) => {
     if (!u) return -1;
     if (typeof u === "number") return u; // migration: old format was bare absolute week
     return (u.season - 1) * (u.seasonLen || seasonLength) + u.week;
   };
-  const isRecent = (id) => {
-    const abs = getAbsWeek(achievementUnlockWeeks[id]);
-    if (abs < 0) return false;
-    return absNow - abs <= 4;
+  // Legacy entries were a bare absolute week number; newer entries carry season+week.
+  const formatUnlockWeek = (u) => {
+    if (!u) return "—";
+    if (typeof u === "number") return `W${u}`;
+    return `S${u.season} W${u.week}`;
   };
-  const recentIds = new Set(ACHIEVEMENTS.filter(a => unlocked.has(a.id) && isRecent(a.id)).map(a => a.id));
-  const hasRecent = recentIds.size > 0;
 
   React.useEffect(() => {
     if (document.getElementById(achStyleId.current)) return;
@@ -218,6 +207,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {[
           { id: "cigs", label: `CIG PACKS` },
+          { id: "index", label: "INDEX" },
           { id: "trophies", label: "TOP SHELF" },
           { id: "players", label: "REGULARS" },
           { id: "tickets", label: `SCRATCH CARDS${tickets?.length ? ` (${new Set(tickets.filter(t => TICKET_DEFS[t.type]).map(t => t.type)).size})` : ""}` },
@@ -357,138 +347,154 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
         </div>
       )}
 
-      {tab === "achievements" && (
-        <>
-          {/* Progress bar */}
-          <div style={{ marginBottom: 18, background: C.bgCard, height: 8, border: `1px solid ${C.bgInput}` }}>
-            <div style={{
-              height: "100%", width: `${(unlocked.size / ACHIEVEMENTS.length) * 100}%`,
-              background: "linear-gradient(90deg, #facc15, #f59e0b)",
-              transition: "width 0.5s ease",
-            }} />
-          </div>
+      {tab === "index" && (() => {
+        const collectedCount = unlocked.size;
 
-          {/* Category filters */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: filterCat ? 12 : 18 }}>
-            {hasRecent && (
-              <div onClick={() => setFilterCat(filterCat === "Recent" ? null : "Recent")} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 12px", cursor: "pointer",
-                background: filterCat === "Recent" ? "rgba(250,204,21,0.15)" : "rgba(250,204,21,0.08)",
-                border: `1px solid ${filterCat === "Recent" ? "rgba(250,204,21,0.6)" : "rgba(250,204,21,0.3)"}`,
-                outline: filterCat === "Recent" ? "1px solid rgba(250,204,21,0.2)" : "none",
-                outlineOffset: 2,
-              }}>
-                <span style={{ fontSize: F.lg }}>🆕</span>
-                <span style={{ fontSize: F.xs, color: filterCat === "Recent" ? C.gold : C.text, letterSpacing: 0.5 }}>RECENT</span>
-                <span style={{ fontSize: F.xs, color: C.gold, fontWeight: "bold" }}>{recentIds.size}</span>
+        // One row per achievement, EXCEPT uncollected cards behind a still-sealed
+        // pack — those stay fully hidden (not even a locked placeholder row).
+        const indexRows = ACHIEVEMENTS.map(ach => {
+          const pack = CIG_PACKS.find(p => p.id === ACH_TO_PACK[ach.id]) || null;
+          const packSealed = !!pack && !unlockedPacks.has(pack.id);
+          const collected = unlocked.has(ach.id);
+          if (!collected && packSealed) return null;
+          return {
+            ach, pack, collected,
+            kind: !collected ? "uncollected" : packSealed ? "sealed" : "collected",
+            abs: getAbsWeek(achievementUnlockWeeks[ach.id]),
+          };
+        }).filter(Boolean);
+
+        const hiddenCount = ACHIEVEMENTS.length - collectedCount - indexRows.filter(r => r.kind === "uncollected").length;
+
+        // Build the flat render list for the active sort. PACK mode inserts
+        // group-header pseudo-items; sealed-collected rows never reveal their
+        // real pack, so they group under a trailing SEALED header instead.
+        const items = [];
+        if (indexSort === "pack") {
+          CIG_PACKS.forEach(pack => {
+            const rows = indexRows
+              .filter(r => r.kind !== "sealed" && r.pack?.id === pack.id)
+              .sort((a, b) => pack.achievementIds.indexOf(a.ach.id) - pack.achievementIds.indexOf(b.ach.id));
+            if (!rows.length) return;
+            items.push({ header: pack.name, color: pack.color, icon: pack.icon });
+            rows.forEach(row => items.push({ row }));
+          });
+          const sealedRows = indexRows.filter(r => r.kind === "sealed").sort((a, b) => b.abs - a.abs);
+          if (sealedRows.length) {
+            items.push({ header: "SEALED", color: C.slate });
+            sealedRows.forEach(row => items.push({ row }));
+          }
+        } else if (indexSort === "az") {
+          const named = indexRows.filter(r => r.kind !== "sealed").sort((a, b) => a.ach.name.localeCompare(b.ach.name));
+          const anon = indexRows.filter(r => r.kind === "sealed");
+          [...named, ...anon].forEach(row => items.push({ row }));
+        } else { // recent (default)
+          const collectedRows = indexRows.filter(r => r.collected).sort((a, b) => b.abs - a.abs);
+          const uncollectedRows = indexRows.filter(r => !r.collected).sort((a, b) => a.ach.name.localeCompare(b.ach.name));
+          [...collectedRows, ...uncollectedRows].forEach(row => items.push({ row }));
+        }
+
+        return (
+          <>
+            {/* Header + sort toggles */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+              <div style={{ fontSize: mob ? F.xs : F.sm, color: C.textDim, letterSpacing: 1 }}>
+                INDEX · {ACHIEVEMENTS.length} CARDS · <span style={{ color: C.gold }}>{collectedCount}/{ACHIEVEMENTS.length}</span> COLLECTED
               </div>
-            )}
-            {ACH_CATS.map(cat => {
-              const total = ACHIEVEMENTS.filter(a => cat.ids.has(a.id)).length;
-              const done = ACHIEVEMENTS.filter(a => cat.ids.has(a.id) && unlocked.has(a.id)).length;
-              const complete = done === total && total > 0;
-              const active = filterCat === cat.label;
-              return (
-                <div key={cat.label} onClick={() => setFilterCat(active ? null : cat.label)} style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "7px 12px", cursor: "pointer",
-                  background: active ? "rgba(250,204,21,0.15)" : done > 0 ? "rgba(250,204,21,0.05)" : "rgba(15,15,35,0.5)",
-                  border: `1px solid ${active ? "rgba(250,204,21,0.6)" : complete ? "rgba(74,222,128,0.3)" : done > 0 ? "rgba(250,204,21,0.2)" : C.bgCard}`,
-                  outline: active ? "1px solid rgba(250,204,21,0.2)" : "none",
-                  outlineOffset: 2,
-                }}>
-                  <span style={{ fontSize: F.lg }}>{cat.icon}</span>
-                  <span style={{ fontSize: F.xs, color: active ? C.gold : done > 0 ? C.textDim : C.bgInput, letterSpacing: 0.5 }}>{cat.label.toUpperCase()}</span>
-                  <span style={{ fontSize: F.xs, color: complete ? C.green : done > 0 ? C.gold : C.bgInput, fontWeight: "bold" }}>{done}/{total}</span>
-                </div>
-              );
-            })}
-          </div>
-          {filterCat && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-              <span style={{ fontSize: F.xs, color: C.textDim, letterSpacing: 1 }}>
-                SHOWING: <span style={{ color: C.gold }}>{filterCat.toUpperCase()}</span>
-              </span>
-              <button onClick={() => setFilterCat(null)} style={{
-                background: "none", border: `1px solid ${C.bgInput}`, color: C.slate,
-                padding: "5px 12px", fontSize: F.xs, cursor: "pointer",
-                fontFamily: FONT, letterSpacing: 0.5,
-              }}>✕ SHOW ALL</button>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[["recent", "RECENT"], ["pack", "PACK"], ["az", "A-Z"]].map(([id, label]) => (
+                  <button key={id} onClick={() => setIndexSort(id)} style={{
+                    background: indexSort === id ? "rgba(250,204,21,0.15)" : "none",
+                    border: `1px solid ${indexSort === id ? "rgba(250,204,21,0.6)" : C.bgInput}`,
+                    color: indexSort === id ? C.gold : C.slate,
+                    padding: "5px 12px", fontSize: F.xs, cursor: "pointer",
+                    fontFamily: FONT, letterSpacing: 0.5,
+                  }}>{label}</button>
+                ))}
+              </div>
             </div>
-          )}
 
-          {/* Achievement grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(253px, 1fr))", gap: 7 }}>
-            {ACHIEVEMENTS.filter(a => !filterCat || (filterCat === "Recent" ? recentIds.has(a.id) : ACH_CATS.find(c => c.label === filterCat)?.ids.has(a.id))).sort((a, b) => {
-              if (filterCat !== "Recent") return 0;
-              return getAbsWeek(achievementUnlockWeeks[b.id]) - getAbsWeek(achievementUnlockWeeks[a.id]);
-            }).map((ach, achIdx) => {
-              const ok = unlocked.has(ach.id);
-              const isLegendary = ok && LEGENDARY_ACHIEVEMENTS.has(ach.id);
-              const isPlayerUnlock = ok && PLAYER_UNLOCK_ACHIEVEMENTS.has(ach.id);
-              const isPrestigious = ok && !isPlayerUnlock && PRESTIGIOUS_ACHIEVEMENTS.has(ach.id);
-              const isTiered = isLegendary || isPrestigious || isPlayerUnlock;
+            {/* Ledger */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {items.map((item, i) => {
+                if (item.header) {
+                  return (
+                    <div key={`h-${i}`} style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      fontSize: F.xs, color: item.color, letterSpacing: 1.5,
+                      marginTop: i === 0 ? 0 : 10, marginBottom: 2, opacity: 0.85,
+                    }}>
+                      {item.icon && <span>{item.icon}</span>}{item.header.toUpperCase()}
+                    </div>
+                  );
+                }
 
-              const tierColor = isLegendary ? "purple" : isPlayerUnlock ? "green" : "gold";
-              const nameColor = isLegendary ? C.purple : isPlayerUnlock ? C.green : C.gold;
-              const descColor = isLegendary ? "#9366c9" : isPlayerUnlock ? "#34d399" : "#d4a017";
-              const iconBg = isLegendary ? "rgba(168,85,247,0.15)" : isPlayerUnlock ? "rgba(74,222,128,0.15)" : "rgba(250,204,21,0.15)";
-              const iconBorder = isLegendary ? "rgba(168,85,247,0.4)" : isPlayerUnlock ? "rgba(74,222,128,0.4)" : "rgba(250,204,21,0.4)";
+                const { ach, pack, collected, kind } = item.row;
+                const isSealed = kind === "sealed";
+                const isUncollected = kind === "uncollected";
+                const rgb = pack ? hexToRgb(pack.color) : null;
 
-              if (isTiered) {
                 return (
-                  <div key={ach.id} className={`ach-tiered ach-tier-${tierColor}`} style={{
-                    padding: 0, position: "relative", minHeight: 48,
+                  <div key={ach.id} style={{
+                    display: "flex", alignItems: "center", gap: mob ? 8 : 12,
+                    minHeight: 44, padding: mob ? "7px 9px" : "7px 12px",
+                    background: collected && !isSealed ? "rgba(250,204,21,0.05)" : "rgba(15,15,35,0.5)",
+                    borderLeft: !isSealed && pack ? `3px solid ${pack.color}` : `3px solid ${C.bgCard}`,
+                    opacity: isUncollected ? 0.55 : 1,
                   }}>
-                    <div className="ach-tiered-border" />
-                    <div className="ach-tiered-inner" style={{ padding: "15px 18px" }}>
+                    {/* Icon square */}
+                    <div style={{
+                      width: 30, height: 30, minWidth: 30, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: F.md,
+                      background: isSealed ? "rgba(10,10,25,0.8)" : collected ? `rgba(${rgb}, 0.12)` : "rgba(30,41,59,0.5)",
+                      border: isSealed ? `1px solid ${C.bgCard}` : collected ? `1px solid rgba(${rgb}, 0.3)` : `1px solid ${C.bgCard}`,
+                    }}>
+                      {isSealed ? "" : collected ? ach.icon : "?"}
+                    </div>
+
+                    {/* Name + desc */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: F.xl, background: iconBg, border: `1px solid ${iconBorder}`, flexShrink: 0,
+                        fontSize: mob ? F.micro : F.xs, color: isSealed ? C.slate : collected ? C.text : C.textMuted,
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                       }}>
-                        {ach.icon}
+                        {isSealed ? "Hidden card" : ach.name}
                       </div>
-                      <div style={{ minWidth: 0, overflow: "hidden" }}>
-                        <div style={{ fontSize: F.sm, color: nameColor, lineHeight: 1.5 }}>{ach.name}</div>
-                        <div style={{ fontSize: F.xs, color: descColor, marginTop: 2, lineHeight: 1.5 }}>{ach.desc}</div>
+                      <div style={{
+                        fontSize: F.micro, color: C.textDim, marginTop: 2, opacity: 0.7,
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      }}>
+                        {isSealed ? "collected · pack still sealed" : ach.desc}
                       </div>
-                      <span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" /><span className="ach-sparkle" />
+                    </div>
+
+                    {/* Pack / sealed chip */}
+                    <div style={{
+                      fontSize: F.micro, letterSpacing: 0.5, padding: "2px 7px", flexShrink: 0,
+                      background: isSealed ? "rgba(71,85,105,0.2)" : pack ? `rgba(${rgb}, 0.12)` : "transparent",
+                      border: isSealed ? `1px solid ${C.slate}` : pack ? `1px solid rgba(${rgb}, 0.3)` : "none",
+                      color: isSealed ? C.textDim : pack ? pack.color : C.textDim,
+                    }}>
+                      {isSealed ? "SEALED" : pack?.name}
+                    </div>
+
+                    {/* Timestamp */}
+                    <div style={{ fontSize: F.micro, color: C.textDim, minWidth: mob ? 40 : 56, textAlign: "right", flexShrink: 0 }}>
+                      {collected ? formatUnlockWeek(achievementUnlockWeeks[ach.id]) : "—"}
                     </div>
                   </div>
                 );
-              }
+              })}
+            </div>
 
-              return (
-                <div key={ach.id} style={{
-                  padding: "15px 18px",
-                  background: ok ? "rgba(250,204,21,0.06)" : "rgba(15,15,35,0.6)",
-                  border: ok ? "1px solid rgba(250,204,21,0.25)" : `1px solid ${C.bgCard}`,
-                  display: "flex", alignItems: "center", gap: 12,
-                }}>
-                  <div style={{
-                    width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: ok ? F.xl : F.lg,
-                    background: ok ? "rgba(250,204,21,0.1)" : "rgba(30,41,59,0.5)",
-                    border: ok ? "1px solid rgba(250,204,21,0.3)" : `1px solid ${C.bgCard}`,
-                    flexShrink: 0,
-                  }}>
-                    {ok ? ach.icon : "?"}
-                  </div>
-                  <div style={{ minWidth: 0, overflow: "hidden" }}>
-                    <div style={{ fontSize: F.sm, color: ok ? C.text : C.slate, lineHeight: 1.5 }}>
-                      {ach.name}
-                    </div>
-                    <div style={{ fontSize: F.xs, color: ok ? C.textMuted : C.bgCard, marginTop: 2, lineHeight: 1.5 }}>
-                      {ok ? ach.desc : "Locked"}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+            {hiddenCount > 0 && (
+              <div style={{ textAlign: "center", fontSize: F.xs, color: C.textDim, opacity: 0.6, marginTop: 16 }}>
+                + {hiddenCount} hidden cards in sealed packs
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {tab === "players" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
