@@ -2,6 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
+import { installDevHooks } from "./devHooks.js";
+
+// Dev-only test hooks (no-op / stripped in production builds).
+installDevHooks();
 
 // Dev-only `?reset` URL trigger: wipe browser storage and strip the query
 // before mount. Bookmark `/Fruit-Cigs/?reset` on the dev server for a

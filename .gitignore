@@ -6,3 +6,8 @@ dist/
 .env.local
 .claude/worktrees/
 .claude/launch.json
+
+# Playwright / QA harness artifacts (screenshots, reports, traces)
+qa/.artifacts/
+test-results/
+playwright-report/
