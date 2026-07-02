@@ -494,7 +494,7 @@ export function Dashboard({
                 {msg.choices && !msg.choiceResult && (
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     {msg.choices.map((choice) => {
-                      const style = getChoiceButtonStyle(choice);
+                      const style = getChoiceButtonStyle(msg, choice);
                       return <button key={choice.value} onClick={() => {
                         if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
                         if (setInboxMessages) {

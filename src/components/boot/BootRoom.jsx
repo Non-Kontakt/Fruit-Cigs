@@ -191,7 +191,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   {msg.choices && !msg.choiceResult && (
                     <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
                       {msg.choices.map((choice) => {
-                        const style = getChoiceButtonStyle(choice);
+                        const style = getChoiceButtonStyle(msg, choice);
                         return (
                           <button key={choice.value} onClick={(e) => {
                             e.stopPropagation();
