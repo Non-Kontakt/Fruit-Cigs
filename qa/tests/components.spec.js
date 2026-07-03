@@ -66,6 +66,15 @@ test("achievement toast auto-dismisses", async ({ page }, testInfo) => {
   await expect(page.getByText("TOAST DONE")).toBeVisible();
 });
 
+// Collected cig cards mount a hover-foil ShaderMount (a <canvas>); the
+// uncollected ghost state gets no GL layer at all.
+test("cig cards: GL foil canvas only on the collected badge", async ({ page }) => {
+  await page.goto("qa.html?c=cig-card-states");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await expect(page.locator('[data-testid="cig-card-collected"] canvas')).toHaveCount(1);
+  await expect(page.locator('[data-testid="cig-card-uncollected"] canvas')).toHaveCount(0);
+});
+
 test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
   await page.goto("qa.html?c=achievement-toast");

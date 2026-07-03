@@ -3,6 +3,7 @@ import { F, C, FONT } from "../../data/tokens";
 import { CIG_PACKS } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { CigCard } from "./CigCard.jsx";
 
 // ── helpers ────────────────────────────────────────────────────────
 const hexToRgb = (hex) => {
@@ -68,19 +69,6 @@ export function CigPacksTab({
       return { ...pack, collected, total: pack.achievementIds.length };
     });
   }, [unlocked]);
-
-  // ── absolute-week helper (mirrors AchievementCabinet) ──────────
-  const absNow = (seasonNumber - 1) * seasonLength + calendarIndex;
-  const getAbsWeek = (u) => {
-    if (!u) return -1;
-    if (typeof u === "number") return u;
-    return (u.season - 1) * (u.seasonLen || seasonLength) + u.week;
-  };
-  const isRecent = (id) => {
-    const abs = getAbsWeek(achievementUnlockWeeks[id]);
-    if (abs < 0) return false;
-    return absNow - abs <= 4;
-  };
 
   // ── detail view ────────────────────────────────────────────────
   if (selectedPack) {
@@ -152,102 +140,28 @@ export function CigPacksTab({
           }} />
         </div>
 
-        {/* Achievement list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {/* Card grid */}
+        <div style={{
+          display: "grid",
+          // Column minimums must fit the scaled card footprint (216 × scale),
+          // or auto-fill packs in a column too many and the cards collide.
+          gridTemplateColumns: mob
+            ? "repeat(auto-fill, minmax(152px, 1fr))"
+            : "repeat(auto-fill, minmax(184px, 1fr))",
+          gap: mob ? 12 : 16,
+          justifyItems: "center",
+        }}>
           {pack.achievementIds.map((achId) => {
-            const ach = achById[achId];
-            if (!ach) return null;
+            if (!achById[achId]) return null;
             const got = unlocked.has(achId);
-            const recent = got && isRecent(achId);
-
             return (
-              <div
+              <CigCard
                 key={achId}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: mob ? 8 : 12,
-                  minHeight: 48,
-                  padding: mob ? "8px 10px" : "8px 14px",
-                  borderRadius: 6,
-                  background: got
-                    ? `linear-gradient(135deg, rgba(${hexToRgb(pack.colorDark)}, 0.15), rgba(${rgb}, 0.06))`
-                    : "rgba(15,15,35,0.4)",
-                  borderLeft: got
-                    ? `3px solid ${pack.color}`
-                    : `3px solid ${C.bgCard}`,
-                  transition: "background 0.2s",
-                }}
-              >
-                {/* Icon square */}
-                <div style={{
-                  width: 34,
-                  height: 34,
-                  minWidth: 34,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  borderRadius: 5,
-                  background: got
-                    ? `rgba(${rgb}, 0.12)`
-                    : "rgba(30,41,59,0.5)",
-                  border: got
-                    ? `1px solid rgba(${rgb}, 0.25)`
-                    : `1px solid ${C.bgCard}`,
-                }}>
-                  {got ? ach.icon : "?"}
-                </div>
-
-                {/* Name + desc */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontFamily: FONT,
-                    fontSize: mob ? F.micro : F.xs,
-                    color: got ? C.text : C.textMuted,
-                    letterSpacing: 0.5,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>
-                    {ach.name}
-                    {recent && (
-                      <span style={{
-                        marginLeft: 6,
-                        fontSize: F.micro,
-                        color: pack.color,
-                        animation: "cigStampIn 0.4s ease-out",
-                        display: "inline-block",
-                      }}>NEW</span>
-                    )}
-                  </div>
-                  <div style={{
-                    fontFamily: FONT,
-                    fontSize: F.micro,
-                    color: got ? C.textDim : C.textDim,
-                    marginTop: 2,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    opacity: got ? 0.7 : 0.5,
-                  }}>
-                    {ach.desc}
-                  </div>
-                </div>
-
-                {/* Right badge */}
-                <div style={{
-                  fontFamily: FONT,
-                  fontSize: F.micro,
-                  color: got ? pack.color : C.textDim,
-                  minWidth: mob ? 20 : 64,
-                  textAlign: "right",
-                  flexShrink: 0,
-                  opacity: got ? 1 : 0.4,
-                }}>
-                  {got ? (mob ? "\u2713" : "COLLECTED") : "\uD83D\uDD12"}
-                </div>
-              </div>
+                achievementId={achId}
+                state={got ? "collected" : "uncollected"}
+                unlockWeek={got ? achievementUnlockWeeks[achId] : null}
+                scale={mob ? 0.7 : 0.85}
+              />
             );
           })}
         </div>
@@ -442,8 +356,22 @@ function UnlockedCard({ pack, index, mob, onClick }) {
   );
 }
 
+// Sealed-pack stack — a plain CSS mimic of the pitch's .stackcard (lattice
+// pattern only, no roundel) rather than three full CigCard backs; this grid
+// holds up to 32 packs so keeping the sealed state GL-free matters.
+const STACK_STICKER = "#e9e9f2";
+const STACK_CLIP =
+  "polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px))";
+const STACK_CARDS = [
+  { left: "36%", top: 14, rotate: -6 },
+  { left: "50%", top: 6, rotate: 3 },
+  { left: "44%", top: 0, rotate: -1 },
+];
+
 // ── locked card ───────────────────────────────────────────────────
 function LockedCard({ pack, mob }) {
+  const cardW = mob ? 52 : 60;
+  const cardH = mob ? 76 : 88;
   return (
     <div style={{
       minHeight: mob ? 190 : 210,
@@ -460,68 +388,57 @@ function LockedCard({ pack, mob }) {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Subtle cross-hatch pattern for sealed look */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        opacity: 0.03,
-        backgroundImage: `repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 6px,
-          rgba(255,255,255,1) 6px,
-          rgba(255,255,255,1) 7px
-        ), repeating-linear-gradient(
-          -45deg,
-          transparent,
-          transparent 6px,
-          rgba(255,255,255,1) 6px,
-          rgba(255,255,255,1) 7px
-        )`,
-        pointerEvents: "none",
-      }} />
-
-      {/* Lock icon */}
-      <div style={{
-        fontSize: mob ? 36 : 42,
-        lineHeight: 1,
-        opacity: 0.5,
-        position: "relative",
-        zIndex: 1,
-      }}>
-        {"\uD83D\uDD12"}
+      {/* Stack of sealed card backs */}
+      <div style={{ position: "relative", width: "100%", height: cardH + 14 }}>
+        {STACK_CARDS.map((p, i) => (
+          <div key={i} style={{
+            position: "absolute",
+            left: p.left,
+            top: p.top,
+            width: cardW,
+            height: cardH,
+            transform: `translateX(-50%) rotate(${p.rotate}deg)`,
+            background: `repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
+              repeating-linear-gradient(45deg, color-mix(in srgb, ${pack.color} 78%, black) 0 8px, color-mix(in srgb, ${pack.color} 62%, black) 8px 16px),
+              color-mix(in srgb, ${pack.color} 70%, black)`,
+            boxShadow: `0 0 0 4px ${STACK_STICKER}, 0 4px 14px rgba(0,0,0,0.55)`,
+            clipPath: STACK_CLIP,
+          }} />
+        ))}
       </div>
 
-      {/* Mystery name */}
-      <div style={{
-        fontFamily: FONT,
-        fontSize: mob ? F.micro : F.xs,
-        color: C.textDim,
-        letterSpacing: 1,
-        textAlign: "center",
-        position: "relative",
-        zIndex: 1,
-      }}>
-        ???
-      </div>
-
-      {/* Unlock hint */}
+      {/* Unlock hint band */}
       {pack.unlockDesc && (
         <div style={{
           fontFamily: FONT,
           fontSize: F.micro - 1,
-          color: C.textDim,
+          color: pack.color,
+          background: C.bg,
+          boxShadow: `0 0 0 1px ${pack.color}`,
           textAlign: "center",
-          opacity: 0.5,
-          lineHeight: 1.6,
-          padding: "0 6px",
+          letterSpacing: 1,
+          padding: "5px 8px",
+          transform: "rotate(-2deg)",
+          maxWidth: "92%",
           position: "relative",
           zIndex: 1,
-          maxWidth: "90%",
         }}>
-          {pack.unlockDesc}
+          {pack.unlockDesc.toUpperCase()}
         </div>
       )}
+
+      {/* Sealed count */}
+      <div style={{
+        fontFamily: FONT,
+        fontSize: F.micro - 1,
+        color: C.textDim,
+        textAlign: "center",
+        opacity: 0.7,
+        position: "relative",
+        zIndex: 1,
+      }}>
+        {pack.packSize} CARDS · {pack.collected} ALREADY COLLECTED
+      </div>
     </div>
   );
 }

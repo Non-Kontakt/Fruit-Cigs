@@ -8,6 +8,7 @@ import { CUP_DEFS } from "../../data/cups.js";
 import { TICKET_DEFS } from "../../data/tickets.js";
 import { getOverall, getPosColor, getAttrColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
+import { formatUnlockWeek } from "../../utils/unlockWeeks.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { CigPacksTab } from "./CigPacksTab.jsx";
 
@@ -72,14 +73,6 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
     if (typeof u === "number") return u; // migration: old format was bare absolute week
     return (u.season - 1) * (u.seasonLen || seasonLength) + u.week;
   };
-  // Legacy entries were a bare absolute week number; newer entries carry season+week.
-  const formatUnlockWeek = (u) => {
-    if (!u) return "—";
-    if (typeof u === "number") return `W${u}`;
-    return `S${u.season} W${u.week}`;
-  };
-
-
   // Ticket picker is rendered below the full grid; auto-scroll to keep it visible on mobile.
   useEffect(() => {
     if (!ticketPicker?.type || !ticketPickerPanelRef.current) return;
@@ -375,7 +368,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
 
                     {/* Timestamp */}
                     <div style={{ fontSize: F.micro, color: C.textDim, minWidth: mob ? 40 : 56, textAlign: "right", flexShrink: 0 }}>
-                      {collected ? formatUnlockWeek(achievementUnlockWeeks[ach.id]) : "—"}
+                      {(collected && formatUnlockWeek(achievementUnlockWeeks[ach.id])) || "—"}
                     </div>
                   </div>
                 );
