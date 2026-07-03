@@ -257,7 +257,10 @@ function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, pack
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, borderTop: "2px solid #1e1e33", paddingTop: 8 }}>
             <span style={{ fontFamily: FONT, fontSize: 6, color: "#4a5170", letterSpacing: 1 }}>{serial}</span>
-            {isCollected && (
+            {/* Old saves can hold collected cigs with no recorded week — the
+                full-colour card already says collected, so no chip at all
+                beats an empty stamp. */}
+            {isCollected && formatUnlockWeek(unlockWeek) && (
               <span style={{
                 fontFamily: FONT, fontSize: 6, letterSpacing: 1, color: INK,
                 background: legendary ? C.amber : C.green, padding: "4px 6px 3px", boxShadow: "2px 2px 0 rgba(0,0,0,0.5)",

@@ -143,9 +143,11 @@ export function CigPacksTab({
         {/* Card grid */}
         <div style={{
           display: "grid",
+          // Column minimums must fit the scaled card footprint (216 × scale),
+          // or auto-fill packs in a column too many and the cards collide.
           gridTemplateColumns: mob
-            ? "repeat(auto-fill, minmax(110px, 1fr))"
-            : "repeat(auto-fill, minmax(150px, 1fr))",
+            ? "repeat(auto-fill, minmax(152px, 1fr))"
+            : "repeat(auto-fill, minmax(184px, 1fr))",
           gap: mob ? 12 : 16,
           justifyItems: "center",
         }}>
