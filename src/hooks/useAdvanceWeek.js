@@ -15,7 +15,7 @@ import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { checkAchievements } from "../utils/achievements.js";
 import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
 import { SFX, BGM } from "../utils/sfx.js";
-import { buildAIFiveASide } from "../components/match/FiveASidePicker.jsx";
+import { buildAIFiveASide } from "../utils/fiveASide.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
