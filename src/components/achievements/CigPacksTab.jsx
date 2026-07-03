@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { F, C, FONT } from "../../data/tokens";
 import { CIG_PACKS } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
+import { getAchievementProgress } from "../../data/achievementProgress.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { useGameStore } from "../../store/gameStore.js";
 import { CigCard } from "./CigCard.jsx";
 
 // ── helpers ────────────────────────────────────────────────────────
@@ -154,6 +156,9 @@ export function CigPacksTab({
           {pack.achievementIds.map((achId) => {
             if (!achById[achId]) return null;
             const got = unlocked.has(achId);
+            // Subscription-free read — this tab re-renders on open, so a
+            // fresh getState() per card is enough to keep meters current.
+            const progress = got ? null : getAchievementProgress(achId, useGameStore.getState());
             return (
               <CigCard
                 key={achId}
@@ -161,6 +166,7 @@ export function CigPacksTab({
                 state={got ? "collected" : "uncollected"}
                 unlockWeek={got ? achievementUnlockWeeks[achId] : null}
                 scale={mob ? 0.7 : 0.85}
+                progress={progress}
               />
             );
           })}
