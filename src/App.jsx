@@ -3485,14 +3485,13 @@ function FruitCigs() {
         <div style={{
           position: "fixed", left: 8, right: 8, bottom: 34, zIndex: Z.bar,
           background: "rgba(250,204,21,0.12)", border: `1px solid ${C.gold}`,
-          padding: "10px 16px", display: "flex", alignItems: "center",
-          justifyContent: "space-between", gap: 12,
+          padding: "10px 16px", display: "flex", flexDirection: "column", gap: 9,
           fontFamily: FONT,
         }}>
-          <span style={{ fontSize: F.sm, color: C.gold }}>
-            ✋ 5v5 {FIVE_SLOTS[selectedFiveSlot].label} slot selected — tap another slot to swap, or a player to assign.
+          <span style={{ fontSize: F.xs, color: C.gold, letterSpacing: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            ✋ {FIVE_SLOTS[selectedFiveSlot].label} SELECTED · TAP SLOT/PLAYER
           </span>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button onClick={() => {
               const cur = useGameStore.getState().fiveASideSquad || [];
               const newIds = [null, null, null, null, null];
