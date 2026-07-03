@@ -3492,11 +3492,25 @@ function FruitCigs() {
           <span style={{ fontSize: F.sm, color: C.gold }}>
             ✋ 5v5 {FIVE_SLOTS[selectedFiveSlot].label} slot selected — tap another slot to swap, or a player to assign.
           </span>
-          <button onClick={() => setSelectedFiveSlot(null)} style={{
-            background: "none", border: `1px solid ${C.bgInput}`, color: C.textMuted,
-            padding: "7px 14px", cursor: "pointer", fontSize: F.sm,
-            fontFamily: FONT, whiteSpace: "nowrap",
-          }}>CANCEL</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => {
+              const cur = useGameStore.getState().fiveASideSquad || [];
+              const newIds = [null, null, null, null, null];
+              for (let j = 0; j < 5; j++) newIds[j] = cur[j] || null;
+              newIds[selectedFiveSlot] = null;
+              setFiveASideSquad(newIds);
+              setSelectedFiveSlot(null);
+            }} style={{
+              background: "none", border: `1px solid rgba(239,68,68,0.5)`, color: C.lightRed,
+              padding: "7px 14px", cursor: "pointer", fontSize: F.sm,
+              fontFamily: FONT, whiteSpace: "nowrap",
+            }}>REMOVE</button>
+            <button onClick={() => setSelectedFiveSlot(null)} style={{
+              background: "none", border: `1px solid ${C.bgInput}`, color: C.textMuted,
+              padding: "7px 14px", cursor: "pointer", fontSize: F.sm,
+              fontFamily: FONT, whiteSpace: "nowrap",
+            }}>CANCEL</button>
+          </div>
         </div>
       )}
 
