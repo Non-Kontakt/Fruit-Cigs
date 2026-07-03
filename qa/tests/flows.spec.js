@@ -230,15 +230,32 @@ test.describe("full-app flows", () => {
     await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
     await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
 
-    // Navigate to the achievement cabinet via the real nav, then to the INDEX tab.
+    // Navigate to the achievement cabinet via the real nav, then to CIG PACKS
+    // (the default tab) and toggle into the list view — INDEX is no longer
+    // its own cabinet tab, it's a view inside CIG PACKS.
     await page.getByText("CORNER SHOP", { exact: false }).first().click();
     await page.waitForTimeout(300);
-    await page.getByText("INDEX", { exact: false }).first().click();
+    await page.getByText("CIG PACKS", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByRole("button", { name: "Index list view" }).click();
     await page.waitForTimeout(300);
 
     await expect(page.getByText("INDEX ·", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
-    // Fresh game: almost everything is still behind a sealed pack.
-    await expect(page.getByText("hidden cards in sealed packs", { exact: false }).first()).toBeVisible();
+
+    // Sealed titles are visible now: an uncollected card behind a still-sealed
+    // pack lists its real name and pack chip, with the description swapped
+    // for a "— sealed —" tease rather than being omitted entirely.
+    const sealedRow = page.locator('[data-testid="cig-index-row"][data-kind="sealed"]').first();
+    await expect(sealedRow).toBeVisible();
+    await expect(sealedRow.getByText("— sealed —")).toBeVisible();
+    const sealedName = (await sealedRow.getByTestId("cig-index-row-name").innerText()).trim();
+    expect(sealedName.length, "sealed row should show a real achievement name").toBeGreaterThan(0);
+    // The old anonymised phrasing must be gone.
+    await expect(page.getByText("Hidden card", { exact: false })).toHaveCount(0);
+
+    // Clicking any row opens the card modal.
+    await page.locator('[data-testid="cig-index-row"]').first().click();
+    await expect(page.getByTestId("cig-card-modal")).toBeVisible({ timeout: 5_000 });
 
     await shot(page, testInfo.project.name, "flow-achievement-index");
   });
