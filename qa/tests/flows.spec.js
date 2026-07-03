@@ -242,4 +242,55 @@ test.describe("full-app flows", () => {
 
     await shot(page, testInfo.project.name, "flow-achievement-index");
   });
+
+  test("mobile: 5v5 panel fills by tap and swaps armed slots", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile", "tap-to-fill is a mobile interaction");
+
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    // Tier 2 is the mini-tournament tier; the squad-page 5v5 panel renders
+    // whenever the player is still alive in the bracket, so inject the
+    // minimal bracket state it reads (the real one is built at season end).
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC", tier: 2 }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.setState({ miniTournamentBracket: { playerEliminated: false } }));
+
+    await page.getByText("SQUAD", { exact: false }).first().click();
+    await expect(page.getByText("5v5 MINI-TOURNAMENT SQUAD")).toBeVisible({ timeout: 5_000 });
+
+    // Tap-to-fill: arm an uninjured squad player (unique surname — mobile
+    // rows abbreviate first names), then tap an empty 5v5 slot.
+    const target = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const surname = (n) => n.split(" ").slice(1).join(" ");
+      const p = s.squad.find(pl =>
+        !pl.injury && s.squad.filter(o => surname(o.name) === surname(pl.name)).length === 1
+      );
+      return { id: p.id, surname: surname(p.name) };
+    });
+    await page.getByText(target.surname, { exact: false }).filter({ hasNotText: "selected" }).first().click();
+    await page.waitForTimeout(200);
+    await page.locator('[data-testid="five-slot-0"]').click();
+
+    const idsAfterFill = await page.evaluate(() => window.__fc.getState().fiveASideSquad);
+    expect(idsAfterFill?.[0], "tapped player should land in the tapped slot").toBe(target.id);
+
+    // Tap-to-swap: fill every slot, arm one, tap another — the two ids flip.
+    await page.getByText("AUTO-PICK", { exact: true }).first().click();
+    await page.waitForFunction(
+      () => (window.__fc.getState().fiveASideSquad || []).filter(Boolean).length === 5,
+      null, { timeout: 5_000 }
+    );
+    const before = await page.evaluate(() => [...window.__fc.getState().fiveASideSquad]);
+
+    await page.locator('[data-testid="five-slot-0"]').click();
+    await expect(page.locator('[data-testid="five-slot-0"]')).toHaveAttribute("data-armed", "true");
+    await shot(page, testInfo.project.name, "flow-fiveaside-panel-armed");
+    await page.locator('[data-testid="five-slot-1"]').click();
+
+    const after = await page.evaluate(() => [...window.__fc.getState().fiveASideSquad]);
+    expect(after[0], "armed slot should take the tapped slot's player").toBe(before[1]);
+    expect(after[1], "tapped slot should take the armed slot's player").toBe(before[0]);
+    await expect(page.locator('[data-testid="five-slot-0"]')).toHaveAttribute("data-armed", "false");
+  });
 });

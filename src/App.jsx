@@ -64,7 +64,7 @@ import { ModeSelectScreen } from "./components/ui/ModeSelectScreen.jsx";
 import { ManagerIdentityScreen } from "./components/ui/ManagerIdentityScreen.jsx";
 import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
-import { buildAIFiveASide } from "./components/match/FiveASidePicker.jsx";
+import { buildAIFiveASide, FIVE_SLOTS } from "./utils/fiveASide.js";
 import { listProfiles, createProfile, readProfile, scanProfileSlots, deleteMuseumEntry } from "./utils/profile.js";
 import { useGameStore } from "./store/gameStore.js";
 
@@ -405,6 +405,19 @@ function FruitCigs() {
     }
   }, []);
   const [selectedForMove, setSelectedForMove] = useState(null); // mobile tap-to-move
+  const [selectedFiveSlot, setSelectedFiveSlot] = useState(null); // mobile: armed 5v5 panel slot index
+  // Mobile tap-assign into the 5v5 panel — same rules as the desktop drag
+  // drop: dedupe the id from the other slots, refuse injured players.
+  const assignToFiveSlot = (slotIdx, playerId) => {
+    const player = squad.find(p => p.id === playerId);
+    if (!player || player.injury) return;
+    const ids = fiveASideSquad || [];
+    const newIds = [null, null, null, null, null];
+    for (let j = 0; j < 5; j++) newIds[j] = ids[j] || null;
+    for (let j = 0; j < 5; j++) { if (newIds[j] === playerId) newIds[j] = null; }
+    newIds[slotIdx] = playerId;
+    setFiveASideSquad(newIds);
+  };
   const unlockedAchievements = useGameStore(s => s.unlockedAchievements);
   const unlockedPacks = useGameStore(s => s.unlockedPacks);
   const achievementUnlockWeeks = useGameStore(s => s.achievementUnlockWeeks);
@@ -3456,9 +3469,30 @@ function FruitCigs() {
           fontFamily: FONT,
         }}>
           <span style={{ fontSize: F.sm, color: C.green }}>
-            ✋ {squad.find(p => p.id === selectedForMove.id)?.name || "Player"} selected — tap another to swap, or tap a section header.
+            ✋ {squad.find(p => p.id === selectedForMove.id)?.name || "Player"} selected — tap another to swap, {miniTournamentBracket && !miniTournamentBracket.playerEliminated ? "a 5v5 slot, " : ""}or tap a section header.
           </span>
           <button onClick={() => setSelectedForMove(null)} style={{
+            background: "none", border: `1px solid ${C.bgInput}`, color: C.textMuted,
+            padding: "7px 14px", cursor: "pointer", fontSize: F.sm,
+            fontFamily: FONT, whiteSpace: "nowrap",
+          }}>CANCEL</button>
+        </div>
+      )}
+
+      {isMobile && showSquad && selectedFiveSlot !== null && !selectedForMove && !swapTarget && (
+        // Same fixed placement as the tap-to-move banner above, for the same
+        // reason — an in-flow banner shifts the list under the thumb.
+        <div style={{
+          position: "fixed", left: 8, right: 8, bottom: 34, zIndex: Z.bar,
+          background: "rgba(250,204,21,0.12)", border: `1px solid ${C.gold}`,
+          padding: "10px 16px", display: "flex", alignItems: "center",
+          justifyContent: "space-between", gap: 12,
+          fontFamily: FONT,
+        }}>
+          <span style={{ fontSize: F.sm, color: C.gold }}>
+            ✋ 5v5 {FIVE_SLOTS[selectedFiveSlot].label} slot selected — tap another slot to swap, or a player to assign.
+          </span>
+          <button onClick={() => setSelectedFiveSlot(null)} style={{
             background: "none", border: `1px solid ${C.bgInput}`, color: C.textMuted,
             padding: "7px 14px", cursor: "pointer", fontSize: F.sm,
             fontFamily: FONT, whiteSpace: "nowrap",
@@ -3739,13 +3773,6 @@ function FruitCigs() {
       <>
       {/* 5v5 Mini-Tournament squad banner */}
       {miniTournamentBracket && !miniTournamentBracket.playerEliminated && (() => {
-        const FIVE_SLOTS = [
-          { label: "GK", positions: ["GK"] },
-          { label: "DEF", positions: ["CB", "LB", "RB"] },
-          { label: "MID", positions: ["CM", "AM"] },
-          { label: "MID", positions: ["CM", "AM"] },
-          { label: "ATK", positions: ["LW", "RW", "ST"] },
-        ];
         const ids = fiveASideSquad || [];
         const picksRaw = [null,null,null,null,null];
         for (let pi = 0; pi < 5; pi++) picksRaw[pi] = ids[pi] ? squad.find(p => p.id === ids[pi]) || null : null;
@@ -3761,6 +3788,32 @@ function FruitCigs() {
             if (best) { picked.push(best.id); used.add(best.id); }
           }
           setFiveASideSquad(picked);
+          setSelectedFiveSlot(null);
+        };
+        // Mobile tap flow: an armed squad-list player fills the tapped slot;
+        // otherwise the first tap arms a filled slot and the second tap swaps
+        // it with another (an empty target just moves the player there),
+        // mirroring the desktop drag/drop above and the squad list's
+        // tap-to-move interaction.
+        const handleFiveSlotTap = (i) => {
+          if (selectedForMove) {
+            assignToFiveSlot(i, selectedForMove.id);
+            setSelectedForMove(null);
+            return;
+          }
+          if (selectedFiveSlot !== null) {
+            if (selectedFiveSlot !== i) {
+              const newIds = [null, null, null, null, null];
+              for (let j = 0; j < 5; j++) newIds[j] = ids[j] || null;
+              const tmp = newIds[i];
+              newIds[i] = newIds[selectedFiveSlot];
+              newIds[selectedFiveSlot] = tmp;
+              setFiveASideSquad(newIds);
+            }
+            setSelectedFiveSlot(null);
+            return;
+          }
+          if (ids[i]) setSelectedFiveSlot(i);
         };
         return (
           <div style={{
@@ -3772,7 +3825,7 @@ function FruitCigs() {
                 5v5 MINI-TOURNAMENT SQUAD
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setFiveASideSquad(null)} style={{
+                <button onClick={() => { setFiveASideSquad(null); setSelectedFiveSlot(null); }} style={{
                   padding: "5px 12px", fontSize: F.xs, fontFamily: FONT,
                   background: "transparent", border: `1px solid ${C.bgInput}`,
                   color: C.textDim, cursor: "pointer",
@@ -3814,8 +3867,11 @@ function FruitCigs() {
                   setFiveASideSquad(newIds);
                   setDragPlayer(null);
                 };
+                const isFiveArmed = isMobile && selectedFiveSlot === i;
                 return (
                   <div key={i}
+                    data-testid={`five-slot-${i}`}
+                    data-armed={isFiveArmed ? "true" : "false"}
                     draggable={!isMobile && !!p}
                     onDragStart={!isMobile && p ? (e) => {
                       e.dataTransfer.setData("fiveSlotIdx", String(i));
@@ -3825,6 +3881,10 @@ function FruitCigs() {
                     onDragOver={!isMobile ? (e => { e.preventDefault(); e.stopPropagation(); }) : undefined}
                     onDrop={!isMobile ? handleFiveDrop : undefined}
                     onClick={() => {
+                      if (isMobile) {
+                        handleFiveSlotTap(i);
+                        return;
+                      }
                       if (p) {
                         const newIds = [null,null,null,null,null];
                         for (let j = 0; j < 5; j++) newIds[j] = ids[j] || null;
@@ -3836,8 +3896,9 @@ function FruitCigs() {
                     display: "flex", alignItems: "center", gap: isMobile ? 8 : 10,
                     padding: isMobile ? "8px 10px" : "7px 12px",
                     borderBottom: `1px solid ${C.bgCard}`,
-                    background: i % 2 === 0 ? "transparent" : "rgba(30,41,59,0.15)",
-                    cursor: p ? "grab" : "default",
+                    background: isFiveArmed ? "rgba(250,204,21,0.12)" : i % 2 === 0 ? "transparent" : "rgba(30,41,59,0.15)",
+                    borderLeft: isFiveArmed ? `3px solid ${C.gold}` : "3px solid transparent",
+                    cursor: isMobile ? "pointer" : p ? "grab" : "default",
                     userSelect: "none",
                   }}>
                     <span style={{
@@ -4186,6 +4247,12 @@ function FruitCigs() {
                 handleDrop(section, player.id);
               }) : undefined}
               onClick={() => {
+                // If a 5v5 slot is armed, this tap assigns the player to it
+                if (isMobile && selectedFiveSlot !== null) {
+                  assignToFiveSlot(selectedFiveSlot, player.id);
+                  setSelectedFiveSlot(null);
+                  return;
+                }
                 // If a chip is selected, assign it to this player
                 if (selectedSlot !== null) {
                   handleChipAssign(selectedSlot, player.id);
@@ -4783,7 +4850,7 @@ function FruitCigs() {
           scroll room below the list so the last rows can still be reached
           and tapped as swap targets while it's up. Appending height at the
           page tail moves nothing that's on screen. */}
-      {isMobile && selectedForMove && !swapTarget && (
+      {isMobile && (selectedForMove || selectedFiveSlot !== null) && !swapTarget && (
         <div style={{ height: 72 }} />
       )}
 
