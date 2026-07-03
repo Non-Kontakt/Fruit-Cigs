@@ -398,7 +398,7 @@ export const ACHIEVEMENTS = [
 export const LEGENDARY_ACHIEVEMENTS = new Set([
   "mentality_monsters", "invincibles", "centurions", "from_the_bottom", "the_double",
   "maxed_out", "dynasty", "catenaccio",
-  "nominative_determinism", "always_bridesmaid", "baby_faced",
+  "nomin_determ", "always_bridesmaid", "baby_faced",
   "completionist", "speedrun",
   "tots_premier_5", "aguero", "tinpot_treble", "total_voetbal",
   "sunday_to_stars",

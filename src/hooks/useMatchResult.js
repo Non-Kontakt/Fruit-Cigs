@@ -36,7 +36,6 @@ export function useMatchResult({
   cardedPlayerIdsRef,
   aiPredictionRef,
   weekRecoveriesRef,
-  achievableIdsRef,
   setPendingPlayerUnlock,
 }) {
   const processMatchDone = useCallback((matchResult, wasAlwaysFast, wasAlwaysNormal) => {
@@ -308,7 +307,7 @@ export function useMatchResult({
         }
 
         const newUnlocks = checkAchievements({
-          squad: s.squad, unlocked: s.unlockedAchievements, achievableIds: achievableIdsRef.current,
+          squad: s.squad, unlocked: s.unlockedAchievements,
           lastMatchResult: matchResult, league: currentLeague, weekGains: null,
           startingXI: s.startingXI, bench: s.bench, matchweekIndex: completedMDs, seasonCards: s.seasonCards,
           totalGains: s.totalGains, totalMatches: s.totalMatches + 1,
@@ -936,7 +935,7 @@ export function useMatchResult({
       setMatchResult(null);
       s.setProcessing(false);
     }
-  }, [setMatchResult, setAchievementQueue, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef, achievableIdsRef]);
+  }, [setMatchResult, setAchievementQueue, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef]);
 
   return { processMatchDone };
 }

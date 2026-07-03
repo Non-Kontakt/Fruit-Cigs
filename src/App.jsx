@@ -410,14 +410,6 @@ function FruitCigs() {
   const achievementUnlockWeeks = useGameStore(s => s.achievementUnlockWeeks);
   const lastSeenAchievementCount = useGameStore(s => s.lastSeenAchievementCount);
   const achievementUnlockWeeksRef = useRef(achievementUnlockWeeks);
-  // Precompute the set of achievement IDs the player can currently earn (from unlocked packs)
-  const achievableIds = useMemo(() => {
-    const ids = new Set();
-    CIG_PACKS.forEach(pack => { if (unlockedPacks.has(pack.id)) pack.achievementIds.forEach(id => ids.add(id)); });
-    return ids;
-  }, [unlockedPacks]);
-  const achievableIdsRef = useRef(achievableIds);
-  achievableIdsRef.current = achievableIds;
   // Always record achievement and toast it. Player unlock fires immediately.
   const tryUnlockAchievement = useCallback((id) => {
     setUnlockedAchievements(prev => { if (prev.has(id)) return prev; const n = new Set(prev); n.add(id); return n; });
@@ -1377,7 +1369,7 @@ function FruitCigs() {
     setShowTransfers, setShowLegends, setShowSquad,
     tryUnlockAchievement,
     storyArcsRef, pendingFinalRewardRef, weekRecoveriesRef, cardedPlayerIdsRef,
-    boardWarnWeekRef, aiPredictionRef, achievableIdsRef, revealedInjuryCount,
+    boardWarnWeekRef, aiPredictionRef, revealedInjuryCount,
     pendingTrialAction,
   });
 
@@ -1576,7 +1568,7 @@ function FruitCigs() {
   const { processMatchDone } = useMatchResult({
     setMatchResult, setAchievementQueue,
     tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
-    pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef, achievableIdsRef,
+    pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef,
     setPendingPlayerUnlock,
   });
 
@@ -5554,7 +5546,7 @@ function FruitCigs() {
               const cupIsDraw = cupPlayerGoals === cupOppGoals;
 
               const cupNewUnlocks = checkAchievements({
-                squad: useGameStore.getState().squad, unlocked: unlockedAchievements, achievableIds,
+                squad: useGameStore.getState().squad, unlocked: unlockedAchievements,
                 lastMatchResult: cupMatchResult, league: cupMatchResult.cupLeague || league, weekGains: null,
                 startingXI, bench, matchweekIndex: 0, seasonCards,
                 totalGains, totalMatches: totalMatches + 1,

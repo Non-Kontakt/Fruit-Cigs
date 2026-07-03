@@ -48,7 +48,6 @@ export function useAdvanceWeek({
   cardedPlayerIdsRef,
   boardWarnWeekRef,
   aiPredictionRef,
-  achievableIdsRef,
   revealedInjuryCount,
   pendingTrialAction,
 }) {
@@ -65,7 +64,6 @@ export function useAdvanceWeek({
       pendingTicketBoosts, dynastyCupQualifiers, prestigeLevel,
     } = s;
     const ovrCap = getOvrCap(prestigeLevel || 0);
-    const achievableIds = achievableIdsRef.current;
 
     if (processing || !league) return;
 
@@ -288,7 +286,7 @@ export function useAdvanceWeek({
 
     // Check training focus mass achievements at moment of advance
     const focusUnlocks = checkAchievements({
-      squad, unlocked: unlockedAchievements, achievableIds,
+      squad, unlocked: unlockedAchievements,
       lastMatchResult: null, league, weekGains: null,
       startingXI, bench, matchweekIndex, trainedThisWeek,
       doubleTrainingWeek: s.doubleTrainingWeek, usedTicketTypes, scoutedPlayers, transferFocus,
