@@ -6,7 +6,7 @@ import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS, AI_BENCH_POSITIONS } from "../data/leagues.js";
 import { STORY_ARCS } from "../data/storyArcs.js";
 import { STARTER_PACKS } from "../data/cigPacks.js";
-import { UNLOCKABLE_PLAYERS, TIER_WIN_ACHS } from "../data/achievements.js";
+import { TIER_WIN_ACHS } from "../data/achievements.js";
 import { DEFAULT_FORMATION } from "../data/formations.js";
 import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall } from "../utils/calc.js";
@@ -15,7 +15,7 @@ import { initStoryArcs } from "../utils/arcs.js";
 import { simulateMatchweek } from "../utils/match.js";
 import { normalizeRosters, initLeague, initAILeague, buildSeasonCalendar, computeCalendarIndex, initCup } from "../utils/league.js";
 import { seedMessageSeq, getMessageSeq } from "../utils/messageUtils.js";
-import { checkAchievements } from "../utils/achievements.js";
+import { checkAchievements, deriveMissingPlayerUnlocks } from "../utils/achievements.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
 import { randomAvatar } from "../components/ui/ManagerAvatar.jsx";
 
@@ -850,18 +850,15 @@ export function useSaveGame({
       }
 
       // Migration: grant missing player unlocks
+      // Re-derives "unlocked but never added" from source of truth on every
+      // load, rather than trusting any snapshot taken mid-consent-flow —
+      // pendingPlayerUnlock is transient React state and isn't persisted, so
+      // a save captured while a reveal was still on screen (or under the old
+      // pack-gated system) would otherwise lose the unlock for good.
       if (s.unlockedAchievements && s.squad) {
-        const currentSquadIds = new Set((s.squad || []).map(p => p.id));
-        const missingUnlocks = [];
-        for (const achId of s.unlockedAchievements) {
-          const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === achId);
-          if (unlock && unlock.attrs) {
-            const unlockId = `unlockable_${unlock.id}`;
-            if (!currentSquadIds.has(unlockId)) {
-              missingUnlocks.push(unlock);
-            }
-          }
-        }
+        const missingUnlocks = deriveMissingPlayerUnlocks({
+          unlockedAchievements: s.unlockedAchievements, squad: s.squad, teamName: s.teamName,
+        });
         if (missingUnlocks.length > 0) {
           setPendingPlayerUnlock(missingUnlocks);
         }

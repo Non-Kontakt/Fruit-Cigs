@@ -1,7 +1,7 @@
 import { ATTRIBUTES } from "../data/training.js";
 import { STARTING_XI_POSITIONS, POSITION_TYPES } from "../data/positions.js";
 import { DEFAULT_FORMATION } from "../data/formations.js";
-import { ACHIEVEMENTS } from "../data/achievements.js";
+import { ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { getOverall } from "../utils/calc.js";
 import { getFormationPositions, getEffectiveSlots } from "../utils/formation.js";
 import { sortStandings } from "../utils/league.js";
@@ -38,6 +38,30 @@ export function createUnlockablePlayer(unlockDef, joinedSeason, ovrCap = 20) {
     ...(unlockDef.capBonus ? { legendCap: playerCap } : {}),
     ...(unlockDef.flavour ? { flavour: unlockDef.flavour } : {}),
   };
+}
+
+// One unlock source, one add path: an unlockable player is "due" for the
+// pending-consent reveal when its linked achievement is in unlockedAchievements
+// (or, for the two secret team-name unlocks, the current team name matches)
+// and it isn't already in the squad. Re-derived fresh on every load so a save
+// captured mid-reveal (or from before the consent flow existed) can't lose
+// the unlock — it just gets offered again instead of silently added.
+export function deriveMissingPlayerUnlocks({ unlockedAchievements, squad, teamName }) {
+  const currentSquadIds = new Set((squad || []).map(p => p.id));
+  const missing = [];
+  for (const unlock of UNLOCKABLE_PLAYERS) {
+    if (!unlock.attrs) continue;
+    const unlockId = `unlockable_${unlock.id}`;
+    if (currentSquadIds.has(unlockId)) continue;
+    if (unlock.unlockType === "teamName") {
+      if (!teamName || !unlock.unlockValue) continue;
+      const matches = [].concat(unlock.unlockValue).some(v => teamName.toLowerCase().includes(v.toLowerCase()));
+      if (matches) missing.push(unlock);
+    } else if (unlock.achievementId) {
+      if (unlockedAchievements?.has(unlock.achievementId)) missing.push(unlock);
+    }
+  }
+  return missing;
 }
 
 export function checkAchievements(state) {

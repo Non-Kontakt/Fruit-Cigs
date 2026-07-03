@@ -46,7 +46,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
 import { PackUnlockReveal } from "./components/achievements/PackUnlockReveal.jsx";
@@ -964,11 +964,8 @@ function FruitCigs() {
       ]);
 
       // Check for team-name-based unlockable players (may match multiple)
-      const teamNameUnlocks = UNLOCKABLE_PLAYERS.filter(u =>
-        u.unlockType === "teamName" && u.attrs &&
-        u.unlockValue && [].concat(u.unlockValue).some(v => teamName.toLowerCase().includes(v.toLowerCase()))
-        && !squad.some(p => p.id === `unlockable_${u.id}`)
-      );
+      const teamNameUnlocks = deriveMissingPlayerUnlocks({ unlockedAchievements, squad, teamName })
+        .filter(u => u.unlockType === "teamName");
       if (teamNameUnlocks.length > 0) {
         setPendingPlayerUnlock(teamNameUnlocks);
       }
