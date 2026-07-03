@@ -3,6 +3,7 @@ import { C, FONT } from "../../data/tokens";
 import { CIG_PACKS } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, LEGENDARY_ACHIEVEMENTS } from "../../data/achievements.js";
 import { mixColor, mountDithering, prefersReducedMotion } from "../../utils/cigCardShaders.js";
+import { formatUnlockWeek } from "../../utils/unlockWeeks.js";
 
 // Card anatomy pixel constants, straight off the approved pitch — sticker
 // frame, stepped pixel corners, 8-bit sky, badge foil patch, trading-card
@@ -44,16 +45,6 @@ CIG_PACKS.forEach((p) => {
   packById[p.id] = p;
   p.achievementIds.forEach((id) => { achToPack[id] = p.id; });
 });
-
-// Legacy entries were a bare absolute week number; newer entries carry
-// season+week. Duplicated from AchievementCabinet.jsx / CigPacksTab.jsx —
-// same 5-line formatter, three places now; not worth a shared import for
-// this little.
-function formatUnlockWeek(u) {
-  if (!u) return "";
-  if (typeof u === "number") return `W${u}`;
-  return `S${u.season} W${u.week}`;
-}
 
 export function CigCard({ achievementId, state, unlockWeek = null, scale = 1, noGl = false }) {
   const ach = achById[achievementId];
