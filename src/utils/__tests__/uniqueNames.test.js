@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { uniqueGenerate, generateSquad, generateAITeam, generateFreeAgent } from "../player.js";
+import { getOverall } from "../calc.js";
 
 describe("uniqueGenerate", () => {
   it("never returns a name already in usedNames, even when the generator keeps repeating it", () => {
@@ -53,5 +54,18 @@ describe("generateFreeAgent — dedupes against a supplied squad", () => {
     // and assert against the untouched original.
     const agent = generateFreeAgent(5, 10, 20, new Set(originalNames));
     expect(originalNames.has(agent.name)).toBe(false);
+  });
+});
+
+describe("generateFreeAgent — respects the ovrCap argument", () => {
+  it("never produces an OVR or potential above ovrCap, at low and high caps", () => {
+    for (const ovrCap of [20, 68]) {
+      for (let trial = 0; trial < 50; trial++) {
+        const usedNames = new Set();
+        const agent = generateFreeAgent(5, Math.round(ovrCap * 0.6), ovrCap, usedNames);
+        expect(getOverall(agent)).toBeLessThanOrEqual(ovrCap);
+        expect(agent.potential).toBeLessThanOrEqual(ovrCap);
+      }
+    }
   });
 });

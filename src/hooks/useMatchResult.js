@@ -239,9 +239,10 @@ export function useMatchResult({
           s.setHalfwayPosition(pos);
           if (leagueMod.poachEvent) {
             const poachUsedNames = new Set(s.squad.map(p => p.name));
-            const p1 = generateFreeAgent(s.leagueTier, ovrCap, undefined, poachUsedNames);
-            const p2 = generateFreeAgent(s.leagueTier, ovrCap, undefined, poachUsedNames);
-            const p3 = generateFreeAgent(s.leagueTier, ovrCap, undefined, poachUsedNames);
+            const avgOvr = Math.round(s.squad.reduce((sum, p) => sum + getOverall(p), 0) / s.squad.length);
+            const p1 = generateFreeAgent(s.leagueTier, avgOvr, ovrCap, poachUsedNames);
+            const p2 = generateFreeAgent(s.leagueTier, avgOvr, ovrCap, poachUsedNames);
+            const p3 = generateFreeAgent(s.leagueTier, avgOvr, ovrCap, poachUsedNames);
             s.setInboxMessages(prev => [...prev, createInboxMessage(
               MSG.poachEvent(
                 `Three players have emerged on the Saudi market. Pick one to sign — the other two will be snapped up by ${sorted[1] ? currentLeague.teams[sorted[1].teamIndex]?.name : "a rival"}.\n\n` +
