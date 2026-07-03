@@ -116,7 +116,8 @@ export function CigPacksTab({
         aria-label="Pack grid view"
         title="Pack grid view"
         style={{
-          padding: "7px 11px", fontSize: F.sm, lineHeight: 1,
+          width: 34, height: 34, padding: 0, fontSize: F.sm, lineHeight: 1,
+          display: "flex", alignItems: "center", justifyContent: "center",
           background: view === "packs" ? "rgba(250,204,21,0.1)" : "rgba(15,15,35,0.6)",
           border: view === "packs" ? `1px solid ${C.gold}` : `1px solid ${C.bgCard}`,
           color: view === "packs" ? C.gold : C.slate,
@@ -128,7 +129,8 @@ export function CigPacksTab({
         aria-label="Index list view"
         title="Index list view"
         style={{
-          padding: "7px 11px", fontSize: F.sm, lineHeight: 1,
+          width: 34, height: 34, padding: 0, fontSize: F.sm, lineHeight: 1,
+          display: "flex", alignItems: "center", justifyContent: "center",
           background: view === "list" ? "rgba(250,204,21,0.1)" : "rgba(15,15,35,0.6)",
           border: view === "list" ? `1px solid ${C.gold}` : `1px solid ${C.bgCard}`,
           color: view === "list" ? C.gold : C.slate,

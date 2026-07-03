@@ -113,19 +113,18 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
               onClick={() => onCardOpen?.(ach.id)}
               style={{
                 display: "flex", alignItems: "center", gap: mob ? 10 : 14,
-                minHeight: 52, padding: mob ? "9px 11px" : "9px 14px",
+                minHeight: 60, padding: mob ? "11px 11px" : "11px 14px",
                 background: collected ? "rgba(250,204,21,0.05)" : "rgba(15,15,35,0.5)",
                 borderLeft: pack ? `3px solid ${pack.color}` : `3px solid ${C.bgCard}`,
                 opacity: isUncollected ? 0.55 : 1,
                 cursor: "pointer",
               }}
             >
-              {/* Icon square */}
+              {/* Icon — frameless so it can fill its column */}
               <div style={{
-                width: 32, height: 32, minWidth: 32, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: F.md,
-                background: collected ? `rgba(${rgb}, 0.12)` : "rgba(30,41,59,0.5)",
-                border: collected ? `1px solid rgba(${rgb}, 0.3)` : `1px solid ${C.bgCard}`,
+                width: 34, minWidth: 34, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: collected ? 26 : 22,
+                color: C.slate,
               }}>
                 {collected ? ach.icon : "?"}
               </div>
@@ -139,7 +138,7 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
                   {ach.name}
                 </div>
                 <div style={{
-                  fontSize: F.xs, color: isSealed ? C.slate : C.textDim, marginTop: 2, opacity: isSealed ? 1 : 0.7,
+                  fontSize: F.xs, color: isSealed ? C.slate : C.textDim, marginTop: 6, opacity: isSealed ? 1 : 0.7,
                   fontStyle: isSealed ? "italic" : "normal",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                 }}>
