@@ -5682,6 +5682,9 @@ function FruitCigs() {
                 }
               }
               setLastSeasonMove(moveType);
+              setTransferWindowOpen(false);
+              setTransferWindowWeeksRemaining(0);
+              setTransferOffers([]);
               // Season-end sentiment swings (cup path)
               if (moveType === "promoted") { setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
               if (moveType === "relegated") { setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
@@ -6175,6 +6178,9 @@ function FruitCigs() {
             setDynastyCupBracket(null);
             setMiniTournamentBracket(null);
             setFiveASideSquad(null);
+            setTransferWindowOpen(false);
+            setTransferWindowWeeksRemaining(0);
+            setTransferOffers([]);
             // setShowFiveASidePicker removed
             aiPredictionRef.current = null;
 
@@ -6735,6 +6741,8 @@ function FruitCigs() {
               setSeasonHomeUnbeaten(true);
               setSeasonAwayWins(0);
               setSeasonAwayGames(0);
+              // Transfer window state is NOT reset here — the summer window opens
+              // one break-week earlier and intentionally carries into the new season.
               setMotmTracker({});
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});

@@ -126,6 +126,9 @@ export function useAdvanceWeek({
         if (moveType === "promoted") { s.setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
         if (moveType === "relegated") { s.setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); s.setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
         if (position === 1) { s.setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 10)); s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10)); }
+        s.setTransferWindowOpen(false);
+        s.setTransferWindowWeeksRemaining(0);
+        s.setTransferOffers([]);
         s.setSummerPhase("awaiting_end");
 
         // === STORY ARC SEASON-END TRACKING (recovery path) ===
