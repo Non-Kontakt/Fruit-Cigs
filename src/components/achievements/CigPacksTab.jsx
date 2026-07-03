@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { F, C, FONT } from "../../data/tokens";
-import { CIG_PACKS } from "../../data/cigPacks.js";
+import { F, C, FONT, MODAL, Z } from "../../data/tokens";
+import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { getAchievementProgress } from "../../data/achievementProgress.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { useGameStore } from "../../store/gameStore.js";
 import { CigCard } from "./CigCard.jsx";
+import { CigIndex } from "./CigIndex.jsx";
 
 // ── helpers ────────────────────────────────────────────────────────
 const hexToRgb = (hex) => {
@@ -61,8 +62,24 @@ export function CigPacksTab({
 }) {
   const mob = useMobile();
   const [selectedPack, setSelectedPack] = useState(null);
+  const [view, setView] = useState("packs"); // "packs" | "list"
+  const [openCardId, setOpenCardId] = useState(null);
 
   useEffect(() => { injectKeyframes(); }, []);
+
+  // Close the card modal on Escape without stealing the key from the app's
+  // global Escape handler (which returns to Home) — capture phase + a stop
+  // lets this component win first while leaving other shortcuts untouched.
+  useEffect(() => {
+    if (!openCardId) return;
+    const handler = (e) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpenCardId(null);
+    };
+    document.addEventListener("keydown", handler, true);
+    return () => document.removeEventListener("keydown", handler, true);
+  }, [openCardId]);
 
   // Build pack completion data
   const packData = useMemo(() => {
@@ -71,6 +88,107 @@ export function CigPacksTab({
       return { ...pack, collected, total: pack.achievementIds.length };
     });
   }, [unlocked]);
+
+  // Card state for the ledger's click-through modal: collected cards always
+  // show their real face; uncollected cards show progress if their pack is
+  // open, or the sealed card BACK if it isn't — the ledger row already gave
+  // up the name as a hint, the card itself stays face-down.
+  const buildModalCard = (achId) => {
+    if (unlocked.has(achId)) {
+      return { state: "collected", unlockWeek: achievementUnlockWeeks[achId], progress: null };
+    }
+    const pack = CIG_PACKS.find((p) => p.id === ACH_TO_PACK[achId]);
+    const sealed = !!pack && !unlockedPacks.has(pack.id);
+    if (sealed) return { state: "hidden", unlockWeek: null, progress: null };
+    return { state: "uncollected", unlockWeek: null, progress: getAchievementProgress(achId, useGameStore.getState()) };
+  };
+
+  const handleViewChange = (v) => {
+    if (v === "packs" && view === "list") setSelectedPack(null); // toggling back lands on the grid top
+    setOpenCardId(null);
+    setView(v);
+  };
+
+  const viewToggle = (
+    <div style={{ display: "flex", gap: 6 }}>
+      <button
+        onClick={() => handleViewChange("packs")}
+        aria-label="Pack grid view"
+        title="Pack grid view"
+        style={{
+          padding: "7px 11px", fontSize: F.sm, lineHeight: 1,
+          background: view === "packs" ? "rgba(250,204,21,0.1)" : "rgba(15,15,35,0.6)",
+          border: view === "packs" ? `1px solid ${C.gold}` : `1px solid ${C.bgCard}`,
+          color: view === "packs" ? C.gold : C.slate,
+          cursor: "pointer", fontFamily: FONT, borderRadius: 6,
+        }}
+      >▦</button>
+      <button
+        onClick={() => handleViewChange("list")}
+        aria-label="Index list view"
+        title="Index list view"
+        style={{
+          padding: "7px 11px", fontSize: F.sm, lineHeight: 1,
+          background: view === "list" ? "rgba(250,204,21,0.1)" : "rgba(15,15,35,0.6)",
+          border: view === "list" ? `1px solid ${C.gold}` : `1px solid ${C.bgCard}`,
+          color: view === "list" ? C.gold : C.slate,
+          cursor: "pointer", fontFamily: FONT, borderRadius: 6,
+        }}
+      >☰</button>
+    </div>
+  );
+
+  const cardModal = openCardId && (() => {
+    const m = buildModalCard(openCardId);
+    return (
+      <div data-testid="cig-card-modal" style={{ ...MODAL.backdrop, zIndex: Z.confirm }} onClick={() => setOpenCardId(null)}>
+        {/* Spotlight rim — a drained or face-down card would otherwise sink
+            into the dark backdrop instead of being the highlighted thing. */}
+        <div
+          style={{
+            position: "relative",
+            boxShadow: "0 0 0 3px #e9e9f2, 0 0 60px rgba(233,233,242,0.28), 0 18px 60px rgba(0,0,0,0.8)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setOpenCardId(null)}
+            aria-label="Close"
+            style={{
+              position: "absolute", top: -14, right: -14, width: 32, height: 32, zIndex: 1,
+              borderRadius: "50%", background: C.bgCard, border: `1px solid ${C.bgInput}`,
+              color: C.text, fontSize: F.md, cursor: "pointer", fontFamily: FONT,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >✕</button>
+          <CigCard
+            achievementId={openCardId}
+            state={m.state}
+            unlockWeek={m.unlockWeek}
+            progress={m.progress}
+            scale={mob ? 0.95 : 1.15}
+          />
+        </div>
+      </div>
+    );
+  })();
+
+  // ── list view ──────────────────────────────────────────────────
+  if (view === "list") {
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>{viewToggle}</div>
+        <CigIndex
+          unlocked={unlocked}
+          unlockedPacks={unlockedPacks}
+          achievementUnlockWeeks={achievementUnlockWeeks}
+          seasonLength={seasonLength}
+          onCardOpen={setOpenCardId}
+        />
+        {cardModal}
+      </div>
+    );
+  }
 
   // ── detail view ────────────────────────────────────────────────
   if (selectedPack) {
@@ -84,43 +202,46 @@ export function CigPacksTab({
     return (
       <div style={{ animation: "cigFadeIn 0.3s ease-out" }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-          <button
-            onClick={() => setSelectedPack(null)}
-            style={{
-              background: "none",
-              border: `1px solid ${C.bgInput}`,
-              color: C.textMuted,
-              cursor: "pointer",
-              fontFamily: FONT,
-              fontSize: F.md,
-              padding: "6px 10px",
-              borderRadius: 6,
-              lineHeight: 1,
-            }}
-          >
-            {"<"}
-          </button>
-          <span style={{ fontSize: mob ? 32 : 42 }}>{pack.icon}</span>
-          <div>
-            <div style={{
-              fontFamily: FONT,
-              fontSize: mob ? F.sm : F.lg,
-              color: pack.color,
-              letterSpacing: 1,
-              textShadow: `0 0 12px rgba(${rgb}, 0.5)`,
-            }}>
-              {pack.name}
-            </div>
-            <div style={{
-              fontFamily: FONT,
-              fontSize: F.xs,
-              color: C.textMuted,
-              marginTop: 4,
-            }}>
-              {collected}/{total} COLLECTED
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => setSelectedPack(null)}
+              style={{
+                background: "none",
+                border: `1px solid ${C.bgInput}`,
+                color: C.textMuted,
+                cursor: "pointer",
+                fontFamily: FONT,
+                fontSize: F.md,
+                padding: "6px 10px",
+                borderRadius: 6,
+                lineHeight: 1,
+              }}
+            >
+              {"<"}
+            </button>
+            <span style={{ fontSize: mob ? 32 : 42 }}>{pack.icon}</span>
+            <div>
+              <div style={{
+                fontFamily: FONT,
+                fontSize: mob ? F.sm : F.lg,
+                color: pack.color,
+                letterSpacing: 1,
+                textShadow: `0 0 12px rgba(${rgb}, 0.5)`,
+              }}>
+                {pack.name}
+              </div>
+              <div style={{
+                fontFamily: FONT,
+                fontSize: F.xs,
+                color: C.textMuted,
+                marginTop: 4,
+              }}>
+                {collected}/{total} COLLECTED
+              </div>
             </div>
           </div>
+          {viewToggle}
         </div>
 
         {/* Full-width progress bar */}
@@ -178,6 +299,7 @@ export function CigPacksTab({
   // ── grid view ──────────────────────────────────────────────────
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>{viewToggle}</div>
       {/* Grid */}
       <div style={{
         display: "grid",
@@ -407,7 +529,11 @@ function LockedCard({ pack, mob }) {
             background: `repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
               repeating-linear-gradient(45deg, color-mix(in srgb, ${pack.color} 78%, black) 0 8px, color-mix(in srgb, ${pack.color} 62%, black) 8px 16px),
               color-mix(in srgb, ${pack.color} 70%, black)`,
-            boxShadow: `0 0 0 4px ${STACK_STICKER}, 0 4px 14px rgba(0,0,0,0.55)`,
+            // A thin sticker-white ring plus its own drop shadow per card is
+            // what actually separates the stack visually — at this card size
+            // the pitch's 4px ring was wide enough to bridge the gap between
+            // cards and read as a single blob instead of three.
+            boxShadow: `0 0 0 3px ${STACK_STICKER}, 0 3px 8px rgba(0,0,0,0.55)`,
             clipPath: STACK_CLIP,
           }} />
         ))}
