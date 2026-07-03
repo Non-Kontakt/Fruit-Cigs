@@ -142,7 +142,15 @@ export function CigPacksTab({
     const m = buildModalCard(openCardId);
     return (
       <div data-testid="cig-card-modal" style={{ ...MODAL.backdrop, zIndex: Z.confirm }} onClick={() => setOpenCardId(null)}>
-        <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
+        {/* Spotlight rim — a drained or face-down card would otherwise sink
+            into the dark backdrop instead of being the highlighted thing. */}
+        <div
+          style={{
+            position: "relative",
+            boxShadow: "0 0 0 3px #e9e9f2, 0 0 60px rgba(233,233,242,0.28), 0 18px 60px rgba(0,0,0,0.8)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => setOpenCardId(null)}
             aria-label="Close"
