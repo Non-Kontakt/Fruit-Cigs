@@ -176,6 +176,9 @@ export function useMatchResult({
           }
         }
         s.setLastSeasonMove(moveType);
+        s.setTransferWindowOpen(false);
+        s.setTransferWindowWeeksRemaining(0);
+        s.setTransferOffers([]);
         if (moveType === "promoted") { s.setFanSentiment(Math.min(100, s.fanSentiment + 20)); s.setBoardSentiment(Math.min(100, s.boardSentiment + 25)); }
         if (moveType === "relegated") { s.setFanSentiment(Math.max(0, s.fanSentiment - 20)); s.setBoardSentiment(Math.max(0, s.boardSentiment - 25)); }
         if (position === 1) { s.setFanSentiment(Math.min(100, s.fanSentiment + 10)); s.setBoardSentiment(Math.min(100, s.boardSentiment + 10)); }

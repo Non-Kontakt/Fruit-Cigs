@@ -673,6 +673,9 @@ export const useGameStore = create((set, get) => ({
     seasonCards: 0,
     readsThisWeek: 0,
     pendingTradeTarget: null,
+    transferWindowOpen: false,
+    transferWindowWeeksRemaining: 0,
+    transferOffers: [],
     arcStepQueue: [],
     summerData: null,
     dynastyCupQualifiers: null,
@@ -683,7 +686,7 @@ export const useGameStore = create((set, get) => ({
     // NOTE: squad, fanSentiment, boardSentiment, gameMode, activeProfileId,
     // gameOver are intentionally preserved.
     // NOTE: unlockedAchievements, achievementUnlockWeeks, inboxMessages, usedTicketTypes, freeAgentSignings, totalShortlisted, tradesMadeInWindow, tradedWithClubs, prevSeasonSquadIds are intentionally preserved.
-    // NOTE: clubRelationships, transferFocus, transferWindowOpen, transferWindowWeeksRemaining, transferOffers, loanedOutPlayers, loanedInPlayers, transferHistory, shortlist, tickets, pendingTicketBoosts, storyArcs, leagueRosters, allLeagueStates, teamName, newspaperName, reporterName are intentionally preserved.
+    // NOTE: clubRelationships, transferFocus, loanedOutPlayers, loanedInPlayers, transferHistory, shortlist, tickets, pendingTicketBoosts, storyArcs, leagueRosters, allLeagueStates, teamName, newspaperName, reporterName are intentionally preserved.
     // Prestige flow sets sentiment via partial carry-over formula, not hard reset.
   }),
 }));
