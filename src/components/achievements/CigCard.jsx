@@ -46,7 +46,7 @@ CIG_PACKS.forEach((p) => {
   p.achievementIds.forEach((id) => { achToPack[id] = p.id; });
 });
 
-export function CigCard({ achievementId, state, unlockWeek = null, scale = 1, noGl = false }) {
+export function CigCard({ achievementId, state, unlockWeek = null, scale = 1, noGl = false, progress = null }) {
   const ach = achById[achievementId];
   const packId = achToPack[achievementId];
   const pack = packById[packId];
@@ -144,6 +144,7 @@ export function CigCard({ achievementId, state, unlockWeek = null, scale = 1, no
           : renderFace({
               ach, accent, legendary, isGhost, isCollected,
               serial, packName, packCount, unlockWeek, hovered, badgeGlRef, skyGlRef, reduced,
+              progress: isGhost ? progress : null,
             })}
       </div>
     </div>
@@ -177,7 +178,7 @@ function renderBack({ accent, noGl, backGlRef }) {
   );
 }
 
-function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, packName, packCount, unlockWeek, hovered, badgeGlRef, skyGlRef, reduced }) {
+function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, packName, packCount, unlockWeek, hovered, badgeGlRef, skyGlRef, reduced, progress }) {
   const legendCollected = legendary && isCollected;
 
   let faceBackground = STICKER;
@@ -201,6 +202,14 @@ function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, pack
     : isGhost
       ? "0 0 0 3px #2a2a40, 0 0 0 5px rgba(0,0,0,0.45)"
       : `0 0 0 3px ${STICKER}, 0 0 0 5px rgba(0,0,0,0.45)`;
+
+  // 10-cell meter, pack-coloured — round to nearest cell, but never show a
+  // full meter while the achievement is still short of its target.
+  let meterFilled = 0;
+  if (progress) {
+    meterFilled = Math.max(0, Math.min(10, Math.round((10 * progress.current) / progress.target)));
+    if (progress.current < progress.target) meterFilled = Math.min(meterFilled, 9);
+  }
 
   return (
     <div style={{
@@ -255,6 +264,29 @@ function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, pack
           <div style={{ fontFamily: FONT, fontSize: 10, lineHeight: 1.55, color: descColor, flex: 1 }}>
             {ach.desc}
           </div>
+          {progress && (
+            <div data-testid="cig-card-meter" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{
+                display: "flex", justifyContent: "space-between", fontFamily: FONT, fontSize: 6,
+                letterSpacing: 1, color: "#767e9c", fontVariantNumeric: "tabular-nums",
+              }}>
+                <span>{progress.label}</span>
+                <span>{progress.current}/{progress.target}</span>
+              </div>
+              <div style={{ display: "flex", gap: 3 }}>
+                {Array.from({ length: 10 }, (_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      flex: 1, height: 7,
+                      background: i < meterFilled ? accent : "#262640",
+                      boxShadow: i < meterFilled ? "inset 0 -2px 0 rgba(0,0,0,0.35)" : "inset 0 0 0 1px #383854",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, borderTop: "2px solid #1e1e33", paddingTop: 8 }}>
             <span style={{ fontFamily: FONT, fontSize: 6, color: "#4a5170", letterSpacing: 1 }}>{serial}</span>
             {/* Old saves can hold collected cigs with no recorded week — the

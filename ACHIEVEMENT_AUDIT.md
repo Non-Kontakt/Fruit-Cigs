@@ -1,5 +1,10 @@
 # Achievement Audit — Jumpers Football Manager
 
+> This audit predates the current 290-achievement set and the cig-packs rework
+> (achievements are now grouped into collectible packs rather than the flat
+> categories below). Retained for historical reference only — for the live
+> list, see `src/data/achievements.js`.
+
 **Total achievements: 250**
 **Purpose framework:** Greater depth of experience | Educating on features | Moments of joy | Post-event narrative validation
 

@@ -75,6 +75,21 @@ test("cig cards: GL foil canvas only on the collected badge", async ({ page }) =
   await expect(page.locator('[data-testid="cig-card-uncollected"] canvas')).toHaveCount(0);
 });
 
+// Progress meters render only for uncollected cards carrying a `progress`
+// prop — a plain uncollected card (no progress) shows no meter at all, and
+// the meter cell count never shifts card layout.
+test("cig cards: progress meter shows current/target, absent without a progress prop", async ({ page }) => {
+  await page.goto("qa.html?c=cig-card-states");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  const progressCard = page.locator('[data-testid="cig-card-progress"]');
+  await expect(progressCard.locator('[data-testid="cig-card-meter"]')).toHaveCount(1);
+  await expect(progressCard.getByText("7/10", { exact: true })).toBeVisible();
+  await expect(progressCard.getByText("SEASONS", { exact: true })).toBeVisible();
+
+  const plainCard = page.locator('[data-testid="cig-card-uncollected"]');
+  await expect(plainCard.locator('[data-testid="cig-card-meter"]')).toHaveCount(0);
+});
+
 test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
   await page.goto("qa.html?c=achievement-toast");

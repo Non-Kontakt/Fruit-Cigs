@@ -19,9 +19,7 @@ function evaluateCondition(cond, state) {
     case "seasons_played": return state.seasonNumber >= cond.count;
     case "cup_won": return state.unlockedAchievements.has("cup_winner");
     case "tier_reached": return state.leagueTier <= cond.tier;
-    case "prestige": return state.prestigeLevel >= 1;
     case "packs_complete": return completedPackCount(state.unlockedPacks, state.unlockedAchievements) >= cond.count;
-    case "leagues_won": return (state.leagueWins || 0) >= cond.count;
     default: return false;
   }
 }

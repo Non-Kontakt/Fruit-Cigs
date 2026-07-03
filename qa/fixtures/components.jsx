@@ -355,6 +355,9 @@ const RENDERERS = {
       <div data-testid="cig-card-uncollected"><CigCard achievementId="clean_sheet" state="uncollected" /></div>
       <div data-testid="cig-card-collected"><CigCard achievementId="champion" state="collected" unlockWeek={{ season: 2, week: 18 }} /></div>
       <div data-testid="cig-card-legendary"><CigCard achievementId="mentality_monsters" state="collected" unlockWeek={{ season: 6, week: 3 }} /></div>
+      <div data-testid="cig-card-progress">
+        <CigCard achievementId="season_10" state="uncollected" progress={{ label: "SEASONS", current: 7, target: 10 }} />
+      </div>
     </div>
   ),
   // Lands on the Cherry Cigs pack detail (spec clicks "Cherry Cigs", registry.clickText).

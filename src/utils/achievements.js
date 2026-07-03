@@ -52,7 +52,7 @@ export function checkAchievements(state) {
     isOnHoliday, wonLeagueOnHoliday, holidayMatchesThisSeason, doubleTrainingWeek, testimonialPlayer,
     seasonNumber, lastSeasonPosition,
     shortlist, wasAlwaysNormal, fastMatchesThisSeason, twelfthManActive, gkCleanSheets,
-    totalShortlisted, achievableIds } = state;
+    totalShortlisted } = state;
   const newUnlocks = [];
 
   // Training-based
