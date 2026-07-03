@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
+import { OvrProgressChart } from "../../src/components/charts/OvrCharts.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
@@ -202,6 +203,28 @@ const leagueStatsProps = (extra = {}) => ({
   ...extra,
 });
 
+// --- Squad progress — Most Improved -----------------------------------------
+
+// Uniform attrs so getOverall() resolves to exactly `v` regardless of
+// position weighting (weights sum to 1.00 per position).
+const uniformAttrs = (v) => ({ pace: v, shooting: v, passing: v, defending: v, physical: v, technique: v, mental: v });
+
+const improvedSquad = [
+  { id: "mi1", name: "Ollie Vance", position: "ST", attrs: uniformAttrs(16) },
+  { id: "mi2", name: "Danny Frost", position: "GK", attrs: uniformAttrs(14) },
+  { id: "mi3", name: "Reggie Cole", position: "CB", attrs: uniformAttrs(15) },
+];
+
+// Ollie: joined season 1 at 10, now 16 (+6). Reggie: joined season 2 (mid-career
+// signing) at 12, now 15 (+3) — proves the rate is measured from join OVR, not
+// the club's season-1 baseline. Danny: unchanged (+0).
+const improvedOvrHistory = [
+  { w: 1, s: 1, p: { "Ollie Vance|ST": 10, "Danny Frost|GK": 14 } },
+  { w: 10, s: 1, p: { "Ollie Vance|ST": 12, "Danny Frost|GK": 14 } },
+  { w: 1, s: 2, p: { "Ollie Vance|ST": 13, "Danny Frost|GK": 14, "Reggie Cole|CB": 12 } },
+  { w: 10, s: 2, p: { "Ollie Vance|ST": 16, "Danny Frost|GK": 14, "Reggie Cole|CB": 15 } },
+];
+
 // --- Cup — Team of the Cup --------------------------------------------------
 
 // Cup match objects only ever carry name/tier stubs (no squad — see
@@ -331,6 +354,12 @@ const RENDERERS = {
   "leaguestats-mid": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
       <LeaguePage {...leagueStatsProps()} />
+    </div>
+  ),
+  // Lands on the chart view; the spec clicks "MOST IMPROVED" (registry.clickText).
+  "squad-progress-improved": () => (
+    <div style={{ maxWidth: 700, margin: "0 auto", padding: 16 }}>
+      <OvrProgressChart ovrHistory={improvedOvrHistory} squad={improvedSquad} ovrCap={20} />
     </div>
   ),
   // Lands on the BRACKET tab; the spec clicks "TOTC" (registry.clickText).

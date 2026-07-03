@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
-import { getPosColor } from "../../utils/calc.js";
+import { getPosColor, getOverall } from "../../utils/calc.js";
 
 export const CHART_COLORS = [
   C.green, C.blue, C.gold, "#f472b6", "#a78bfa",
@@ -12,6 +12,7 @@ export const CHART_COLORS = [
 export function OvrProgressChart({ ovrHistory, squad, ovrCap = 20 }) {
   const [selected, setSelected] = useState(null); // null = uninitialised
   const [showDeparted, setShowDeparted] = useState(false);
+  const [view, setView] = useState("chart"); // "chart" | "improved"
   const mob = useMobile();
 
   // Build player lists
@@ -103,87 +104,192 @@ export function OvrProgressChart({ ovrHistory, squad, ovrCap = 20 }) {
       <div style={{ fontSize: F.sm, color: C.gold, letterSpacing: 2, marginBottom: 9 }}>📈 SQUAD PROGRESS</div>
       <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: 14 }}>Overall ratings tracked across {(ovrHistory[ovrHistory.length - 1]?.s || 1)} season{(ovrHistory[ovrHistory.length - 1]?.s || 1) !== 1 ? "s" : ""}</div>
 
-      {/* Chart */}
-      <div style={{ width: "100%", height: mob ? 253 : 322, marginBottom: 18 }}>
-        <OvrChart
-          data={chartData}
-          playerKeys={[...activeSelected]}
-          colorMap={colorMap}
-          minOvr={minOvr}
-          maxOvr={maxOvr}
-          seasonBoundaries={seasonBoundaries}
-          shortName={shortName}
-          mob={mob}
-        />
-      </div>
-
-      {/* Selection controls */}
-      <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <button onClick={selectAll} style={{
+      {/* View toggle */}
+      <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
+        <button onClick={() => setView("chart")} style={{
           padding: "7px 12px", fontSize: F.xs, fontFamily: FONT,
-          background: "rgba(74,222,128,0.1)", border: "1px solid #4ade8044", color: C.green, cursor: "pointer",
-        }}>ALL</button>
-        <button onClick={selectNone} style={{
+          background: view === "chart" ? "rgba(250,204,21,0.1)" : "rgba(30,41,59,0.3)",
+          border: view === "chart" ? `1px solid ${C.gold}66` : `1px solid ${C.bgCard}`,
+          color: view === "chart" ? C.gold : C.textDim, cursor: "pointer",
+        }}>CHART</button>
+        <button onClick={() => setView("improved")} style={{
           padding: "7px 12px", fontSize: F.xs, fontFamily: FONT,
-          background: "rgba(30,41,59,0.3)", border: `1px solid ${C.bgCard}`, color: C.textDim, cursor: "pointer",
-        }}>NONE</button>
-        {departedKeys.length > 0 && (
-          <button onClick={() => setShowDeparted(!showDeparted)} style={{
-            padding: "7px 12px", fontSize: F.xs, fontFamily: FONT,
-            background: showDeparted ? "rgba(239,68,68,0.1)" : "rgba(30,41,59,0.3)",
-            border: showDeparted ? "1px solid #ef444444" : `1px solid ${C.bgCard}`,
-            color: showDeparted ? C.red : C.textDim, cursor: "pointer",
-          }}>{showDeparted ? "HIDE" : "SHOW"} DEPARTED ({departedKeys.length})</button>
-        )}
+          background: view === "improved" ? "rgba(250,204,21,0.1)" : "rgba(30,41,59,0.3)",
+          border: view === "improved" ? `1px solid ${C.gold}66` : `1px solid ${C.bgCard}`,
+          color: view === "improved" ? C.gold : C.textDim, cursor: "pointer",
+        }}>MOST IMPROVED</button>
       </div>
 
-      {/* Player chips — current squad */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: departedKeys.length > 0 && showDeparted ? 9 : 0 }}>
-        {currentList.sort((a, b) => {
-          const posOrder = ["GK","CB","LB","RB","CM","AM","LW","RW","ST"];
-          return posOrder.indexOf(a.split("|")[1]) - posOrder.indexOf(b.split("|")[1]);
-        }).map(k => {
-          const on = activeSelected.has(k);
-          const [name, pos] = k.split("|");
-          return (
-            <button key={k} onClick={() => togglePlayer(k)} style={{
-              padding: "7px 9px", fontSize: F.xs, fontFamily: FONT,
-              background: on ? `${colorMap[k]}18` : "rgba(15,15,30,0.5)",
-              border: `1px solid ${on ? colorMap[k] + "66" : C.bgCard}`,
-              color: on ? colorMap[k] : C.bgInput,
-              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
-              transition: "all 0.15s ease",
-              opacity: on ? 1 : 0.5,
-            }}>
-              <span style={{ width: 7, height: 7, background: on ? colorMap[k] : C.bgInput, display: "inline-block", flexShrink: 0 }} />
-              <span style={{ background: getPosColor(pos), color: C.bg, padding: "0 3px", fontSize: F.micro, fontWeight: "bold" }}>{pos}</span>
-              {name.split(" ").pop()}
-            </button>
-          );
-        })}
-      </div>
+      {view === "chart" ? (
+        <>
+          {/* Chart */}
+          <div style={{ width: "100%", height: mob ? 253 : 322, marginBottom: 18 }}>
+            <OvrChart
+              data={chartData}
+              playerKeys={[...activeSelected]}
+              colorMap={colorMap}
+              minOvr={minOvr}
+              maxOvr={maxOvr}
+              seasonBoundaries={seasonBoundaries}
+              shortName={shortName}
+              mob={mob}
+            />
+          </div>
 
-      {/* Departed players */}
-      {showDeparted && departedKeys.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-          {departedKeys.sort().map(k => {
-            const on = activeSelected.has(k);
-            const [name, pos] = k.split("|");
-            return (
-              <button key={k} onClick={() => togglePlayer(k)} style={{
-                padding: "7px 9px", fontSize: F.xs, fontFamily: FONT,
-                background: on ? `${colorMap[k]}18` : "rgba(15,15,30,0.5)",
-                border: `1px solid ${on ? colorMap[k] + "66" : "#1e293b33"}`,
-                color: on ? colorMap[k] : C.bgCard,
-                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
-                opacity: on ? 0.8 : 0.3,
-              }}>
-                <span style={{ width: 7, height: 7, background: on ? colorMap[k] : C.bgCard, display: "inline-block", flexShrink: 0 }} />
-                <span style={{ background: getPosColor(pos), color: C.bg, padding: "0 3px", fontSize: F.micro, fontWeight: "bold", opacity: 0.6 }}>{pos}</span>
-                {name.split(" ").pop()} ✕
-              </button>
-            );
-          })}
+          {/* Selection controls */}
+          <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={selectAll} style={{
+              padding: "7px 12px", fontSize: F.xs, fontFamily: FONT,
+              background: "rgba(74,222,128,0.1)", border: "1px solid #4ade8044", color: C.green, cursor: "pointer",
+            }}>ALL</button>
+            <button onClick={selectNone} style={{
+              padding: "7px 12px", fontSize: F.xs, fontFamily: FONT,
+              background: "rgba(30,41,59,0.3)", border: `1px solid ${C.bgCard}`, color: C.textDim, cursor: "pointer",
+            }}>NONE</button>
+            {departedKeys.length > 0 && (
+              <button onClick={() => setShowDeparted(!showDeparted)} style={{
+                padding: "7px 12px", fontSize: F.xs, fontFamily: FONT,
+                background: showDeparted ? "rgba(239,68,68,0.1)" : "rgba(30,41,59,0.3)",
+                border: showDeparted ? "1px solid #ef444444" : `1px solid ${C.bgCard}`,
+                color: showDeparted ? C.red : C.textDim, cursor: "pointer",
+              }}>{showDeparted ? "HIDE" : "SHOW"} DEPARTED ({departedKeys.length})</button>
+            )}
+          </div>
+
+          {/* Player chips — current squad */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: departedKeys.length > 0 && showDeparted ? 9 : 0 }}>
+            {currentList.sort((a, b) => {
+              const posOrder = ["GK","CB","LB","RB","CM","AM","LW","RW","ST"];
+              return posOrder.indexOf(a.split("|")[1]) - posOrder.indexOf(b.split("|")[1]);
+            }).map(k => {
+              const on = activeSelected.has(k);
+              const [name, pos] = k.split("|");
+              return (
+                <button key={k} onClick={() => togglePlayer(k)} style={{
+                  padding: "7px 9px", fontSize: F.xs, fontFamily: FONT,
+                  background: on ? `${colorMap[k]}18` : "rgba(15,15,30,0.5)",
+                  border: `1px solid ${on ? colorMap[k] + "66" : C.bgCard}`,
+                  color: on ? colorMap[k] : C.bgInput,
+                  cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+                  transition: "all 0.15s ease",
+                  opacity: on ? 1 : 0.5,
+                }}>
+                  <span style={{ width: 7, height: 7, background: on ? colorMap[k] : C.bgInput, display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ background: getPosColor(pos), color: C.bg, padding: "0 3px", fontSize: F.micro, fontWeight: "bold" }}>{pos}</span>
+                  {name.split(" ").pop()}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Departed players */}
+          {showDeparted && departedKeys.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+              {departedKeys.sort().map(k => {
+                const on = activeSelected.has(k);
+                const [name, pos] = k.split("|");
+                return (
+                  <button key={k} onClick={() => togglePlayer(k)} style={{
+                    padding: "7px 9px", fontSize: F.xs, fontFamily: FONT,
+                    background: on ? `${colorMap[k]}18` : "rgba(15,15,30,0.5)",
+                    border: `1px solid ${on ? colorMap[k] + "66" : "#1e293b33"}`,
+                    color: on ? colorMap[k] : C.bgCard,
+                    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+                    opacity: on ? 0.8 : 0.3,
+                  }}>
+                    <span style={{ width: 7, height: 7, background: on ? colorMap[k] : C.bgCard, display: "inline-block", flexShrink: 0 }} />
+                    <span style={{ background: getPosColor(pos), color: C.bg, padding: "0 3px", fontSize: F.micro, fontWeight: "bold", opacity: 0.6 }}>{pos}</span>
+                    {name.split(" ").pop()} ✕
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : (
+        <MostImprovedList squad={squad} ovrHistory={ovrHistory} currentList={currentList} mob={mob} />
+      )}
+    </div>
+  );
+}
+
+// Ranked "most improved" view — start OVR (from a player's first weekly
+// snapshot, so mid-career signings measure from their join OVR, not the
+// club's season-1 squad) vs current OVR, sorted by total gain then rate.
+export function MostImprovedList({ squad, ovrHistory, currentList, mob }) {
+  const VISIBLE_CAP = 10;
+  const posOrder = ["GK","CB","LB","RB","CM","AM","LW","RW","ST"];
+  const lastSeason = ovrHistory?.[ovrHistory.length - 1]?.s || 1;
+  const squadByKey = {};
+  (squad || []).forEach(p => { squadByKey[`${p.name}|${p.position}`] = p; });
+
+  const rows = (currentList || []).map(key => {
+    const player = squadByKey[key];
+    if (!player) return null;
+    const firstSnap = (ovrHistory || []).find(snap => snap.p[key] !== undefined);
+    const startOvr = firstSnap ? firstSnap.p[key] : getOverall(player);
+    const startSeason = firstSnap ? firstSnap.s : lastSeason;
+    const currentOvr = getOverall(player);
+    const seasonsAtClub = Math.max(1, lastSeason - startSeason + 1);
+    const gain = currentOvr - startOvr;
+    const rate = gain / seasonsAtClub;
+    const [name, pos] = key.split("|");
+    return { key, name, pos, startOvr, currentOvr, gain, seasonsAtClub, rate };
+  }).filter(Boolean);
+
+  rows.sort((a, b) => b.gain - a.gain || b.rate - a.rate);
+
+  const shown = rows.slice(0, VISIBLE_CAP);
+  const more = rows.length - shown.length;
+
+  if (rows.length === 0) {
+    return (
+      <div style={{ padding: 28, textAlign: "center", fontSize: F.sm, color: C.slate }}>
+        No squad players to rank yet
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: mob ? "22px 1fr 70px 42px" : "28px 1fr 100px 90px 70px", padding: "0 9px 8px", fontSize: F.xs, color: C.slate, gap: 6 }}>
+        <span>#</span><span>PLAYER</span>
+        <span style={{ textAlign: "right" }}>OVR</span>
+        {!mob && <span style={{ textAlign: "right" }}>SEASONS</span>}
+        <span style={{ textAlign: "right" }}>RATE</span>
+      </div>
+      {shown.map((r, i) => (
+        <div key={r.key} style={{
+          display: "grid", gridTemplateColumns: mob ? "22px 1fr 70px 42px" : "28px 1fr 100px 90px 70px",
+          alignItems: "center", gap: 6,
+          padding: mob ? "10px 9px" : "10px 9px",
+          borderBottom: `1px solid ${C.bgCard}`,
+        }}>
+          <span style={{ fontSize: F.sm, color: C.textDim }}>{i + 1}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ background: getPosColor(r.pos), color: C.bg, padding: "0 3px", fontSize: F.micro, fontWeight: "bold", flexShrink: 0 }}>{r.pos}</span>
+            <span style={{ fontSize: mob ? F.xs : F.sm, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+          </span>
+          <span style={{ textAlign: "right", fontSize: mob ? F.xs : F.sm, whiteSpace: "nowrap" }}>
+            <span style={{ color: C.textDim }}>{r.startOvr}</span>
+            <span style={{ color: C.slate }}> → </span>
+            <span style={{ color: C.text, fontWeight: "bold" }}>{r.currentOvr}</span>
+            {" "}
+            <span style={{ color: r.gain > 0 ? C.green : r.gain < 0 ? C.red : C.textDim, fontWeight: "bold" }}>
+              {r.gain > 0 ? `+${r.gain}` : r.gain}
+            </span>
+          </span>
+          {!mob && (
+            <span style={{ textAlign: "right", fontSize: F.xs, color: C.textMuted }}>
+              {r.seasonsAtClub} season{r.seasonsAtClub !== 1 ? "s" : ""}
+            </span>
+          )}
+          <span style={{ textAlign: "right", fontSize: F.xs, color: C.textMuted }}>{r.rate.toFixed(1)}/s</span>
+        </div>
+      ))}
+      {more > 0 && (
+        <div style={{ padding: "9px", fontSize: F.xs, color: C.slate, textAlign: "center" }}>
+          and {more} more
         </div>
       )}
     </div>
