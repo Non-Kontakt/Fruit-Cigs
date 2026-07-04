@@ -13,6 +13,7 @@ import { rand, getOverall, getAttrColor, getPosColor, getPositionTrainingWeeks, 
 import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./utils/formation.js";
 import { generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, getOvrCap, displayName } from "./utils/player.js";
 import { resolveSeasonEndArcs } from "./utils/arcs.js";
+import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
@@ -1101,6 +1102,7 @@ function FruitCigs() {
         clubTier: player.clubTier,
         addedSeason: seasonNumber,
         addedWeek: calendarIndex,
+        scoutWeeksLeft: SCOUT_REVEAL_WEEKS,
       }];
     });
   }, [seasonNumber, calendarIndex]);
@@ -7152,6 +7154,8 @@ function FruitCigs() {
           <PlayerPanel
             player={p}
             ovrCap={ovrCap}
+            isAI={!!isAI}
+            scoutedPlayers={scoutedPlayers}
             onClose={() => setSelectedPlayer(null)}
             onToggleShortlist={handleToggleShortlist}
             shortlist={shortlist}

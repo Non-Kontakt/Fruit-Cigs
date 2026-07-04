@@ -9,7 +9,7 @@ import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
-export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20 }) {
+export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20, isAI = false, scoutedPlayers }) {
   const effectiveCap = player.isLegend ? player.legendCap
     : player.isUnlockable && player.legendCap ? player.legendCap
     : player.isUnlockable ? Math.max(ovrCap, ...Object.values(player.attrs))
@@ -22,6 +22,14 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
   const isShortlisted = shortlist?.some(p =>
     (p.id && p.id === player.id) || (p.name === player.name && p.clubName === (player.clubName || ""))
   );
+  // AI players keep their potential hidden until scouted — either passively
+  // (a few weeks on the shortlist) or instantly (Scout Dossier ticket).
+  // Own-squad players (isAI false) always see their own ceiling. The revealed
+  // map wins over the player object: legacy players without a real
+  // `potential` are revealed with a derived fallback that only exists there.
+  const revealedPotential = scoutedPlayers?.[player.id];
+  const potentialKnown = !isAI || revealedPotential != null;
+  const displayedPotential = potentialKnown ? (revealedPotential ?? player.potential ?? "???") : "???";
 
   return (
     <div style={{
@@ -71,7 +79,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
               {player.birthName && <span style={{ color: C.textDim, fontSize: F.xs, marginLeft: 6 }}>({player.birthName})</span>}
             </div>
             <div style={{ color: C.textDim, fontSize: mob ? F.xs : F.sm, display: "flex", alignItems: "center", flexWrap: "wrap", gap: mob ? 2 : 0 }}>
-              <span style={{ fontSize: F.xl, lineHeight: 1, marginRight: 5 }}>{getNatFlag(player.nationality)}</span> {getNatLabel(player.nationality)} · Age {player.age} · OVR {overall}<span style={{ display: "inline-flex", gap: 2, marginLeft: 5, verticalAlign: "middle" }}>{[0,1,2,3,4].map(i => <span key={i} style={{ display: "inline-block", width: 9, height: 9, background: i < ovrPips ? C.blue : C.bgCard, border: `1px solid ${C.bgInput}` }} />)}</span> · POT {player.potential}
+              <span style={{ fontSize: F.xl, lineHeight: 1, marginRight: 5 }}>{getNatFlag(player.nationality)}</span> {getNatLabel(player.nationality)} · Age {player.age} · OVR {overall}<span style={{ display: "inline-flex", gap: 2, marginLeft: 5, verticalAlign: "middle" }}>{[0,1,2,3,4].map(i => <span key={i} style={{ display: "inline-block", width: 9, height: 9, background: i < ovrPips ? C.blue : C.bgCard, border: `1px solid ${C.bgInput}` }} />)}</span> · POT {displayedPotential}
               {player.isTrial && (
                 <span style={{ color: C.green, marginLeft: 9, background: "rgba(74,222,128,0.15)", padding: "3px 10px", fontSize: F.sm, border: "1px solid #4ade8044" }}>
                   🌍 ON TRIAL · {player.trialWeeksLeft}w left
