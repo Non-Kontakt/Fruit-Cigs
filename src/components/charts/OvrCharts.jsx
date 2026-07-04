@@ -218,7 +218,6 @@ export function OvrProgressChart({ ovrHistory, squad, ovrCap = 20 }) {
 // club's season-1 squad) vs current OVR, sorted by total gain then rate.
 export function MostImprovedList({ squad, ovrHistory, currentList, mob }) {
   const VISIBLE_CAP = 10;
-  const posOrder = ["GK","CB","LB","RB","CM","AM","LW","RW","ST"];
   const lastSeason = ovrHistory?.[ovrHistory.length - 1]?.s || 1;
   const squadByKey = {};
   (squad || []).forEach(p => { squadByKey[`${p.name}|${p.position}`] = p; });
