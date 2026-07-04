@@ -1,0 +1,47 @@
+import { describe, it, expect } from "vitest";
+import { pushSentimentEntry } from "../sentimentLog.js";
+
+describe("pushSentimentEntry", () => {
+  it("appends a new entry", () => {
+    const log = pushSentimentEntry([], { delta: 4, reason: "Beat Yeralden 3-0", week: 14, season: 2 });
+    expect(log).toEqual([{ delta: 4, reason: "Beat Yeralden 3-0", week: 14, season: 2 }]);
+  });
+
+  it("appends in chronological order — newest entry is last", () => {
+    let log = [];
+    log = pushSentimentEntry(log, { delta: 1, reason: "first", week: 1, season: 1 });
+    log = pushSentimentEntry(log, { delta: 2, reason: "second", week: 2, season: 1 });
+    expect(log[0].reason).toBe("first");
+    expect(log[log.length - 1].reason).toBe("second");
+  });
+
+  it("caps at the most recent 20 entries, dropping the oldest", () => {
+    let log = [];
+    for (let i = 0; i < 25; i++) {
+      log = pushSentimentEntry(log, { delta: 1, reason: `entry-${i}`, week: i, season: 1 });
+    }
+    expect(log.length).toBe(20);
+    expect(log[0].reason).toBe("entry-5"); // oldest 5 dropped
+    expect(log[log.length - 1].reason).toBe("entry-24");
+  });
+
+  it("does not mutate the previous array", () => {
+    const prev = [{ delta: 1, reason: "a", week: 1, season: 1 }];
+    const next = pushSentimentEntry(prev, { delta: 2, reason: "b", week: 2, season: 1 });
+    expect(prev.length).toBe(1);
+    expect(next.length).toBe(2);
+  });
+
+  it("ignores zero-delta entries — a reason attached to no movement is noise", () => {
+    const prev = [{ delta: 1, reason: "a", week: 1, season: 1 }];
+    expect(pushSentimentEntry(prev, { delta: 0, reason: "Beat X 2-0 at clamp", week: 2, season: 1 })).toBe(prev);
+    expect(pushSentimentEntry(null, { delta: 0, reason: "noise", week: 2, season: 1 })).toEqual([]);
+  });
+
+  it("rounds fractional deltas, dropping entries that round to zero", () => {
+    const kept = pushSentimentEntry([], { delta: 1.6, reason: "streak", week: 3, season: 1 });
+    expect(kept[0].delta).toBe(2);
+    expect(pushSentimentEntry([], { delta: 0.4, reason: "drift", week: 3, season: 1 })).toEqual([]);
+    expect(pushSentimentEntry([], { delta: -0.4, reason: "drift", week: 3, season: 1 })).toEqual([]);
+  });
+});

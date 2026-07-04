@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeStatsAcrossTiers } from "../competitionStats.js";
+import { mergeStatsAcrossTiers, resolveDisplayIdentity } from "../competitionStats.js";
 
 // Test fixtures ---------------------------------------------------------------
 
@@ -91,5 +91,113 @@ describe("mergeStatsAcrossTiers", () => {
     expect(mergeStatsAcrossTiers(null)).toEqual({ players: {} });
     expect(mergeStatsAcrossTiers(undefined)).toEqual({ players: {} });
     expect(mergeStatsAcrossTiers({ 5: tierBlob({}), 6: null })).toEqual({ players: {} });
+  });
+
+  describe("currentSeasonPlayers signal", () => {
+    it("a player active this season shows their current club, even when a historical spell scored more", () => {
+      const statsByTier = {
+        5: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 0, teamName: "City",
+                  position: "ST", goals: 8, assists: 0, yellows: 0, reds: 0 },
+        }),
+        6: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 1, teamName: "Rovers",
+                  position: "ST", goals: 1, assists: 0, yellows: 0, reds: 0 },
+        }),
+      };
+      // Current season entry (goals not summed here — that's the caller's job;
+      // this only signals identity).
+      const currentSeasonPlayers = {
+        players: {
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 9, teamName: "Newtown",
+                  position: "CM", goals: 1, assists: 0, yellows: 0, reds: 0 },
+        },
+      };
+      const merged = mergeStatsAcrossTiers(statsByTier, currentSeasonPlayers);
+      expect(merged.players["p1"].teamName).toBe("Newtown");
+      expect(merged.players["p1"].teamId).toBe(9);
+      expect(merged.players["p1"].position).toBe("CM");
+      // Numeric totals are unaffected by the identity signal — still the
+      // sum of the historical (statsByTier) entries only.
+      expect(merged.players["p1"].goals).toBe(9);
+    });
+
+    it("also wins identity on first encounter (single historical tier)", () => {
+      const statsByTier = {
+        5: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 0, teamName: "City",
+                  position: "ST", goals: 4, assists: 0, yellows: 0, reds: 0 },
+        }),
+      };
+      const currentSeasonPlayers = {
+        "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 9, teamName: "Newtown",
+                position: "CM", goals: 2, assists: 0, yellows: 0, reds: 0 },
+      };
+      const merged = mergeStatsAcrossTiers(statsByTier, currentSeasonPlayers);
+      expect(merged.players["p1"].teamName).toBe("Newtown");
+      expect(merged.players["p1"].goals).toBe(4);
+    });
+
+    it("a player with no current-season entry still shows their best historical spell", () => {
+      const statsByTier = {
+        5: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 0, teamName: "City",
+                  position: "ST", goals: 2, assists: 0, yellows: 0, reds: 0 },
+        }),
+        6: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 1, teamName: "Rovers",
+                  position: "CM", goals: 9, assists: 0, yellows: 0, reds: 0 },
+        }),
+      };
+      // currentSeasonPlayers is supplied but doesn't include p1 — inactive
+      // this season, so best-spell identity applies as before.
+      const currentSeasonPlayers = { players: { "p2": { key: "p2", name: "Bob", goals: 3 } } };
+      const merged = mergeStatsAcrossTiers(statsByTier, currentSeasonPlayers);
+      expect(merged.players["p1"].teamName).toBe("Rovers");
+      expect(merged.players["p1"].goals).toBe(11);
+    });
+
+    it("omitting currentSeasonPlayers entirely preserves the old best-spell-only behavior", () => {
+      const statsByTier = {
+        5: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 0, teamName: "City",
+                  goals: 3, assists: 0, yellows: 0, reds: 0 },
+        }),
+        6: tierBlob({
+          "p1": { key: "p1", playerId: "p1", name: "Alice", teamId: 1, teamName: "Rovers",
+                  goals: 9, assists: 0, yellows: 0, reds: 0 },
+        }),
+      };
+      expect(mergeStatsAcrossTiers(statsByTier).players["p1"].teamName).toBe("Rovers");
+    });
+  });
+});
+
+describe("resolveDisplayIdentity", () => {
+  it("prefers the current entry's fields when a current entry is given", () => {
+    const historical = { name: "Alice", teamId: 0, teamName: "City", position: "ST" };
+    const current = { name: "Alice", teamId: 9, teamName: "Newtown", position: "CM" };
+    expect(resolveDisplayIdentity(historical, current)).toEqual({
+      name: "Alice", teamId: 9, teamName: "Newtown", position: "CM",
+    });
+  });
+
+  it("falls back to historical fields when the current entry is missing a field", () => {
+    const historical = { name: "Alice", teamId: 0, teamName: "City", position: "ST" };
+    const current = { name: "", teamId: null, teamName: "", position: null };
+    expect(resolveDisplayIdentity(historical, current)).toEqual({
+      name: "Alice", teamId: 0, teamName: "City", position: "ST",
+    });
+  });
+
+  it("returns historical fields unchanged when there is no current entry", () => {
+    const historical = { name: "Alice", teamId: 0, teamName: "City", position: "ST" };
+    expect(resolveDisplayIdentity(historical, null)).toEqual(historical);
+  });
+
+  it("returns empty identity when neither entry is given", () => {
+    expect(resolveDisplayIdentity(null, null)).toEqual({
+      name: "", teamId: null, teamName: "", position: null,
+    });
   });
 });

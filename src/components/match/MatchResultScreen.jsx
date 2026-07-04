@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
-import { SFX } from "../../utils/sfx.js";
+import { SFX, BGM } from "../../utils/sfx.js";
+import { hasLateEqualiser } from "../../utils/bgmMoments.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { POSITION_ORDER } from "../../data/positions.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ScorerStrip } from "./ScorerStrip.jsx";
 
-export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpeedChange, competitionLabel, matchDetail, instantMatch, isOnHoliday, onPlayerClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, ovrCap = 20, formation, slotAssignments, startingXI }) {
+// Tier whose matches get the "Altitude Trials" theme (see data/leagues.js tier 6).
+const ALTITUDE_TRIALS_TIER = 6;
+
+export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpeedChange, competitionLabel, matchDetail, instantMatch, isOnHoliday, onPlayerClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, ovrCap = 20, formation, slotAssignments, startingXI, leagueTier, isRunIn }) {
   const [visible, setVisible] = useState(false);
   const [minute, setMinute] = useState(instantMatch ? 90 : 0);
   const isHighlights = matchDetail === "highlights";
@@ -102,6 +106,24 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
     }, interval);
     return () => clearInterval(tickerRef.current);
   }, [speed, finished, instantMatch]);
+
+  // Match BGM — themed tracks are prioritized from most to least specific:
+  // a live shootout beats a dramatic late leveller beats the Altitude Trials
+  // tier's ambient theme beats the run-in's ambient theme. Released back to
+  // normal rotation once nothing applies (or the screen unmounts).
+  const isShootingOut = penPhase === "shooting";
+  const isLateLeveller = finished && hasLateEqualiser(result);
+  const isAltitudeTrials = leagueTier === ALTITUDE_TRIALS_TIER;
+  const bgmContext = isShootingOut ? "shootout"
+    : isLateLeveller ? "late_leveller"
+    : isAltitudeTrials ? "altitude_trials"
+    : isRunIn ? "the_run_in"
+    : null;
+  useEffect(() => {
+    if (!bgmContext) return;
+    BGM.playContext(bgmContext);
+    return () => BGM.releaseContext();
+  }, [bgmContext]);
 
   // Process events as minutes tick
   useEffect(() => {
