@@ -1,42 +1,50 @@
 import { describe, it, expect } from "vitest";
 import { isRunInMoment, hasLateEqualiser } from "../bgmMoments.js";
 
-function makeLeague({ matchweekIndex, totalWeeks, rows, playerTeamIndex = 0 }) {
+function makeLeague({ totalWeeks, rows, playerTeamIndex = 0 }) {
+  // Deliberately NO matchweekIndex on the league object — the live index is
+  // a separate argument in the app (the league object's copy is not the
+  // source of truth), and these tests must mirror that.
   const fixtures = Array.from({ length: totalWeeks }, () => []);
   const teams = rows.map((_, i) => ({ isPlayer: i === playerTeamIndex }));
   const table = rows.map((points, i) => ({ teamIndex: i, points, goalsFor: 0, goalsAgainst: 0 }));
-  return { matchweekIndex, fixtures, teams, table };
+  return { fixtures, teams, table };
 }
 
 describe("isRunInMoment", () => {
   it("is false outside the final 5 matchweeks", () => {
-    const league = makeLeague({ matchweekIndex: 10, totalWeeks: 38, rows: [50, 48, 45, 40] });
-    expect(isRunInMoment(league)).toBe(false);
+    const league = makeLeague({ totalWeeks: 38, rows: [50, 48, 45, 40] });
+    expect(isRunInMoment(league, 10)).toBe(false);
   });
 
   it("is true in the final 5 weeks when player is top 3 within 6 points", () => {
-    const league = makeLeague({ matchweekIndex: 34, totalWeeks: 38, rows: [50, 48, 45, 40] });
-    expect(isRunInMoment(league)).toBe(true);
+    const league = makeLeague({ totalWeeks: 38, rows: [50, 48, 45, 40] });
+    expect(isRunInMoment(league, 34)).toBe(true);
+  });
+
+  it("triggers from the live index even when the league object carries a stale one", () => {
+    const league = { ...makeLeague({ totalWeeks: 38, rows: [50, 48, 45, 40] }), matchweekIndex: 0 };
+    expect(isRunInMoment(league, 34)).toBe(true);
   });
 
   it("is false in the final 5 weeks if player is outside the top 3", () => {
-    const league = makeLeague({ matchweekIndex: 34, totalWeeks: 38, rows: [50, 48, 45, 40], playerTeamIndex: 3 });
-    expect(isRunInMoment(league)).toBe(false);
+    const league = makeLeague({ totalWeeks: 38, rows: [50, 48, 45, 40], playerTeamIndex: 3 });
+    expect(isRunInMoment(league, 34)).toBe(false);
   });
 
   it("is false in the final 5 weeks if player is top 3 but more than 6 points off the lead", () => {
-    const league = makeLeague({ matchweekIndex: 34, totalWeeks: 38, rows: [50, 43, 40, 38], playerTeamIndex: 1 });
-    expect(isRunInMoment(league)).toBe(false);
+    const league = makeLeague({ totalWeeks: 38, rows: [50, 43, 40, 38], playerTeamIndex: 1 });
+    expect(isRunInMoment(league, 34)).toBe(false);
   });
 
   it("is false once the season has finished (no matchweeks remaining)", () => {
-    const league = makeLeague({ matchweekIndex: 38, totalWeeks: 38, rows: [50, 48, 45, 40] });
-    expect(isRunInMoment(league)).toBe(false);
+    const league = makeLeague({ totalWeeks: 38, rows: [50, 48, 45, 40] });
+    expect(isRunInMoment(league, 38)).toBe(false);
   });
 
   it("is false with missing league data", () => {
-    expect(isRunInMoment(null)).toBe(false);
-    expect(isRunInMoment({})).toBe(false);
+    expect(isRunInMoment(null, 34)).toBe(false);
+    expect(isRunInMoment({}, 34)).toBe(false);
   });
 });
 

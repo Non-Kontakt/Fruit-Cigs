@@ -5113,7 +5113,7 @@ function FruitCigs() {
           result={matchResult}
           league={league}
           leagueTier={leagueTier}
-          isRunIn={isRunInMoment(league)}
+          isRunIn={isRunInMoment(league, matchweekIndex)}
           initialSpeed={matchSpeed}
           onSpeedChange={setMatchSpeed}
           matchDetail={matchDetail}

@@ -11,11 +11,14 @@ import { sortStandings } from "./league.js";
  * True during the run-in: the final 5 league matchweeks, with the player
  * sitting in the top 3 and within 6 points of the league leader.
  */
-export function isRunInMoment(league) {
+export function isRunInMoment(league, matchweekIndex) {
   if (!league?.table?.length || !league?.fixtures?.length || !league?.teams) return false;
   const totalWeeks = league.fixtures.length;
-  const matchweekIndex = league.matchweekIndex ?? 0;
-  const weeksRemaining = totalWeeks - matchweekIndex;
+  // The live matchweek is an explicit parameter: the league object's own
+  // matchweekIndex is NOT the app's source of truth (the store derives the
+  // real one from calendarIndex), so reading it here would silently miss
+  // the run-in in actual play.
+  const weeksRemaining = totalWeeks - (matchweekIndex ?? 0);
   if (weeksRemaining > 5 || weeksRemaining < 1) return false;
 
   const sorted = sortStandings(league.table);
