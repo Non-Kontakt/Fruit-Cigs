@@ -12,13 +12,15 @@ import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffect
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { generateAITransferOffers } from "../utils/transfer.js";
 import { buildSeasonPreviewBody } from "../utils/seasonPreview.js";
+import { computeSeasonAwards, buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody } from "../utils/seasonAwards.js";
+import { generateAwardsHeadline } from "../utils/headlines.js";
 
 const FILTER_LABELS = { DEF: "Defenders", MID: "Midfielders", FWD: "Forwards", GK: "Goalkeepers" };
 
 /**
  * Extracts the season-end flow from App.jsx:
  *   - triggerSeasonEnd: fired by "END SEASON" button, applies pending arc rewards
- *   - advanceSummer: drives the 5-week summer break, one event per click
+ *   - advanceSummer: drives the 6-week summer break, one event per click
  *
  * All game state is read fresh from useGameStore.getState() on each call.
  * Only React useState setters and component-local callbacks are passed as params.
@@ -134,11 +136,11 @@ export function useSeasonFlow({
     }
 
     s.setSummerPhase("break");
-    s.setSummerData(prev => ({ ...(prev || {}), weeksLeft: 5 }));
+    s.setSummerData(prev => ({ ...(prev || {}), weeksLeft: 6 }));
     setTimeout(() => setWeekTransition(false), 1500);
   }, []); // All state read from getState()
 
-  // Drives the 5-week summer break, one event per click
+  // Drives the 6-week summer break, one event per click
   const advanceSummer = useCallback(() => {
     const s = useGameStore.getState();
     const {
@@ -152,7 +154,7 @@ export function useSeasonFlow({
     if (processing) return;
     s.setProcessing(true);
     if (!useGameStore.getState().isOnHoliday) setWeekTransition(true);
-    const wl = summerData?.weeksLeft ?? 5;
+    const wl = summerData?.weeksLeft ?? 6;
 
     // Decrements the transfer window countdown and fires the deadline-week /
     // closed inbox beats when the new value crosses those thresholds.
@@ -172,9 +174,9 @@ export function useSeasonFlow({
       }
     };
 
-    if (wl === 5) {
+    if (wl === 6) {
       // Week 1: Apply any pending arc final rewards missed due to timing bugs.
-      // SeasonEndReveal fires on the NEXT click (wl=4) to avoid overlap with gains popup.
+      // SeasonEndReveal fires on the NEXT click (wl=5) to avoid overlap with gains popup.
       const arcSnap = storyArcs;
       const gs = { squad, league, prodigalSon, trialPlayer, trialHistory, leagueTier,
                    consecutiveWins, halfwayPosition, cup };
@@ -288,16 +290,16 @@ export function useSeasonFlow({
         }
       }
 
-      // Always advance to wl=4 regardless — SeasonEndReveal fires there
-      s.setSummerData(prev => ({...prev, weeksLeft: 4}));
+      // Always advance to wl=5 regardless — SeasonEndReveal fires there
+      s.setSummerData(prev => ({...prev, weeksLeft: 5}));
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
-    } else if (wl === 4) {
+    } else if (wl === 5) {
       // Week 2: Season End reveal (promotion / relegation / champions)
       s.setSummerPhase("summary");
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
-    } else if (wl === 3) {
+    } else if (wl === 4) {
       // Week 3: Team of the Season email
       let topScorer = null, topGoals = 0, topMotmName = null, topMotm = 0;
       Object.entries(playerSeasonStats).forEach(([name, st]) => {
@@ -327,12 +329,67 @@ export function useSeasonFlow({
         { calendarIndex, seasonNumber },
       )]);
 
+      s.setSummerData(prev => ({...prev, weeksLeft: 3}));
+      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
+      setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
+
+    } else if (wl === 3) {
+      // Week 4: Awards Night — Golden Boot, Young Player of the Season,
+      // Player of the Season, posted smallest-to-biggest so POTS lands last
+      // (newest/top of inbox). Derivation lives in utils/seasonAwards.js —
+      // league-wide, not player-squad-only. Gracefully no-ops on a thin/fresh
+      // season (no qualifying candidates yet).
+      {
+        const freshState = useGameStore.getState();
+        const awards = computeSeasonAwards({
+          squad, teamName: freshState.teamName,
+          playerSeasonStats, playerRatingTracker: freshState.playerRatingTracker,
+          league, seasonLeagueStats: (freshState.seasonLeagueStatsByTier || {})[leagueTier] || null,
+        });
+
+        const goldenBootBody = buildGoldenBootBody(awards.goldenBoot);
+        if (goldenBootBody) {
+          s.setInboxMessages(prev => [...prev, createInboxMessage(
+            MSG.goldenBootAward(goldenBootBody),
+            { calendarIndex, seasonNumber },
+          )]);
+        }
+
+        const ypotsBody = buildYoungPlayerOfSeasonBody(awards.youngPlayerOfSeason);
+        if (ypotsBody) {
+          s.setInboxMessages(prev => [...prev, createInboxMessage(
+            MSG.youngPlayerOfSeasonAward(ypotsBody),
+            { calendarIndex, seasonNumber },
+          )]);
+        }
+
+        const potsBody = buildPlayerOfSeasonBody(awards.playerOfSeason);
+        if (potsBody) {
+          // Newspaper flavour lives in the message body, not the dashboard
+          // masthead — see generateAwardsHeadline's docstring for why
+          // setLatestHeadline is skipped here (summer-break back-page gate).
+          const { headline, byline: hlByline } = generateAwardsHeadline({
+            teamName: freshState.teamName,
+            winnerName: awards.playerOfSeason.winner.name,
+            newspaperName: freshState.newspaperName,
+            reporterName: freshState.reporterName,
+          });
+          const attribution = freshState.newspaperName
+            ? `\n\n"${headline}"\n— ${freshState.newspaperName}${hlByline ? ` (${hlByline})` : ""}`
+            : "";
+          s.setInboxMessages(prev => [...prev, createInboxMessage(
+            MSG.playerOfSeasonAward(potsBody + attribution),
+            { calendarIndex, seasonNumber },
+          )]);
+        }
+      }
+
       s.setSummerData(prev => ({...prev, weeksLeft: 2}));
       if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else if (wl === 2) {
-      // Week 4: Retirements + Youth Intake
+      // Week 5: Retirements + Youth Intake
       setShowYouthIntake(true);
       s.setSummerPhase("intake");
       // YouthIntake onDone will set weeksLeft=1 and return to break
@@ -340,7 +397,7 @@ export function useSeasonFlow({
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else {
-      // Week 5: Well Rested boosts + New season preview, then end summer
+      // Week 6: Well Rested boosts + New season preview, then end summer
       const attrKeys = ATTRIBUTES.map(a => a.key);
       const eligible = squad.filter(p => !p.isTrial && attrKeys.some(k => (p.attrs[k] || 0) < (p.legendCap || ovrCap)));
       const shuffled = [...eligible].sort(() => Math.random() - 0.5);

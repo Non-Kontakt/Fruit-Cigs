@@ -428,4 +428,70 @@ test.describe("full-app flows", () => {
     expect(after[1], "tapped slot should take the armed slot's player").toBe(before[0]);
     await expect(page.locator('[data-testid="five-slot-0"]')).toHaveAttribute("data-armed", "false");
   });
+
+  test("Awards Night posts Golden Boot, Young Player and Player of the Season", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Driving a full 18-match season through the UI to populate real season
+    // stats is slow and flake-prone. Instead, inject the exact preconditions
+    // the Awards Night beat reads (playerSeasonStats, playerRatingTracker,
+    // seasonLeagueStatsByTier) and land directly on its summer week
+    // (weeksLeft: 3 — see useSeasonFlow.js), then click through just that
+    // one beat like a real player would.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const tier = s.leagueTier;
+      const winner = { ...s.squad[0], age: 20 }; // young enough to also win YPOTS
+      const squad = s.squad.map(p => (p.id === winner.id ? winner : p));
+      window.__fc.setState({
+        squad,
+        playerSeasonStats: {
+          [winner.name]: { goals: 16, assists: 7, apps: 18, motm: 4, yellows: 1, reds: 0 },
+        },
+        playerRatingTracker: { [winner.id]: [7.4, 7.9, 8.1, 7.2, 7.6] },
+        seasonLeagueStatsByTier: {
+          [tier]: {
+            players: {
+              [winner.id]: { key: winner.id, playerId: winner.id, name: winner.name, teamId: 0, teamName: s.teamName, position: winner.position, goals: 16, assists: 7, yellows: 1, reds: 0 },
+              rival_a: { key: "rival_a", playerId: null, name: "Kwame Frimpong", teamId: 1, teamName: "Rovers", position: "ST", goals: 12, assists: 2, yellows: 0, reds: 0 },
+              rival_b: { key: "rival_b", playerId: null, name: "Samir Bello", teamId: 2, teamName: "United", position: "ST", goals: 9, assists: 1, yellows: 0, reds: 0 },
+            },
+            processedMatches: {},
+          },
+        },
+        summerPhase: "break",
+        summerData: { weeksLeft: 3 },
+      });
+    });
+
+    await page.getByText("ADVANCE SUMMER", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => (window.__fc.getState().inboxMessages || []).some(m => m.title === "Player of the Season"),
+      null, { timeout: 10_000 },
+    );
+
+    const inbox = await page.evaluate(() => window.__fc.getState().inboxMessages);
+    const goldenBoot = inbox.find(m => m.title === "The Golden Boot");
+    const ypots = inbox.find(m => m.title === "Young Player of the Season");
+    const pots = inbox.find(m => m.title === "Player of the Season");
+
+    expect(goldenBoot, "Golden Boot message should be posted").toBeTruthy();
+    expect(goldenBoot.body).toContain("GOLDEN BOOT");
+    expect(ypots, "Young Player of the Season message should be posted").toBeTruthy();
+    expect(pots, "Player of the Season message should be posted").toBeTruthy();
+    expect(pots.body).toContain("PLAYER OF THE SEASON");
+
+    // Player of the Season lands last (newest/top of a chronologically
+    // sorted inbox) — Golden Boot posts first.
+    expect(goldenBoot.seq).toBeLessThan(ypots.seq);
+    expect(ypots.seq).toBeLessThan(pots.seq);
+
+    await page.getByText("BOOT ROOM", { exact: false }).first().click();
+    await expect(page.getByText("Player of the Season", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await page.waitForTimeout(300);
+    await shot(page, testInfo.project.name, "flow-awards-night-inbox");
+  });
 });

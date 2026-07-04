@@ -362,6 +362,27 @@ export function generateSeasonHeadline({ type, teamName, leagueName }) {
 }
 
 // ---------------------------------------------------------------------------
+// Awards Night back page — Player of the Season is the headline pick (the
+// biggest individual honour of the three). NOT wired to setLatestHeadline:
+// the dashboard masthead only shows latestHeadline when its calendarIndex
+// matches the most recently PLAYED result, and the summer break has already
+// moved calendarIndex one past that match by the time Awards Night fires
+// (same gate the season-preview headline hit) — so this only ever supplies
+// the "— {newspaperName}" flavour line inside the inbox message body.
+// ---------------------------------------------------------------------------
+const AWARDS_TEMPLATES = [
+  (ctx) => `${(ctx.winnerName || ctx.teamName || "OUR PLAYER").toUpperCase()} NAMED PLAYER OF THE SEASON AT ${(ctx.teamName || "THE CLUB").toUpperCase()}`,
+  (ctx) => `${(ctx.newspaperName || "THE GAZETTE").toUpperCase()} NAMES ${(ctx.winnerName || "").toUpperCase()} THEIR PLAYER OF THE SEASON`,
+  (ctx) => `AWARDS NIGHT GLORY — ${(ctx.winnerName || "").toUpperCase()} TAKES TOP HONOUR AT ${(ctx.teamName || "THE CLUB").toUpperCase()}`,
+];
+
+export function generateAwardsHeadline({ teamName, winnerName, newspaperName, reporterName }) {
+  const ctx = { teamName, winnerName, newspaperName, reporterName };
+  const headline = pickRandom(AWARDS_TEMPLATES)(ctx);
+  return { headline, byline: byline(ctx) };
+}
+
+// ---------------------------------------------------------------------------
 // generateMatchHeadline
 // ---------------------------------------------------------------------------
 export function generateMatchHeadline(ctx = {}) {
