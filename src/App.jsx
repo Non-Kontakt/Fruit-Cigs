@@ -5938,6 +5938,7 @@ function FruitCigs() {
             newLeagueName: summerData.newLeagueName,
             isInvincible: summerData.isInvincible,
             prestigeLevel,
+            dynastyCupFinish: summerData.dynastyCupFinish,
             miniTournamentFinish: (() => {
               const mb = useGameStore.getState().miniTournamentBracket;
               if (!mb || !getModifier(summerData.fromTier).miniTournament) return null;
