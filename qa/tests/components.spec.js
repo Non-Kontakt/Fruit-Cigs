@@ -115,3 +115,15 @@ test("league table: Q chip marks exactly the top-4 knockout qualification zone",
   const fifthRow = page.getByText("Red Lion FC", { exact: true }).locator("..").locator('[title*="qualifying spot"]');
   await expect(fifthRow).toHaveCount(0);
 });
+
+// Squad progress "Most Improved" ranked view — a mid-career signing (joined
+// season 2) still ranks by their own join-OVR delta, not the club's season-1
+// baseline, and the biggest gainer shows a prominent green +delta.
+test("squad progress: most improved view ranks by OVR delta", async ({ page }) => {
+  await page.goto("qa.html?c=squad-progress-improved");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("MOST IMPROVED", { exact: true }).click();
+  await expect(page.getByText("Ollie Vance", { exact: true })).toBeVisible();
+  await expect(page.getByText("+6", { exact: true })).toBeVisible();
+  await expect(page.getByText("+3", { exact: true })).toBeVisible();
+});
