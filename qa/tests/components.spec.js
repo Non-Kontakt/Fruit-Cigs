@@ -90,6 +90,26 @@ test("cig cards: progress meter shows current/target, absent without a progress 
   await expect(plainCard.locator('[data-testid="cig-card-meter"]')).toHaveCount(0);
 });
 
+// Fixed-width All-Time XI cards used to collide on narrow viewports — two
+// adjacent long-named defenders' name badges would overlap. Assert their
+// bounding boxes never intersect horizontally, mobile only (desktop has
+// plenty of pitch width and was never affected).
+test("all-time XI: adjacent long-named defenders don't collide on mobile", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "collision only ever happened on the narrow viewport");
+  await page.goto("qa.html?c=alltime-xi");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("ALL-TIME XI", { exact: false }).first().click();
+  await page.waitForTimeout(200);
+
+  const cb1 = await page.locator('[data-testid="xi-name-CB1"]').boundingBox();
+  const cb2 = await page.locator('[data-testid="xi-name-CB2"]').boundingBox();
+  expect(cb1).not.toBeNull();
+  expect(cb2).not.toBeNull();
+
+  const [left, right] = cb1.x < cb2.x ? [cb1, cb2] : [cb2, cb1];
+  expect(left.x + left.width, "adjacent defender name badges overlap horizontally").toBeLessThanOrEqual(right.x);
+});
+
 // Youth intake never used to show a prospect's potential at all — only OVR.
 // Desktop shows it inline in the row; mobile surfaces it in the expanded
 // detail section (tap "▼ STATS").
