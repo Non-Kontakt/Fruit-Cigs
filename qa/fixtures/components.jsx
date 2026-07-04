@@ -8,6 +8,7 @@ import { AchievementToast } from "../../src/components/achievements/AchievementT
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
+import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -338,6 +339,38 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// --- Youth intake ------------------------------------------------------
+
+function youthAttrs(base) {
+  return { pace: base, shooting: base, passing: base, defending: base, physical: base, technique: base, mental: base };
+}
+
+// Potentials sit on the game's 1-20 attribute scale, inside each archetype's
+// real range from generateYouthPlayer (raw 14-20, specialist 12-16, etc.).
+const youthCandidates = [
+  {
+    id: "y0", name: "Callum Reyes", position: "ST", nationality: "BRA", age: 17,
+    youthArchetype: "raw", potential: 18, attrs: youthAttrs(9),
+  },
+  {
+    id: "y1", name: "Ollie Bramwell-Hutchinson", position: "CM", nationality: "ENG", age: 18,
+    youthArchetype: "specialist", potential: 15, attrs: youthAttrs(12),
+  },
+  {
+    id: "y2", name: "Divock Osei", position: "CB", nationality: "GHA", age: 16,
+    youthArchetype: "wildcard", potential: 12, attrs: youthAttrs(8),
+  },
+  {
+    id: "y3", name: "Jamie Cotterill", position: "RW", nationality: "WAL", age: 17,
+    potential: 13, attrs: youthAttrs(11),
+  },
+];
+
+const youthIntake = {
+  candidates: youthCandidates,
+  retirees: [],
+};
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -449,6 +482,15 @@ const RENDERERS = {
         seasonLength={48}
       />
     </div>
+  ),
+  "youth-intake": () => (
+    <YouthIntakeScreen
+      intake={youthIntake}
+      onDone={noop}
+      squadSize={22}
+      onClose={noop}
+      ovrCap={20}
+    />
   ),
 };
 

@@ -90,6 +90,19 @@ test("cig cards: progress meter shows current/target, absent without a progress 
   await expect(plainCard.locator('[data-testid="cig-card-meter"]')).toHaveCount(0);
 });
 
+// Youth intake never used to show a prospect's potential at all — only OVR.
+// Desktop shows it inline in the row; mobile surfaces it in the expanded
+// detail section (tap "▼ STATS").
+test("youth intake: prospect potential renders", async ({ page }, testInfo) => {
+  await page.goto("qa.html?c=youth-intake");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+
+  if (testInfo.project.name === "mobile") {
+    await page.getByText("▼ STATS").first().click();
+  }
+  await expect(page.getByText("POT 18", { exact: true }).first()).toBeVisible();
+});
+
 test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
   await page.goto("qa.html?c=achievement-toast");
