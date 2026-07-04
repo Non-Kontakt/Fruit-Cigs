@@ -113,6 +113,9 @@ export const useGameStore = create((set, get) => ({
   // === Sentiment ===
   fanSentiment: 50,
   boardSentiment: 50,
+  // Reasons behind recent fan sentiment moves — { delta, reason, week, season },
+  // most-recent last, capped at 20 on write. Old saves default to [].
+  sentimentLog: [],
 
   // === Profile / game mode ===
   activeProfileId: null,
@@ -323,6 +326,7 @@ export const useGameStore = create((set, get) => ({
 
   setFanSentiment: (val) => set(s => ({ fanSentiment: typeof val === "function" ? val(s.fanSentiment) : val })),
   setBoardSentiment: (val) => set(s => ({ boardSentiment: typeof val === "function" ? val(s.boardSentiment) : val })),
+  setSentimentLog: (val) => set(s => ({ sentimentLog: typeof val === "function" ? val(s.sentimentLog) : val })),
 
   setActiveProfileId: (val) => set({ activeProfileId: val }),
   setGameMode: (val) => set({ gameMode: val }),
@@ -475,6 +479,7 @@ export const useGameStore = create((set, get) => ({
     summerPhase: null,
     fanSentiment: 50,
     boardSentiment: 50,
+    sentimentLog: [],
     activeProfileId: null,
     gameMode: null,
     gameOver: false,

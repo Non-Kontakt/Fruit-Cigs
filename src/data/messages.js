@@ -293,6 +293,30 @@ const seasonPreview = (body) => ({
   body,
 });
 
+const transferWindowOpen = () => ({
+  id: `msg_tw_open_${Date.now()}`,
+  icon: "\uD83D\uDCB0", // 💰
+  color: C.green,
+  title: "Transfer Window Open",
+  body: "The transfer window is open. Clubs are watching.",
+});
+
+const transferWindowFinalWeek = () => ({
+  id: `msg_tw_final_${Date.now()}`,
+  icon: "\u23F3", // ⏳
+  color: C.amber,
+  title: "Transfer Window: Final Week",
+  body: "Deadline week. Last chance to make a deal.",
+});
+
+const transferWindowClosed = () => ({
+  id: `msg_tw_closed_${Date.now()}`,
+  icon: "\uD83D\uDD12", // 🔒
+  color: C.textMuted,
+  title: "Transfer Window Closed",
+  body: "The transfer window has closed. No more business until it reopens next summer.",
+});
+
 // ---------------------------------------------------------------------------
 // ARCS
 // ---------------------------------------------------------------------------
@@ -763,7 +787,9 @@ const transferInsider = (player, ovr) => ({
   id: `msg_ticket_insider_${Date.now()}`,
   icon: "\uD83D\uDD75\uFE0F", // 🕵️
   title: `Transfer Tip: ${player.name}`,
-  body: `Your contacts have found a promising player available on a free transfer. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is looking for a new club. Act fast \u2014 other clubs are circling.`,
+  // Backstory is optional at this boundary \u2014 legacy/test player objects may
+  // not carry one, and the copy must not leak "undefined".
+  body: `Your contacts have found a promising player available on a free transfer. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is looking for a new club. ${player.backstory ? `${player.backstory} ` : ""}Act fast \u2014 other clubs are circling.`,
   color: "#34d399",
   type: "free_agent_offer",
   freeAgentData: player,
@@ -777,7 +803,7 @@ const saudiAgent = (player, ovr) => ({
   id: `msg_saudi_agent_${Date.now()}`,
   icon: "\uD83D\uDD4C", // 🕌
   title: `Saudi Agent: ${player.name}`,
-  body: `Your Saudi connections have delivered. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is available on a free transfer. Sign now \u2014 he won't wait.`,
+  body: `Your Saudi connections have delivered. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is available on a free transfer. ${player.backstory ? `${player.backstory} ` : ""}Sign now \u2014 he won't wait.`,
   color: "#d4a017",
   type: "free_agent_offer",
   freeAgentData: player,
@@ -949,6 +975,9 @@ export const MSG = {
   teamOfTheSeasonDetailed,
   wellRested,
   seasonPreview,
+  transferWindowOpen,
+  transferWindowFinalWeek,
+  transferWindowClosed,
   // Arcs
   arcComplete,
   // League

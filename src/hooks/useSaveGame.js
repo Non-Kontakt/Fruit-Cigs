@@ -18,6 +18,14 @@ import { seedMessageSeq, getMessageSeq } from "../utils/messageUtils.js";
 import { checkAchievements, deriveMissingPlayerUnlocks } from "../utils/achievements.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
 import { randomAvatar } from "../components/ui/ManagerAvatar.jsx";
+import {
+  migrateSquadBackfill, migrateAITeamSquads, backfillAISquadDefaults, backfillRosterPhilosophy,
+  migrateLegacyLeagueTier3to11, migrateLegacyRosterKeys, ensureAllTierRosters, repairLeagueV2ToV3,
+  resolveMigratedTier, syncLeagueTierAndNames, migrateSeasonHistoryNames, migrateClubHistoryNames,
+  backfillClubHistory, migratePlayerRatingTracker, stripCupNamePrefix, migrateSummerPhase,
+  resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
+  resolveCupStatsAvailable, migrateStoryArcsCompletion, backfillOvrHistorySnapshot,
+} from "../utils/saveMigrations.js";
 
 /**
  * Extracts save/load/export/import/delete/sacking callbacks.
@@ -146,6 +154,7 @@ export function useSaveGame({
         tradesMadeInWindow: s.tradesMadeInWindow,
         tradedWithClubs: s.tradedWithClubs,
         fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment,
+        sentimentLog: s.sentimentLog,
         gameMode: s.gameMode,
         boardWarnCount: s.boardWarnCount,
         ultimatumActive: s.ultimatumActive,
@@ -193,168 +202,37 @@ export function useSaveGame({
       // Manager identity (legacy saves: leave name null, give avatar a random fallback)
       store.setManagerName(s.managerName || null);
       store.setManagerAvatar(s.managerAvatar || randomAvatar());
-      // Migrate: add nationality, statProgress, and potential to existing players if missing
-      const loadOvrCap = getOvrCap(s.prestigeLevel || 0);
-      const rawMigratedSquad = (s.squad || []).map(p => {
-        const migrated = { ...p };
-        if (!migrated.nationality) migrated.nationality = inferNationality(migrated.name);
-        if (!migrated.statProgress) migrated.statProgress = {};
-        if (migrated.potential == null) {
-          const ovr = getOverall(migrated);
-          const maxGap = migrated.age <= 19 ? rand(5,10) : migrated.age <= 23 ? rand(3,8) : migrated.age <= 27 ? rand(2,5) : migrated.age <= 30 ? rand(1,3) : rand(0,2);
-          migrated.potential = Math.min(loadOvrCap, ovr + maxGap);
-        }
-        return migrated;
-      });
-      // Repair: rename duplicate names saved before generation guaranteed
-      // per-squad uniqueness (the later duplicate gets a suffix; ids keep
-      // every assignment intact)
-      const migratedSquad = renameDuplicateNames(rawMigratedSquad);
+      // Migrate: add nationality, statProgress, and potential to existing
+      // players if missing, then repair duplicate names saved before
+      // generation guaranteed per-squad uniqueness.
+      const migratedSquad = migrateSquadBackfill(s.squad, s.prestigeLevel);
       store.setSquad(migratedSquad);
       // Migrate: patch AI team squad members with names/nationalities + add bench if missing
-      if (s.league?.teams) {
-        s.league.teams.forEach(team => {
-          if (team.isPlayer) return;
-          const migTier = team.tier || s.leagueTier || s.league?.tier || 11;
-          if (team.squad) {
-            team.squad.forEach(p => {
-              if (!p.nationality) p.nationality = pickAINationality(migTier);
-              if (!p.name) {
-                const nd = generateNameForNation(p.nationality || pickAINationality(migTier));
-                p.name = nd.name;
-              }
-            });
-            // Add bench players if squad only has 11
-            if (team.squad.length <= 11) {
-              const strength = team.strength || 0.5;
-              const minBase = Math.max(1, Math.round(2 + strength * 4) - 1);
-              const maxBase = Math.max(2, Math.round(5 + strength * 6) - 1);
-              AI_BENCH_POSITIONS.forEach((pos) => {
-                const attrs = {};
-                const type = POSITION_TYPES[pos];
-                const biases = { GK:{defending:3,physical:2,mental:1}, DEF:{defending:3,physical:2,mental:1}, MID:{passing:3,technique:2,mental:1}, FWD:{shooting:3,pace:2,technique:1} };
-                ATTRIBUTES.forEach(({ key }) => {
-                  const bias = (biases[type] && biases[type][key]) || 0;
-                  attrs[key] = Math.max(1, Math.min(14, rand(minBase, maxBase) + bias));
-                });
-                const nc = pickAINationality(migTier);
-                const nd = generateNameForNation(nc);
-                team.squad.push({ name: nd.name, position: pos, attrs, isBench: true, nationality: nc });
-              });
-            }
-            team.squad = renameDuplicateNames(team.squad);
-          }
-        });
-      }
+      if (s.league?.teams) migrateAITeamSquads(s.league.teams, s.leagueTier || s.league?.tier);
       // Migrate old 3-tier league object to 11-tier system
-      if (s.league && !s.leagueVersion && s.league.tier && s.league.tier <= 3) {
-        const tierMap = { 1: 5, 2: 6, 3: 7 };
-        s.league.tier = tierMap[s.league.tier] || 7;
-        if (s.leagueTier && s.leagueTier <= 3) s.leagueTier = tierMap[s.leagueTier] || 7;
-        const newDef = LEAGUE_DEFS[s.league.tier];
-        if (newDef) {
-          s.league.leagueName = newDef.name;
-          s.league.leagueColor = newDef.color;
-        }
-      }
-      // Also migrate leagueRosters keys
-      if (s.leagueRosters && !s.leagueVersion) {
-        const old = s.leagueRosters;
-        if (old[1] && !old[5]) {
-          const migrated = {};
-          if (old[1]) migrated[5] = old[1];
-          if (old[2]) migrated[6] = old[2];
-          if (old[3]) migrated[7] = old[3];
-          for (let t = 1; t <= NUM_TIERS; t++) {
-            if (!migrated[t]) migrated[t] = (LEAGUE_DEFS[t]?.teams || []).map(c => ({ ...c }));
-          }
-          s.leagueRosters = migrated;
-        }
-      }
-      // Ensure all tiers exist in rosters
-      if (s.leagueRosters) {
-        for (let t = 1; t <= NUM_TIERS; t++) {
-          if (!s.leagueRosters[t]) s.leagueRosters[t] = (LEAGUE_DEFS[t]?.teams || []).map(c => ({ ...c }));
-        }
-      }
+      migrateLegacyLeagueTier3to11(s);
+      // Also migrate leagueRosters keys, then ensure all tiers exist
+      s.leagueRosters = migrateLegacyRosterKeys(s.leagueRosters, s.leagueVersion);
+      s.leagueRosters = ensureAllTierRosters(s.leagueRosters);
       // === V2 → V3 MIGRATION ===
-      if (s.leagueVersion === 2 || (!s.leagueVersion && s.leagueRosters)) {
-        const playedTiers = new Set([5, 6, 7]);
-        if (s.leagueRosters) {
-          for (let t = 1; t <= NUM_TIERS; t++) {
-            if (playedTiers.has(t)) continue;
-            const defaultNames = new Set((LEAGUE_DEFS[t]?.teams || []).map(tm => tm.name));
-            const current = s.leagueRosters[t] || [];
-            const intact = current.filter(tm => defaultNames.has(tm.name)).length;
-            if (intact < Math.ceil(defaultNames.size / 2)) {
-              s.leagueRosters[t] = (LEAGUE_DEFS[t]?.teams || []).map(c => ({ ...c }));
-            }
-          }
-        }
-        const currentSaveTier = s.league?.tier || s.leagueTier || 5;
-        if (currentSaveTier < 4) {
-          s.leagueTier = 4;
-          const repairedTier = 4;
-          const repairedLeague = initLeague(migratedSquad, s.teamName, repairedTier, s.leagueRosters, null, s.prestigeLevel || 0);
-          s.league = repairedLeague;
-          s.cup = initCup(s.teamName, repairedTier, s.leagueRosters);
-          s.seasonCalendar = null;
-          s.calendarIndex = 0;
-          s.calendarResults = {};
-          s.leagueResults = {};
-        }
-        s.leagueVersion = 3;
-      }
+      repairLeagueV2ToV3(s, migratedSquad);
       // === END V3 MIGRATION ===
 
       // Backfill age and id on AI players from saves that predate the aging system
-      const backfillAISquad = (sq) => {
-        (sq || []).forEach(p => {
-          if (p.age == null) p.age = rand(22, 33);
-          if (p.id == null) p.id = `ai_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-        });
-      };
-      if (s.league?.teams) s.league.teams.forEach(t => { if (!t.isPlayer) backfillAISquad(t.squad); });
+      if (s.league?.teams) s.league.teams.forEach(t => { if (!t.isPlayer) backfillAISquadDefaults(t.squad); });
       if (s.allLeagueStates) {
         Object.values(s.allLeagueStates).forEach(als => {
-          (als.teams || []).forEach(t => backfillAISquad(t.squad));
+          (als.teams || []).forEach(t => backfillAISquadDefaults(t.squad));
         });
       }
       // Backfill squadPhilosophy + trajectory on roster configs
-      if (s.leagueRosters) {
-        for (let t = 1; t <= NUM_TIERS; t++) {
-          (s.leagueRosters[t] || []).forEach(cfg => {
-            if (!cfg.squadPhilosophy) cfg.squadPhilosophy = generateSquadPhilosophy(cfg.trait);
-            if (cfg.trajectory === undefined) cfg.trajectory = 0;
-          });
-        }
-      }
+      s.leagueRosters = backfillRosterPhilosophy(s.leagueRosters);
 
       // Migrate old 3-tier saves to 11-tier system
-      const savedTier = s.leagueTier || NUM_TIERS;
-      const migratedTier = (!s.leagueVersion && savedTier <= 3) ? { 1: 5, 2: 6, 3: 7 }[savedTier] || 7 : savedTier;
-      if (s.league && s.league.tier !== migratedTier) {
-        s.league.tier = migratedTier;
-        const tierDef = LEAGUE_DEFS[migratedTier];
-        if (tierDef) {
-          s.league.leagueName = tierDef.name;
-          s.league.leagueColor = tierDef.color;
-        }
-      }
-      // Always sync league name/color from LEAGUE_DEFS
-      if (s.league && s.league.tier && LEAGUE_DEFS[s.league.tier]) {
-        s.league.leagueName = LEAGUE_DEFS[s.league.tier].name;
-        s.league.leagueColor = LEAGUE_DEFS[s.league.tier].color;
-      }
+      const migratedTier = resolveMigratedTier(s.leagueTier, s.leagueVersion);
+      syncLeagueTierAndNames(s.league, migratedTier);
       // Migrate season history league names
-      if (s.seasonHistory) {
-        s.seasonHistory = s.seasonHistory.map(entry => {
-          if (entry.tier && LEAGUE_DEFS[entry.tier]) {
-            return { ...entry, leagueName: LEAGUE_DEFS[entry.tier].name };
-          }
-          return entry;
-        });
-      }
+      s.seasonHistory = migrateSeasonHistoryNames(s.seasonHistory);
 
       store.setLeague(s.league);
       store.setStartingXI(s.startingXI);
@@ -386,6 +264,7 @@ export function useSaveGame({
       store.setLatestHeadline(s.latestHeadline || null);
       store.setFanSentiment(s.fanSentiment ?? 50);
       store.setBoardSentiment(s.boardSentiment ?? 50);
+      store.setSentimentLog(s.sentimentLog || []);
       store.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);
       store.setDynastyCupBracket(s.dynastyCupBracket || null);
       store.setMiniTournamentBracket(s.miniTournamentBracket || null);
@@ -399,102 +278,18 @@ export function useSaveGame({
       store.setUltimatumCupPending(s.ultimatumCupPending || false);
       store.setTrainedThisWeek(s.trainedThisWeek || new Set());
       // Migrate clubHistory league names
-      if (s.clubHistory) {
-        if (s.clubHistory.bestSeasonFinish?.tier && LEAGUE_DEFS[s.clubHistory.bestSeasonFinish.tier]) {
-          s.clubHistory.bestSeasonFinish.leagueName = LEAGUE_DEFS[s.clubHistory.bestSeasonFinish.tier].name;
-        }
-        if (s.clubHistory.seasonArchive) {
-          s.clubHistory.seasonArchive = s.clubHistory.seasonArchive.map(entry => {
-            if (entry.tier && LEAGUE_DEFS[entry.tier]) {
-              return { ...entry, leagueName: LEAGUE_DEFS[entry.tier].name };
-            }
-            return entry;
-          });
-        }
-        if (s.clubHistory.cupHistory) {
-          s.clubHistory.cupHistory = s.clubHistory.cupHistory.map(entry => {
-            if (entry.cupName && entry.cupName.startsWith("The ")) {
-              return { ...entry, cupName: entry.cupName.slice(4) };
-            }
-            return entry;
-          });
-        }
-      }
+      s.clubHistory = migrateClubHistoryNames(s.clubHistory);
       if (s.clubHistory && s.clubHistory.totalWins > 0) {
         store.setClubHistory(s.clubHistory);
       } else if (s.seasonNumber > 1 && !s.clubHistory?.totalWins) {
         // Migration: backfill clubHistory from available save data
-        const h = {
-          totalWins: 0, totalDraws: 0, totalLosses: 0,
-          totalGoalsFor: 0, totalGoalsConceded: 0,
-          bestWinStreak: s.consecutiveWins || s.consecutiveUnbeaten || 0,
-          bestUnbeatenRun: s.consecutiveUnbeaten || 0,
-          worstLossStreak: s.consecutiveLosses || 0,
-          biggestWin: null, worstDefeat: null,
-          bestSeasonFinish: null, bestSeasonPoints: 0,
-          playerCareers: {},
-          allTimeXI: {},
-          seasonArchive: [],
-        };
-        if (s.league?.table) {
-          const playerRow = s.league.table.find((r) => s.league.teams[r.teamIndex]?.isPlayer);
-          if (playerRow) {
-            h.totalWins = playerRow.won || 0;
-            h.totalDraws = playerRow.drawn || 0;
-            h.totalLosses = playerRow.lost || 0;
-            h.totalGoalsFor = playerRow.goalsFor || 0;
-            h.totalGoalsConceded = playerRow.goalsAgainst || 0;
-          }
-        }
-        const currentPlayed = (h.totalWins + h.totalDraws + h.totalLosses);
-        const priorMatches = (s.totalMatches || 0) - currentPlayed;
-        if (priorMatches > 0) {
-          h.totalWins += Math.round(priorMatches * 0.5);
-          h.totalDraws += Math.round(priorMatches * 0.25);
-          h.totalLosses += priorMatches - Math.round(priorMatches * 0.5) - Math.round(priorMatches * 0.25);
-          const avgGF = s.seasonGoalsFor ? s.seasonGoalsFor / Math.max(1, currentPlayed) : 1.5;
-          h.totalGoalsFor += Math.round(priorMatches * avgGF);
-          h.totalGoalsConceded += Math.round(priorMatches * 1.2);
-        }
-        if (s.playerSeasonStats) {
-          Object.entries(s.playerSeasonStats).forEach(([name, stats]) => {
-            h.playerCareers[name] = {
-              goals: (stats.goals || 0) * (s.seasonNumber || 1),
-              apps: (stats.apps || 0) * (s.seasonNumber || 1),
-              motm: (stats.motm || 0) * (s.seasonNumber || 1),
-              yellows: stats.yellows || 0,
-              reds: stats.reds || 0,
-              seasons: [],
-            };
-          });
-        }
-        for (let i = 1; i < (s.seasonNumber || 1); i++) {
-          h.seasonArchive.push({
-            season: i,
-            tier: i === 1 ? NUM_TIERS : (s.leagueTier || NUM_TIERS),
-            leagueName: "Unknown (pre-tracking)",
-            position: "?",
-            points: "?",
-            topScorer: "N/A",
-            result: i < (s.seasonNumber || 1) - 1 ? "stayed" : (s.lastSeasonMove || "stayed"),
-          });
-        }
-        store.setClubHistory(h);
+        store.setClubHistory(backfillClubHistory(s));
       }
       store.setPrevStartingXI(s.prevStartingXI || null);
       store.setMotmTracker(s.motmTracker || {});
       store.setStScoredConsecutive(s.stScoredConsecutive || 0);
       // Migrate name-keyed playerRatingTracker to ID-keyed
-      let _loadedTracker = s.playerRatingTracker || {};
-      if (Object.keys(_loadedTracker).length > 0) {
-        const _squadIds = new Set((s.squad || []).map(p => p.id).filter(Boolean));
-        const _alreadyIdKeyed = Object.keys(_loadedTracker).some(k => _squadIds.has(k));
-        if (!_alreadyIdKeyed) {
-          const _migrated = {};
-          (s.squad || []).forEach(p => { if (p.name && p.id && _loadedTracker[p.name]) _migrated[p.id] = _loadedTracker[p.name]; });
-          _loadedTracker = _migrated;
-        }
-      }
+      const _loadedTracker = migratePlayerRatingTracker(s.playerRatingTracker, s.squad);
       store.setPlayerRatingTracker(_loadedTracker);
       store.setPlayerRatingNames(s.playerRatingNames || {});
       store.setPlayerMatchLog(s.playerMatchLog || {});
@@ -503,16 +298,10 @@ export function useSaveGame({
       store.setBeatenTeams(s.beatenTeams || new Set());
       store.setRetiringPlayers(s.retiringPlayers || new Set());
       // Migrate cup name: strip "The " prefix
-      if (s.cup && s.cup.cupName && s.cup.cupName.startsWith("The ")) {
-        s.cup.cupName = s.cup.cupName.slice(4);
-      }
+      s.cup = stripCupNamePrefix(s.cup);
       store.setCup(s.cup || initCup(s.teamName, migratedTier, s.leagueRosters));
       // Migration: convert summerPhase="summary" to "break"
-      const rawSummerPhase = s.summerPhase || null;
-      const loadedSummerPhase = rawSummerPhase === "summary" ? "break" : rawSummerPhase;
-      const loadedSummerData = rawSummerPhase === "summary"
-        ? { ...(s.summerData || {}), weeksLeft: s.summerData?.weeksLeft ?? 5 }
-        : (s.summerData || null);
+      const { phase: loadedSummerPhase, data: loadedSummerData } = migrateSummerPhase(s.summerPhase || null, s.summerData);
       store.setSummerPhase(loadedSummerPhase);
       store.setSummerData(loadedSummerData);
       const migratedRosters = s.leagueRosters ? normalizeRosters({ ...s.leagueRosters }, s.teamName) : null;
@@ -527,13 +316,10 @@ export function useSaveGame({
       store.setBenchStreaks(s.benchStreaks || {});
       store.setHighScoringMatches(s.highScoringMatches || 0);
       // Calendar migration: rebuild if not present
-      if (s.seasonCalendar) {
-        store.setSeasonCalendar(s.seasonCalendar);
-        store.setCalendarIndex(s.calendarIndex || 0);
-      } else if (s.league?.fixtures) {
-        const cal = buildSeasonCalendar(s.league.fixtures.length, s.cup, !!getModifier(migratedTier).knockoutAtEnd, !!getModifier(migratedTier).miniTournament);
-        store.setSeasonCalendar(cal);
-        store.setCalendarIndex(computeCalendarIndex(cal, s.matchweekIndex || 0, s.cup));
+      const calendarResolution = resolveSeasonCalendar(s, migratedTier);
+      if (calendarResolution) {
+        store.setSeasonCalendar(calendarResolution.seasonCalendar);
+        store.setCalendarIndex(calendarResolution.calendarIndex);
       }
       store.setCalendarResults(s.calendarResults || {});
       store.setLeagueResults(s.leagueResults || {});
@@ -549,26 +335,8 @@ export function useSaveGame({
       }
       store.setLopsidedWarned(s.lopsidedWarned || new Set());
       store.setOvrHistory(s.ovrHistory || []);
-      const loadedArcs = s.storyArcs || initStoryArcs();
       // Migration v3: reconstruct completed arcs
-      if (!loadedArcs._arcRewardV3) {
-        const inboxCompleted = (s.inboxMessages || [])
-          .filter(m => m.title?.startsWith("Arc Complete:"))
-          .map(m => {
-            const name = m.title.replace("Arc Complete: ", "");
-            return STORY_ARCS.find(a => a.name === name)?.id;
-          })
-          .filter(Boolean);
-        ["player", "club", "legacy"].forEach(cat => {
-          const cs = loadedArcs[cat];
-          if (cs?.completed && cs?.arcId) inboxCompleted.push(cs.arcId);
-        });
-        if (inboxCompleted.length > 0) {
-          loadedArcs.completed = [...new Set([...(loadedArcs.completed || []), ...inboxCompleted])];
-          loadedArcs.rewardsApplied = [];
-        }
-        loadedArcs._arcRewardV3 = true;
-      }
+      const loadedArcs = migrateStoryArcsCompletion(s.storyArcs || initStoryArcs(), s.inboxMessages);
       store.setStoryArcs(loadedArcs);
       // All-time league stats are tier-scoped. If the save already has
       // `allTimeLeagueStatsByTier`, use it. Otherwise start empty:
@@ -585,24 +353,12 @@ export function useSaveGame({
       // Season league stats are now per-tier. New saves persist the
       // tier-keyed object; older canonical saves persisted a single blob
       // keyed at the player tier — migrate that under s.leagueTier.
-      let seasonByTier = {};
-      if (s.seasonLeagueStatsByTier && typeof s.seasonLeagueStatsByTier === "object") {
-        seasonByTier = s.seasonLeagueStatsByTier;
-      } else if (s.seasonLeagueStats && s.seasonLeagueStats.players) {
-        const tierKey = s.leagueTier || NUM_TIERS;
-        seasonByTier = { [tierKey]: s.seasonLeagueStats };
-      }
+      const seasonByTier = migrateSeasonLeagueStatsByTier(s);
       store.setSeasonLeagueStatsByTier(seasonByTier);
       // Legacy detection: a save without canonical stats whose season has
       // already started cannot be reconstructed reliably. Mark unavailable
       // so the Stats tab shows a notice instead of misleading partials.
-      const matchweekProgressed = (s.matchweekIndex || 0) > 0;
-      const hasAnyTierData = Object.keys(seasonByTier).length > 0;
-      const explicitFlag = typeof s.seasonLeagueStatsAvailable === "boolean" ? s.seasonLeagueStatsAvailable : null;
-      const available = explicitFlag != null
-        ? explicitFlag
-        : (hasAnyTierData || !matchweekProgressed);
-      store.setSeasonLeagueStatsAvailable(available);
+      store.setSeasonLeagueStatsAvailable(resolveSeasonLeagueStatsAvailable(s, seasonByTier));
       // Cup stats are now per-cup. New saves persist seasonCupStatsByCup
       // and allTimeCupStatsByCup directly. Older canonical saves persisted
       // a single seasonCupStats blob — we don't fake-attribute that to a
@@ -615,14 +371,7 @@ export function useSaveGame({
         ? s.allTimeCupStatsByCup : {};
       store.setSeasonCupStatsByCup(seasonCupByCup);
       store.setAllTimeCupStatsByCup(allTimeCupByCup);
-      const cupProgressed = !!(s.cup && (s.cup.currentRound > 0
-        || s.cup.rounds?.some(r => r.matches?.some(m => m.result && !m.result.bye))));
-      const hasAnyCupData = Object.keys(seasonCupByCup).length > 0;
-      const explicitCupFlag = typeof s.seasonCupStatsAvailable === "boolean" ? s.seasonCupStatsAvailable : null;
-      const cupAvailable = explicitCupFlag != null
-        ? explicitCupFlag
-        : (hasAnyCupData || !cupProgressed);
-      store.setSeasonCupStatsAvailable(cupAvailable);
+      store.setSeasonCupStatsAvailable(resolveCupStatsAvailable(s, seasonCupByCup));
       // Load formation
       if (s.formation && s.formation.length === 11) {
         store.setFormation(s.formation.map(slot => ({...slot})));
@@ -704,9 +453,7 @@ export function useSaveGame({
       // career totals, that belongs in a separate career/club record store.)
       // Migration: backfill initial OVR snapshot
       if (!s.ovrHistory || s.ovrHistory.length === 0) {
-        const snap = {};
-        (s.squad || []).forEach(p => { snap[`${p.name}|${p.position}`] = getOverall(p); });
-        store.setOvrHistory([{ w: (s.calendarIndex || 0) + 1, s: s.seasonNumber || 1, p: snap }]);
+        store.setOvrHistory(backfillOvrHistorySnapshot(s.squad, s.calendarIndex, s.seasonNumber));
       }
       // Migration: retroactive achievement catch-up
       // Re-run checkAchievements against loaded state so that achievements

@@ -62,6 +62,15 @@ export function getAttrColor(val, cap = 20) {
   return "#10b981";
 }
 
+// Interpolate #64748b → #4ade80 based on pct 0–100 (relationship/affinity meters).
+export function relColor(pct, alpha = 1) {
+  const t = Math.max(0, Math.min(100, pct)) / 100;
+  const r = Math.round(100 - 26 * t);
+  const g = Math.round(116 + 106 * t);
+  const b = Math.round(139 - 11 * t);
+  return alpha < 1 ? `rgba(${r},${g},${b},${alpha})` : `rgb(${r},${g},${b})`;
+}
+
 export function getPosColor(pos) {
   return POS_COLORS[pos] || "#ef4444";
 }

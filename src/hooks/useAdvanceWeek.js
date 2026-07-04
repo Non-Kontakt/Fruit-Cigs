@@ -14,6 +14,7 @@ import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, 
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { checkAchievements } from "../utils/achievements.js";
 import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
+import { pushSentimentEntry } from "../utils/sentimentLog.js";
 import { SFX, BGM } from "../utils/sfx.js";
 import { buildAIFiveASide } from "../utils/fiveASide.js";
 import { advanceShortlistScouting } from "../utils/scouting.js";
@@ -124,9 +125,27 @@ export function useAdvanceWeek({
           dynastyCupFinish,
         });
         // Season-end sentiment swings (recovery path)
-        if (moveType === "promoted") { s.setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 20)); s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25)); }
-        if (moveType === "relegated") { s.setFanSentiment(Math.max(0, useGameStore.getState().fanSentiment - 20)); s.setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25)); }
-        if (position === 1) { s.setFanSentiment(Math.min(100, useGameStore.getState().fanSentiment + 10)); s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10)); }
+        if (moveType === "promoted") {
+          const _before = useGameStore.getState().fanSentiment;
+          const _after = Math.min(100, _before + 20);
+          s.setFanSentiment(_after);
+          s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - _before), reason: "Promoted", week: calendarIndex + 1, season: seasonNumber }));
+        }
+        if (moveType === "relegated") {
+          const _before = useGameStore.getState().fanSentiment;
+          const _after = Math.max(0, _before - 20);
+          s.setFanSentiment(_after);
+          s.setBoardSentiment(Math.max(0, useGameStore.getState().boardSentiment - 25));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - _before), reason: "Relegated", week: calendarIndex + 1, season: seasonNumber }));
+        }
+        if (position === 1) {
+          const _before = useGameStore.getState().fanSentiment;
+          const _after = Math.min(100, _before + 10);
+          s.setFanSentiment(_after);
+          s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 10));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - _before), reason: "Won the league", week: calendarIndex + 1, season: seasonNumber }));
+        }
         s.setTransferWindowOpen(false);
         s.setTransferWindowWeeksRemaining(0);
         s.setTransferOffers([]);
@@ -830,6 +849,14 @@ export function useAdvanceWeek({
       const newBoard = Math.max(0, Math.min(100, curBoard + boardDelta));
       s.setFanSentiment(newFan);
       s.setBoardSentiment(newBoard);
+      // Log the streak bonus specifically — not the ±0.5 mean-reversion
+      // drift baked into the same fanDelta, which is noise, not a reason.
+      if (consecutiveWins >= 3) {
+        const streakDelta = Math.round(2 * fanSentMult);
+        if (streakDelta !== 0) {
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: streakDelta, reason: "Three straight wins", week: calendarIndex + 1, season: seasonNumber }));
+        }
+      }
       // Board bonus ticket every 8 weeks when sentiment > 75
       const _wk = useGameStore.getState().calendarIndex;
       if (newBoard > 75 && _wk > 0 && _wk % 8 === 0) {

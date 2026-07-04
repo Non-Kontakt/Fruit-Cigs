@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, BTN } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
 import { evaluateTrade, getRelationshipDiscount } from "../../utils/transfer.js";
 import { displayName } from "../../utils/player.js";
@@ -323,9 +323,8 @@ export function TradeProposal({
             </span>
           </div>
           <button onClick={onClose} style={{
-            background: "none", border: `1px solid ${C.bgInput}`, color: C.textDim,
-            padding: "8px 14px", cursor: "pointer", fontSize: F.lg,
-            fontFamily: FONT,
+            ...BTN.ghost,
+            padding: "8px 14px", fontSize: F.lg,
           }}>✕</button>
         </div>
 
