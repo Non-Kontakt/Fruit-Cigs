@@ -110,6 +110,19 @@ test("all-time XI: adjacent long-named defenders don't collide on mobile", async
   expect(left.x + left.width, "adjacent defender name badges overlap horizontally").toBeLessThanOrEqual(right.x);
 });
 
+// Youth intake never used to show a prospect's potential at all — only OVR.
+// Desktop shows it inline in the row; mobile surfaces it in the expanded
+// detail section (tap "▼ STATS").
+test("youth intake: prospect potential renders", async ({ page }, testInfo) => {
+  await page.goto("qa.html?c=youth-intake");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+
+  if (testInfo.project.name === "mobile") {
+    await page.getByText("▼ STATS").first().click();
+  }
+  await expect(page.getByText("POT 18", { exact: true }).first()).toBeVisible();
+});
+
 test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
   await page.goto("qa.html?c=achievement-toast");
@@ -121,4 +134,29 @@ test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   await page.mouse.move(0, 0);
   await page.waitForTimeout(6000);
   await expect(page.getByText("TOAST DONE")).toBeVisible();
+});
+
+// Dynasty Cup qualification (knockout-tier) Q chips — exactly the top 4
+// standings get the chip, and it's absent below the qualification line.
+test("league table: Q chip marks exactly the top-4 knockout qualification zone", async ({ page }) => {
+  await page.goto("qa.html?c=league-qualifying-zone");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  const qChips = page.locator('[title*="qualifying spot"]');
+  await expect(qChips).toHaveCount(4);
+  const fourthRow = page.getByText("Marrow Town", { exact: true }).locator("..").locator('[title*="qualifying spot"]');
+  await expect(fourthRow).toHaveCount(1);
+  const fifthRow = page.getByText("Red Lion FC", { exact: true }).locator("..").locator('[title*="qualifying spot"]');
+  await expect(fifthRow).toHaveCount(0);
+});
+
+// Squad progress "Most Improved" ranked view — a mid-career signing (joined
+// season 2) still ranks by their own join-OVR delta, not the club's season-1
+// baseline, and the biggest gainer shows a prominent green +delta.
+test("squad progress: most improved view ranks by OVR delta", async ({ page }) => {
+  await page.goto("qa.html?c=squad-progress-improved");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("MOST IMPROVED", { exact: true }).click();
+  await expect(page.getByText("Ollie Vance", { exact: true })).toBeVisible();
+  await expect(page.getByText("+6", { exact: true })).toBeVisible();
+  await expect(page.getByText("+3", { exact: true })).toBeVisible();
 });

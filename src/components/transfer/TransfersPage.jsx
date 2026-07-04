@@ -774,6 +774,8 @@ export function TransfersPage({
           <PlayerPanel
             player={selectedPlayer}
             ovrCap={ovrCap}
+            isAI
+            scoutedPlayers={scoutedPlayers}
             onClose={() => setSelectedPlayer(null)}
             onToggleShortlist={onToggleShortlist}
             shortlist={shortlist}
