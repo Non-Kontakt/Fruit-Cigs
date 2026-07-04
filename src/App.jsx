@@ -20,6 +20,7 @@ import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./uti
 import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound } from "./utils/league.js";
 import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
+import { getRivalryModifierForFixture } from "./utils/rivalries.js";
 import { checkBreakouts } from "./utils/breakouts.js";
 import { pushSentimentEntry } from "./utils/sentimentLog.js";
 import { SFX, BGM } from "./utils/sfx.js";
@@ -2555,6 +2556,7 @@ function FruitCigs() {
           calendarResults={calendarResults}
           seasonNumber={seasonNumber}
           week={calendarIndex + 1}
+          clubHistory={clubHistory}
           settings={{ matchSpeed, setMatchSpeed, soundEnabled, setSoundEnabled, autoSaveEnabled, setAutoSaveEnabled, trainingCardSpeed, setTrainingCardSpeed, matchDetail, setMatchDetail, musicEnabled, setMusicEnabled, musicVolume, setMusicVolume, disabledTracks, setDisabledTracks, instantMatch, setInstantMatch }}
           matchweekIndex={matchweekIndex}
           onHoliday={(targetMD) => {
@@ -2932,7 +2934,8 @@ function FruitCigs() {
                       const league12thMan = useGameStore.getState().twelfthManActive ? 0.15 : 0;
                       const leagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                       // Hangover: one random healthy starter gets -1 all attrs for the match
-                      const holLeagueMod = getModifier(leagueTier);
+                      const holLeagueModBase = getModifier(leagueTier);
+                      const holLeagueMod = { ...holLeagueModBase, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, useGameStore.getState().clubHistory) };
                       let holHangoverPlayer = null;
                       let holHangoverOrig = null;
                       if (holLeagueMod.hangover) {
@@ -3679,7 +3682,8 @@ function FruitCigs() {
                 const normalLeague12thMan = useGameStore.getState().twelfthManActive ? 0.15 : 0;
                 const normalLeagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                 // Hangover: one random healthy starter gets -1 all attrs for the match
-                const leagueMod = getModifier(leagueTier);
+                const leagueModBase = getModifier(leagueTier);
+                const leagueMod = { ...leagueModBase, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, clubHistory) };
                 let hangoverPlayer = null;
                 let hangoverOrigAttrs = null;
                 if (leagueMod.hangover) {

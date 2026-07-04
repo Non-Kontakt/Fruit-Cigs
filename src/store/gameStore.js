@@ -180,6 +180,10 @@ export const useGameStore = create((set, get) => ({
     bestWinStreak: 0, bestUnbeatenRun: 0, worstLossStreak: 0,
     biggestWin: null, worstDefeat: null, bestSeasonFinish: null, bestSeasonPoints: 0,
     playerCareers: {}, allTimeXI: {}, seasonArchive: [], cupHistory: [],
+    // Per-opponent head-to-head ledger, keyed by opponent team name (stable
+    // across seasons even though league table indices aren't). See
+    // src/utils/rivalries.js for how this is turned into rivalry status/copy.
+    rivalryLedger: {},
   },
   // Canonical all-time league stats — tier-scoped. Each entry is a full
   // competitionStats blob for that tier. Tier scoping prevents promoted/

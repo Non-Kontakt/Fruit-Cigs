@@ -283,6 +283,42 @@ test.describe("full-app flows", () => {
     await shot(page, testInfo.project.name, "flow-achievement-index");
   });
 
+  test("boot room schedule flags a rival opponent with a RIVAL chip", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Real rivalry history only accumulates over many seasons of matches —
+    // inject a qualifying ledger entry for the Matchday 1 opponent via the
+    // dev hook rather than simulating a career's worth of fixtures.
+    const oppName = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const week = s.league.fixtures[0];
+      const fixture = week.find(f => f.home === 0 || f.away === 0);
+      const oppIdx = fixture.home === 0 ? fixture.away : fixture.home;
+      const opp = s.league.teams[oppIdx].name;
+      window.__fc.setState({
+        clubHistory: {
+          ...s.clubHistory,
+          rivalryLedger: {
+            [opp]: { played: 5, wins: 0, draws: 1, losses: 4, closeGames: 2, redCards: 1, lastMeetings: [] },
+          },
+        },
+      });
+      return opp;
+    });
+
+    await page.getByText("BOOT ROOM", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByText("CALENDAR", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+
+    await expect(page.getByText(oppName, { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("RIVAL", { exact: true }).first()).toBeVisible();
+    await shot(page, testInfo.project.name, "flow-bootroom-rival-chip");
+  });
+
   test("mobile: 5v5 panel fills by tap and swaps armed slots", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile", "tap-to-fill is a mobile interaction");
 
