@@ -103,6 +103,19 @@ test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   await expect(page.getByText("TOAST DONE")).toBeVisible();
 });
 
+// Dynasty Cup qualification (knockout-tier) Q chips — exactly the top 4
+// standings get the chip, and it's absent below the qualification line.
+test("league table: Q chip marks exactly the top-4 knockout qualification zone", async ({ page }) => {
+  await page.goto("qa.html?c=league-qualifying-zone");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  const qChips = page.locator('[title*="qualifying spot"]');
+  await expect(qChips).toHaveCount(4);
+  const fourthRow = page.getByText("Marrow Town", { exact: true }).locator("..").locator('[title*="qualifying spot"]');
+  await expect(fourthRow).toHaveCount(1);
+  const fifthRow = page.getByText("Red Lion FC", { exact: true }).locator("..").locator('[title*="qualifying spot"]');
+  await expect(fifthRow).toHaveCount(0);
+});
+
 // Squad progress "Most Improved" ranked view — a mid-career signing (joined
 // season 2) still ranks by their own join-OVR delta, not the club's season-1
 // baseline, and the biggest gainer shows a prominent green +delta.
