@@ -102,3 +102,13 @@ test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   await page.waitForTimeout(6000);
   await expect(page.getByText("TOAST DONE")).toBeVisible();
 });
+
+// The STATS view shows each attr's OVR_WEIGHTS contribution as a percentage;
+// the ST fixture's shooting weight (28%) should render, plus the
+// position-weighted footer caption.
+test("player panel: STATS view shows position weight percentages", async ({ page }) => {
+  await page.goto("qa.html?c=player-stats");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await expect(page.getByText("28%", { exact: true })).toBeVisible();
+  await expect(page.getByText("OVR = position-weighted average for ST", { exact: true })).toBeVisible();
+});

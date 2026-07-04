@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
+import { PlayerPanel } from "../../src/components/player/PlayerPanel.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
@@ -273,6 +274,17 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// --- Player panel ------------------------------------------------------
+
+// ST has weights >=0.15 on shooting/pace/physical — enough to exercise both
+// the emphasized and dim percentage styling in one fixture.
+const statsPanelPlayer = {
+  id: "p-stats-1", name: "Sonny Reid", position: "ST", age: 24,
+  nationality: "ENG", potential: 17,
+  attrs: { pace: 15, shooting: 16, passing: 9, defending: 4, physical: 13, technique: 12, mental: 10 },
+  gains: {}, statProgress: {}, training: null, injury: null, tags: [], learnedPositions: [],
+};
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -372,6 +384,10 @@ const RENDERERS = {
         seasonLength={48}
       />
     </div>
+  ),
+  // PlayerPanel opens on STATS by default — no clickText needed.
+  "player-stats": () => (
+    <PlayerPanel player={statsPanelPlayer} onClose={noop} ovrCap={20} />
   ),
 };
 
