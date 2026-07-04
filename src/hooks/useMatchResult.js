@@ -14,6 +14,7 @@ import { findCareerKey } from "../utils/careerLedger.js";
 import { checkAchievements } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
+import { pushSentimentEntry } from "../utils/sentimentLog.js";
 import { generateMatchHeadline, generateSeasonHeadline } from "../utils/headlines.js";
 import { BGM } from "../utils/sfx.js";
 
@@ -179,9 +180,24 @@ export function useMatchResult({
         s.setTransferWindowOpen(false);
         s.setTransferWindowWeeksRemaining(0);
         s.setTransferOffers([]);
-        if (moveType === "promoted") { s.setFanSentiment(Math.min(100, s.fanSentiment + 20)); s.setBoardSentiment(Math.min(100, s.boardSentiment + 25)); }
-        if (moveType === "relegated") { s.setFanSentiment(Math.max(0, s.fanSentiment - 20)); s.setBoardSentiment(Math.max(0, s.boardSentiment - 25)); }
-        if (position === 1) { s.setFanSentiment(Math.min(100, s.fanSentiment + 10)); s.setBoardSentiment(Math.min(100, s.boardSentiment + 10)); }
+        if (moveType === "promoted") {
+          const _after = Math.min(100, s.fanSentiment + 20);
+          s.setFanSentiment(_after);
+          s.setBoardSentiment(Math.min(100, s.boardSentiment + 25));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - s.fanSentiment), reason: "Promoted", week: s.calendarIndex + 1, season: s.seasonNumber }));
+        }
+        if (moveType === "relegated") {
+          const _after = Math.max(0, s.fanSentiment - 20);
+          s.setFanSentiment(_after);
+          s.setBoardSentiment(Math.max(0, s.boardSentiment - 25));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - s.fanSentiment), reason: "Relegated", week: s.calendarIndex + 1, season: s.seasonNumber }));
+        }
+        if (position === 1) {
+          const _after = Math.min(100, s.fanSentiment + 10);
+          s.setFanSentiment(_after);
+          s.setBoardSentiment(Math.min(100, s.boardSentiment + 10));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - s.fanSentiment), reason: "Won the league", week: s.calendarIndex + 1, season: s.seasonNumber }));
+        }
         const playerRow = sortStandings(currentLeague.table).find(r => currentLeague.teams[r.teamIndex]?.isPlayer);
         // Detect Dynasty Cup finish for promotion text
         const dBkt = s.dynastyCupBracket;
@@ -427,10 +443,17 @@ export function useMatchResult({
         const fanMatchMod = getModifier(s.leagueTier);
         const fanMatchDelta = ((playerWon ? (isHome ? 5 : 6) : isDraw ? -1 : (isHome ? -8 : -5)) +
           (playerGoals >= 3 ? 2 : 0) + (oppGoals === 0 ? 1 : 0)) * (fanMatchMod.fanSentimentMult || 1);
-        s.setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment + fanMatchDelta)));
+        const _fanBefore = useGameStore.getState().fanSentiment;
+        const _fanAfter = Math.max(0, Math.min(100, _fanBefore + fanMatchDelta));
+        s.setFanSentiment(_fanAfter);
         const boardDeltaMatch = playerWon ? 3 : isDraw ? 0 : -4;
         const boardChange = boardDeltaMatch < 0 ? boardDeltaMatch * (fanMatchMod.boardScrutinyMult || 1) : boardDeltaMatch;
         s.setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + boardChange)));
+        const _matchScore = `${playerGoals}-${oppGoals}`;
+        const _matchReason = playerWon ? `Beat ${oppTeam?.name || "opponent"} ${_matchScore}`
+          : isDraw ? `Drew with ${oppTeam?.name || "opponent"} ${_matchScore}`
+          : `Lost to ${oppTeam?.name || "opponent"} ${_matchScore}`;
+        s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_fanAfter - _fanBefore), reason: _matchReason, week: s.calendarIndex + 1, season: s.seasonNumber }));
         // Intergalactic Elite: AI prediction check
         if (aiPredictionRef.current && fanMatchMod.prediction) {
           const pred = aiPredictionRef.current;
