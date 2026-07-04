@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getOverall, getOvrProgress, getOOPPenalty, getPositionTrainingWeeks } from "../utils/calc.js";
+import { getOverall, getOvrProgress, getOOPPenalty, getPositionTrainingWeeks, computeDuoBoost } from "../utils/calc.js";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -173,5 +173,41 @@ describe("getPositionTrainingWeeks", () => {
   it("distant group takes 16 weeks", () => {
     expect(getPositionTrainingWeeks("CB", "ST")).toBe(16);
     expect(getPositionTrainingWeeks("CB", "LW")).toBe(16);
+  });
+});
+
+describe("computeDuoBoost", () => {
+  it("preserves banked progress instead of resetting it (regression: used to zero it)", () => {
+    const result = computeDuoBoost(10, 20, 2, 0.65);
+    expect(result.newProgress).toBe(0.65);
+  });
+
+  it("grants the modifier's duo boost amount when there's room under the cap", () => {
+    const result = computeDuoBoost(10, 20, 2, 0);
+    expect(result.gain).toBe(2);
+    expect(result.newValue).toBe(12);
+  });
+
+  it("defaults to a +1 gain when the modifier doesn't specify duoBoostAmount", () => {
+    const result = computeDuoBoost(10, 20, undefined, 0);
+    expect(result.gain).toBe(1);
+    expect(result.newValue).toBe(11);
+  });
+
+  it("clamps the gain so it never pushes the attribute past the player's cap", () => {
+    const result = computeDuoBoost(19, 20, 3, 0.4);
+    expect(result.gain).toBe(1);
+    expect(result.newValue).toBe(20);
+    expect(result.newProgress).toBe(0.4);
+  });
+
+  it("still grants at least +1 even if duoBoostAmount is 0 with room under the cap", () => {
+    const result = computeDuoBoost(10, 20, 0, 0);
+    expect(result.gain).toBe(1);
+  });
+
+  it("defaults oldProgress to 0 when not provided", () => {
+    const result = computeDuoBoost(10, 20, 2);
+    expect(result.newProgress).toBe(0);
   });
 });
