@@ -14,6 +14,7 @@ import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./
 import { generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, getOvrCap, displayName } from "./utils/player.js";
 import { resolveSeasonEndArcs } from "./utils/arcs.js";
 import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
+import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
 import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound } from "./utils/league.js";
@@ -5940,6 +5941,7 @@ function FruitCigs() {
             newLeagueName: summerData.newLeagueName,
             isInvincible: summerData.isInvincible,
             prestigeLevel,
+            dynastyCupFinish: summerData.dynastyCupFinish,
             miniTournamentFinish: (() => {
               const mb = useGameStore.getState().miniTournamentBracket;
               if (!mb || !getModifier(summerData.fromTier).miniTournament) return null;
@@ -6746,20 +6748,33 @@ function FruitCigs() {
               const _nextSN = (seasonNumber || 1) + 1;
               const relevantEvents = aiEvents.filter(e => e.tier === newTier);
               for (const evt of relevantEvents) {
-                if (evt.type === "wonderkid") {
-                  setInboxMessages(prev => [...prev, createInboxMessage({
-                    id: `msg_ai_wonderkid_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
-                    icon: "\u2B50",
-                    title: "Scout Report: Wonderkid",
-                    body: `Sources say ${evt.teamName} have unearthed a generational talent in their youth academy. ${evt.playerName} (${evt.position}, ${evt.age}) is one to watch.`,
-                    color: "#facc15",
-                  }, { calendarIndex: 0, seasonNumber: _nextSN })]);
-                } else if (evt.type === "golden_gen") {
+                if (evt.type === "golden_gen") {
                   setInboxMessages(prev => [...prev, createInboxMessage({
                     id: `msg_ai_golden_gen_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
                     icon: "\uD83C\uDF1F",
                     title: "Scout Report: Golden Generation",
                     body: `${evt.teamName} have produced an exceptional youth intake this season. ${evt.count} promising talents have emerged from their academy.`,
+                    color: "#facc15",
+                  }, { calendarIndex: 0, seasonNumber: _nextSN })]);
+                }
+              }
+
+              // Scout Report: Wonderkid \u2014 only ever names a real player who's
+              // actually sitting in an AI squad right now (never a name
+              // snapshotted mid-generation that might not survive squad
+              // trimming). Rarity check first \u2014 this is meant to read as an
+              // occasional standout headline, not a weekly occurrence \u2014 then
+              // skip silently if nobody currently qualifies.
+              if (Math.random() < 0.15) {
+                const newTierTeamNames = (rosters[newTier] || []).map(cfg => cfg.name);
+                const wonderkid = pickWonderkidCandidate(evolvedSquads, newTierTeamNames);
+                if (wonderkid) {
+                  const { player: wkPlayer, teamName: wkTeam } = wonderkid;
+                  setInboxMessages(prev => [...prev, createInboxMessage({
+                    id: `msg_ai_wonderkid_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+                    icon: "\u2B50",
+                    title: "Scout Report: Wonderkid",
+                    body: `Sources say ${wkTeam} have unearthed a generational talent in their youth academy. ${wkPlayer.name} (${wkPlayer.position}, ${wkPlayer.age}) is one to watch.`,
                     color: "#facc15",
                   }, { calendarIndex: 0, seasonNumber: _nextSN })]);
                 }

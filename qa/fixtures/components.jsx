@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
+import { OvrProgressChart } from "../../src/components/charts/OvrCharts.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
@@ -202,6 +203,70 @@ const leagueStatsProps = (extra = {}) => ({
   ...extra,
 });
 
+// --- League — knockout-tier qualification badges ----------------------------
+
+// Tier 3 (Euro Dynasty, knockoutAtEnd) — 7 teams so the top-4 Dynasty Cup
+// qualification zone (Q chips) partially overlaps the top-3 promotion zone
+// (row 4 gets a Q chip with no promotion border) and the bottom-3 relegation
+// zone shows independently.
+const dynastyTeams = [
+  { name: "Vantage Point", color: "#38bdf8", isPlayer: false },
+  { name: "Iron Bridge", color: "#facc15", isPlayer: false },
+  { name: "Northgate", color: "#a78bfa", isPlayer: false },
+  { name: "Marrow Town", color: "#fb923c", isPlayer: false },
+  { name: "Red Lion FC", color: "#ef4444", isPlayer: true },
+  { name: "Colton Rovers", color: "#34d399", isPlayer: false },
+  { name: "Ashfield United", color: "#f472b6", isPlayer: false },
+].map((t, i) => ({ ...t, squad: makeSquad(`dt${i}`, HOME_NAMES) }));
+
+const dynastyTable = [
+  { teamIndex: 0, played: 12, won: 9, drawn: 2, lost: 1, goalsFor: 28, goalsAgainst: 10, points: 29 },
+  { teamIndex: 1, played: 12, won: 8, drawn: 2, lost: 2, goalsFor: 24, goalsAgainst: 12, points: 26 },
+  { teamIndex: 2, played: 12, won: 7, drawn: 3, lost: 2, goalsFor: 22, goalsAgainst: 14, points: 24 },
+  { teamIndex: 3, played: 12, won: 6, drawn: 2, lost: 4, goalsFor: 19, goalsAgainst: 17, points: 20 },
+  { teamIndex: 4, played: 12, won: 4, drawn: 3, lost: 5, goalsFor: 15, goalsAgainst: 18, points: 15 },
+  { teamIndex: 5, played: 12, won: 2, drawn: 2, lost: 8, goalsFor: 11, goalsAgainst: 24, points: 8 },
+  { teamIndex: 6, played: 12, won: 1, drawn: 2, lost: 9, goalsFor: 9, goalsAgainst: 27, points: 5 },
+];
+
+const dynastyLeague = {
+  teams: dynastyTeams, table: dynastyTable, tier: 3,
+  leagueName: "Euro Dynasty",
+  fixtures: Array.from({ length: 24 }, () => []), // mid-season: matchweekIndex (12) < fixtures.length
+};
+
+const qualifyingLeagueProps = (extra = {}) => ({
+  league: dynastyLeague, leagueResults: {}, matchweekIndex: 12, teamName: "Red Lion FC",
+  playerSeasonStats: {}, playerRatingTracker: {}, squad: dynastyTeams[4].squad, startingXI: [], bench: [],
+  seasonNumber: 3, clubHistory: { seasonArchive: [], cupHistory: [] },
+  allTimeLeagueStatsByTier: {}, allLeagueStates: {}, leagueTier: 3,
+  onPlayerClick: noop, onTeamClick: noop,
+  seasonLeagueStatsByTier: {}, seasonLeagueStatsAvailable: true,
+  ...extra,
+});
+
+// --- Squad progress — Most Improved -----------------------------------------
+
+// Uniform attrs so getOverall() resolves to exactly `v` regardless of
+// position weighting (weights sum to 1.00 per position).
+const uniformAttrs = (v) => ({ pace: v, shooting: v, passing: v, defending: v, physical: v, technique: v, mental: v });
+
+const improvedSquad = [
+  { id: "mi1", name: "Ollie Vance", position: "ST", attrs: uniformAttrs(16) },
+  { id: "mi2", name: "Danny Frost", position: "GK", attrs: uniformAttrs(14) },
+  { id: "mi3", name: "Reggie Cole", position: "CB", attrs: uniformAttrs(15) },
+];
+
+// Ollie: joined season 1 at 10, now 16 (+6). Reggie: joined season 2 (mid-career
+// signing) at 12, now 15 (+3) — proves the rate is measured from join OVR, not
+// the club's season-1 baseline. Danny: unchanged (+0).
+const improvedOvrHistory = [
+  { w: 1, s: 1, p: { "Ollie Vance|ST": 10, "Danny Frost|GK": 14 } },
+  { w: 10, s: 1, p: { "Ollie Vance|ST": 12, "Danny Frost|GK": 14 } },
+  { w: 1, s: 2, p: { "Ollie Vance|ST": 13, "Danny Frost|GK": 14, "Reggie Cole|CB": 12 } },
+  { w: 10, s: 2, p: { "Ollie Vance|ST": 16, "Danny Frost|GK": 14, "Reggie Cole|CB": 15 } },
+];
+
 // --- Cup — Team of the Cup --------------------------------------------------
 
 // Cup match objects only ever carry name/tier stubs (no squad — see
@@ -331,6 +396,18 @@ const RENDERERS = {
   "leaguestats-mid": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
       <LeaguePage {...leagueStatsProps()} />
+    </div>
+  ),
+  // Lands on the (default) LEAGUES tab — no clickText needed.
+  "league-qualifying-zone": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <LeaguePage {...qualifyingLeagueProps()} />
+    </div>
+  ),
+  // Lands on the chart view; the spec clicks "MOST IMPROVED" (registry.clickText).
+  "squad-progress-improved": () => (
+    <div style={{ maxWidth: 700, margin: "0 auto", padding: 16 }}>
+      <OvrProgressChart ovrHistory={improvedOvrHistory} squad={improvedSquad} ovrCap={20} />
     </div>
   ),
   // Lands on the BRACKET tab; the spec clicks "TOTC" (registry.clickText).
