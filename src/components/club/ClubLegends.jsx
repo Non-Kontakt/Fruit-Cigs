@@ -402,13 +402,17 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
               {/* Player positions — dynamic formation */}
               {formationSlots.map(({ slot, x, y }) => {
                 const player = finalXI[slot];
+                // Mobile nodes are narrower and sit closer together (4-across
+                // defensive lines especially), so a fixed 100px card collides
+                // with its neighbours — give mobile a much tighter footprint.
+                const nodeWidth = mob ? 70 : 100;
                 return (
-                  <div key={slot} style={{
+                  <div key={slot} data-testid={`xi-slot-${slot}`} style={{
                     position: "absolute",
                     left: `${x}%`, top: `${y}%`,
                     transform: "translate(-50%, -50%)",
                     textAlign: "center",
-                    width: 100,
+                    width: nodeWidth,
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: "50%",
@@ -423,17 +427,17 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
                     </div>
                     {player ? (
                       <>
-                        <div style={{
+                        <div data-testid={`xi-name-${slot}`} style={{
                           fontSize: F.xs, color: C.text, whiteSpace: "nowrap",
-                          overflow: "hidden", textOverflow: "ellipsis",
-                          background: "rgba(0,0,0,0.6)", padding: "3px 7px", borderRadius: 2,
+                          overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%",
+                          background: "rgba(0,0,0,0.6)", padding: mob ? "2px 4px" : "3px 7px", borderRadius: 2,
                           display: "inline-block",
                         }}>
-                          <span style={{ fontSize: F.sm, marginRight: 2 }}>{getNatFlag(player.nationality || inferNationality(player.name))}</span>
+                          {!mob && <span style={{ fontSize: F.sm, marginRight: 2 }}>{getNatFlag(player.nationality || inferNationality(player.name))}</span>}
                           {displayName(player.name, mob)}
                         </div>
-                        <div style={{ fontSize: F.xs, color: C.gold, marginTop: 2 }}>
-                          ★ {player.avgRating.toFixed(1)} · S{player.season}
+                        <div style={{ fontSize: mob ? F.micro : F.xs, color: C.gold, marginTop: 2 }}>
+                          {player.avgRating.toFixed(1)} S{player.season}
                           {player.live && <span style={{ color: C.blue, marginLeft: 2 }}>●</span>}
                         </div>
                       </>

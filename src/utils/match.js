@@ -654,10 +654,14 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
       let offIdx = 0;
       for (let w = 0; w < offWeights.length; w++) { offRoll -= offWeights[w]; if (offRoll <= 0) { offIdx = w; break; } }
       const off = availableOff[offIdx];
-      // Prefer like-for-like position type, fall back to any
+      // Prefer like-for-like position type, fall back to any outfielder — `off` is
+      // always an outfielder (GKs excluded above), so never bring a keeper on for one.
       const offType = POSITION_TYPES[off.position];
       const sameType = availableOn.filter(p => POSITION_TYPES[p.position] === offType);
-      const on = sameType.length > 0 ? sameType[rand(0, sameType.length - 1)] : availableOn[rand(0, availableOn.length - 1)];
+      const fallback = availableOn.filter(p => POSITION_TYPES[p.position] !== "GK");
+      const onPool = sameType.length > 0 ? sameType : fallback;
+      if (onPool.length === 0) continue; // no sensible replacement on the bench — skip this sub
+      const on = onPool[rand(0, onPool.length - 1)];
       subbedOff.add(off.name);
       subbedOn.add(on.name);
       subEvents.push({
