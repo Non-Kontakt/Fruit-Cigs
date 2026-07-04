@@ -4,6 +4,7 @@ import { SFX } from "../../utils/sfx.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { pickRandom } from "../../utils/calc.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { buildSeasonEndSubtitle } from "../../utils/seasonEndMessage.js";
 
 export function SeasonEndReveal({ info, retirees = [], onDone }) {
   const [phase, setPhase] = useState(0); // 0=fade in, 1=show result
@@ -51,37 +52,12 @@ export function SeasonEndReveal({ info, retirees = [], onDone }) {
   const color = isInvincible ? C.gold : isChampion ? (LEAGUE_DEFS[info.fromTier]?.color || C.green) : isPromoted ? C.green : isRelegated ? C.lightRed : C.gold;
   const emoji = isInvincible ? "👑" : isChampion ? "🏆" : isPromoted ? "📈" : isRelegated ? "📉" : "🏟️";
   const title = isInvincible ? "INVINCIBLES!" : isChampion ? "CHAMPIONS!" : isPromoted ? "PROMOTED!" : isRelegated ? "RELEGATED" : "SEASON COMPLETE";
-  const ordSuffix = (n) => n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
-  let subtitle;
-  if (isInvincible && isPromoted) {
-    subtitle = `Undefeated champions of ${info.leagueName}! A perfect season. Moving up to ${info.newLeagueName}.`;
-  } else if (isInvincible) {
-    subtitle = `Undefeated champions of ${info.leagueName}! A perfect season.`;
-  } else if (isChampion && isPromoted) {
-    subtitle = `Champions of ${info.leagueName}! Moving up to ${info.newLeagueName}.`;
-  } else if (isChampion && info.fromTier === 1) {
-    subtitle = (info.prestigeLevel != null && info.prestigeLevel < 5)
-      ? `Champions of ${info.leagueName}! A wormhole opens beyond the pyramid...`
-      : `Champions of ${info.leagueName}! Top of the pyramid.`;
-  } else if (isChampion) {
-    subtitle = `Champions of ${info.leagueName}!`;
-  } else if (isPromoted && info.miniTournamentFinish) {
-    const mtLabel = info.miniTournamentFinish === "winner" ? "Won the 5v5 Mini-Tournament!"
-      : info.miniTournamentFinish === "runner_up" ? "Runner-up in the 5v5 Mini-Tournament."
-      : "Won the 3rd-place playoff in the 5v5 Mini-Tournament.";
-    subtitle = `${mtLabel} Promoted to ${info.newLeagueName}!`;
-  } else if (isPromoted && info.dynastyCupFinish) {
-    const dcLabel = info.dynastyCupFinish === "winner" ? "Won the Dynasty Cup!"
-      : info.dynastyCupFinish === "runner_up" ? "Dynasty Cup Runner-up."
-      : "Dynasty Cup Semi-finalist.";
-    subtitle = `${dcLabel} Promoted to ${info.newLeagueName}!`;
-  } else if (isPromoted) {
-    subtitle = `Finished ${info.position}${ordSuffix(info.position)} in ${info.leagueName}. Promoted to ${info.newLeagueName}!`;
-  } else if (isRelegated) {
-    subtitle = `Finished ${info.position}${ordSuffix(info.position)} in ${info.leagueName}. Dropping to ${info.newLeagueName}.`;
-  } else {
-    subtitle = `Finished ${info.position}${ordSuffix(info.position)} in ${info.leagueName}. Same league next season.`;
-  }
+  const subtitle = buildSeasonEndSubtitle({
+    position: info.position, type: info.type, fromTier: info.fromTier,
+    leagueName: info.leagueName, newLeagueName: info.newLeagueName,
+    isInvincible, prestigeLevel: info.prestigeLevel,
+    miniTournamentFinish: info.miniTournamentFinish, dynastyCupFinish: info.dynastyCupFinish,
+  });
 
   return (
     <div onClick={() => { if (phase >= 1) onDone(); }} style={{

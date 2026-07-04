@@ -88,7 +88,7 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, ovrCap =
                     display: "grid",
                     gridTemplateColumns: mob
                       ? "auto 1fr 36px 36px"
-                      : "auto 1fr 51px 46px repeat(7, 51px)",
+                      : "auto 1fr 51px 46px 54px repeat(7, 51px)",
                     gap: mob ? 6 : 9,
                     alignItems: "center",
                     transition: "all 0.15s ease",
@@ -126,6 +126,17 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, ovrCap =
                   </span>
                   <span style={{ fontSize: mob ? F.xs : F.sm, textAlign: "center", color: C.textMuted }}>{player.age}</span>
                   <span style={{ fontSize: mob ? F.sm : F.md, textAlign: "center", color: getAttrColor(overall, ovrCap), fontWeight: "bold" }}>{overall}</span>
+                  {!mob && (
+                    <span style={{ display: "flex", justifyContent: "center" }}>
+                      <span style={{
+                        fontSize: F.micro, background: "rgba(129,140,248,0.15)",
+                        color: "#818cf8", padding: "2px 6px", borderRadius: 8,
+                        fontWeight: "bold", whiteSpace: "nowrap",
+                      }}>
+                        POT {player.potential}
+                      </span>
+                    </span>
+                  )}
                   {!mob && ATTRIBUTES.map(a => (
                     <span key={a.key} style={{ fontSize: F.md, textAlign: "center", color: getAttrColor(player.attrs[a.key], ovrCap) }}>
                       {player.attrs[a.key]}
@@ -157,16 +168,23 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, ovrCap =
                     borderBottom: isSelected ? `2px solid ${C.green}` : `2px solid ${C.bgInput}`,
                     background: isSelected ? "rgba(74,222,128,0.06)" : "rgba(30,41,59,0.2)",
                   }}>
-                    {ARCHETYPE_BADGE[player.youthArchetype] && (
-                      <div style={{ textAlign: "center", marginBottom: 8 }}>
+                    <div style={{ textAlign: "center", marginBottom: 8, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+                      {ARCHETYPE_BADGE[player.youthArchetype] && (
                         <span style={{
                           fontSize: F.micro, color: ARCHETYPE_BADGE[player.youthArchetype].color,
                           background: ARCHETYPE_BADGE[player.youthArchetype].bg,
                           padding: "2px 7px", letterSpacing: 1,
                           border: `1px solid ${ARCHETYPE_BADGE[player.youthArchetype].color}44`,
                         }}>{ARCHETYPE_BADGE[player.youthArchetype].label}</span>
-                      </div>
-                    )}
+                      )}
+                      <span style={{
+                        fontSize: F.micro, background: "rgba(129,140,248,0.15)",
+                        color: "#818cf8", padding: "2px 7px", borderRadius: 8,
+                        fontWeight: "bold", letterSpacing: 1,
+                      }}>
+                        POT {player.potential}
+                      </span>
+                    </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
                       {ATTRIBUTES.map(a => (
                         <div key={a.key} style={{ textAlign: "center" }}>

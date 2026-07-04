@@ -2,11 +2,15 @@ import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
+import { OvrProgressChart } from "../../src/components/charts/OvrCharts.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
+import { PlayerPanel } from "../../src/components/player/PlayerPanel.jsx";
+import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
+import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -202,6 +206,70 @@ const leagueStatsProps = (extra = {}) => ({
   ...extra,
 });
 
+// --- League — knockout-tier qualification badges ----------------------------
+
+// Tier 3 (Euro Dynasty, knockoutAtEnd) — 7 teams so the top-4 Dynasty Cup
+// qualification zone (Q chips) partially overlaps the top-3 promotion zone
+// (row 4 gets a Q chip with no promotion border) and the bottom-3 relegation
+// zone shows independently.
+const dynastyTeams = [
+  { name: "Vantage Point", color: "#38bdf8", isPlayer: false },
+  { name: "Iron Bridge", color: "#facc15", isPlayer: false },
+  { name: "Northgate", color: "#a78bfa", isPlayer: false },
+  { name: "Marrow Town", color: "#fb923c", isPlayer: false },
+  { name: "Red Lion FC", color: "#ef4444", isPlayer: true },
+  { name: "Colton Rovers", color: "#34d399", isPlayer: false },
+  { name: "Ashfield United", color: "#f472b6", isPlayer: false },
+].map((t, i) => ({ ...t, squad: makeSquad(`dt${i}`, HOME_NAMES) }));
+
+const dynastyTable = [
+  { teamIndex: 0, played: 12, won: 9, drawn: 2, lost: 1, goalsFor: 28, goalsAgainst: 10, points: 29 },
+  { teamIndex: 1, played: 12, won: 8, drawn: 2, lost: 2, goalsFor: 24, goalsAgainst: 12, points: 26 },
+  { teamIndex: 2, played: 12, won: 7, drawn: 3, lost: 2, goalsFor: 22, goalsAgainst: 14, points: 24 },
+  { teamIndex: 3, played: 12, won: 6, drawn: 2, lost: 4, goalsFor: 19, goalsAgainst: 17, points: 20 },
+  { teamIndex: 4, played: 12, won: 4, drawn: 3, lost: 5, goalsFor: 15, goalsAgainst: 18, points: 15 },
+  { teamIndex: 5, played: 12, won: 2, drawn: 2, lost: 8, goalsFor: 11, goalsAgainst: 24, points: 8 },
+  { teamIndex: 6, played: 12, won: 1, drawn: 2, lost: 9, goalsFor: 9, goalsAgainst: 27, points: 5 },
+];
+
+const dynastyLeague = {
+  teams: dynastyTeams, table: dynastyTable, tier: 3,
+  leagueName: "Euro Dynasty",
+  fixtures: Array.from({ length: 24 }, () => []), // mid-season: matchweekIndex (12) < fixtures.length
+};
+
+const qualifyingLeagueProps = (extra = {}) => ({
+  league: dynastyLeague, leagueResults: {}, matchweekIndex: 12, teamName: "Red Lion FC",
+  playerSeasonStats: {}, playerRatingTracker: {}, squad: dynastyTeams[4].squad, startingXI: [], bench: [],
+  seasonNumber: 3, clubHistory: { seasonArchive: [], cupHistory: [] },
+  allTimeLeagueStatsByTier: {}, allLeagueStates: {}, leagueTier: 3,
+  onPlayerClick: noop, onTeamClick: noop,
+  seasonLeagueStatsByTier: {}, seasonLeagueStatsAvailable: true,
+  ...extra,
+});
+
+// --- Squad progress — Most Improved -----------------------------------------
+
+// Uniform attrs so getOverall() resolves to exactly `v` regardless of
+// position weighting (weights sum to 1.00 per position).
+const uniformAttrs = (v) => ({ pace: v, shooting: v, passing: v, defending: v, physical: v, technique: v, mental: v });
+
+const improvedSquad = [
+  { id: "mi1", name: "Ollie Vance", position: "ST", attrs: uniformAttrs(16) },
+  { id: "mi2", name: "Danny Frost", position: "GK", attrs: uniformAttrs(14) },
+  { id: "mi3", name: "Reggie Cole", position: "CB", attrs: uniformAttrs(15) },
+];
+
+// Ollie: joined season 1 at 10, now 16 (+6). Reggie: joined season 2 (mid-career
+// signing) at 12, now 15 (+3) — proves the rate is measured from join OVR, not
+// the club's season-1 baseline. Danny: unchanged (+0).
+const improvedOvrHistory = [
+  { w: 1, s: 1, p: { "Ollie Vance|ST": 10, "Danny Frost|GK": 14 } },
+  { w: 10, s: 1, p: { "Ollie Vance|ST": 12, "Danny Frost|GK": 14 } },
+  { w: 1, s: 2, p: { "Ollie Vance|ST": 13, "Danny Frost|GK": 14, "Reggie Cole|CB": 12 } },
+  { w: 10, s: 2, p: { "Ollie Vance|ST": 16, "Danny Frost|GK": 14, "Reggie Cole|CB": 15 } },
+];
+
 // --- Cup — Team of the Cup --------------------------------------------------
 
 // Cup match objects only ever carry name/tier stubs (no squad — see
@@ -273,6 +341,115 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// --- Player panel — progress sparklines -------------------------------
+
+// Season 1: a real growth spurt on pace (8 → 13 across the season). Seasons
+// 2 and 3 are flat — nothing gains again — so the PROGRESS tab shows one
+// attribute with season-boundary ticks + a stamped "last gain", and the
+// rest reporting "no gain in Nw".
+function progressHistory() {
+  const history = [];
+  const paceBySeason = { 1: [8, 9, 10, 11, 12, 13], 2: [13, 13, 13, 13, 13, 13], 3: [13, 13, 13, 13, 13, 13] };
+  [1, 2, 3].forEach(season => {
+    paceBySeason[season].forEach((pace, i) => {
+      history.push({
+        week: i + 1, season,
+        pace, shooting: 9, passing: 11, defending: 7, physical: 10, technique: 12, mental: 9,
+      });
+    });
+  });
+  return history;
+}
+
+const progressPlayer = {
+  id: "fx-progress", name: "Jamie Sparks", position: "ST", age: 19, nationality: "ENG",
+  attrs: { pace: 13, shooting: 9, passing: 11, defending: 7, physical: 10, technique: 12, mental: 9 },
+  potential: 16, statProgress: {}, training: "pace", gains: {}, tags: [], injuryHistory: {},
+  history: progressHistory(),
+};
+
+// --- Club — All-Time XI ------------------------------------------------
+
+// Two adjacent defenders (CB1/CB2) carry deliberately long names — this is
+// the pairing most likely to collide on a narrow viewport, since a 4-back
+// line packs 4 nodes across the pitch width.
+const LONG_CB1 = "Maximilian Featherstonehaugh";
+const LONG_CB2 = "Bartholomew Winterbottom-Smythe";
+
+// Slot keys match ALL_TIME_FORMATIONS["4-3-3"] exactly, and this candidate
+// pool's position multiset (1×GK/LB/RB/AM/LW/ST/RW, 2×CB, 2×CM) is the only
+// one that lets every slot in 4-3-3 fill from its own literal position —
+// any other formation wastes at least one slot, so 4-3-3 always scores
+// highest in pickBestFormation. Keeps the fixture deterministic.
+const allTimeXI = {
+  GK:  { name: "Danny Vaughan", position: "GK", avgRating: 7.6, season: 2, apps: 34, nationality: "ENG" },
+  LB:  { name: "Curtis Lane", position: "LB", avgRating: 7.3, season: 3, apps: 30, nationality: "ENG" },
+  CB1: { name: LONG_CB1, position: "CB", avgRating: 7.8, season: 4, apps: 32, nationality: "FRA" },
+  CB2: { name: LONG_CB2, position: "CB", avgRating: 7.5, season: 1, apps: 28, nationality: "GER" },
+  RB:  { name: "Ryan Poole", position: "RB", avgRating: 7.2, season: 2, apps: 26, nationality: "ENG" },
+  CM1: { name: "Alfie Wilson", position: "CM", avgRating: 7.4, season: 5, apps: 40, nationality: "ENG" },
+  CM2: { name: "Joe Marsh", position: "CM", avgRating: 7.1, season: 3, apps: 29, nationality: "ENG" },
+  AM:  { name: "Nathan Robinson", position: "AM", avgRating: 8.0, season: 4, apps: 33, nationality: "ENG" },
+  LW:  { name: "Kai Bennett", position: "LW", avgRating: 7.5, season: 2, apps: 27, nationality: "ENG" },
+  ST:  { name: "Louie Adams", position: "ST", avgRating: 7.9, season: 5, apps: 38, nationality: "ENG" },
+  RW:  { name: "Sonny Reid", position: "RW", avgRating: 7.6, season: 3, apps: 25, nationality: "ENG" },
+};
+
+const clubHistoryFixture = {
+  totalWins: 118, totalDraws: 42, totalLosses: 36, totalGoalsFor: 402, totalGoalsConceded: 231,
+  bestWinStreak: 11, bestUnbeatenRun: 19, worstLossStreak: 4,
+  biggestWin: { score: "6-0", opponent: "Dale Athletic", season: 3 },
+  worstDefeat: { score: "0-5", opponent: "Fenwick Rovers", season: 1 },
+  bestSeasonFinish: { position: 1, leagueName: "Concrete Schoolyard", season: 4 },
+  bestSeasonPoints: 88,
+  playerCareers: {
+    "Louie Adams": { goals: 74, assists: 12, apps: 152, motm: 9, yellows: 8, reds: 0, seasons: [1, 2, 3, 4, 5] },
+  },
+  seasonArchive: [
+    { season: 1, tier: 11, leagueName: "Concrete Schoolyard", position: 2, points: 74, topScorer: "Louie Adams (18)", result: "promoted" },
+  ],
+  allTimeXI,
+};
+
+// Live-merge stubs — a live player rated lower than the archived ST so it
+// exercises the merge path (src/components/club/ClubLegends.jsx) without
+// displacing the deterministic archived XI above.
+const liveSquadFixture = [{ id: "lp1", name: "Marcus Webb", position: "ST", nationality: "ENG" }];
+const livePlayerSeasonStats = { "Marcus Webb": { goals: 3, assists: 1, apps: 5, position: "ST", nationality: "ENG" } };
+const livePlayerRatingTracker = { lp1: [6.4, 6.8, 6.1, 6.9, 6.6] };
+
+// --- Youth intake ------------------------------------------------------
+
+function youthAttrs(base) {
+  return { pace: base, shooting: base, passing: base, defending: base, physical: base, technique: base, mental: base };
+}
+
+// Potentials sit on the game's 1-20 attribute scale, inside each archetype's
+// real range from generateYouthPlayer (raw 14-20, specialist 12-16, etc.).
+const youthCandidates = [
+  {
+    id: "y0", name: "Callum Reyes", position: "ST", nationality: "BRA", age: 17,
+    youthArchetype: "raw", potential: 18, attrs: youthAttrs(9),
+  },
+  {
+    id: "y1", name: "Ollie Bramwell-Hutchinson", position: "CM", nationality: "ENG", age: 18,
+    youthArchetype: "specialist", potential: 15, attrs: youthAttrs(12),
+  },
+  {
+    id: "y2", name: "Divock Osei", position: "CB", nationality: "GHA", age: 16,
+    youthArchetype: "wildcard", potential: 12, attrs: youthAttrs(8),
+  },
+  {
+    id: "y3", name: "Jamie Cotterill", position: "RW", nationality: "WAL", age: 17,
+    potential: 13, attrs: youthAttrs(11),
+  },
+];
+
+const youthIntake = {
+  candidates: youthCandidates,
+  retirees: [],
+};
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -333,6 +510,18 @@ const RENDERERS = {
       <LeaguePage {...leagueStatsProps()} />
     </div>
   ),
+  // Lands on the (default) LEAGUES tab — no clickText needed.
+  "league-qualifying-zone": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <LeaguePage {...qualifyingLeagueProps()} />
+    </div>
+  ),
+  // Lands on the chart view; the spec clicks "MOST IMPROVED" (registry.clickText).
+  "squad-progress-improved": () => (
+    <div style={{ maxWidth: 700, margin: "0 auto", padding: 16 }}>
+      <OvrProgressChart ovrHistory={improvedOvrHistory} squad={improvedSquad} ovrCap={20} />
+    </div>
+  ),
   // Lands on the BRACKET tab; the spec clicks "TOTC" (registry.clickText).
   "cup-totc": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
@@ -372,6 +561,33 @@ const RENDERERS = {
         seasonLength={48}
       />
     </div>
+  ),
+  "player-progress": () => (
+    <PlayerPanel player={progressPlayer} onClose={noop} onAssignTraining={noop} ovrCap={20} />
+  ),
+  "alltime-xi": () => (
+    <div style={{ maxWidth: 500, margin: "0 auto", padding: 16 }}>
+      <ClubLegends
+        clubHistory={clubHistoryFixture}
+        teamName="Red Lion FC"
+        playerSeasonStats={livePlayerSeasonStats}
+        playerRatingTracker={livePlayerRatingTracker}
+        squad={liveSquadFixture}
+        seasonNumber={6}
+        leagueTier={11}
+        ovrHistory={[]}
+        ovrCap={20}
+      />
+    </div>
+  ),
+  "youth-intake": () => (
+    <YouthIntakeScreen
+      intake={youthIntake}
+      onDone={noop}
+      squadSize={22}
+      onClose={noop}
+      ovrCap={20}
+    />
   ),
 };
 

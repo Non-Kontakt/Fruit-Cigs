@@ -4,6 +4,7 @@ import { getOverall, pickRandom } from "../utils/calc.js";
 import { generateFreeAgent, generateNameForNation } from "../utils/player.js";
 import { useGameStore } from "../store/gameStore.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
+import { fallbackPotential } from "../utils/scouting.js";
 import { MSG } from "../data/messages.js";
 
 export function useTickets({
@@ -13,16 +14,6 @@ export function useTickets({
   setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
   setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
 }) {
-
-  function seededPotential(playerId, age) {
-    let hash = 0;
-    for (let i = 0; i < playerId.length; i++) {
-      hash = ((hash << 5) - hash) + playerId.charCodeAt(i); hash |= 0;
-    }
-    const seed = Math.abs(hash) / 2147483647;
-    const basePot = ovrCap - (Math.max(0, age - 17) * 0.5);
-    return Math.max(6, Math.min(ovrCap, Math.round(basePot + (seed * 6) - 3)));
-  }
 
   const useTicketDelayRetirement = useCallback((ticketId, playerId) => {
     const player = squad.find(p => p.id === playerId);
@@ -161,7 +152,7 @@ export function useTickets({
     const sp = shortlist.find(p => p.id === playerId);
     if (!sp) return;
     // Use real potential if stored, otherwise derive from current OVR
-    const potential = sp.potential ?? Math.max(sp.ovr, seededPotential(playerId, sp.age));
+    const potential = sp.potential ?? fallbackPotential(sp, ovrCap);
     const currentOvr = sp.ovr || 0;
     const actualPot = Math.max(potential, currentOvr);
     setScoutedPlayers(prev => ({ ...prev, [playerId]: actualPot }));

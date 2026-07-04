@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { F, C, FONT, Z, MODAL } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
+import { getModifier } from "../../data/leagueModifiers.js";
 import { getEffectiveSlots, detectFormationName } from "../../utils/formation.js";
 import { displayName } from "../../utils/player.js";
 import { getVisibleMessages, getUnreadCount } from "../../utils/messageUtils.js";
@@ -9,6 +10,7 @@ import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.j
 import { buildTickerBeats } from "../../utils/tickerBeats.js";
 import { getBoardExpectation } from "../../utils/boardExpectations.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { QualChip } from "./QualChip.jsx";
 
 export function Dashboard({
   inboxMessages, week, seasonNumber,
@@ -83,6 +85,12 @@ export function Dashboard({
   const leagueColor = leagueDef.color || C.textMuted;
   const totalMDs = league?.fixtures?.length || 18;
   const totalTeams = sortedTable.length;
+
+  // Tiers that end the season in a knockout — see LeaguePage.jsx for the
+  // matching table markup and useMatchResult.js for the top-4 bracket logic.
+  const leagueMod = getModifier(leagueTier);
+  const qualifyCount = (leagueMod.knockoutAtEnd || leagueMod.miniTournament) ? 4 : 0;
+  const qualifyLabel = leagueMod.knockoutAtEnd ? "Dynasty Cup" : leagueMod.miniTournament ? "5v5 Mini-Tournament" : null;
 
   const playerRow = useMemo(() => {
     const idx = sortedTable.findIndex(r => league?.teams?.[r.teamIndex]?.isPlayer);
@@ -822,23 +830,37 @@ export function Dashboard({
             const gd = row.goalsFor - row.goalsAgainst;
             const inPromoZone = leagueTier > 1 && pos <= 2;
             const inRelegZone = leagueTier < NUM_TIERS && pos >= totalTeams - 3;
+            const inQualifyZone = qualifyCount > 0 && pos < qualifyCount;
+            const isLastQualifier = inQualifyZone && pos === qualifyCount - 1;
             const isPlayer = tm?.isPlayer;
             return (
               <div key={tm?.name || pos} style={{
                 display: "grid", gridTemplateColumns: "22px 1fr 26px 32px 32px",
                 padding: "7px 0", fontSize: mob ? F.xs : F.sm, gap: 2,
-                borderBottom: `1px dotted ${RULE_LIGHT}`,
+                borderBottom: isLastQualifier ? `2px dashed ${leagueColor}` : `1px dotted ${RULE_LIGHT}`,
                 borderLeft: inPromoZone ? `3px solid ${C.gold}` : inRelegZone ? `3px solid ${C.red}` : "3px solid transparent",
                 background: isPlayer ? "rgba(74,222,128,0.06)" : "transparent",
                 paddingLeft: 4, alignItems: "center",
               }}>
                 <span style={{ color: inPromoZone ? C.gold : inRelegZone ? C.red : HEADER_COLOR, fontSize: F.xs }}>{pos + 1}</span>
                 <span onClick={() => tm?.name && onTeamClick?.(tm.name)} style={{
-                  color: isPlayer ? C.green : C.text,
-                  fontWeight: isPlayer ? "bold" : "normal",
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  display: "flex", alignItems: "center", gap: 4, minWidth: 0,
                   cursor: tm?.name ? "pointer" : "default",
-                }}>{tm?.name || "\u2014"}</span>
+                }}>
+                  <span style={{
+                    color: isPlayer ? C.green : C.text,
+                    fontWeight: isPlayer ? "bold" : "normal",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    minWidth: 0, flex: 1,
+                  }}>{tm?.name || "\u2014"}</span>
+                  {inQualifyZone && (
+                    <QualChip
+                      color={leagueColor}
+                      title={`Currently in a qualifying spot for the ${qualifyLabel}`}
+                      style={{ padding: "0 3px" }}
+                    />
+                  )}
+                </span>
                 <span style={{ textAlign: "center", color: C.textMuted }}>{row.played}</span>
                 <span style={{ textAlign: "center", color: gd > 0 ? C.green : gd < 0 ? C.red : HEADER_COLOR }}>{gd > 0 ? `+${gd}` : gd}</span>
                 <span style={{ textAlign: "center", color: "#f0f0f0", fontWeight: "bold" }}>{row.points}</span>
