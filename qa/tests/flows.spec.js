@@ -63,6 +63,34 @@ test.describe("full-app flows", () => {
     await shot(page, testInfo.project.name, "flow-squad-page");
   });
 
+  test("squad page tags homegrown players with an HG badge", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    await page.getByText("SQUAD", { exact: false }).first().click();
+    await page.waitForTimeout(400);
+
+    // Sanity check first: no HG badge on a fresh, un-flagged squad.
+    const countHgBadges = () => page.getByText("HG", { exact: true }).count();
+    expect(await countHgBadges(), "no HG badge before any player is flagged").toBe(0);
+
+    // Mark the first squad player as a youth-intake graduate via the dev hook
+    // — no need to play through a full summer break to reach this state.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const squad = s.squad.map((p, i) => (i === 0 ? { ...p, isYouthIntake: true } : p));
+      window.__fc.setState({ squad });
+    });
+    await page.waitForTimeout(300);
+
+    await expect(page.getByText("HG", { exact: true }).first()).toBeVisible();
+    expect(await countHgBadges(), "exactly one HG badge for the one flagged player").toBe(1);
+
+    await shot(page, testInfo.project.name, "flow-squad-homegrown-badge");
+  });
+
   test("mobile: section headers move the selected player", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile", "tap-to-move is a mobile interaction");
     await page.goto("index.html");
