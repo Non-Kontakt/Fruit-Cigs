@@ -88,6 +88,7 @@ export function useSaveGame({
         halfwayPosition: s.halfwayPosition,
         previousLeaguePosition: s.previousLeaguePosition,
         clubHistory: s.clubHistory,
+        leagueHistory: s.leagueHistory,
         recentScorelines: s.recentScorelines,
         secondPlaceFinishes: s.secondPlaceFinishes,
         playerInjuryCount: s.playerInjuryCount,
@@ -539,6 +540,7 @@ export function useSaveGame({
       }
       store.setCalendarResults(s.calendarResults || {});
       store.setLeagueResults(s.leagueResults || {});
+      store.setLeagueHistory(s.leagueHistory || {});
       const loadedMessages = (s.inboxMessages || []).map((m, i) => m.seq != null ? m : { ...m, seq: i });
       store.setInboxMessages(loadedMessages);
       const maxSeq = loadedMessages.reduce((mx, m) => Math.max(mx, m.seq ?? -1), -1);
