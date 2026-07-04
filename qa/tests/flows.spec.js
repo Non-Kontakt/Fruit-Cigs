@@ -236,9 +236,10 @@ test.describe("full-app flows", () => {
     await expect(page.getByText("Trevor Ash", { exact: false }).first()).toBeVisible();
     await shot(page, testInfo.project.name, "flow-dashboard-headline");
 
-    // Staleness guard: a newer result lands via a path that doesn't generate
-    // headlines (cup/holiday). The old back page must NOT stay up — the
-    // masthead falls back to copy for the newest result.
+    // Staleness guard: a newer result lands without a matching headline (a
+    // save loaded mid-season before headline generation existed, say). The
+    // old back page must NOT stay up — the masthead falls back to copy for
+    // the newest result.
     await page.evaluate(() => {
       const s = window.__fc.getState();
       window.__fc.setState({
@@ -250,6 +251,36 @@ test.describe("full-app flows", () => {
     });
     await page.waitForTimeout(300);
     await expect(page.getByText("HAT-TRICK HERO", { exact: false })).toHaveCount(0);
+  });
+
+  test("dashboard renders a bylined cup headline (not the inline fallback)", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Leave state the way settleCupHeadline() (App.jsx) would after a cup
+    // final win: a played result plus a bylined cup_final_win back page.
+    // Cup results used to only get Dashboard's bylineless inline fallback
+    // copy — this proves the real generator's output renders instead.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      window.__fc.setState({
+        calendarResults: { 0: { playerGoals: 2, oppGoals: 1, won: true, draw: false } },
+        latestHeadline: {
+          category: "cup_final_win",
+          headline: "RED LION FC LIFT THE CUP! 2-1 OVER DOG & DUCK IN THE FINAL",
+          byline: "— Trevor Ash reports",
+          season: s.seasonNumber,
+          calendarIndex: 0,
+        },
+      });
+    });
+    await page.waitForTimeout(300);
+
+    await expect(page.getByText("LIFT THE CUP", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Trevor Ash", { exact: false }).first()).toBeVisible();
+    await shot(page, testInfo.project.name, "flow-dashboard-cup-headline");
   });
 
   test("dashboard: FANS mood expands to show recent sentiment reasons", async ({ page }, testInfo) => {

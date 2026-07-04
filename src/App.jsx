@@ -54,6 +54,7 @@ import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
 import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
+import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
 import { PackUnlockReveal } from "./components/achievements/PackUnlockReveal.jsx";
 import { YouthIntakeScreen } from "./components/season/YouthIntakeScreen.jsx";
@@ -283,6 +284,7 @@ function FruitCigs() {
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
     setUnlockedAchievements, setUnlockedPacks, setAchievementUnlockWeeks, setLastSeenAchievementCount, setInboxMessages,
+    setLatestHeadline,
     setUsedTicketTypes, setFormationsWonWith, setFreeAgentSignings,
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
     setTotalShortlisted, setPrevSeasonSquadIds, setTradesMadeInWindow,
@@ -1606,6 +1608,46 @@ function FruitCigs() {
     }
   };
 
+  // Shared helper: back-page headline for a cup result (interactive or
+  // holiday-auto-resolved). Mirrors the league headline call in
+  // useMatchResult.js — same generator, same byline identity, but scoped to
+  // cup context (competition:"cup", isCupFinal derived the way Dashboard's
+  // inline cup fallback does, so the two never disagree on what counts as
+  // a final).
+  const settleCupHeadline = ({ playerGoals, oppGoals, isPlayerHome, opponentName, matchResult, cupRoundName, calendarIndex }) => {
+    const playerSide = isPlayerHome ? "home" : "away";
+    const headlineScorers = Object.entries(matchResult.scorers || {})
+      .filter(([key]) => key.startsWith(`${playerSide}|`))
+      .map(([key, count]) => ({ name: key.split("|")[1], goals: count }));
+    const roundName = cupRoundName || "";
+    const isCupFinal = roundName.toLowerCase().includes("final") && !roundName.toLowerCase().includes("semi");
+    const result = generateMatchHeadline({
+      teamName, opponentName,
+      playerGoals, oppGoals, home: isPlayerHome,
+      competition: "cup",
+      reporterName,
+      scorers: headlineScorers,
+      motmName: matchResult.motmName,
+      cleanSheet: oppGoals === 0,
+      isCupFinal, cupRoundName: roundName,
+    });
+    setLatestHeadline({ ...result, season: seasonNumber, calendarIndex });
+
+    // Cup final wins get the same "FWD:" inbox forward as a league title or
+    // promotion — a once-a-season, worth-celebrating back page. A final
+    // loss doesn't forward: unlike relegation it isn't a season-defining
+    // status change, just a disappointing result, so it stays on the
+    // masthead only.
+    if (result.category === "cup_final_win") {
+      setInboxMessages(prev => [...prev, createInboxMessage({
+        id: `msg_fwd_cupfinal_s${seasonNumber}_${calendarIndex}`,
+        icon: "📰", color: "#60a5fa",
+        title: `FWD: ${result.headline}`,
+        body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${result.headline}"\n— ${newspaperName || "the local paper"}`,
+      }, { calendarIndex, seasonNumber })]);
+    }
+  };
+
   const { processMatchDone } = useMatchResult({
     setMatchResult, setAchievementQueue,
     tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
@@ -2833,6 +2875,7 @@ function FruitCigs() {
                       // Capture round info before setCup mutates it
                       const _holidayCupRound = useGameStore.getState().cup?.currentRound ?? 0;
                       const _holidayCupTotalRounds = useGameStore.getState().cup?.rounds?.length ?? 5;
+                      const _holidayCupRoundName = useGameStore.getState().cup?.rounds?.[_holidayCupRound]?.name;
 
                       // Record result in cup rounds and build next round
                       const cupGoalScorers = (result.events || [])
@@ -2875,6 +2918,16 @@ function FruitCigs() {
                       const cupWon = penResult
                         ? (penResult.winner === "home" ? isPlayerHome : !isPlayerHome)
                         : cupPGoals > cupOGoals;
+
+                      // Back page: same bylined cup headline as the interactive path.
+                      settleCupHeadline({
+                        playerGoals: cupPGoals, oppGoals: cupOGoals,
+                        isPlayerHome, opponentName: oppTeam?.name,
+                        matchResult: result,
+                        cupRoundName: _holidayCupRoundName,
+                        calendarIndex: useGameStore.getState().calendarIndex,
+                      });
+
                       setCalendarResults(prev => ({
                         ...prev,
                         [useGameStore.getState().calendarIndex]: { playerGoals: cupPGoals, oppGoals: cupOGoals, won: cupWon, draw: false }
@@ -5541,6 +5594,23 @@ function FruitCigs() {
             const cupRoundIdx = cup?.currentRound ?? 0;
             const cupRoundCount = cup?.rounds?.length ?? 5;
             const isFinal = cupRoundIdx === cupRoundCount - 1;
+
+            // Back page: cup results get the same bylined headline treatment
+            // as league results (previously only the league path did this;
+            // Dashboard's inline cup copy had no reporter/newspaper identity).
+            {
+              const cupOpp = cupMatchResult.isPlayerHome ? cupMatchResult.cupAway : cupMatchResult.cupHome;
+              const cupPGoals = cupMatchResult.isPlayerHome ? hg : ag;
+              const cupOGoals = cupMatchResult.isPlayerHome ? ag : hg;
+              settleCupHeadline({
+                playerGoals: cupPGoals, oppGoals: cupOGoals,
+                isPlayerHome: cupMatchResult.isPlayerHome,
+                opponentName: cupOpp?.name,
+                matchResult: cupMatchResult,
+                cupRoundName: cup?.rounds?.[cupRoundIdx]?.name,
+                calendarIndex: cupMatchResult._calendarIndex ?? useGameStore.getState().calendarIndex,
+              });
+            }
 
             // Fan & Board Sentiment (regular cup match)
             { const _cupFanMult = getModifier(leagueTier).fanSentimentMult || 1;
