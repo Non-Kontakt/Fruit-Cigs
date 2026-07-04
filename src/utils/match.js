@@ -529,8 +529,15 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   // Build full event timeline
   const events = [];
 
-  // Kick off
-  events.push({ minute: 0, type: "kickoff", text: "Kick off! The match is underway.", flash: false });
+  // Kick off — gated on this being the player's own fixture, since
+  // simulateMatchweek forwards one shared modifiers object to every match
+  // in the week and the rivalry line only applies to the player's opponent.
+  const rivalryLine = (homeTeam.isPlayer || awayTeam.isPlayer) ? modifiers.rivalry?.line : null;
+  events.push({
+    minute: 0, type: "kickoff",
+    text: rivalryLine ? `Kick off! The match is underway. ${rivalryLine}` : "Kick off! The match is underway.",
+    flash: false,
+  });
 
   // Generate goals at random minutes, respecting the 1H/2H split.
   // Each goal must land on a unique minute — two goals cannot share a minute.

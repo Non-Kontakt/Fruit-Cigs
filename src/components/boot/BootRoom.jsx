@@ -8,8 +8,9 @@ import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../util
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ManagerAvatar } from "../ui/ManagerAvatar.jsx";
+import { isRival } from "../../utils/rivalries.js";
 
-export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex, league, cup, calendarResults, seasonNumber, week, onExitToMenu, storyArcs, setStoryArcs, squad, setSquad, prodigalSon, leagueTier, initialTab, onAchievementCheck, onHoliday, matchweekIndex, prestigeLevel, ovrCap, gameMode = "casual", activeProfileName = null, managerName = null, managerAvatar = null }) {
+export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex, league, cup, calendarResults, seasonNumber, week, onExitToMenu, storyArcs, setStoryArcs, squad, setSquad, prodigalSon, leagueTier, initialTab, onAchievementCheck, onHoliday, matchweekIndex, prestigeLevel, ovrCap, clubHistory = null, gameMode = "casual", activeProfileName = null, managerName = null, managerAvatar = null }) {
   const { matchSpeed, setMatchSpeed, soundEnabled, setSoundEnabled, autoSaveEnabled, setAutoSaveEnabled, trainingCardSpeed, setTrainingCardSpeed, matchDetail, setMatchDetail, musicEnabled, setMusicEnabled, musicVolume, setMusicVolume, disabledTracks, setDisabledTracks, instantMatch, setInstantMatch } = settings;
   const { saveGame, saveStatus, activeSaveSlot, exportSave, importSave, deleteSave, importStatus } = save;
   const { onDebugJumpTier, onDebugSetSquadOvr, onDebugWinLeague, onDebugSetPrestige } = debug;
@@ -250,6 +251,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   let fixtureText = "";
                   let resultText = "";
                   let resultColor = C.textMuted;
+                  let isFixtureRival = false;
 
                   if (entry.type === "dynasty") {
                     const res = calendarResults?.[idx];
@@ -279,6 +281,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                     const fix = getLeagueFixture(entry.leagueMD);
                     if (fix) {
                       fixtureText = `${fix.opponent?.name || "?"} (${fix.isHome ? "H" : "A"})`;
+                      isFixtureRival = isRival(clubHistory?.rivalryLedger?.[fix.opponent?.name]);
                     }
                     const res = calendarResults?.[idx];
                     if (res) {
@@ -336,6 +339,13 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                         {entry.type === "league" && <span style={{ color: isPlayed ? C.bgInput : C.green, marginRight: 7 }}>MD {entry.leagueMD + 1}</span>}
                         {isCup && <span style={{ color: isPlayed ? C.bgInput : C.amber, marginRight: 7 }}>{entry.cupRoundName}</span>}
                         {fixtureText}
+                        {isFixtureRival && (
+                          <span style={{
+                            marginLeft: 6, padding: "1px 5px", fontSize: F.xs, fontWeight: "bold",
+                            color: C.red, background: "rgba(239,68,68,0.15)", border: `1px solid ${C.red}44`,
+                            borderRadius: 4,
+                          }}>RIVAL</span>
+                        )}
                         {isCurrent && <span style={{ color: C.green, marginLeft: 9 }}>◄</span>}
                       </div>
                       <div style={{
