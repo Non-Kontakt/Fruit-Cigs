@@ -224,6 +224,29 @@ test.describe("full-app flows", () => {
     await expect(page.getByText("HAT-TRICK HERO", { exact: false })).toHaveCount(0);
   });
 
+  test("dashboard: FANS mood expands to show recent sentiment reasons", async ({ page }, testInfo) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      window.__fc.setState({
+        sentimentLog: [
+          { delta: 4, reason: "Beat Yeralden 3-0", week: 14, season: s.seasonNumber },
+        ],
+      });
+    });
+    await page.waitForTimeout(200);
+
+    // The reason is hidden until the FANS row is expanded.
+    await expect(page.getByText("Beat Yeralden 3-0", { exact: false })).toHaveCount(0);
+    await page.getByText("FANS", { exact: false }).first().click();
+    await expect(page.getByText("Beat Yeralden 3-0", { exact: false })).toBeVisible();
+    await shot(page, testInfo.project.name, "flow-sentiment-log-expanded");
+  });
+
   test("achievement index lists the collection ledger", async ({ page }, testInfo) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });

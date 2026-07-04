@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { F, C, FONT, Z, MODAL } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
@@ -23,7 +23,7 @@ export function Dashboard({
   onOpenInbox, onOpenLeague, onOpenSquad, onAsstXI, onApplyPreset, xiPresets, onInboxChoice, setInboxMessages,
   isMobile,
   onPlayerClick, onTeamClick,
-  fanSentiment = 50, boardSentiment = 50,
+  fanSentiment = 50, boardSentiment = 50, sentimentLog = [],
   ultimatumActive = false, ultimatumPtsEarned = 0, ultimatumTarget = 0, ultimatumGamesLeft = 0,
   gameMode = "casual",
   showLineupWarning = false, onDismissLineupWarning, onLineupWarningGoToSquad, onLineupWarningPlayAnyway,
@@ -31,6 +31,7 @@ export function Dashboard({
   latestHeadline = null,
 }) {
   const mob = useMobile();
+  const [showSentimentLog, setShowSentimentLog] = useState(false);
 
   // ─── Derived data ───
 
@@ -542,14 +543,38 @@ export function Dashboard({
             ].map(({ label, value }) => {
               const color = value >= 75 ? "#4ade80" : value >= 50 ? C.amber : value >= 25 ? "#fb923c" : C.lightRed;
               const mood = value >= 75 ? "Buzzing" : value >= 50 ? "Content" : value >= 25 ? "Concerned" : "Unrest";
+              const isFans = label === "FANS";
+              const hasLog = isFans && sentimentLog.length > 0;
               return (
                 <div key={label} style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: F.xs, color: HEADER_COLOR, marginBottom: 4 }}>
-                    <span>{label}</span><span style={{ color }}>{mood}</span>
+                  <div
+                    onClick={hasLog ? () => setShowSentimentLog(v => !v) : undefined}
+                    style={{
+                      display: "flex", justifyContent: "space-between", fontSize: F.xs, color: HEADER_COLOR,
+                      marginBottom: 4, cursor: hasLog ? "pointer" : "default",
+                    }}
+                  >
+                    <span>{label}{hasLog ? (showSentimentLog ? " ▾" : " ▸") : ""}</span><span style={{ color }}>{mood}</span>
                   </div>
                   <div style={{ height: 4, background: "rgba(30,41,59,0.5)", borderRadius: 2 }}>
                     <div style={{ height: "100%", width: `${value}%`, background: color, borderRadius: 2, transition: "width 0.4s" }} />
                   </div>
+                  {hasLog && showSentimentLog && (
+                    <div style={{ marginTop: 6, paddingLeft: 2 }}>
+                      {[...sentimentLog].reverse().slice(0, 5).map((entry, i) => (
+                        <div key={i} style={{
+                          display: "flex", justifyContent: "space-between", gap: 8,
+                          fontSize: F.xs, color: C.textDim, padding: "2px 0",
+                        }}>
+                          <span style={{ color: entry.delta > 0 ? "#4ade80" : entry.delta < 0 ? C.lightRed : C.textDim, flexShrink: 0 }}>
+                            {entry.delta > 0 ? "+" : ""}{entry.delta}
+                          </span>
+                          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.reason}</span>
+                          <span style={{ flexShrink: 0 }}>S{entry.season}W{entry.week}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
