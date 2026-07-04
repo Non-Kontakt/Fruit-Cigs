@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { F, C, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOvrCap } from "../../utils/player.js";
+import { BGM } from "../../utils/sfx.js";
 
 export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
   const [phase, setPhase] = useState(0); // 0=black, 1=wormhole, 2=text, 3=button
@@ -14,6 +15,12 @@ export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
     const t2 = setTimeout(() => setPhase(2), 1600);
     const t3 = setTimeout(() => setPhase(3), 3200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+
+  // Prestige BGM: themed track for the wormhole transition, released on unmount.
+  useEffect(() => {
+    BGM.playContext("prestige");
+    return () => BGM.releaseContext();
   }, []);
 
   // Wormhole particle ring

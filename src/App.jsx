@@ -24,8 +24,10 @@ import { getRivalryModifierForFixture } from "./utils/rivalries.js";
 import { checkBreakouts } from "./utils/breakouts.js";
 import { pushSentimentEntry } from "./utils/sentimentLog.js";
 import { SFX, BGM } from "./utils/sfx.js";
+import { isRunInMoment } from "./utils/bgmMoments.js";
 import * as Tone from "tone";
 import { useMobile } from "./hooks/useMobile.js";
+import { useLatestRef } from "./hooks/useLatestRef.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useTickets } from "./hooks/useTickets.js";
 import { useDebug } from "./hooks/useDebug.js";
@@ -491,6 +493,11 @@ function FruitCigs() {
   const [cabinetKey, setCabinetKey] = useState(0);
   const calendarIndex = useGameStore(s => s.calendarIndex);
   // Track when achievements were unlocked for "Recent" filter (season + week for cross-season math)
+  // NOTE: achievementUnlockWeeksRef is synced here at the set-site (not via a
+  // useLatestRef-style effect) deliberately — the save path (useSaveGame)
+  // reads achievementUnlockWeeksRef.current synchronously, and a save can be
+  // triggered before this effect's own state update would otherwise flush,
+  // so the fresh value must be visible immediately, not on the next render.
   useEffect(() => {
     const prev = achievementUnlockWeeksRef.current;
     const updated = { ...prev };
@@ -836,8 +843,7 @@ function FruitCigs() {
   const revealedInjuryCount = useRef(0);
   const weekRecoveriesRef = useRef([]); // persists past gains clearing for achievement checks
   const pendingFinalRewardRef = useRef(null); // captures arc final reward for post-training application
-  const storyArcsRef = useRef(storyArcs);
-  useEffect(() => { storyArcsRef.current = storyArcs; }, [storyArcs]);
+  const storyArcsRef = useLatestRef(storyArcs);
 
   // Talisman: highest-OVR non-legend by default; reassigned to Captain Fantastic arc target once that arc completes.
   const talismanIdRef = useRef(null);
@@ -1141,7 +1147,9 @@ function FruitCigs() {
 
   // Rewind ticket — replay a chosen lost or drawn league match
   const useTicketRewind = useCallback((ticketId, matchCalIdx) => {
-    const cal = useGameStore.getState().seasonCalendar || [];
+    // All reads below happen before any store write in this callback — read once.
+    const { seasonCalendar: rewindCalendar, league: rewindLeague, squad: rewindSquad } = useGameStore.getState();
+    const cal = rewindCalendar || [];
     const entry = cal[matchCalIdx];
     const oldResult = calendarResults[matchCalIdx];
     if (!entry || entry.type !== "league" || !oldResult || oldResult.won) return;
@@ -1149,14 +1157,14 @@ function FruitCigs() {
     const oldOppGoals = oldResult.oppGoals;
     const wasDraw = oldResult.draw;
     const mwIdx = entry.leagueMD;
-    const fixture = useGameStore.getState().league?.fixtures?.[mwIdx]?.find(f =>
-      useGameStore.getState().league.teams[f.home]?.isPlayer || useGameStore.getState().league.teams[f.away]?.isPlayer
+    const fixture = rewindLeague?.fixtures?.[mwIdx]?.find(f =>
+      rewindLeague.teams[f.home]?.isPlayer || rewindLeague.teams[f.away]?.isPlayer
     );
     if (!fixture) return;
-    const updatedLeague = { ...useGameStore.getState().league, table: useGameStore.getState().league.table.map(r => ({ ...r })) };
+    const updatedLeague = { ...rewindLeague, table: rewindLeague.table.map(r => ({ ...r })) };
     const mod = getModifier(leagueTier);
-    const oopMult = formation ? getTeamOOPMultiplier(startingXI, formation, useGameStore.getState().squad, slotAssignments) : 1.0;
-    const commentaryCtx = { playerSeasonStats, playerMatchLog, playerSquad: useGameStore.getState().squad, playerCareers: clubHistory?.playerCareers };
+    const oopMult = formation ? getTeamOOPMultiplier(startingXI, formation, rewindSquad, slotAssignments) : 1.0;
+    const commentaryCtx = { playerSeasonStats, playerMatchLog, playerSquad: rewindSquad, playerCareers: clubHistory?.playerCareers };
     const newResult = simulateMatch(
       updatedLeague.teams[fixture.home], updatedLeague.teams[fixture.away],
       startingXI, bench, false, oopMult, 0, talismanIdRef.current, 0, { ...mod, ...commentaryCtx }
@@ -1535,12 +1543,11 @@ function FruitCigs() {
       return p;
     }));
 
-    // Breakout check — evaluate triggers against the fresh match log
+    // Breakout check — evaluate triggers against the fresh match log.
+    // All four reads happen before any store write below — read once.
     try {
-      const freshLog = useGameStore.getState().playerMatchLog;
-      const freshSquad = useGameStore.getState().squad;
-      const freshBreakouts = useGameStore.getState().breakoutsThisSeason;
-      const _bOvrCap = getOvrCap(useGameStore.getState().prestigeLevel || 0);
+      const { playerMatchLog: freshLog, squad: freshSquad, breakoutsThisSeason: freshBreakouts, prestigeLevel: _breakoutPrestigeLevel } = useGameStore.getState();
+      const _bOvrCap = getOvrCap(_breakoutPrestigeLevel || 0);
       const matchdaySquad = freshSquad.filter(p => appeared.has(p.id));
       const breakoutResults = checkBreakouts(matchdaySquad, freshLog, freshBreakouts, _bOvrCap, isCup);
 
@@ -2569,17 +2576,19 @@ function FruitCigs() {
               holidayIntervalRef.current = null;
             }
 
+            // Both reads happen before any store write below — read once.
+            const { matchweekIndex: holidayStartMatchweekIdx, squad: holidaySnapSquad } = useGameStore.getState();
             // Don't start if already at or past target
-            if (useGameStore.getState().matchweekIndex >= targetMD) {
+            if (holidayStartMatchweekIdx >= targetMD) {
               return;
             }
 
             // Set target and enable holiday mode
             holidayTargetRef.current = targetMD;
-            holidayStartMatchweekRef.current = useGameStore.getState().matchweekIndex;
+            holidayStartMatchweekRef.current = holidayStartMatchweekIdx;
             holidayWeeksWithoutMatchRef.current = 0;
             // Snapshot squad OVR + injury state for holiday summary
-            const snapSquad = useGameStore.getState().squad;
+            const snapSquad = holidaySnapSquad;
             const ovrSnap = {};
             snapSquad.forEach(p => { ovrSnap[p.id] = { name: p.name, ovr: getOverall(p), wasInjured: !!p.injury }; });
             holidayOvrSnapshotRef.current = ovrSnap;
@@ -3561,10 +3570,12 @@ function FruitCigs() {
       {/* Hidden PLAY MATCH button — keeps full match logic, triggered by header pill via ref */}
       {matchPending && (
           (() => {
-            const calEntry = useGameStore.getState().seasonCalendar?.[useGameStore.getState().calendarIndex];
-            const isCupMatch = calEntry?.type === "cup" && useGameStore.getState().cup?.pendingPlayerMatch && !useGameStore.getState().cup.playerEliminated;
-            const isDynastyMatch = calEntry?.type === "dynasty" && useGameStore.getState().dynastyCupBracket && !useGameStore.getState().dynastyCupBracket.playerEliminated;
-            const cupRoundName = isCupMatch ? (useGameStore.getState().cup.rounds[useGameStore.getState().cup.currentRound]?.name || "Cup Match") : "";
+            // Pure render-time read (no store write in this IIFE) — read once.
+            const { seasonCalendar: playBtnCalendar, calendarIndex: playBtnCalIdx, cup: playBtnCup, dynastyCupBracket: playBtnDynastyBracket } = useGameStore.getState();
+            const calEntry = playBtnCalendar?.[playBtnCalIdx];
+            const isCupMatch = calEntry?.type === "cup" && playBtnCup?.pendingPlayerMatch && !playBtnCup.playerEliminated;
+            const isDynastyMatch = calEntry?.type === "dynasty" && playBtnDynastyBracket && !playBtnDynastyBracket.playerEliminated;
+            const cupRoundName = isCupMatch ? (playBtnCup.rounds[playBtnCup.currentRound]?.name || "Cup Match") : "";
             return (
           <button
             ref={playMatchBtnRef}
@@ -3745,11 +3756,21 @@ function FruitCigs() {
                       if (newWks === 0 || newMDCount > 3) {
                         setTransferWindowOpen(false);
                         setTransferOffers([]);
+                        setInboxMessages(prev => [...prev, createInboxMessage(
+                          MSG.transferWindowClosed(),
+                          { calendarIndex: capturedCalIdx, seasonNumber },
+                        )]);
                         // Achievement: Window Shopping — window closes without any trades
                         if (!unlockedAchievements.has("window_shopping") && tradesMadeInWindow === 0) {
                           tryUnlockAchievement("window_shopping");
                         }
                         setTradesMadeInWindow(0); // Reset for next window
+                      } else if (newWks === 1 || newMDCount === 3) {
+                        // Next matchday closes the window either way — deadline beat
+                        setInboxMessages(prev => [...prev, createInboxMessage(
+                          MSG.transferWindowFinalWeek(),
+                          { calendarIndex: capturedCalIdx, seasonNumber },
+                        )]);
                       }
                       return newWks;
                     });
@@ -5138,6 +5159,8 @@ function FruitCigs() {
         <MatchResultScreen
           result={matchResult}
           league={league}
+          leagueTier={leagueTier}
+          isRunIn={isRunInMoment(league, matchweekIndex)}
           initialSpeed={matchSpeed}
           onSpeedChange={setMatchSpeed}
           matchDetail={matchDetail}
@@ -5174,6 +5197,7 @@ function FruitCigs() {
         <MatchResultScreen
           result={cupMatchResult}
           league={cupMatchResult.cupLeague}
+          leagueTier={leagueTier}
           competitionLabel={cupMatchResult.isDynasty
             ? `Dynasty Cup — ${cupMatchResult.dynastyRound === "sf" ? "Semi-Final" : "Final"}`
             : cupMatchResult.isMini
@@ -6024,10 +6048,12 @@ function FruitCigs() {
             });
           })()}
           onDone={() => {
+          // Same store read twice for the same field — read once.
+          const { squad: retirementSquad } = useGameStore.getState();
           // Process retirements
-          const retirees = useGameStore.getState().squad.filter(p => retiringPlayers.has(p.id));
+          const retirees = retirementSquad.filter(p => retiringPlayers.has(p.id));
           // Save squad snapshot before retirements for season archiving
-          const preRetirementSquad = [...useGameStore.getState().squad];  // Use ref!
+          const preRetirementSquad = [...retirementSquad];  // Use ref!
           // Testimonial achievement — retiring player with 30+ career apps.
           // playerId-first lookup so a renamed retiree's history still counts.
           if (!unlockedAchievements.has("testimonial")) {

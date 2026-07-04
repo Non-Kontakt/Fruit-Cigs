@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { MatchResultScreen } from "../../src/components/match/MatchResultScreen.jsx";
+import { PlayerPanel } from "../../src/components/player/PlayerPanel.jsx";
 import { BootRoom } from "../../src/components/boot/BootRoom.jsx";
 import { LeaguePage } from "../../src/components/league/LeaguePage.jsx";
 import { OvrProgressChart } from "../../src/components/charts/OvrCharts.jsx";
@@ -8,7 +9,6 @@ import { AchievementToast } from "../../src/components/achievements/AchievementT
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
-import { PlayerPanel } from "../../src/components/player/PlayerPanel.jsx";
 import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
 import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
@@ -370,6 +370,17 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// --- Player panel ------------------------------------------------------
+
+// ST has weights >=0.15 on shooting/pace/physical — enough to exercise both
+// the emphasized and dim percentage styling in one fixture.
+const statsPanelPlayer = {
+  id: "p-stats-1", name: "Sonny Reid", position: "ST", age: 24,
+  nationality: "ENG", potential: 17,
+  attrs: { pace: 15, shooting: 16, passing: 9, defending: 4, physical: 13, technique: 12, mental: 10 },
+  gains: {}, statProgress: {}, training: null, injury: null, tags: [], learnedPositions: [],
+};
+
 // --- Player panel — progress sparklines -------------------------------
 
 // Season 1: a real growth spurt on pace (8 → 13 across the season). Seasons
@@ -596,6 +607,10 @@ const RENDERERS = {
         seasonLength={48}
       />
     </div>
+  ),
+  // PlayerPanel opens on STATS by default — no clickText needed.
+  "player-stats": () => (
+    <PlayerPanel player={statsPanelPlayer} onClose={noop} ovrCap={20} />
   ),
   "player-progress": () => (
     <PlayerPanel player={progressPlayer} onClose={noop} onAssignTraining={noop} ovrCap={20} />

@@ -9,7 +9,7 @@ import { AITeamPanel } from "./AITeamPanel.jsx";
 import { QualChip } from "../ui/QualChip.jsx";
 import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
-import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers } from "../../utils/competitionStats.js";
+import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers, resolveDisplayIdentity } from "../../utils/competitionStats.js";
 
 export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, playerSeasonStats, playerRatingTracker, squad, startingXI, bench, seasonNumber, clubHistory, leagueHistory = {}, allTimeLeagueStatsByTier, allLeagueStates, leagueTier: leagueTierProp, onPlayerClick, onTeamClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, dynastyCupBracket, miniTournamentBracket, ovrCap = 20, seasonLeagueStatsByTier = null, seasonLeagueStatsAvailable = true }) {
   const [activeTab, setActiveTab] = useState("leagues");
@@ -887,13 +887,23 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
           // record across every division so their full career shows up
           // alongside the per-division books.
           const isAllDivisions = allTimeScope === "all";
-          const tierAllTime = isAllDivisions
-            ? mergeStatsAcrossTiers(allTimeLeagueStatsByTier || {})
-            : (allTimeLeagueStatsByTier?.[displayTier] || null);
           const seasonSource = isAllDivisions
             ? mergeStatsAcrossTiers(seasonLeagueStatsByTier || {})
             : seasonLeagueStats;
+          const seasonPlayers = seasonSource?.players || {};
+          // Thread the current-season roster into the historical merge so a
+          // player active this season gets their current identity even in
+          // the ALL-divisions view, where the historical side is itself a
+          // multi-tier merge (best-spell identity otherwise).
+          const tierAllTime = isAllDivisions
+            ? mergeStatsAcrossTiers(allTimeLeagueStatsByTier || {}, seasonPlayers)
+            : (allTimeLeagueStatsByTier?.[displayTier] || null);
 
+          // Display identity: a player active this season shows their
+          // current club/name outright; otherwise the historical entry
+          // stands (already resolved to their best spell where applicable).
+          // Resolved explicitly per key via resolveDisplayIdentity rather
+          // than relying on which source's accumulator pass ran last.
           const merged = {};
           const acc = (entry) => {
             const key = entry.key;
@@ -905,12 +915,14 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
             m.assists += entry.assists || 0;
             m.yellows += entry.yellows || 0;
             m.reds += entry.reds || 0;
-            // Refresh display fields from the most-recent source.
-            if (entry.name) m.name = entry.name;
-            if (entry.teamName) m.teamName = entry.teamName;
           };
           Object.values(tierAllTime?.players || {}).forEach(acc);
-          Object.values(seasonSource?.players || {}).forEach(acc);
+          Object.values(seasonPlayers).forEach(acc);
+          for (const key of Object.keys(merged)) {
+            const historical = tierAllTime?.players?.[key] || null;
+            const current = seasonPlayers[key] || null;
+            Object.assign(merged[key], resolveDisplayIdentity(historical, current));
+          }
 
           const rows = Object.values(merged).map(p => ({
             name: p.name, teamName: p.teamName,

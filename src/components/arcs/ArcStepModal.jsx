@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getArcById } from "../../utils/arcs.js";
-import { SFX } from "../../utils/sfx.js";
+import { SFX, BGM } from "../../utils/sfx.js";
 import { F, C, FONT, MODAL, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
@@ -20,6 +20,15 @@ export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday 
     const timer = setTimeout(() => setAnimated(true), 400);
     return () => clearTimeout(timer);
   }, [notification?.arcId, notification?.stepIdx, isOnHoliday]); // re-trigger if notification changes
+
+  // Redemption Arc BGM: the prodigal son's story completing is the one
+  // moment this arc's themed track plays — released when the modal closes.
+  const isRedemptionComplete = notification?.arcId === "redemption" && notification?.isComplete;
+  useEffect(() => {
+    if (!isRedemptionComplete) return;
+    BGM.playContext("redemption_arc");
+    return () => BGM.releaseContext();
+  }, [isRedemptionComplete]);
 
   // Auto-close when on holiday
   useEffect(() => {

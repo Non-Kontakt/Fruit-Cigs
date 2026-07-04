@@ -24,6 +24,13 @@ const OVR_WEIGHTS = {
   ST:  { pace:0.20, shooting:0.28, passing:0.04, defending:0.02, physical:0.20, technique:0.18, mental:0.08 },
 };
 
+// Returns the OVR_WEIGHTS entry for a position, or null for positions with
+// no weighting (getOverall/getOvrProgress fall back to a flat mean in that
+// case). Callers should treat null as "unweighted", not as an empty object.
+export function getOvrWeights(position) {
+  return OVR_WEIGHTS[position] || null;
+}
+
 export function getOverall(player) {
   if (!player?.attrs) return 0;
   const w = OVR_WEIGHTS[player.position];
@@ -53,6 +60,15 @@ export function getAttrColor(val, cap = 20) {
   if (pct <= 0.70) return "#84cc16";
   if (pct <= 0.85) return "#22c55e";
   return "#10b981";
+}
+
+// Interpolate #64748b → #4ade80 based on pct 0–100 (relationship/affinity meters).
+export function relColor(pct, alpha = 1) {
+  const t = Math.max(0, Math.min(100, pct)) / 100;
+  const r = Math.round(100 - 26 * t);
+  const g = Math.round(116 + 106 * t);
+  const b = Math.round(139 - 11 * t);
+  return alpha < 1 ? `rgba(${r},${g},${b},${alpha})` : `rgb(${r},${g},${b})`;
 }
 
 export function getPosColor(pos) {
