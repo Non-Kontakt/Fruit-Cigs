@@ -146,6 +146,7 @@ export function useSaveGame({
         tradesMadeInWindow: s.tradesMadeInWindow,
         tradedWithClubs: s.tradedWithClubs,
         fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment,
+        sentimentLog: s.sentimentLog,
         gameMode: s.gameMode,
         boardWarnCount: s.boardWarnCount,
         ultimatumActive: s.ultimatumActive,
@@ -386,6 +387,7 @@ export function useSaveGame({
       store.setLatestHeadline(s.latestHeadline || null);
       store.setFanSentiment(s.fanSentiment ?? 50);
       store.setBoardSentiment(s.boardSentiment ?? 50);
+      store.setSentimentLog(s.sentimentLog || []);
       store.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);
       store.setDynastyCupBracket(s.dynastyCupBracket || null);
       store.setMiniTournamentBracket(s.miniTournamentBracket || null);
