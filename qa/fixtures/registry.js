@@ -20,11 +20,15 @@ export const FIXTURES = [
   { id: "inbox-trial", label: "Inbox — trial offer (accept/decline)" },
   { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)" },
   { id: "leaguestats-mid", label: "League — stats tab mid-season", clickText: "STATS" },
+  { id: "league-qualifying-zone", label: "League — Dynasty Cup qualification Q chips" },
+  { id: "squad-progress-improved", label: "Squad progress — most improved ranked view", clickText: "MOST IMPROVED" },
   { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },
   { id: "achievement-toast", label: "Achievement — unlock toast (auto-dismiss)" },
   { id: "cig-card-states", label: "Cig cards — hidden/uncollected/collected/legendary" },
   { id: "cig-pack-detail", label: "Cig packs — pack detail card grid", clickText: "Cherry Cigs" },
   { id: "player-progress", label: "Player panel — progress sparklines with season ticks", clickText: "PROGRESS" },
+  { id: "alltime-xi", label: "Club — All-Time XI with long defender names", clickText: "ALL-TIME XI" },
+  { id: "youth-intake", label: "Youth intake — prospects with potential" },
 ];
 
 export const FIXTURE_IDS = FIXTURES.map(f => f.id);

@@ -16,6 +16,7 @@ import { checkAchievements } from "../utils/achievements.js";
 import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
 import { SFX, BGM } from "../utils/sfx.js";
 import { buildAIFiveASide } from "../utils/fiveASide.js";
+import { advanceShortlistScouting } from "../utils/scouting.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
@@ -158,6 +159,28 @@ export function useAdvanceWeek({
     s.setReadsThisWeek(0);
     setRecentOvrLevelUps(null);
     weekRecoveriesRef.current = [];
+
+    // === PASSIVE SHORTLIST SCOUTING ===
+    // Ticks down every shortlisted player's scouting timer; whoever crosses
+    // the threshold this week gets their potential revealed, unprompted.
+    if ((s.shortlist || []).length > 0) {
+      const { nextShortlist, revealed } = advanceShortlistScouting(s.shortlist, s.scoutedPlayers, ovrCap);
+      s.setShortlist(nextShortlist);
+      if (revealed.length > 0) {
+        s.setScoutedPlayers(prev => {
+          const next = { ...prev };
+          revealed.forEach(entry => { next[entry.id] = entry.potential; });
+          return next;
+        });
+        s.setInboxMessages(prev => [
+          ...prev,
+          ...revealed.map(entry => createInboxMessage(
+            MSG.scoutingComplete(entry.id, entry.name, entry.potential, ovrCap),
+            { calendarIndex, seasonNumber },
+          )),
+        ]);
+      }
+    }
 
     // === PRE-COMPUTE ALL ARC EFFECTS SYNCHRONOUSLY ===
     // Must happen before any setState calls — see precomputeArcEffects() for why
