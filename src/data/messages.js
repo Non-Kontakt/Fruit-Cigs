@@ -293,6 +293,30 @@ const seasonPreview = (body) => ({
   body,
 });
 
+const transferWindowOpen = () => ({
+  id: `msg_tw_open_${Date.now()}`,
+  icon: "\uD83D\uDCB0", // 💰
+  color: C.green,
+  title: "Transfer Window Open",
+  body: "The transfer window is open. Clubs are watching.",
+});
+
+const transferWindowFinalWeek = () => ({
+  id: `msg_tw_final_${Date.now()}`,
+  icon: "\u23F3", // ⏳
+  color: C.amber,
+  title: "Transfer Window: Final Week",
+  body: "Deadline week. Last chance to make a deal.",
+});
+
+const transferWindowClosed = () => ({
+  id: `msg_tw_closed_${Date.now()}`,
+  icon: "\uD83D\uDD12", // 🔒
+  color: C.textMuted,
+  title: "Transfer Window Closed",
+  body: "The transfer window has closed. No more business until it reopens next summer.",
+});
+
 // ---------------------------------------------------------------------------
 // ARCS
 // ---------------------------------------------------------------------------
@@ -951,6 +975,9 @@ export const MSG = {
   teamOfTheSeasonDetailed,
   wellRested,
   seasonPreview,
+  transferWindowOpen,
+  transferWindowFinalWeek,
+  transferWindowClosed,
   // Arcs
   arcComplete,
   // League

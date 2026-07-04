@@ -3748,11 +3748,21 @@ function FruitCigs() {
                       if (newWks === 0 || newMDCount > 3) {
                         setTransferWindowOpen(false);
                         setTransferOffers([]);
+                        setInboxMessages(prev => [...prev, createInboxMessage(
+                          MSG.transferWindowClosed(),
+                          { calendarIndex: capturedCalIdx, seasonNumber },
+                        )]);
                         // Achievement: Window Shopping — window closes without any trades
                         if (!unlockedAchievements.has("window_shopping") && tradesMadeInWindow === 0) {
                           tryUnlockAchievement("window_shopping");
                         }
                         setTradesMadeInWindow(0); // Reset for next window
+                      } else if (newWks === 1 || newMDCount === 3) {
+                        // Next matchday closes the window either way — deadline beat
+                        setInboxMessages(prev => [...prev, createInboxMessage(
+                          MSG.transferWindowFinalWeek(),
+                          { calendarIndex: capturedCalIdx, seasonNumber },
+                        )]);
                       }
                       return newWks;
                     });
