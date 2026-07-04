@@ -7,6 +7,7 @@ import { AchievementToast } from "../../src/components/achievements/AchievementT
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
+import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -273,6 +274,56 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// --- Club — All-Time XI ------------------------------------------------
+
+// Two adjacent defenders (CB1/CB2) carry deliberately long names — this is
+// the pairing most likely to collide on a narrow viewport, since a 4-back
+// line packs 4 nodes across the pitch width.
+const LONG_CB1 = "Maximilian Featherstonehaugh";
+const LONG_CB2 = "Bartholomew Winterbottom-Smythe";
+
+// Slot keys match ALL_TIME_FORMATIONS["4-3-3"] exactly, and this candidate
+// pool's position multiset (1×GK/LB/RB/AM/LW/ST/RW, 2×CB, 2×CM) is the only
+// one that lets every slot in 4-3-3 fill from its own literal position —
+// any other formation wastes at least one slot, so 4-3-3 always scores
+// highest in pickBestFormation. Keeps the fixture deterministic.
+const allTimeXI = {
+  GK:  { name: "Danny Vaughan", position: "GK", avgRating: 7.6, season: 2, apps: 34, nationality: "ENG" },
+  LB:  { name: "Curtis Lane", position: "LB", avgRating: 7.3, season: 3, apps: 30, nationality: "ENG" },
+  CB1: { name: LONG_CB1, position: "CB", avgRating: 7.8, season: 4, apps: 32, nationality: "FRA" },
+  CB2: { name: LONG_CB2, position: "CB", avgRating: 7.5, season: 1, apps: 28, nationality: "GER" },
+  RB:  { name: "Ryan Poole", position: "RB", avgRating: 7.2, season: 2, apps: 26, nationality: "ENG" },
+  CM1: { name: "Alfie Wilson", position: "CM", avgRating: 7.4, season: 5, apps: 40, nationality: "ENG" },
+  CM2: { name: "Joe Marsh", position: "CM", avgRating: 7.1, season: 3, apps: 29, nationality: "ENG" },
+  AM:  { name: "Nathan Robinson", position: "AM", avgRating: 8.0, season: 4, apps: 33, nationality: "ENG" },
+  LW:  { name: "Kai Bennett", position: "LW", avgRating: 7.5, season: 2, apps: 27, nationality: "ENG" },
+  ST:  { name: "Louie Adams", position: "ST", avgRating: 7.9, season: 5, apps: 38, nationality: "ENG" },
+  RW:  { name: "Sonny Reid", position: "RW", avgRating: 7.6, season: 3, apps: 25, nationality: "ENG" },
+};
+
+const clubHistoryFixture = {
+  totalWins: 118, totalDraws: 42, totalLosses: 36, totalGoalsFor: 402, totalGoalsConceded: 231,
+  bestWinStreak: 11, bestUnbeatenRun: 19, worstLossStreak: 4,
+  biggestWin: { score: "6-0", opponent: "Dale Athletic", season: 3 },
+  worstDefeat: { score: "0-5", opponent: "Fenwick Rovers", season: 1 },
+  bestSeasonFinish: { position: 1, leagueName: "Concrete Schoolyard", season: 4 },
+  bestSeasonPoints: 88,
+  playerCareers: {
+    "Louie Adams": { goals: 74, assists: 12, apps: 152, motm: 9, yellows: 8, reds: 0, seasons: [1, 2, 3, 4, 5] },
+  },
+  seasonArchive: [
+    { season: 1, tier: 11, leagueName: "Concrete Schoolyard", position: 2, points: 74, topScorer: "Louie Adams (18)", result: "promoted" },
+  ],
+  allTimeXI,
+};
+
+// Live-merge stubs — a live player rated lower than the archived ST so it
+// exercises the merge path (src/components/club/ClubLegends.jsx) without
+// displacing the deterministic archived XI above.
+const liveSquadFixture = [{ id: "lp1", name: "Marcus Webb", position: "ST", nationality: "ENG" }];
+const livePlayerSeasonStats = { "Marcus Webb": { goals: 3, assists: 1, apps: 5, position: "ST", nationality: "ENG" } };
+const livePlayerRatingTracker = { lp1: [6.4, 6.8, 6.1, 6.9, 6.6] };
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -370,6 +421,21 @@ const RENDERERS = {
         calendarIndex={16}
         seasonNumber={1}
         seasonLength={48}
+      />
+    </div>
+  ),
+  "alltime-xi": () => (
+    <div style={{ maxWidth: 500, margin: "0 auto", padding: 16 }}>
+      <ClubLegends
+        clubHistory={clubHistoryFixture}
+        teamName="Red Lion FC"
+        playerSeasonStats={livePlayerSeasonStats}
+        playerRatingTracker={livePlayerRatingTracker}
+        squad={liveSquadFixture}
+        seasonNumber={6}
+        leagueTier={11}
+        ovrHistory={[]}
+        ovrCap={20}
       />
     </div>
   ),
