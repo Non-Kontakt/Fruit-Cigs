@@ -22,7 +22,7 @@ import {
   migrateSquadBackfill, migrateAITeamSquads, backfillAISquadDefaults, backfillRosterPhilosophy,
   migrateLegacyLeagueTier3to11, migrateLegacyRosterKeys, ensureAllTierRosters, repairLeagueV2ToV3,
   resolveMigratedTier, syncLeagueTierAndNames, migrateSeasonHistoryNames, migrateClubHistoryNames,
-  backfillClubHistory, migratePlayerRatingTracker, stripCupNamePrefix, migrateSummerPhase,
+  backfillClubHistory, migratePlayerRatingTracker, stripCupNamePrefix, migrateSummerPhase, migrateSummerWeeksForAwards,
   resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
   resolveCupStatsAvailable, migrateStoryArcsCompletion, backfillOvrHistorySnapshot,
 } from "../utils/saveMigrations.js";
@@ -58,7 +58,7 @@ export function useSaveGame({
     setSaveStatus("saving");
     try {
       const saveData = serializeState({
-        version: 2,
+        version: 3,
         teamName, newspaperName: s.newspaperName, reporterName: s.reporterName,
         managerName: s.managerName, managerAvatar: s.managerAvatar,
         squad: s.squad, league, matchweekIndex: s.matchweekIndex,
@@ -304,7 +304,9 @@ export function useSaveGame({
       // Migration: convert summerPhase="summary" to "break"
       const { phase: loadedSummerPhase, data: loadedSummerData } = migrateSummerPhase(s.summerPhase || null, s.summerData);
       store.setSummerPhase(loadedSummerPhase);
-      store.setSummerData(loadedSummerData);
+      // Migration: v2 mid-summer saves predate the Awards Night beat — shift
+      // their remaining-weeks counter so the next click fires the right beat.
+      store.setSummerData(migrateSummerWeeksForAwards(s.version ?? 2, loadedSummerPhase, loadedSummerData));
       const migratedRosters = s.leagueRosters ? normalizeRosters({ ...s.leagueRosters }, s.teamName) : null;
       store.setLeagueRosters(migratedRosters);
       store.setHalfwayPosition(s.halfwayPosition ?? null);

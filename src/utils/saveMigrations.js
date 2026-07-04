@@ -342,6 +342,21 @@ export function migrateSummerPhase(rawSummerPhase, summerData) {
 }
 
 /**
+ * The summer break grew from 5 to 6 beats when Awards Night was inserted at
+ * weeksLeft 3 (save version 2 → 3): old beats 5/4/3 shifted up to 6/5/4,
+ * while 2 (youth intake) and 1 (preview) kept their numbers. A v2 save made
+ * mid-summer must shift weeksLeft >= 3 up by one, or its next click would
+ * fire the wrong beat — worst case skipping the transfer-window-open beat
+ * entirely for that summer.
+ */
+export function migrateSummerWeeksForAwards(saveVersion, summerPhase, summerData) {
+  if (saveVersion >= 3 || summerPhase !== "break" || !summerData) return summerData;
+  const wl = summerData.weeksLeft;
+  if (typeof wl !== "number" || wl < 3) return summerData;
+  return { ...summerData, weeksLeft: wl + 1 };
+}
+
+/**
  * Decide the season calendar to load: use the save's own calendar if
  * present, otherwise rebuild one from the league's fixture count. Returns
  * null when neither is available (caller should leave the store's existing
