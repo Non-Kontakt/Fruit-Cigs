@@ -6,6 +6,11 @@
 const MAX_ENTRIES = 20;
 
 export function pushSentimentEntry(prev, { delta, reason, week, season }) {
-  const next = [...(prev || []), { delta, reason, week, season }];
+  // A reason attached to no movement is noise (e.g. a win while sentiment is
+  // already clamped at 100) — normalize here so every writer gets the
+  // invariant for free rather than guarding at each call site.
+  const rounded = Math.round(delta);
+  if (rounded === 0) return prev || [];
+  const next = [...(prev || []), { delta: rounded, reason, week, season }];
   return next.length > MAX_ENTRIES ? next.slice(next.length - MAX_ENTRIES) : next;
 }

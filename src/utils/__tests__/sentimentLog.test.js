@@ -31,4 +31,17 @@ describe("pushSentimentEntry", () => {
     expect(prev.length).toBe(1);
     expect(next.length).toBe(2);
   });
+
+  it("ignores zero-delta entries — a reason attached to no movement is noise", () => {
+    const prev = [{ delta: 1, reason: "a", week: 1, season: 1 }];
+    expect(pushSentimentEntry(prev, { delta: 0, reason: "Beat X 2-0 at clamp", week: 2, season: 1 })).toBe(prev);
+    expect(pushSentimentEntry(null, { delta: 0, reason: "noise", week: 2, season: 1 })).toEqual([]);
+  });
+
+  it("rounds fractional deltas, dropping entries that round to zero", () => {
+    const kept = pushSentimentEntry([], { delta: 1.6, reason: "streak", week: 3, season: 1 });
+    expect(kept[0].delta).toBe(2);
+    expect(pushSentimentEntry([], { delta: 0.4, reason: "drift", week: 3, season: 1 })).toEqual([]);
+    expect(pushSentimentEntry([], { delta: -0.4, reason: "drift", week: 3, season: 1 })).toEqual([]);
+  });
 });
