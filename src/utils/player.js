@@ -584,12 +584,14 @@ export function evolveAISquad(squad, tier, trait, philosophy, prestigeLevel = 0,
   const _offset = getPrestigeOffset(prestigeLevel);
   const youthReplacements = replacements.filter(p => (p.age || 25) <= 21);
 
-  // Wonderkid (3%): one YOUTH replacement arrives with exceptional potential
+  // Wonderkid (3%): one YOUTH replacement arrives with exceptional potential.
+  // No event is emitted here — the Scout Report picks this up (or any other
+  // qualifying prospect) by scanning the settled squad afterwards, so the
+  // report never names someone who gets trimmed or renamed later.
   if (Math.random() < 0.03 && youthReplacements.length > 0) {
     const wk = youthReplacements[rand(0, youthReplacements.length - 1)];
     wk.potential = Math.min(ovrCap, def.ovrMax + _offset + 3);
     wk.age = rand(17, 19);
-    if (eventsOut) eventsOut.push({ type: "wonderkid", playerName: wk.name, position: wk.position, age: wk.age });
   }
 
   // Golden generation (1%): 2-3 YOUTH replacements get potential +2

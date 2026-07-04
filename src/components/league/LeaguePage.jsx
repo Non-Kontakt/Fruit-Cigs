@@ -6,6 +6,7 @@ import { getModifier } from "../../data/leagueModifiers.js";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { AITeamPanel } from "./AITeamPanel.jsx";
+import { QualChip } from "../ui/QualChip.jsx";
 import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers } from "../../utils/competitionStats.js";
@@ -639,6 +640,13 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
           const leagueDef2 = LEAGUE_DEFS[displayTier];
           const leagueColor2 = leagueDef2?.color || C.textMuted;
 
+          // Tiers that end the season in a knockout — Euro Dynasty's Dynasty
+          // Cup and World XI's 5v5 Mini-Tournament both draw their bracket
+          // from the top 4 in the standings (see useMatchResult.js).
+          const displayMod = getModifier(displayTier);
+          const qualifyLabel = displayMod.knockoutAtEnd ? "Dynasty Cup" : displayMod.miniTournament ? "5v5 Mini-Tournament" : null;
+          const qualifyCount = qualifyLabel ? 4 : 0;
+
           // Build standings rows for the selected tier
           let rows;
           if (isPlayerTier) {
@@ -693,9 +701,10 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
               </div>
 
               {/* Promo/relego legend */}
-              <div style={{ fontSize: mob ? F.micro : F.xs, color: C.slate, marginBottom: 10, display: "flex", gap: 12 }}>
-                {displayTier > 1 && <span><span style={{ color: C.gold }}>■</span> {getModifier(displayTier).miniTournament ? "5v5 tournament: top 3 promoted" : "Top 3 promoted"}</span>}
+              <div style={{ fontSize: mob ? F.micro : F.xs, color: C.slate, marginBottom: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {displayTier > 1 && <span><span style={{ color: C.gold }}>■</span> {displayMod.miniTournament ? "5v5 tournament: top 3 promoted" : "Top 3 promoted"}</span>}
                 {displayTier < NUM_TIERS && <span><span style={{ color: C.red }}>■</span> Bottom 3 relegated</span>}
+                {qualifyCount > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><QualChip color={leagueColor2} /> Top {qualifyCount} qualify for the {qualifyLabel}</span>}
               </div>
 
               {/* Column headers */}
@@ -711,12 +720,14 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                 const totalTeams = rows.length;
                 const inPromoZone = displayTier > 1 && pos <= 2;
                 const inRelegZone = displayTier < NUM_TIERS && pos >= totalTeams - 3;
+                const inQualifyZone = qualifyCount > 0 && pos < qualifyCount;
+                const isLastQualifier = inQualifyZone && pos === qualifyCount - 1;
                 const gd = row.gf - row.ga;
                 return (
                   <div key={row.name} style={{
                     display: "grid", gridTemplateColumns: tableCols,
                     padding: mob ? "13px 10px" : "10px 10px", fontSize: F.sm, gap: 4,
-                    borderBottom: `1px solid ${C.bgCard}`,
+                    borderBottom: isLastQualifier ? `2px dashed ${leagueColor2}` : `1px solid ${C.bgCard}`,
                     borderLeft: row.isPlayer ? `3px solid ${C.green}` : inPromoZone ? `3px solid ${C.gold}` : inRelegZone ? `3px solid ${C.red}` : "3px solid transparent",
                     background: row.isPlayer ? "rgba(74,222,128,0.10)" : inPromoZone ? "rgba(250,204,21,0.03)" : inRelegZone ? "rgba(239,68,68,0.03)" : "transparent",
                     alignItems: "center",
@@ -799,6 +810,13 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                       }}>
                         {row.name}
                       </span>
+                      {inQualifyZone && (
+                        <QualChip
+                          color={leagueColor2}
+                          title={`Currently in a qualifying spot for the ${qualifyLabel}`}
+                          style={{ marginLeft: 6 }}
+                        />
+                      )}
                       {(() => {
                         const seasonDone = isPlayerTier && matchweekIndex >= (league.fixtures?.length || 18);
                         if (!seasonDone) return null;

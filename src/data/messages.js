@@ -795,6 +795,14 @@ const scoutDossier = (playerName, body) => ({
   color: "#818cf8",
 });
 
+const scoutingComplete = (playerId, playerName, potential, ovrCap) => ({
+  id: `msg_scouting_complete_${playerId}`,
+  icon: "\uD83D\uDD0D", // 🔍
+  title: `Scouting Report: ${playerName}`,
+  body: `Our scouts have finished their run on ${playerName}. Potential ceiling: ${potential}/${ovrCap}.`,
+  color: "#818cf8",
+});
+
 const testimonial = (legendName, apps) => ({
   id: `msg_ticket_testimonial_${Date.now()}`,
   icon: "\uD83C\uDFA9", // 🎩
@@ -1000,6 +1008,7 @@ export const MSG = {
   transferInsider,
   saudiAgent,
   scoutDossier,
+  scoutingComplete,
   testimonial,
   testimonialDone,
   // Special
