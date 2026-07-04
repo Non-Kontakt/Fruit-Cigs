@@ -20,6 +20,7 @@ export const FIXTURES = [
   { id: "inbox-trial", label: "Inbox — trial offer (accept/decline)" },
   { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)" },
   { id: "leaguestats-mid", label: "League — stats tab mid-season", clickText: "STATS" },
+  { id: "squad-progress-improved", label: "Squad progress — most improved ranked view", clickText: "MOST IMPROVED" },
   { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },
   { id: "achievement-toast", label: "Achievement — unlock toast (auto-dismiss)" },
   { id: "cig-card-states", label: "Cig cards — hidden/uncollected/collected/legendary" },

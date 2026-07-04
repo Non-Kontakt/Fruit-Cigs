@@ -102,3 +102,15 @@ test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   await page.waitForTimeout(6000);
   await expect(page.getByText("TOAST DONE")).toBeVisible();
 });
+
+// Squad progress "Most Improved" ranked view — a mid-career signing (joined
+// season 2) still ranks by their own join-OVR delta, not the club's season-1
+// baseline, and the biggest gainer shows a prominent green +delta.
+test("squad progress: most improved view ranks by OVR delta", async ({ page }) => {
+  await page.goto("qa.html?c=squad-progress-improved");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("MOST IMPROVED", { exact: true }).click();
+  await expect(page.getByText("Ollie Vance", { exact: true })).toBeVisible();
+  await expect(page.getByText("+6", { exact: true })).toBeVisible();
+  await expect(page.getByText("+3", { exact: true })).toBeVisible();
+});
