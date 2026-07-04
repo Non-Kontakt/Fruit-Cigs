@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getOverall, getOvrProgress, getOOPPenalty, getPositionTrainingWeeks, computeDuoBoost } from "../utils/calc.js";
+import { getOverall, getOvrProgress, getOvrWeights, getOOPPenalty, getPositionTrainingWeeks, computeDuoBoost } from "../utils/calc.js";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -90,6 +90,24 @@ describe("getOvrProgress", () => {
     for (const pos of ["GK", "CB", "LB", "RB", "CM", "AM", "LW", "RW", "ST"]) {
       expect(getOvrProgress(player(pos, 10))).toBeCloseTo(0.5, 5);
     }
+  });
+});
+
+// ─── getOvrWeights ────────────────────────────────────────────────────────────
+
+describe("getOvrWeights", () => {
+  it("returns weights summing to ~1.00 for a known position", () => {
+    for (const pos of ["GK", "CB", "LB", "RB", "CM", "AM", "LW", "RW", "ST"]) {
+      const w = getOvrWeights(pos);
+      expect(w).not.toBeNull();
+      const sum = Object.values(w).reduce((s, v) => s + v, 0);
+      expect(sum).toBeCloseTo(1.0, 2);
+    }
+  });
+
+  it("returns null for an unknown position", () => {
+    expect(getOvrWeights("UNKNOWN")).toBeNull();
+    expect(getOvrWeights(undefined)).toBeNull();
   });
 });
 
