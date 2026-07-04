@@ -763,7 +763,7 @@ const transferInsider = (player, ovr) => ({
   id: `msg_ticket_insider_${Date.now()}`,
   icon: "\uD83D\uDD75\uFE0F", // 🕵️
   title: `Transfer Tip: ${player.name}`,
-  body: `Your contacts have found a promising player available on a free transfer. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is looking for a new club. Act fast \u2014 other clubs are circling.`,
+  body: `Your contacts have found a promising player available on a free transfer. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is looking for a new club. ${player.backstory} Act fast \u2014 other clubs are circling.`,
   color: "#34d399",
   type: "free_agent_offer",
   freeAgentData: player,
@@ -777,7 +777,7 @@ const saudiAgent = (player, ovr) => ({
   id: `msg_saudi_agent_${Date.now()}`,
   icon: "\uD83D\uDD4C", // 🕌
   title: `Saudi Agent: ${player.name}`,
-  body: `Your Saudi connections have delivered. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is available on a free transfer. Sign now \u2014 he won't wait.`,
+  body: `Your Saudi connections have delivered. ${player.name}, a ${player.age}-year-old ${player.position} (OVR ${ovr}), is available on a free transfer. ${player.backstory} Sign now \u2014 he won't wait.`,
   color: "#d4a017",
   type: "free_agent_offer",
   freeAgentData: player,
