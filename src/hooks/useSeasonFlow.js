@@ -143,7 +143,7 @@ export function useSeasonFlow({
       processing, squad, league, storyArcs, prodigalSon, trialPlayer, trialHistory,
       leagueTier, consecutiveWins, halfwayPosition, cup, calendarIndex, seasonNumber,
       summerData, playerSeasonStats, loanedOutPlayers, loanedInPlayers,
-      transferWindowOpen, clubRelationships, allLeagueStates, prestigeLevel,
+      transferWindowOpen, transferWindowWeeksRemaining, clubRelationships, allLeagueStates, prestigeLevel,
     } = s;
     const ovrCap = getOvrCap(prestigeLevel || 0);
 
@@ -151,6 +151,24 @@ export function useSeasonFlow({
     s.setProcessing(true);
     if (!useGameStore.getState().isOnHoliday) setWeekTransition(true);
     const wl = summerData?.weeksLeft ?? 5;
+
+    // Decrements the transfer window countdown and fires the deadline-week /
+    // closed inbox beats when the new value crosses those thresholds.
+    const decrementTransferWindow = (remaining) => {
+      const newRemaining = Math.max(0, remaining - 1);
+      s.setTransferWindowWeeksRemaining(newRemaining);
+      if (newRemaining === 1) {
+        s.setInboxMessages(prev => [...prev, createInboxMessage(
+          MSG.transferWindowFinalWeek(),
+          { calendarIndex, seasonNumber },
+        )]);
+      } else if (newRemaining === 0) {
+        s.setInboxMessages(prev => [...prev, createInboxMessage(
+          MSG.transferWindowClosed(),
+          { calendarIndex, seasonNumber },
+        )]);
+      }
+    };
 
     if (wl === 5) {
       // Week 1: Apply any pending arc final rewards missed due to timing bugs.
@@ -302,9 +320,13 @@ export function useSeasonFlow({
       s.setTradesMadeInWindow(0); // Reset trade counter for new window
       const offers = generateAITransferOffers(clubRelationships, squad, allLeagueStates);
       s.setTransferOffers(offers);
+      s.setInboxMessages(prev => [...prev, createInboxMessage(
+        MSG.transferWindowOpen(),
+        { calendarIndex, seasonNumber },
+      )]);
 
       s.setSummerData(prev => ({...prev, weeksLeft: 2}));
-      if (transferWindowOpen) s.setTransferWindowWeeksRemaining(prev => Math.max(0, prev - 1));
+      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else if (wl === 2) {
@@ -312,7 +334,7 @@ export function useSeasonFlow({
       setShowYouthIntake(true);
       s.setSummerPhase("intake");
       // YouthIntake onDone will set weeksLeft=1 and return to break
-      if (transferWindowOpen) s.setTransferWindowWeeksRemaining(prev => Math.max(0, prev - 1));
+      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else {
@@ -360,7 +382,7 @@ export function useSeasonFlow({
         ...(names ? [createInboxMessage(MSG.wellRested(names), { calendarIndex, seasonNumber })] : []),
         createInboxMessage(MSG.seasonPreview(previewBody), { calendarIndex, seasonNumber }),
       ]);
-      if (transferWindowOpen) s.setTransferWindowWeeksRemaining(prev => Math.max(0, prev - 1));
+      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
       s.setSummerPhase(null);
       s.setSummerData(null);
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
