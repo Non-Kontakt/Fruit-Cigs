@@ -11,6 +11,7 @@ import { getBoardExpectation } from "../utils/boardExpectations.js";
 import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative } from "../utils/arcs.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { generateAITransferOffers } from "../utils/transfer.js";
+import { buildSeasonPreviewBody } from "../utils/seasonPreview.js";
 
 const FILTER_LABELS = { DEF: "Defenders", MID: "Midfielders", FWD: "Forwards", GK: "Goalkeepers" };
 
@@ -371,10 +372,16 @@ export function useSeasonFlow({
           }, { name: null, avg: -1 })
         : null;
       const topTeamName = topAI?.name || null;
+      // Single source of truth for the board's demand (also shown on the
+      // dashboard); the tenure/context preview copy wraps around it.
       const expectation = getBoardExpectation(leagueTier).line;
-      let previewBody = `A new season in ${newLeagueName} awaits.`;
-      if (topTeamName) previewBody += ` ${topTeamName} look like the ones to beat this season.`;
-      previewBody += ` ${expectation}`;
+      // Fresh reads — tenure/context copy needs last season's outcome, not
+      // whatever this closure captured when advanceSummer was first called.
+      const { lastSeasonMove, clubHistory } = useGameStore.getState();
+      const previewBody = buildSeasonPreviewBody({
+        seasonNumber, leagueTier, leagueName: newLeagueName, topTeamName, expectation,
+        lastSeasonMove, clubHistory,
+      });
       s.setInboxMessages(prev => [...prev,
         ...(names ? [createInboxMessage(MSG.wellRested(names), { calendarIndex, seasonNumber })] : []),
         createInboxMessage(MSG.seasonPreview(previewBody), { calendarIndex, seasonNumber }),
