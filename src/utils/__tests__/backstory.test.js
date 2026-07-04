@@ -47,3 +47,26 @@ describe("getFreeAgentBackstory", () => {
     expect(line.length).toBeGreaterThan(0);
   });
 });
+
+// The message boundary must tolerate player objects with no backstory
+// (legacy saves, tests, future generators) without leaking "undefined"
+// into inbox copy.
+describe("free-agent message backstory boundary", () => {
+  it("omits the backstory sentence cleanly when the player has none", async () => {
+    const { MSG } = await import("../../data/messages.js");
+    const bare = { name: "Test Player", age: 25, position: "CM" };
+    for (const factory of [MSG.transferInsider, MSG.saudiAgent]) {
+      const body = factory(bare, 14).body;
+      expect(body).not.toContain("undefined");
+      expect(body).not.toContain("  "); // no double space where the sentence was
+    }
+  });
+
+  it("includes the backstory as its own sentence when present", async () => {
+    const { MSG } = await import("../../data/messages.js");
+    const storied = { name: "Test Player", age: 25, position: "CM", backstory: "Released after a contract dispute." };
+    for (const factory of [MSG.transferInsider, MSG.saudiAgent]) {
+      expect(factory(storied, 14).body).toContain("Released after a contract dispute. ");
+    }
+  });
+});
