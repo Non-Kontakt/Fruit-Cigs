@@ -402,7 +402,7 @@ export function useAdvanceWeek({
             const drainKey = progressKeys[rand(0, progressKeys.length - 1)];
             newPlayer.statProgress[drainKey] = Math.max(0, (newPlayer.statProgress[drainKey] || 0) - 0.15 - Math.random() * 0.2);
           }
-          const snapshot = {};
+          const snapshot = { week: calendarIndex + 1, season: seasonNumber };
           ATTRIBUTES.forEach(({ key }) => { snapshot[key] = newPlayer.attrs[key]; });
           newPlayer.history.push(snapshot);
           return newPlayer;
@@ -418,7 +418,7 @@ export function useAdvanceWeek({
             // Tier 8: Carded players skip training
             if (mod.cardSkipsTraining && cardedPlayerIdsRef.current.has(p.id)) {
               weekCardSkips.push(p.name);
-              const snapshot = {};
+              const snapshot = { week: calendarIndex + 1, season: seasonNumber };
               ATTRIBUTES.forEach(({ key }) => { snapshot[key] = newPlayer.attrs[key]; });
               newPlayer.history.push(snapshot);
               return newPlayer;
@@ -462,7 +462,7 @@ export function useAdvanceWeek({
                 return next;
               });
               duoBoostedIds.delete(p.id);
-              const snapshot = {};
+              const snapshot = { week: calendarIndex + 1, season: seasonNumber };
               ATTRIBUTES.forEach(({ key }) => { snapshot[key] = newPlayer.attrs[key]; });
               newPlayer.history.push(snapshot);
               return newPlayer;
@@ -492,7 +492,7 @@ export function useAdvanceWeek({
                   oldVal: current,
                   newVal: current + gain,
                 });
-                const snapshot = {};
+                const snapshot = { week: calendarIndex + 1, season: seasonNumber };
                 ATTRIBUTES.forEach(({ key }) => { snapshot[key] = newPlayer.attrs[key]; });
                 newPlayer.history.push(snapshot);
                 return newPlayer;
@@ -622,7 +622,7 @@ export function useAdvanceWeek({
           }
         }
 
-        const snapshot = {};
+        const snapshot = { week: calendarIndex + 1, season: seasonNumber };
         ATTRIBUTES.forEach(({ key }) => { snapshot[key] = newPlayer.attrs[key]; });
         newPlayer.history.push(snapshot);
 

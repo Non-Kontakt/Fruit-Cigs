@@ -90,6 +90,25 @@ test("cig cards: progress meter shows current/target, absent without a progress 
   await expect(plainCard.locator('[data-testid="cig-card-meter"]')).toHaveCount(0);
 });
 
+// Progress sparklines used to have no time context at all — this fixture's
+// PAC line has a real season-1 growth spurt then two flat seasons, so it
+// should render season-boundary ticks on every attribute's chart and label
+// the growing attribute's last gain, while flat attributes report no gain.
+test("player progress: sparklines show season ticks and last-gain context", async ({ page }) => {
+  await page.goto("qa.html?c=player-progress");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("PROGRESS", { exact: false }).first().click();
+  await page.waitForTimeout(200);
+
+  await expect(page.getByText("last +1 S1W6", { exact: true })).toBeVisible();
+  await expect(page.getByText("no gain in 17w", { exact: true }).first()).toBeVisible();
+
+  // Every attribute shares the same season stamps, so every sparkline (one
+  // per attribute) should draw the same 2 season-boundary ticks.
+  const dashedTicks = await page.locator('svg line[stroke-dasharray="2,2"]').count();
+  expect(dashedTicks).toBe(14); // 7 attributes × 2 season boundaries
+});
+
 test("achievement toast pauses on hover", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "hover/timer test — desktop only");
   await page.goto("qa.html?c=achievement-toast");

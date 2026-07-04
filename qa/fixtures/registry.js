@@ -24,6 +24,7 @@ export const FIXTURES = [
   { id: "achievement-toast", label: "Achievement — unlock toast (auto-dismiss)" },
   { id: "cig-card-states", label: "Cig cards — hidden/uncollected/collected/legendary" },
   { id: "cig-pack-detail", label: "Cig packs — pack detail card grid", clickText: "Cherry Cigs" },
+  { id: "player-progress", label: "Player panel — progress sparklines with season ticks", clickText: "PROGRESS" },
 ];
 
 export const FIXTURE_IDS = FIXTURES.map(f => f.id);
