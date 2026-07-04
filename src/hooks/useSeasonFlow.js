@@ -7,6 +7,7 @@ import { MSG } from "../data/messages.js";
 import { getModifier } from "../data/leagueModifiers.js";
 import { getOverall, pickRandom, rand } from "../utils/calc.js";
 import { getOvrCap } from "../utils/player.js";
+import { getBoardExpectation } from "../utils/boardExpectations.js";
 import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative } from "../utils/arcs.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { generateAITransferOffers } from "../utils/transfer.js";
@@ -348,11 +349,7 @@ export function useSeasonFlow({
           }, { name: null, avg: -1 })
         : null;
       const topTeamName = topAI?.name || null;
-      let expectation = "Survive and build for the future.";
-      if (leagueTier <= 3) expectation = "The chairman demands nothing less than a title challenge.";
-      else if (leagueTier <= 5) expectation = "The board expects a top-three finish and promotion.";
-      else if (leagueTier <= 7) expectation = "A top-half finish is the minimum expectation.";
-      else if (leagueTier <= 9) expectation = "Avoid relegation and consolidate your position.";
+      const expectation = getBoardExpectation(leagueTier).line;
       let previewBody = `A new season in ${newLeagueName} awaits.`;
       if (topTeamName) previewBody += ` ${topTeamName} look like the ones to beat this season.`;
       previewBody += ` ${expectation}`;
