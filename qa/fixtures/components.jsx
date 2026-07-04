@@ -206,6 +206,35 @@ const leagueStatsProps = (extra = {}) => ({
   ...extra,
 });
 
+// --- League — HISTORY tab: two archived seasons, one with a non-player
+// champion (Season 2, most recent — default view) and one with the player
+// as champion (Season 1) so both the gold champion highlight and the green
+// player-row highlight are exercised.
+const mockLeagueHistory = {
+  2: {
+    11: {
+      leagueName: "Concrete Schoolyard",
+      standings: [
+        { name: "Yeralden", played: 18, won: 13, drawn: 3, lost: 2, goalsFor: 40, goalsAgainst: 14, points: 42 },
+        { name: "Red Lion FC", played: 18, won: 10, drawn: 4, lost: 4, goalsFor: 30, goalsAgainst: 18, points: 34 },
+      ],
+    },
+  },
+  1: {
+    11: {
+      leagueName: "Concrete Schoolyard",
+      standings: [
+        { name: "Red Lion FC", played: 18, won: 15, drawn: 2, lost: 1, goalsFor: 45, goalsAgainst: 10, points: 47 },
+        { name: "Yeralden", played: 18, won: 8, drawn: 3, lost: 7, goalsFor: 22, goalsAgainst: 25, points: 27 },
+      ],
+    },
+  },
+};
+
+const leagueHistoryProps = (extra = {}) => leagueStatsProps({
+  seasonNumber: 3, leagueHistory: mockLeagueHistory, ...extra,
+});
+
 // --- League — knockout-tier qualification badges ----------------------------
 
 // Tier 3 (Euro Dynasty, knockoutAtEnd) — 7 teams so the top-4 Dynasty Cup
@@ -519,6 +548,12 @@ const RENDERERS = {
   "leaguestats-mid": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
       <LeaguePage {...leagueStatsProps()} />
+    </div>
+  ),
+  // Lands on the TABLE tab; the spec clicks "HISTORY" (registry.clickText).
+  "league-history": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <LeaguePage {...leagueHistoryProps()} />
     </div>
   ),
   // Lands on the (default) LEAGUES tab — no clickText needed.

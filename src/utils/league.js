@@ -94,6 +94,31 @@ export function sortStandings(table) {
   return [...table].sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
 }
 
+// Builds one season's worth of full, sorted standings for every division —
+// the player's own tier (from `playerLeague`) plus every other tier
+// (from `allLeagueStates`) — for the leagueHistory season archive. Called
+// at season rollover, BEFORE the new season's league objects are built, so
+// callers must pass the closing season's (not the new season's) league
+// state.
+export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueStates) {
+  const snapshot = {};
+  const addTier = (tier, leagueObj) => {
+    if (!leagueObj?.table || !leagueObj?.teams) return;
+    const sorted = sortStandings(leagueObj.table);
+    snapshot[tier] = {
+      leagueName: leagueObj.leagueName || LEAGUE_DEFS[tier]?.name || `Tier ${tier}`,
+      standings: sorted.map(r => ({
+        name: leagueObj.teams[r.teamIndex]?.name || "?",
+        played: r.played, won: r.won, drawn: r.drawn, lost: r.lost,
+        goalsFor: r.goalsFor, goalsAgainst: r.goalsAgainst, points: r.points,
+      })),
+    };
+  };
+  if (playerTier != null) addTier(playerTier, playerLeague);
+  Object.entries(allLeagueStates || {}).forEach(([tier, leagueObj]) => addTier(Number(tier), leagueObj));
+  return snapshot;
+}
+
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
 export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup }, currentTrackId = null) {

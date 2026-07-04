@@ -16,6 +16,7 @@ import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievem
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
 import { generateMatchHeadline, generateSeasonHeadline } from "../utils/headlines.js";
+import { isRival } from "../utils/rivalries.js";
 import { BGM } from "../utils/sfx.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
@@ -541,6 +542,28 @@ export function useMatchResult({
           const scoreStr = `${playerGoals}-${oppGoals}`;
           if (goalDiff > 0 && (!h.biggestWin || goalDiff > h.biggestWin.diff)) h.biggestWin = { score: scoreStr, opponent: oppTeam?.name || "?", season: s.seasonNumber, diff: goalDiff };
           if (goalDiff < 0 && (!h.worstDefeat || goalDiff < h.worstDefeat.diff)) h.worstDefeat = { score: scoreStr, opponent: oppTeam?.name || "?", season: s.seasonNumber, diff: goalDiff };
+
+          // Rivalry ledger: per-opponent head-to-head record, keyed by team
+          // name (stable across seasons; league table indices aren't). Red
+          // cards come from the live match events — the condensed
+          // leagueResults entries can't distinguish red from yellow.
+          if (oppTeam?.name) {
+            const ledger = { ...(h.rivalryLedger || {}) };
+            const existing = ledger[oppTeam.name] || { played: 0, wins: 0, draws: 0, losses: 0, closeGames: 0, redCards: 0, lastMeetings: [] };
+            const redCardsThisMatch = (matchResult.events || []).filter(evt => evt.type === "red_card").length;
+            const isCloseGame = Math.abs(goalDiff) <= 1;
+            const meeting = { season: s.seasonNumber, week: calIdx + 1, playerGoals, oppGoals };
+            ledger[oppTeam.name] = {
+              played: existing.played + 1,
+              wins: existing.wins + (playerWon ? 1 : 0),
+              draws: existing.draws + (isDraw ? 1 : 0),
+              losses: existing.losses + (playerLost ? 1 : 0),
+              closeGames: existing.closeGames + (isCloseGame ? 1 : 0),
+              redCards: existing.redCards + redCardsThisMatch,
+              lastMeetings: [...existing.lastMeetings, meeting].slice(-5),
+            };
+            h.rivalryLedger = ledger;
+          }
           return h;
         });
 
@@ -559,6 +582,7 @@ export function useMatchResult({
           const postTable = sortStandings(currentLeague.table || []);
           const postPos = postTable.findIndex(r => currentLeague.teams[r.teamIndex]?.isPlayer) + 1;
           const prePos = useGameStore.getState().previousLeaguePosition;
+          const rivalEntry = useGameStore.getState().clubHistory?.rivalryLedger?.[oppTeam?.name];
           s.setLatestHeadline({
             ...generateMatchHeadline({
               teamName: s.teamName,
@@ -576,6 +600,7 @@ export function useMatchResult({
               boardSentiment: s.boardSentiment,
               recordUnbeatenRun: !playerLost && newConsUnbeaten >= 8 && newConsUnbeaten > (s.clubHistory?.bestUnbeatenRun || 0),
               seasonBiggestWin: playerWon && goalDiff >= 4 && goalDiff > (s.clubHistory?.biggestWin?.diff || 0),
+              isDerby: isRival(rivalEntry),
             }),
             season: s.seasonNumber,
             calendarIndex: calIdx,
