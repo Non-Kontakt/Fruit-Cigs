@@ -178,6 +178,11 @@ export const useGameStore = create((set, get) => ({
     biggestWin: null, worstDefeat: null, bestSeasonFinish: null, bestSeasonPoints: 0,
     playerCareers: {}, allTimeXI: {}, seasonArchive: [], cupHistory: [],
   },
+  // Full sorted standings for every division, snapshotted at the end of
+  // each season — { [seasonNumber]: { [tier]: { leagueName, standings } } }.
+  // Per-career: reset on a brand new game, but NOT at season rollover
+  // (mirrors clubHistory's persistence).
+  leagueHistory: {},
   // Canonical all-time league stats — tier-scoped. Each entry is a full
   // competitionStats blob for that tier. Tier scoping prevents promoted/
   // relegated teams from carrying old-division stats into the wrong
@@ -374,6 +379,7 @@ export const useGameStore = create((set, get) => ({
   setSecondPlaceFinishes: (val) => set(s => ({ secondPlaceFinishes: typeof val === "function" ? val(s.secondPlaceFinishes) : val })),
   setOvrHistory: (val) => set(s => ({ ovrHistory: typeof val === "function" ? val(s.ovrHistory) : val })),
   setClubHistory: (val) => set(s => ({ clubHistory: typeof val === "function" ? val(s.clubHistory) : val })),
+  setLeagueHistory: (val) => set(s => ({ leagueHistory: typeof val === "function" ? val(s.leagueHistory) : val })),
   setAllTimeLeagueStatsByTier: (val) => set(s => ({ allTimeLeagueStatsByTier: typeof val === "function" ? val(s.allTimeLeagueStatsByTier) : val })),
   setSeasonLeagueStatsByTier: (val) => set(s => ({ seasonLeagueStatsByTier: typeof val === "function" ? val(s.seasonLeagueStatsByTier) : val })),
   setSeasonLeagueStatsAvailable: (val) => set(s => ({ seasonLeagueStatsAvailable: typeof val === "function" ? val(s.seasonLeagueStatsAvailable) : val })),
@@ -524,6 +530,7 @@ export const useGameStore = create((set, get) => ({
       biggestWin: null, worstDefeat: null, bestSeasonFinish: null, bestSeasonPoints: 0,
       playerCareers: {}, allTimeXI: {}, seasonArchive: [], cupHistory: [],
     },
+    leagueHistory: {},
     allTimeLeagueStatsByTier: {},
     seasonLeagueStatsByTier: {},
     seasonLeagueStatsAvailable: true,

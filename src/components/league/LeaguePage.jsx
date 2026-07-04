@@ -11,11 +11,14 @@ import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers } from "../../utils/competitionStats.js";
 
-export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, playerSeasonStats, playerRatingTracker, squad, startingXI, bench, seasonNumber, clubHistory, allTimeLeagueStatsByTier, allLeagueStates, leagueTier: leagueTierProp, onPlayerClick, onTeamClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, dynastyCupBracket, miniTournamentBracket, ovrCap = 20, seasonLeagueStatsByTier = null, seasonLeagueStatsAvailable = true }) {
+export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, playerSeasonStats, playerRatingTracker, squad, startingXI, bench, seasonNumber, clubHistory, leagueHistory = {}, allTimeLeagueStatsByTier, allLeagueStates, leagueTier: leagueTierProp, onPlayerClick, onTeamClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, dynastyCupBracket, miniTournamentBracket, ovrCap = 20, seasonLeagueStatsByTier = null, seasonLeagueStatsAvailable = true }) {
   const [activeTab, setActiveTab] = useState("leagues");
   const [selectedMD, setSelectedMD] = useState(Math.max(0, matchweekIndex - 1));
   const [viewTeamData, setViewTeamData] = useState(null); // { team, tableRow, seasonGoals, seasonAssists }
   const [selectedSimTier, setSelectedSimTier] = useState(null);
+  // History tab only: which past season's archive to display. Defaults to
+  // the most recent season once leagueHistory has entries.
+  const [selectedHistorySeason, setSelectedHistorySeason] = useState(null);
   // All-Time tab only: "tier" shows the selected division's record book
   // (today's default behaviour), "all" merges every division into one
   // career-wide view via mergeStatsAcrossTiers.
@@ -341,6 +344,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
         <button onClick={() => { setActiveTab("stats"); setViewTeamData(null); }} style={tabStyle("stats")}>⚽ STATS</button>
         <button onClick={() => { setActiveTab("tots"); setViewTeamData(null); }} style={tabStyle("tots")}>🌟 TOTS</button>
         <button onClick={() => { setActiveTab("alltime"); setViewTeamData(null); }} style={tabStyle("alltime")}>🏛️ ALL-TIME</button>
+        <button onClick={() => { setActiveTab("history"); setViewTeamData(null); }} style={tabStyle("history")}>📜 HISTORY</button>
       </div>
 
       {/* Tab content */}
@@ -946,6 +950,101 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                   emptyText: "No reds on record yet",
                 })}
               </div>
+            </div>
+          );
+        })()}
+
+        {activeTab === "history" && (() => {
+          const historySeasons = Object.keys(leagueHistory || {}).map(Number).sort((a, b) => b - a);
+          if (historySeasons.length === 0) {
+            return (
+              <div style={{ padding: mob ? "20px 14px" : "24px", textAlign: "center", fontSize: F.sm, color: C.bgInput }}>
+                History begins at the end of your first season.
+              </div>
+            );
+          }
+          const activeHistorySeason = historySeasons.includes(selectedHistorySeason) ? selectedHistorySeason : historySeasons[0];
+          const historyCols = mob ? "22px 1fr 26px 26px 26px 26px 30px 30px 38px" : "36px 1fr 40px 40px 40px 40px 46px 46px 54px";
+          const tierEntry = leagueHistory[activeHistorySeason]?.[displayTier];
+          return (
+            <div style={{ padding: mob ? "20px 14px" : "24px" }}>
+              {/* Season selector */}
+              <div style={{ display: "flex", gap: 4, marginBottom: 10, flexWrap: "wrap" }}>
+                {historySeasons.map(sn => {
+                  const isActive = sn === activeHistorySeason;
+                  return (
+                    <button key={sn} onClick={() => setSelectedHistorySeason(sn)} style={{
+                      padding: mob ? "7px 9px" : "7px 12px",
+                      fontSize: mob ? F.micro : F.xs,
+                      fontFamily: FONT,
+                      background: isActive ? "rgba(250,204,21,0.13)" : "transparent",
+                      border: `1px solid ${isActive ? C.gold : C.bgInput}`,
+                      color: isActive ? C.gold : C.textDim,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}>
+                      Season {sn}
+                    </button>
+                  );
+                })}
+              </div>
+              {renderTierChips()}
+
+              {!tierEntry ? (
+                <div style={{ textAlign: "center", padding: 28, fontSize: F.sm, color: C.bgInput }}>
+                  No data for this division that season.
+                </div>
+              ) : (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: mob ? F.sm : F.md, color: C.gold, marginBottom: 10, letterSpacing: 1 }}>
+                    {tierEntry.leagueName} — SEASON {activeHistorySeason}
+                  </div>
+                  {/* Column headers */}
+                  <div style={{ display: "grid", gridTemplateColumns: historyCols, padding: "10px 10px", fontSize: F.xs, color: C.slate, borderBottom: `1px solid ${C.bgInput}`, gap: 4 }}>
+                    <span>#</span><span>TEAM</span>
+                    <span style={{ textAlign: "center" }}>P</span>
+                    <span style={{ textAlign: "center" }}>W</span>
+                    <span style={{ textAlign: "center" }}>D</span>
+                    <span style={{ textAlign: "center" }}>L</span>
+                    <span style={{ textAlign: "center" }}>GF</span>
+                    <span style={{ textAlign: "center" }}>GA</span>
+                    <span style={{ textAlign: "center" }}>PTS</span>
+                  </div>
+                  {/* Rows */}
+                  {tierEntry.standings.map((row, pos) => {
+                    const isChampion = pos === 0;
+                    const isPlayerRow = row.name === teamName;
+                    return (
+                      <div key={`${row.name}|${pos}`} style={{
+                        display: "grid", gridTemplateColumns: historyCols,
+                        padding: mob ? "13px 10px" : "10px 10px", fontSize: F.sm, gap: 4,
+                        borderBottom: `1px solid ${C.bgCard}`,
+                        borderLeft: isPlayerRow ? `3px solid ${C.green}` : isChampion ? `3px solid ${C.gold}` : "3px solid transparent",
+                        background: isPlayerRow ? "rgba(74,222,128,0.10)" : isChampion ? "rgba(250,204,21,0.06)" : "transparent",
+                        alignItems: "center",
+                      }}>
+                        <span style={{ color: isPlayerRow ? C.green : isChampion ? C.gold : C.textDim, fontSize: F.md }}>{pos + 1}</span>
+                        <span style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+                          <span style={{
+                            color: isPlayerRow ? C.green : C.text, fontSize: mob ? F.xs : F.sm,
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0,
+                          }}>
+                            {row.name}
+                          </span>
+                          {isChampion && <span style={{ fontSize: F.micro, color: "#facc15", marginLeft: 6, flexShrink: 0 }}>(C)</span>}
+                        </span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.textMuted }}>{row.played}</span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.textMuted }}>{row.won}</span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.textMuted }}>{row.drawn}</span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.textMuted }}>{row.lost}</span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.textMuted }}>{row.goalsFor}</span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.textMuted }}>{row.goalsAgainst}</span>
+                        <span style={{ textAlign: "center", color: isPlayerRow ? C.green : C.text, fontWeight: "bold", fontSize: mob ? F.sm : F.md }}>{row.points}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })()}

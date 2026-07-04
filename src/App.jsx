@@ -17,7 +17,7 @@ import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
-import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound } from "./utils/league.js";
+import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot } from "./utils/league.js";
 import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
 import { checkBreakouts } from "./utils/breakouts.js";
@@ -269,7 +269,7 @@ function FruitCigs() {
     setConsecutiveUnbeaten, setConsecutiveLosses, setConsecutiveDraws,
     setConsecutiveWins, setConsecutiveScoreless, setConsecutiveCleanSheets,
     setHalfwayPosition, setPreviousLeaguePosition, setRecentScorelines, setSecondPlaceFinishes,
-    setOvrHistory, setClubHistory, setAllTimeLeagueStatsByTier, setSeasonLeagueStatsByTier, setSeasonLeagueStatsAvailable,
+    setOvrHistory, setClubHistory, setLeagueHistory, setAllTimeLeagueStatsByTier, setSeasonLeagueStatsByTier, setSeasonLeagueStatsAvailable,
     setSeasonCupStatsByCup, setAllTimeCupStatsByCup, setSeasonCupStatsAvailable,
     setStartingXI, setBench, setFormation, setSlotAssignments, setPrevStartingXI, setXiPresets,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
@@ -650,6 +650,8 @@ function FruitCigs() {
   const lopsidedWarned = useGameStore(s => s.lopsidedWarned);
   // Persistent club history — survives across seasons
   const clubHistory = useGameStore(s => s.clubHistory);
+  // Full standings archive per season/division — survives across seasons
+  const leagueHistory = useGameStore(s => s.leagueHistory);
   const prevStartingXI = useGameStore(s => s.prevStartingXI);
   const motmTracker = useGameStore(s => s.motmTracker);
   const stScoredConsecutive = useGameStore(s => s.stScoredConsecutive);
@@ -2511,6 +2513,7 @@ function FruitCigs() {
           bench={bench}
           seasonNumber={seasonNumber}
           clubHistory={clubHistory}
+          leagueHistory={leagueHistory}
           allTimeLeagueStatsByTier={allTimeLeagueStatsByTier}
           seasonLeagueStatsByTier={seasonLeagueStatsByTier}
           seasonLeagueStatsAvailable={seasonLeagueStatsAvailable}
@@ -6189,6 +6192,10 @@ function FruitCigs() {
             // Regenerate leagues
             const rosters = leagueRosters || initLeagueRosters(teamName);
             if (!leagueRosters) setLeagueRosters(rosters);
+            // Snapshot the closing season's full standings for every
+            // division BEFORE the league objects get rebuilt below —
+            // `league`/`allLeagueStates` still hold the final tables here.
+            setLeagueHistory(prev => ({ ...prev, [seasonNumber]: buildLeagueHistorySnapshot(leagueTier, league, allLeagueStates) }));
             const newLeague = initLeague(fullSquad, teamName, NUM_TIERS, rosters, null, newPrestige);
             setLeague(newLeague);
             const newCup = initCup(teamName, NUM_TIERS, rosters);
@@ -6801,6 +6808,10 @@ function FruitCigs() {
               });
 
               setLeagueRosters(rosters);
+              // Snapshot the closing season's full standings for every
+              // division BEFORE the league objects get rebuilt below —
+              // `league`/`allLeagueStates` still hold the final tables here.
+              setLeagueHistory(prev => ({ ...prev, [seasonNumber]: buildLeagueHistorySnapshot(leagueTier, league, allLeagueStates) }));
               const newLeague2 = initLeague(squad, teamName, newTier, rosters, evolvedSquads, prestigeLevel);
               setLeague(newLeague2);
               // matchweekIndex derived from calendarIndex — setCalendarIndex(0) below handles it
