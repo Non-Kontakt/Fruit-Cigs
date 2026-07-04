@@ -8,6 +8,7 @@ import { AchievementToast } from "../../src/components/achievements/AchievementT
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
+import { PlayerPanel } from "../../src/components/player/PlayerPanel.jsx";
 import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
 import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { FIXTURES as REGISTRY } from "./registry.js";
@@ -340,6 +341,33 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// --- Player panel — progress sparklines -------------------------------
+
+// Season 1: a real growth spurt on pace (8 → 13 across the season). Seasons
+// 2 and 3 are flat — nothing gains again — so the PROGRESS tab shows one
+// attribute with season-boundary ticks + a stamped "last gain", and the
+// rest reporting "no gain in Nw".
+function progressHistory() {
+  const history = [];
+  const paceBySeason = { 1: [8, 9, 10, 11, 12, 13], 2: [13, 13, 13, 13, 13, 13], 3: [13, 13, 13, 13, 13, 13] };
+  [1, 2, 3].forEach(season => {
+    paceBySeason[season].forEach((pace, i) => {
+      history.push({
+        week: i + 1, season,
+        pace, shooting: 9, passing: 11, defending: 7, physical: 10, technique: 12, mental: 9,
+      });
+    });
+  });
+  return history;
+}
+
+const progressPlayer = {
+  id: "fx-progress", name: "Jamie Sparks", position: "ST", age: 19, nationality: "ENG",
+  attrs: { pace: 13, shooting: 9, passing: 11, defending: 7, physical: 10, technique: 12, mental: 9 },
+  potential: 16, statProgress: {}, training: "pace", gains: {}, tags: [], injuryHistory: {},
+  history: progressHistory(),
+};
+
 // --- Club — All-Time XI ------------------------------------------------
 
 // Two adjacent defenders (CB1/CB2) carry deliberately long names — this is
@@ -533,6 +561,9 @@ const RENDERERS = {
         seasonLength={48}
       />
     </div>
+  ),
+  "player-progress": () => (
+    <PlayerPanel player={progressPlayer} onClose={noop} onAssignTraining={noop} ovrCap={20} />
   ),
   "alltime-xi": () => (
     <div style={{ maxWidth: 500, margin: "0 auto", padding: 16 }}>

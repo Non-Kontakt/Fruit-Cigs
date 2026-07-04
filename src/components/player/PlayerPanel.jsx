@@ -207,16 +207,16 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                 </div>
               ) : (
                 ATTRIBUTES.map(attr => {
-                  const data = (player.history || []).map(h => h[attr.key]);
+                  const history = player.history || [];
                   const current = player.attrs[attr.key];
-                  const start = data[0];
+                  const start = history[0]?.[attr.key];
                   return (
                     <div key={attr.key} style={{
                       display: "flex", alignItems: "center", gap: 12, marginBottom: 12,
                       padding: "8px 0",
                     }}>
                       <span style={{ color: attr.color, fontSize: F.lg, width: 51, textAlign: "right" }}>{attr.label}</span>
-                      <Sparkline data={data} color={attr.color} ovrCap={effectiveCap} />
+                      <Sparkline history={history} attrKey={attr.key} color={attr.color} ovrCap={effectiveCap} />
                       <span style={{ color: C.textDim, fontSize: F.md }}>
                         {start}→{current}
                       </span>
