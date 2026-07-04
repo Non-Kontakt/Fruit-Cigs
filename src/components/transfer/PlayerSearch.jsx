@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, BTN } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ATTRIBUTES } from "../../data/training.js";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
@@ -573,8 +573,8 @@ export function PlayerSearch({
               <button
                 onClick={() => setShowFilters(false)}
                 style={{
-                  background: "none", border: "none", color: C.textDim,
-                  fontSize: F.xl, cursor: "pointer", fontFamily: FONT,
+                  ...BTN.text,
+                  fontSize: F.xl,
                 }}
               >
                 ✕
