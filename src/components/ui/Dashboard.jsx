@@ -8,6 +8,7 @@ import { displayName } from "../../utils/player.js";
 import { getVisibleMessages, getUnreadCount } from "../../utils/messageUtils.js";
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
 import { buildTickerBeats } from "../../utils/tickerBeats.js";
+import { getBoardExpectation } from "../../utils/boardExpectations.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { QualChip } from "./QualChip.jsx";
 
@@ -581,6 +582,11 @@ export function Dashboard({
                           <span style={{ flexShrink: 0 }}>S{entry.season}W{entry.week}</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {label === "BOARD" && (
+                    <div style={{ fontSize: F.xs, color: C.textDim, marginTop: 4 }}>
+                      expects {getBoardExpectation(leagueTier).demand}
                     </div>
                   )}
                 </div>
