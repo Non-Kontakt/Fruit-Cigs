@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
-import { getOverall, getAttrColor } from "../../utils/calc.js";
+import { getOverall, getAttrColor, relColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { TEAM_TRAITS } from "../../data/leagues.js";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { PositionChip } from "../ui/PositionChip.jsx";
+import { XpBar } from "../ui/XpBar.jsx";
 
 const POSITION_ORDER = ["GK", "LB", "CB", "RB", "CM", "AM", "LW", "RW", "ST"];
 
@@ -15,28 +16,6 @@ function sortByPosition(players) {
     const bi = POSITION_ORDER.indexOf(b.position);
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
   });
-}
-
-function relColor(pct, alpha = 1) {
-  const t = Math.max(0, Math.min(100, pct)) / 100;
-  const r = Math.round(100 - 26 * t);
-  const g = Math.round(116 + 106 * t);
-  const b = Math.round(139 - 11 * t);
-  return alpha < 1 ? `rgba(${r},${g},${b},${alpha})` : `rgb(${r},${g},${b})`;
-}
-
-function XpBar({ pct, color, height = 6 }) {
-  return (
-    <div style={{
-      height, background: C.bgCard, position: "relative", overflow: "hidden",
-      borderRadius: 2,
-    }}>
-      <div style={{
-        position: "absolute", top: 0, left: 0, bottom: 0, width: `${pct}%`,
-        background: color, transition: "width 0.3s ease",
-      }} />
-    </div>
-  );
 }
 
 function PlayerRow({ player, matchGoals, seasonGoals, seasonAssists, onPlayerClick, ovrCap = 20 }) {

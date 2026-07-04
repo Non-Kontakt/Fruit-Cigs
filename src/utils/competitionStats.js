@@ -304,6 +304,40 @@ export function rollIntoAllTime(allTime, season) {
 }
 
 /**
+ * Resolve which identity (name/teamId/teamName/position) to display for a
+ * merged player record, given their historical entry and their current
+ * season's entry (if any).
+ *
+ * Display rule: a player who is active this season shows their CURRENT
+ * club/name, full stop — regardless of which historical spell scored more.
+ * A player with no current-season presence falls back to the historical
+ * entry as-is (typically already resolved to their best spell by whatever
+ * built it, e.g. mergeStatsAcrossTiers).
+ *
+ * Pure — never mutates either input.
+ *
+ * @param {object|null} historicalEntry - identity-bearing entry (name/teamId/teamName/position)
+ * @param {object|null} currentEntry - this season's entry for the same key, or null/undefined if inactive
+ */
+export function resolveDisplayIdentity(historicalEntry, currentEntry) {
+  const h = historicalEntry || {};
+  if (currentEntry) {
+    return {
+      name: currentEntry.name || h.name || "",
+      teamId: currentEntry.teamId != null ? currentEntry.teamId : (h.teamId ?? null),
+      teamName: currentEntry.teamName || h.teamName || "",
+      position: currentEntry.position || h.position || null,
+    };
+  }
+  return {
+    name: h.name || "",
+    teamId: h.teamId ?? null,
+    teamName: h.teamName || "",
+    position: h.position || null,
+  };
+}
+
+/**
  * Merge per-tier competitionStats blobs into a single career-wide blob.
  *
  * AI teams are promoted/relegated most seasons, so a player's per-tier
@@ -314,34 +348,50 @@ export function rollIntoAllTime(allTime, season) {
  *
  * Identity fields (name/teamName/position) are taken from whichever tier's
  * entry has the most goals for that key, so display shows the player's
- * most notable spell rather than an arbitrary last-write-wins pick.
+ * most notable spell rather than an arbitrary last-write-wins pick — UNLESS
+ * `currentSeasonPlayers` says the player is active this season, in which
+ * case their current club/name wins outright (see resolveDisplayIdentity).
  *
  * Pure — returns a new blob; never mutates any input.
  *
  * @param {object} statsByTier - { [tier]: competitionStatsBlob }
+ * @param {object} [currentSeasonPlayers] - optional "active this season" signal:
+ *   either a competitionStats-shaped blob ({ players: {...} }) or a plain
+ *   { [key]: entry } map. Keys present here win identity over best-spell.
  * @returns {{players: object}}
  */
-export function mergeStatsAcrossTiers(statsByTier) {
+export function mergeStatsAcrossTiers(statsByTier, currentSeasonPlayers) {
   const players = {};
   // Best single-tier goal tally per key — identity must compare spell vs
   // spell, not spell vs the accumulated sum, or an early small spell can
   // outrank a later dominant one.
   const bestSpellGoals = {};
   if (!statsByTier) return { players };
+  const currentPlayers = (currentSeasonPlayers && currentSeasonPlayers.players)
+    || currentSeasonPlayers
+    || {};
 
   for (const blob of Object.values(statsByTier)) {
     if (!blob || !blob.players) continue;
     for (const [key, entry] of Object.entries(blob.players)) {
       const prev = players[key];
+      const currentEntry = Object.prototype.hasOwnProperty.call(currentPlayers, key)
+        ? currentPlayers[key]
+        : null;
       if (!prev) {
         bestSpellGoals[key] = entry.goals || 0;
+        const identity = currentEntry
+          ? resolveDisplayIdentity(entry, currentEntry)
+          : {
+              name: entry.name || "",
+              teamId: entry.teamId ?? null,
+              teamName: entry.teamName || "",
+              position: entry.position || null,
+            };
         players[key] = {
           key,
           playerId: entry.playerId || null,
-          name: entry.name || "",
-          teamId: entry.teamId ?? null,
-          teamName: entry.teamName || "",
-          position: entry.position || null,
+          ...identity,
           goals: entry.goals || 0,
           assists: entry.assists || 0,
           yellows: entry.yellows || 0,
@@ -349,16 +399,25 @@ export function mergeStatsAcrossTiers(statsByTier) {
         };
         continue;
       }
-      // Identity comes from whichever tier entry has the most goals — the
-      // player's dominant spell — not the most recently merged one.
-      const useNewIdentity = (entry.goals || 0) > bestSpellGoals[key];
-      if (useNewIdentity) bestSpellGoals[key] = entry.goals || 0;
+      let identityFields;
+      if (currentEntry) {
+        // Active this season: current club/name wins outright.
+        identityFields = resolveDisplayIdentity(entry, currentEntry);
+      } else {
+        // Identity comes from whichever tier entry has the most goals — the
+        // player's dominant spell — not the most recently merged one.
+        const useNewIdentity = (entry.goals || 0) > bestSpellGoals[key];
+        if (useNewIdentity) bestSpellGoals[key] = entry.goals || 0;
+        identityFields = {
+          name: useNewIdentity ? (entry.name || prev.name) : prev.name,
+          teamId: useNewIdentity ? (entry.teamId ?? prev.teamId) : prev.teamId,
+          teamName: useNewIdentity ? (entry.teamName || prev.teamName) : prev.teamName,
+          position: useNewIdentity ? (entry.position || prev.position) : prev.position,
+        };
+      }
       players[key] = {
         ...prev,
-        name: useNewIdentity ? (entry.name || prev.name) : prev.name,
-        teamId: useNewIdentity ? (entry.teamId ?? prev.teamId) : prev.teamId,
-        teamName: useNewIdentity ? (entry.teamName || prev.teamName) : prev.teamName,
-        position: useNewIdentity ? (entry.position || prev.position) : prev.position,
+        ...identityFields,
         goals: (prev.goals || 0) + (entry.goals || 0),
         assists: (prev.assists || 0) + (entry.assists || 0),
         yellows: (prev.yellows || 0) + (entry.yellows || 0),

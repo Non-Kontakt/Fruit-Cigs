@@ -4,6 +4,7 @@ import { STARTING_XI_POSITIONS, EXTRA_POOL, POSITION_TYPES, POSITION_ORDER, ALL_
 import { ATTRIBUTES } from "../data/training.js";
 import { AI_BENCH_POSITIONS, TRAIT_SQUAD_STYLE } from "../data/leagues.js";
 import { rand, getOverall, pickRandom } from "./calc.js";
+import { getFreeAgentBackstory } from "./backstory.js";
 
 // Prestige OVR scaling — caps and offsets for each prestige level
 export function getOvrCap(prestigeLevel = 0) {
@@ -831,6 +832,7 @@ export function generateFreeAgent(tierStrength, squadAvgOvr, ovrCap = 20, usedNa
     name, position, age, attrs, potential, nationality: natCode,
     statProgress: {}, training: "balanced", gains: {},
     history: [{ ...attrs }], injury: null, tags: [], injuryHistory: {},
+    backstory: getFreeAgentBackstory(age, position),
   };
 }
 
