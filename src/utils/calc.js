@@ -103,8 +103,10 @@ export function getTrainingProgress(currentStat, age, potential, overall, appear
  * boost is a bonus on top, not a substitute for it.
  */
 export function computeDuoBoost(current, playerCap, duoBoostAmount, oldProgress = 0) {
-  const duoAmount = Math.min(duoBoostAmount || 1, playerCap - current);
-  const gain = Math.max(1, duoAmount);
+  // The cap invariant lives here, not at call sites: at or above cap there
+  // is no gain and banked progress passes through untouched.
+  if (current >= playerCap) return { gain: 0, newValue: current, newProgress: oldProgress };
+  const gain = Math.min(Math.max(1, duoBoostAmount || 1), playerCap - current);
   return { gain, newValue: current + gain, newProgress: oldProgress };
 }
 

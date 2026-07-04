@@ -210,4 +210,18 @@ describe("computeDuoBoost", () => {
     const result = computeDuoBoost(10, 20, 2);
     expect(result.newProgress).toBe(0);
   });
+
+  it("returns no gain at cap, preserving value and banked progress", () => {
+    const result = computeDuoBoost(20, 20, 2, 0.65);
+    expect(result.gain).toBe(0);
+    expect(result.newValue).toBe(20);
+    expect(result.newProgress).toBe(0.65);
+  });
+
+  it("returns no gain above cap without correcting the value downward", () => {
+    const result = computeDuoBoost(21, 20, 2, 0.3);
+    expect(result.gain).toBe(0);
+    expect(result.newValue).toBe(21);
+    expect(result.newProgress).toBe(0.3);
+  });
 });
