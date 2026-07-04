@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ATTRIBUTES, TRAINING_FOCUSES } from "../../data/training.js";
 import { ALL_POSITIONS } from "../../data/positions.js";
-import { getOverall, getOvrProgress, getAttrColor, getPosColor, progressToPips, getPositionTrainingWeeks } from "../../utils/calc.js";
+import { getOverall, getOvrProgress, getOvrWeights, getAttrColor, getPosColor, progressToPips, getPositionTrainingWeeks } from "../../utils/calc.js";
 import { getNatFlag, getNatLabel, displayName } from "../../utils/player.js";
 import { getPlayerValue, getRelationshipTier } from "../../utils/transfer.js";
 import { Sparkline } from "../charts/Sparkline.jsx";
@@ -16,6 +16,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
     : ovrCap;
   const overall = getOverall(player);
   const ovrPips = Math.min(4, Math.floor(getOvrProgress(player) * 5)); // 0–4; 5 would mean already levelled up
+  const ovrWeights = getOvrWeights(player.position);
   const [showChart, setShowChart] = useState(false);
   const [confirmRelease, setConfirmRelease] = useState(false);
   const mob = useMobile();
@@ -162,6 +163,8 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                 const progress = player.statProgress?.[attr.key] || 0;
                 const pips = progressToPips(progress);
                 const showPips = val < effectiveCap && player.training && !player.injury;
+                const weight = ovrWeights ? ovrWeights[attr.key] : null;
+                const isKeyAttr = weight != null && weight >= 0.15;
                 return (
                   <div key={attr.key} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 9 }}>
                     <span style={{ color: attr.color, fontSize: F.lg, width: 51, textAlign: "right" }}>{attr.label}</span>
@@ -189,12 +192,26 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                       )}
                     </div>
                     <span style={{ color: getAttrColor(val, effectiveCap), fontSize: F.xl, width: 40, textAlign: "right" }}>{val}</span>
+                    {weight != null && (
+                      <span style={{
+                        color: isKeyAttr ? attr.color : C.textDim,
+                        opacity: isKeyAttr ? 1 : 0.7,
+                        fontSize: F.xs, width: mob ? 24 : 30, textAlign: "right",
+                      }}>
+                        {Math.round(weight * 100)}%
+                      </span>
+                    )}
                     {gained && (
                       <span style={{ color: gained >= 2 ? C.gold : C.green, fontSize: F.lg, animation: "pulse 1s ease infinite" }}>▲+{gained}</span>
                     )}
                   </div>
                 );
               })}
+              <div style={{ color: C.bgInput, fontSize: F.sm, textAlign: "center", marginTop: 9 }}>
+                {ovrWeights
+                  ? `OVR = position-weighted average for ${player.position}`
+                  : "OVR = unweighted average across all attributes"}
+              </div>
             </div>
           </>
         ) : (
