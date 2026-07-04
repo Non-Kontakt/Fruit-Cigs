@@ -2,25 +2,17 @@ import React, { useState, useMemo, useEffect } from "react";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
-import { getOverall } from "../../utils/calc.js";
+import { getOverall, relColor } from "../../utils/calc.js";
 import { generateTradeId } from "../../utils/transfer.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
+import { XpBar } from "../ui/XpBar.jsx";
 import { PlayerPanel } from "../player/PlayerPanel.jsx";
 import { PlayerSearch } from "./PlayerSearch.jsx";
 import { TradeProposal } from "./TradeProposal.jsx";
 import { OffersPanel } from "./OffersPanel.jsx";
 import { TradeHistory } from "./TradeHistory.jsx";
 import { ShortlistPanel } from "./ShortlistPanel.jsx";
-
-// Interpolate #64748b → #4ade80 based on pct 0–100.
-function relColor(pct, alpha = 1) {
-  const t = Math.max(0, Math.min(100, pct)) / 100;
-  const r = Math.round(100 - 26 * t);
-  const g = Math.round(116 + 106 * t);
-  const b = Math.round(139 - 11 * t);
-  return alpha < 1 ? `rgba(${r},${g},${b},${alpha})` : `rgb(${r},${g},${b})`;
-}
 
 function relLabel(pct) {
   if (pct >= 80) return "Allied";
@@ -36,22 +28,6 @@ function weeklyNet(entry, isFocus, playerTier, inLeague) {
   const passive = inLeague ? 0.6 : 0;
   const focus = isFocus ? 3.0 : 0;
   return focus + passive - decay;
-}
-
-function XpBar({ pct, color, height = 6 }) {
-  return (
-    <div style={{
-      height, background: C.bgCard, flex: 1, position: "relative", overflow: "hidden",
-      borderRadius: 2,
-    }}>
-      <div style={{
-        position: "absolute", top: 0, left: 0, bottom: 0, width: `${pct}%`,
-        background: color,
-        transition: "width 0.3s ease",
-        borderRadius: 2,
-      }} />
-    </div>
-  );
 }
 
 const TABS = ["PLAYER SEARCH", "RELATIONS", "OFFERS IN", "SHORTLIST", "HISTORY"];
@@ -434,7 +410,7 @@ export function TransfersPage({
                           </div>
                         </div>
                       </div>
-                      <XpBar pct={focusData.entry.pct} color={relColor(focusData.entry.pct)} height={8} />
+                      <XpBar pct={focusData.entry.pct} color={relColor(focusData.entry.pct)} height={8} flex innerRadius />
                       <button
                         onClick={() => handleRemoveFocus(focusData.name)}
                         style={{
@@ -524,7 +500,7 @@ export function TransfersPage({
                           <span onClick={(e) => { e.stopPropagation(); onTeamClick?.(club.name); }} style={{ cursor: "pointer" }}>{club.name}</span>
                         </div>
                         <div style={{ marginTop: 4 }}>
-                          <XpBar pct={club.pct} color={color} height={4} />
+                          <XpBar pct={club.pct} color={color} height={4} flex innerRadius />
                         </div>
                       </div>
                     </div>
