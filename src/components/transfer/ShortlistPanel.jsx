@@ -1,5 +1,5 @@
 import React from "react";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, BTN } from "../../data/tokens";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { useMobile } from "../../hooks/useMobile.js";
@@ -113,13 +113,9 @@ export function ShortlistPanel({ shortlist, setShortlist, onPlayerClick, onTeamC
               <button
                 onClick={() => handleRemove(entry)}
                 style={{
-                  background: "none",
-                  border: `1px solid ${C.bgInput}`,
-                  color: C.textDim,
+                  ...BTN.ghost,
                   padding: "4px 10px",
-                  cursor: "pointer",
                   fontSize: F.sm,
-                  fontFamily: FONT,
                 }}
               >✕</button>
             </div>

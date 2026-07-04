@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BGM, BGM_TRACKS } from "../../utils/sfx.js";
 import { StoryArcsPanel } from "../arcs/StoryArcsPanel.jsx";
 import { STORY_ARCS } from "../../data/storyArcs.js";
-import { F, C, FONT, BTN, MODAL, CARD, Z } from "../../data/tokens";
+import { F, C, FONT, MODAL, CARD, Z } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
