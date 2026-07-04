@@ -22,6 +22,7 @@ import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, league
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
 import { checkBreakouts } from "./utils/breakouts.js";
 import { SFX, BGM } from "./utils/sfx.js";
+import { isRunInMoment } from "./utils/bgmMoments.js";
 import * as Tone from "tone";
 import { useMobile } from "./hooks/useMobile.js";
 import { useSettings } from "./hooks/useSettings.js";
@@ -5111,6 +5112,8 @@ function FruitCigs() {
         <MatchResultScreen
           result={matchResult}
           league={league}
+          leagueTier={leagueTier}
+          isRunIn={isRunInMoment(league)}
           initialSpeed={matchSpeed}
           onSpeedChange={setMatchSpeed}
           matchDetail={matchDetail}
@@ -5147,6 +5150,7 @@ function FruitCigs() {
         <MatchResultScreen
           result={cupMatchResult}
           league={cupMatchResult.cupLeague}
+          leagueTier={leagueTier}
           competitionLabel={cupMatchResult.isDynasty
             ? `Dynasty Cup — ${cupMatchResult.dynastyRound === "sf" ? "Semi-Final" : "Final"}`
             : cupMatchResult.isMini

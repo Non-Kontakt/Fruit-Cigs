@@ -1,5 +1,4 @@
 import * as Tone from "tone";
-import { pickRandom } from "./calc.js";
 
 // Sound effects using Tone.js synthesis
 export const SFX = {
@@ -586,8 +585,13 @@ export const BGM = {
     }
   },
 
-  // Tracks reserved for Corner Shop — excluded from normal rotation
-  reservedTracks: new Set(["komeda_banger", "ticket_shop"]),
+  // Tracks reserved for a specific moment (Corner Shop, shootouts, arcs, …) —
+  // excluded from normal rotation so they only surface via playContext().
+  reservedTracks: new Set([
+    "komeda_banger", "ticket_shop",
+    "shootout", "prestige", "altitude_trials",
+    "redemption_arc", "the_run_in", "late_leveller",
+  ]),
   _contextOverride: null, // when set, plays this track instead of playlist
 
   getEnabledTracks() {
@@ -602,6 +606,9 @@ export const BGM = {
     const track = BGM_TRACKS.find(t => t.id === trackId);
     if (!track) return;
     this.audio.src = `./${track.file}`;
+    // Loop the single context track — it should stay on-theme for the whole
+    // moment, not drift into another reserved track when it ends.
+    this.audio.loop = true;
     this.audio.play().catch(() => {});
   },
 
@@ -609,6 +616,7 @@ export const BGM = {
   releaseContext() {
     if (!this._contextOverride) return;
     this._contextOverride = null;
+    this.audio.loop = false;
     this.next();
   },
 
@@ -626,12 +634,12 @@ export const BGM = {
 
   next() {
     if (!this.enabled || !this.audio) return;
-    // If in context override (e.g. Corner Shop), pick a random reserved track
+    // If in context override (e.g. Corner Shop, shootout), retry the same
+    // themed track — audio.loop keeps it from ending in normal play, this
+    // path only exists to recover from an error/stall.
     if (this._contextOverride) {
-      const reserved = [...this.reservedTracks];
-      const pick = pickRandom(reserved);
-      const track = BGM_TRACKS.find(t => t.id === pick);
-      if (track) { this.audio.src = `./${track.file}`; this.audio.play().catch(() => {}); }
+      const track = BGM_TRACKS.find(t => t.id === this._contextOverride);
+      if (track) { this.audio.src = `./${track.file}`; this.audio.loop = true; this.audio.play().catch(() => {}); }
       return;
     }
     this.playlistIdx++;
