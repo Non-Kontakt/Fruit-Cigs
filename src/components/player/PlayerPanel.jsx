@@ -254,7 +254,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
             <div style={{ color: C.textMuted, fontSize: F.md, marginBottom: 10, letterSpacing: 1 }}>
               ASSIGN TRAINING
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr", gap: mob ? 8 : 6 }}>
               {TRAINING_FOCUSES.map(tf => {
                 const isActive = player.training === tf.key;
                 const isInjured = !!player.injury;
@@ -266,17 +266,18 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                       background: isInjured ? "rgba(15,15,30,0.3)" : isActive ? "rgba(74, 222, 128, 0.15)" : "rgba(30, 41, 59, 0.5)",
                       border: isActive && !isInjured ? `2px solid ${C.green}` : `1px solid ${C.bgInput}`,
                       color: isInjured ? C.bgCard : isActive ? C.green : C.textMuted,
-                      padding: "13px 13px",
+                      padding: mob ? "14px 16px" : "13px 13px",
+                      minHeight: mob ? 44 : undefined,
                       cursor: isInjured ? "not-allowed" : "pointer",
                       fontFamily: FONT,
-                      fontSize: F.sm,
+                      fontSize: mob ? F.md : F.sm,
                       textAlign: "left",
                       transition: "all 0.2s ease",
                       opacity: isInjured ? 0.4 : 1,
                     }}
                   >
                     <div style={{ marginBottom: 4 }}>{tf.icon} {tf.label}</div>
-                    <div style={{ fontSize: F.xs, opacity: 0.6 }}>{tf.desc}</div>
+                    <div style={{ fontSize: mob ? F.sm : F.xs, opacity: 0.6 }}>{tf.desc}</div>
                   </button>
                 );
               })}
