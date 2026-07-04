@@ -9,6 +9,7 @@ import { getVisibleMessages, getUnreadCount } from "../../utils/messageUtils.js"
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
 import { buildTickerBeats } from "../../utils/tickerBeats.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { QualChip } from "./QualChip.jsx";
 
 export function Dashboard({
   inboxMessages, week, seasonNumber,
@@ -847,14 +848,11 @@ export function Dashboard({
                     minWidth: 0, flex: 1,
                   }}>{tm?.name || "\u2014"}</span>
                   {inQualifyZone && (
-                    <span
+                    <QualChip
+                      color={leagueColor}
                       title={`Currently in a qualifying spot for the ${qualifyLabel}`}
-                      style={{
-                        fontSize: F.micro, fontFamily: FONT, fontWeight: "bold",
-                        color: leagueColor, border: `1px solid ${leagueColor}66`,
-                        padding: "0 3px", flexShrink: 0,
-                      }}
-                    >Q</span>
+                      style={{ padding: "0 3px" }}
+                    />
                   )}
                 </span>
                 <span style={{ textAlign: "center", color: C.textMuted }}>{row.played}</span>

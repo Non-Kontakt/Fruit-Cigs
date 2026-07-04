@@ -6,6 +6,7 @@ import { getModifier } from "../../data/leagueModifiers.js";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { AITeamPanel } from "./AITeamPanel.jsx";
+import { QualChip } from "../ui/QualChip.jsx";
 import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers } from "../../utils/competitionStats.js";
@@ -703,7 +704,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
               <div style={{ fontSize: mob ? F.micro : F.xs, color: C.slate, marginBottom: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
                 {displayTier > 1 && <span><span style={{ color: C.gold }}>■</span> {displayMod.miniTournament ? "5v5 tournament: top 3 promoted" : "Top 3 promoted"}</span>}
                 {displayTier < NUM_TIERS && <span><span style={{ color: C.red }}>■</span> Bottom 3 relegated</span>}
-                {qualifyCount > 0 && <span><span style={{ color: leagueColor2 }}>Q</span> Top {qualifyCount} qualify for the {qualifyLabel}</span>}
+                {qualifyCount > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><QualChip color={leagueColor2} /> Top {qualifyCount} qualify for the {qualifyLabel}</span>}
               </div>
 
               {/* Column headers */}
@@ -810,14 +811,11 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                         {row.name}
                       </span>
                       {inQualifyZone && (
-                        <span
+                        <QualChip
+                          color={leagueColor2}
                           title={`Currently in a qualifying spot for the ${qualifyLabel}`}
-                          style={{
-                            fontSize: F.micro, fontFamily: FONT, fontWeight: "bold",
-                            color: leagueColor2, border: `1px solid ${leagueColor2}66`,
-                            padding: "1px 3px", marginLeft: 6, flexShrink: 0,
-                          }}
-                        >Q</span>
+                          style={{ marginLeft: 6 }}
+                        />
                       )}
                       {(() => {
                         const seasonDone = isPlayerTier && matchweekIndex >= (league.fixtures?.length || 18);
