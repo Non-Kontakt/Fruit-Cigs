@@ -111,6 +111,21 @@ export function getTrainingProgress(currentStat, age, potential, overall, appear
   return levelFactor * ageFactor * potentialBonus * beyondPotentialMult * variance;
 }
 
+/**
+ * Duo-boost training: a guaranteed flat attribute gain (capped at the
+ * player's cap), separate from the normal progress-accumulation path. It
+ * must NOT wipe any progress the player has already banked toward their
+ * next real level-up — that progress was earned independently and the duo
+ * boost is a bonus on top, not a substitute for it.
+ */
+export function computeDuoBoost(current, playerCap, duoBoostAmount, oldProgress = 0) {
+  // The cap invariant lives here, not at call sites: at or above cap there
+  // is no gain and banked progress passes through untouched.
+  if (current >= playerCap) return { gain: 0, newValue: current, newProgress: oldProgress };
+  const gain = Math.min(Math.max(1, duoBoostAmount || 1), playerCap - current);
+  return { gain, newValue: current + gain, newProgress: oldProgress };
+}
+
 // Out-of-position effectiveness multipliers (applied to xG in match simulation)
 const OOP_MULT = {
   GK_TO_OUTFIELD: 0.55, // Outfield player forced into goal

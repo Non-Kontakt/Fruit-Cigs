@@ -6,7 +6,7 @@ import { ARC_TICKET_POOL, ARC_CATS } from "../data/storyArcs.js";
 import { TICKET_DEFS } from "../data/tickets.js";
 import { MSG } from "../data/messages.js";
 import { getModifier } from "../data/leagueModifiers.js";
-import { rand, getOverall, progressToPips, getTrainingProgress, pickRandom } from "../utils/calc.js";
+import { rand, getOverall, progressToPips, getTrainingProgress, pickRandom, computeDuoBoost } from "../utils/calc.js";
 import { getOvrCap } from "../utils/player.js";
 import { getArcById, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "../utils/arcs.js";
 import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
@@ -515,14 +515,19 @@ export function useAdvanceWeek({
 
             // Duo boost: guaranteed boost to primary stat (Sunday League: +2)
             if (duoBoostedIds.has(p.id)) {
-              const duoAmount = Math.min(mod.duoBoostAmount || 1, playerCap - newPlayer.attrs[focus.attrs[0]]);
               const attrKey = focus.attrs[0];
               const current = newPlayer.attrs[attrKey];
               if (current < playerCap) {
-                const gain = Math.max(1, duoAmount);
-                newPlayer.attrs[attrKey] = current + gain;
+                // Preserve banked progress — the duo boost is a flat bonus
+                // gain on top of normal training, not a progress-threshold
+                // level-up, so it shouldn't wipe progress the player already
+                // banked toward their next real level-up (matches the normal
+                // level-up path, which carries overflow past a level-up too).
+                const oldProgress = newPlayer.statProgress[attrKey] || 0;
+                const { gain, newValue, newProgress } = computeDuoBoost(current, playerCap, mod.duoBoostAmount, oldProgress);
+                newPlayer.attrs[attrKey] = newValue;
                 newPlayer.gains[attrKey] = gain;
-                newPlayer.statProgress[attrKey] = 0; // reset progress on level-up
+                newPlayer.statProgress[attrKey] = newProgress;
                 const duoPair = duoPairs.find(dp => dp.ids.includes(p.id));
                 const partnerId = duoPair?.ids.find(id => id !== p.id);
                 const partner = prev.find(pl => pl.id === partnerId);
@@ -542,8 +547,8 @@ export function useAdvanceWeek({
             }
 
             // === PROGRESS-BASED TRAINING ===
-            // Tier 2 (World XI Invitational): normal training disabled
-            if (!mod.trainingDisabled) {
+            // Some tiers slow (or speed up) training instead of disabling it —
+            // see mod.trainingSpeedMult below, applied via dojoMult.
             const overall = getOverall(p);
             const isFocused = focus.attrs.length === 1;
 
@@ -635,7 +640,6 @@ export function useAdvanceWeek({
                 }
               }
             });
-            } // end trainingDisabled guard
 
             // Age-based stat decay (33+): small chance each week a random non-trained stat drops
             // Unlockable players use effective age based on 10-year career arc
@@ -902,6 +906,18 @@ export function useAdvanceWeek({
       // Don't set gains (no popup to show them)
       weekRecoveriesRef.current = weekRecoveries;
       revealedInjuryCount.current = 0;
+
+      // Compensation tickets for arc boosts that couldn't apply because the
+      // target attr was capped — normally offered as a choice via GainPopup,
+      // which holiday mode skips, so auto-pick one at random instead. This
+      // has to happen here (inside the holiday branch, before it returns)
+      // or holiday players silently lose these tickets entirely.
+      if (cappedArcTickets.length > 0) {
+        cappedArcTickets.forEach(ct => {
+          const pick = pickRandom(ct.choices);
+          s.setTickets(prev => [...prev, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: pick }]);
+        });
+      }
 
       // Position-learning achievements (normally fired by GainPopup which is skipped on holiday)
       const posLearnedEvents = (weekProgress || []).filter(e => e.type === "positionLearned");
@@ -1412,14 +1428,10 @@ export function useAdvanceWeek({
       }
       return tb;
     });
-    // Holiday mode: auto-pick a random ticket from capped arc choices
-    if (useGameStore.getState().isOnHoliday && cappedArcTickets.length > 0) {
-      cappedArcTickets.forEach(ct => {
-        const pick = pickRandom(ct.choices);
-        s.setTickets(prev => [...prev, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: pick }]);
-      });
-    }
-    setGains({ improvements: weekGains, injuries: weekInjuries, duos: weekDuos, recoveries: weekRecoveries, progress: weekProgress, arcBoosts: arcBoostGains, ticketBoosts: resolvedTicketBoosts, cappedArcTickets: useGameStore.getState().isOnHoliday ? [] : cappedArcTickets });
+    // Note: holiday mode never reaches this point (it returns earlier, see
+    // the HOLIDAY MODE branch above) — its capped-arc-ticket compensation is
+    // granted there instead.
+    setGains({ improvements: weekGains, injuries: weekInjuries, duos: weekDuos, recoveries: weekRecoveries, progress: weekProgress, arcBoosts: arcBoostGains, ticketBoosts: resolvedTicketBoosts, cappedArcTickets });
     s.setPendingTicketBoosts([]);
 
     // Sweat Equity — 4+ gains in a double training week
