@@ -25,6 +25,7 @@ import { pushSentimentEntry } from "./utils/sentimentLog.js";
 import { SFX, BGM } from "./utils/sfx.js";
 import * as Tone from "tone";
 import { useMobile } from "./hooks/useMobile.js";
+import { useLatestRef } from "./hooks/useLatestRef.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useTickets } from "./hooks/useTickets.js";
 import { useDebug } from "./hooks/useDebug.js";
@@ -490,6 +491,11 @@ function FruitCigs() {
   const [cabinetKey, setCabinetKey] = useState(0);
   const calendarIndex = useGameStore(s => s.calendarIndex);
   // Track when achievements were unlocked for "Recent" filter (season + week for cross-season math)
+  // NOTE: achievementUnlockWeeksRef is synced here at the set-site (not via a
+  // useLatestRef-style effect) deliberately — the save path (useSaveGame)
+  // reads achievementUnlockWeeksRef.current synchronously, and a save can be
+  // triggered before this effect's own state update would otherwise flush,
+  // so the fresh value must be visible immediately, not on the next render.
   useEffect(() => {
     const prev = achievementUnlockWeeksRef.current;
     const updated = { ...prev };
@@ -833,8 +839,7 @@ function FruitCigs() {
   const revealedInjuryCount = useRef(0);
   const weekRecoveriesRef = useRef([]); // persists past gains clearing for achievement checks
   const pendingFinalRewardRef = useRef(null); // captures arc final reward for post-training application
-  const storyArcsRef = useRef(storyArcs);
-  useEffect(() => { storyArcsRef.current = storyArcs; }, [storyArcs]);
+  const storyArcsRef = useLatestRef(storyArcs);
 
   // Talisman: highest-OVR non-legend by default; reassigned to Captain Fantastic arc target once that arc completes.
   const talismanIdRef = useRef(null);
