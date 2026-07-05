@@ -203,3 +203,37 @@ describe("copy builders", () => {
     expect(body).toContain("8 assists");
   });
 });
+
+// AI candidates must carry their canonical assists — a winning AI Player of
+// the Season announcing "0 assists" while the league stats know better
+// undermines the canonical-awards premise.
+describe("computeSeasonAwards — AI assists from canonical stats", () => {
+  it("reports the real canonical assist count for an AI winner", () => {
+    let stats = emptyCompetitionStats();
+    const events = [];
+    for (let g = 0; g < 15; g++) events.push({ type: "goal", side: "home", player: "Sterling", assister: g < 6 ? "Vet" : null });
+    for (let g = 0; g < 4; g++) events.push({ type: "goal", side: "home", player: "Vet", assister: "Sterling" });
+    stats = accumulateMatchStats(stats, {
+      matchId: "m1",
+      result: { events },
+      homeTeam: { id: 1, name: "Rovers", squad: [{ name: "Sterling", position: "ST" }, { name: "Vet", position: "CB" }] },
+      awayTeam: { id: 2, name: "United", squad: [] },
+    });
+    const league = {
+      table: [{ teamIndex: 1, won: 10, drawn: 4, lost: 4, goalsFor: 30, goalsAgainst: 15 }],
+      teams: [
+        { isPlayer: true, squad: [] },
+        { isPlayer: false, name: "Rovers", squad: [{ id: "ai1", name: "Sterling", position: "ST", age: 24 }] },
+      ],
+    };
+    const result = computeSeasonAwards({
+      squad: [], teamName: "City", playerSeasonStats: {}, playerRatingTracker: {},
+      league, seasonLeagueStats: stats,
+    });
+    expect(result.playerOfSeason).not.toBeNull();
+    const winner = result.playerOfSeason.winner;
+    expect(winner.name).toBe("Sterling");
+    expect(winner.assists, "AI winner must carry canonical assists, not 0").toBe(4);
+    expect(buildPlayerOfSeasonBody(result.playerOfSeason)).toContain("4 assists");
+  });
+});

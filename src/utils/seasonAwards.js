@@ -101,12 +101,13 @@ function buildCandidates({ squad, teamName, playerSeasonStats, playerRatingTrack
 
   // Per-player goals/cards for AI players, keyed the same way LeaguePage's
   // `leagueStats` derivation reads the canonical tier blob.
-  const aiScorers = {}, aiCards = {};
+  const aiScorers = {}, aiCards = {}, aiAssists = {};
   const statsPlayers = seasonLeagueStats?.players || {};
   for (const p of Object.values(statsPlayers)) {
     if (p.teamId == null) continue;
     const key = `${p.name}|${p.teamId}`;
     if (p.goals > 0) aiScorers[key] = p.goals;
+    if (p.assists > 0) aiAssists[key] = p.assists;
     const cards = (p.yellows || 0) + (p.reds || 0);
     if (cards > 0) aiCards[key] = cards;
   }
@@ -147,12 +148,13 @@ function buildCandidates({ squad, teamName, playerSeasonStats, playerRatingTrack
       if (p.isBench) return;
       const key = `${p.name}|${teamIdx}`;
       const goals = aiScorers[key] || 0;
+      const assists = aiAssists[key] || 0;
       const cardCount = aiCards[key] || 0;
       const baseRating = syntheticAIRating({ position: p.position, goals, cardCount, played, winRate, drawRate, gpg, cpg });
       const avgRating = parseFloat((baseRating + (nameHash(p.name) - 0.5) * 0.6).toFixed(1));
       candidates.push({
         name: p.name, teamName: team.name || "", age: p.age ?? null,
-        goals, assists: 0, apps: played, avgRating,
+        goals, assists, apps: played, avgRating,
         isPlayerTeam: false,
         score: score({ avgRating, goals, apps: played }),
       });
