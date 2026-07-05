@@ -1,4 +1,14 @@
-# Jumpers For Goalposts — Complete Strategy Guide
+# Fruit Cigs — Strategy Guide (HISTORICAL)
+
+> **⚠️ This guide is a relic.** It was written in early 2026, when the game
+> was still called Jumpers For Goalposts, and much of what it states has
+> since changed: training rates and growth curves were reworked, AI player
+> potential is now hidden until scouted, several tiers gained special rules
+> (knockout qualification, training throttles, tier-1 point rules), and
+> whole systems it never mentions now exist (cig cards, rivalries, awards,
+> league history, the newspaper). Treat every specific number below as
+> untrustworthy. It is retained because the broad strategic instincts still
+> mostly hold — a verified rewrite is planned.
 
 ---
 
