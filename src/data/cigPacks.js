@@ -1,6 +1,39 @@
 // Cigarette pack collection system for achievements
-// Each pack contains 5 or 10 achievements
-// All 290 achievements distributed across 32 packs (v3.1)
+// Every pack contains EXACTLY 5 or 10 achievements — this is a hard
+// invariant, not a rough guideline. All 290 achievements distributed
+// across 32 packs (v3.1, recomposed v3.2, re-recomposed v3.3).
+//
+// Curation principle:
+//   - Early packs (starter + first couple of unlocks) should be mostly
+//     EARLY/MID-difficulty cards, with at most 1 FREAK/novelty card. A
+//     "triviality" — an achievement that's mechanically easy to trigger
+//     with a single deliberate action (a lineup choice, a training toggle,
+//     a one-off UI action) regardless of how far into a save the player
+//     is — belongs early, even if it was originally filed under a
+//     long-career pack. Gating a trivial action behind 10 seasons of play
+//     just means most players collect the card blind, long after they
+//     actually did the thing.
+//   - Deep packs should be LATE-heavy (genuinely long-career or
+//     luck/grind-gated content) but may deliberately hold 1-3 cards a
+//     player has plausibly already banked by the time the pack unseals —
+//     a small "pre-bank on unseal" moment is a feature (an immediate,
+//     earned-feeling win when a pack opens), not a bug, as long as it's a
+//     minority of the pack rather than baked into the unlock condition
+//     itself (see the Lime Cigs fix below for the latter, which isn't OK).
+//   - FREAK-novelty specialist packs (the small 5-card packs built around
+//     secret/bizarre/perfect-conditions triggers) should gate deep —
+//     packs_complete 12+ — rather than shallow. Surfacing them after only
+//     3 completed packs hands new players a pack full of achievements they
+//     have no realistic way to have triggered yet.
+//   - Recomposition NEVER changes a pack's size. Every move is one leg of
+//     a size-neutral exchange: a card leaving a pack is always paired with
+//     a card arriving in the same pass, closing a cycle across 3+ packs
+//     (e.g. a deep pack sends a triviality to an early pack, the early
+//     pack sends one of its own less-trivial cards to a mid pack, and the
+//     mid pack sends a genuinely long-career card back to a deep pack).
+//     Padding a pack out with whatever's convenient, or leaving a donor
+//     pack short after it gives a card away, recreates the irregular-size
+//     problem this recomposition exists to fix.
 
 export const CIG_PACKS = [
   // ── STARTER PACKS (3 × 10) ───────────────────────────────────
@@ -15,6 +48,8 @@ export const CIG_PACKS = [
     starter: true,
     unlockCondition: null,
     unlockDesc: null,
+    // hands_off moved out (to Kiwi — see below), paired one-for-one with
+    // injections moving in from Persimmon, to keep this pack at 10.
     achievementIds: [
       "first_win",          // Win your first match
       "clean_sheet",        // Keep a clean sheet
@@ -24,8 +59,8 @@ export const CIG_PACKS = [
       "impatient",          // Set fast settings
       "patient_manager",    // Watch match at normal speed
       "save_scummer",       // Load a save
-      "hands_off",          // Go on holiday
       "rotation",           // Different Starting XI
+      "injections",         // Force an injured player to play (moved from Persimmon — a one-off UI action, trivial at any point in a save)
     ],
   },
   {
@@ -63,17 +98,21 @@ export const CIG_PACKS = [
     starter: true,
     unlockCondition: null,
     unlockDesc: null,
+    // hat_trick and taxi_for moved out (to Passionfruit), heads_up moved
+    // out (to Lychee) — paired one-for-one with cup_winner (from Lime) and
+    // asymmetry/jumpers_for_goalposts (from Persimmon) moving in, to keep
+    // this pack at 10.
     achievementIds: [
       "clinical",           // Win with fewer shots
-      "hat_trick",          // Player scores 3+
       "out_of_pos",         // Player out of position
       "super_sub",          // Sub scores
       "lazy_sunday",        // Win without subs
       "left_on_read",       // 10+ unread inbox
       "paper_round",        // Read 5+ inbox in a week
-      "taxi_for",           // Red card
-      "heads_up",           // Win from behind at HT
       "cup_exit_r32",       // Knocked out first round
+      "cup_winner",         // Win a cup (moved from Lime — was pre-banked by Lime's own unlock condition, see Lime below)
+      "asymmetry",          // Win with an asymmetric formation (moved from Persimmon — a one-off tactical choice, pairs with out_of_pos/lazy_sunday)
+      "jumpers_for_goalposts", // Win with nobody on a training focus (moved from Persimmon — same trivial-tactical-choice family)
     ],
   },
 
@@ -89,17 +128,20 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "cherry_cigs" },
     unlockDesc: "Complete the Cherry Cigs pack",
+    // journeyman, stat_15, and galacticos moved out (to Grape) — paired
+    // one-for-one with get_it_in_the_mixer/well_seasoned/baby_faced moving
+    // in from Melon, to keep this pack at 10.
     achievementIds: [
       "bench_best",         // Bench highest rated player
       "all_or_nothing",     // No bench players
       "bench_fwd",          // Bench full of forwards
       "family",             // 3 starters same surname
-      "journeyman",         // Play 50 matches
-      "stat_15",            // Player reaches 15 in a stat
-      "galacticos",         // 25+ in squad
       "needs_must",         // 13 or fewer in squad
       "dads_army",          // 10+ year age gap in XI
       "identity_crisis",    // Player in wrong position entirely
+      "get_it_in_the_mixer", // 4+ forwards in XI (moved from Melon — squad-composition oddity, pairs with bench_fwd)
+      "well_seasoned",      // Starting XI avg age 30+ (moved from Melon — pairs with dads_army)
+      "baby_faced",         // Starting XI avg age under 20 (moved from Melon — same age-extreme family as well_seasoned/dads_army)
     ],
   },
   {
@@ -137,17 +179,24 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "banana_cigs" },
     unlockDesc: "Complete the Banana Cigs pack",
+    // old_faithful moved out (to Persimmon — see below); it was the one
+    // age/veteran outlier in an otherwise all-stat-progression pack, and
+    // fits Persimmon's long-career backfill better than it fit here.
+    // Backfilled with heads_up (from Apple) — a half-time fightback pairs
+    // with this pack's growth theme (late_bloomer, through_the_roof) as a
+    // mental-growth counterpart to its physical/stat growth cards, and
+    // restores size to 10.
     achievementIds: [
       "through_the_roof",   // +2 OVR in one week
       "our_academy",        // Train under-21 to 3x18
       "fresh_blood",        // Sign 3 youth in one intake
-      "old_faithful",       // Player aged 36+ starting
       "rising_tide",        // Starting XI avg OVR 15
       "1up_addict",         // 5+ OVR increases in a week
       "exceeded_expectations", // OVR exceeds starting potential
       "late_bloomer",       // 31+ gains OVR
       "new_tricks",         // 30+ completes position training
       "double_or_nothing",  // 6+ gains from Double Sessions
+      "heads_up",           // Win from behind at HT (moved from Apple)
     ],
   },
   {
@@ -161,12 +210,14 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "apple_cigs" },
     unlockDesc: "Complete the Apple Cigs pack",
+    // dirty_harry moved out (to Fig) — paired one-for-one with
+    // shooting_blanks moving in from Persimmon, to keep this pack at 5.
     achievementIds: [
       "early_exits",        // Lose by 3+ goals
-      "dirty_harry",        // 3+ yellows in a match
       "seeing_red",         // Win with fewer than 11
       "absolute_barclays",  // 3+ cards and 5+ goals
       "hand_of_god",        // GK MotM in 1-0 win
+      "shooting_blanks",    // No goals in 4 matches (moved from Persimmon — an adversity/rough-patch card, pairs with early_exits)
     ],
   },
 
@@ -182,8 +233,13 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "cup_won" },
     unlockDesc: "Win your first cup competition",
+    // NOTE: cup_winner used to live in this pack, which meant meeting this
+    // very unlock condition guaranteed the pack opened with 1 of its 10
+    // cards already pre-banked — cup_winner moved to Apple Cigs (a starter
+    // pack, already open, already home to cup_exit_r32) so unsealing Lime
+    // is a genuine 10-unknowns reveal. Backfilled with the_double (from
+    // Kiwi) to restore packSize.
     achievementIds: [
-      "cup_winner",         // Win a cup
       "cup_upset",          // Beat team 3+ tiers above
       "cup_final_loss",     // Lose a cup final
       "nerves_of_steel",    // Win penalty shootout
@@ -193,6 +249,7 @@ export const CIG_PACKS = [
       "wembley",            // Play in a cup final
       "joga_bonito",        // Brazilian scores in cup (player unlock)
       "professional_job",   // Cup win without penalties
+      "the_double",         // Win league and cup same season (moved from Kiwi)
     ],
   },
   {
@@ -206,8 +263,11 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "lime_cigs" },
     unlockDesc: "Complete the Lime Cigs pack",
+    // Backfilled with hands_off (from Cherry) — paired one-for-one with
+    // the_double moving out to Lime, to keep this pack at 10. hands_off
+    // (go on holiday) echoes postcard_edge (win a cup on holiday), already
+    // in this pack — a natural neighbor for the holiday-mode theme.
     achievementIds: [
-      "the_double",         // Win league and cup same season
       "catenaccio",         // Cup win without conceding
       "cup_collector",      // Win 2 different cups
       "postcard_edge",      // Win cup while on holiday
@@ -217,6 +277,7 @@ export const CIG_PACKS = [
       "win_ultimate",       // Win Ultimate Cup
       "do_it_cold",         // Win cup away from home
       "one_and_done",       // Beat both single-fixture opponents
+      "hands_off",          // Go on holiday (moved from Cherry)
     ],
   },
 
@@ -232,17 +293,24 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "seasons_played", count: 5 },
     unlockDesc: "Complete 5 seasons",
+    // fifty_not_out, veteran, and always_bridesmaid moved out (to Persimmon
+    // and Melon — see below) to backfill those two deep packs with
+    // genuinely long-career content, restoring their sizes after their own
+    // "trivialities come early" cards moved out to the early packs.
+    // Backfilled with journeyman, stat_15, and galacticos (from Pear) —
+    // career-appearance, attribute, and squad-size milestones fit this
+    // pack's season/career-progression theme, and restore its size to 10.
     achievementIds: [
       "season_5",           // Complete 5 seasons
-      "fifty_not_out",      // 50 career appearances
       "golden_boot",        // 20+ goals in a season
-      "veteran",            // Player reaches age 42
       "end_of_an_era",      // 3+ retirements in one season
       "steady_climb",       // Finish higher 3x in a row
       "the_rebuild",        // Promote after relegation
       "comeback_season",    // Bottom half to top 3
       "new_era",            // 5+ new players in squad
-      "always_bridesmaid",  // Finish 2nd three times
+      "journeyman",         // Play 50 matches (moved from Pear)
+      "stat_15",            // Player reaches 15 in a stat (moved from Pear)
+      "galacticos",         // 25+ in squad (moved from Pear)
     ],
   },
   {
@@ -256,6 +324,12 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "grape_cigs" },
     unlockDesc: "Complete the Grape Cigs pack",
+    // ticket_tout moved out (to Melon — see below), a genuinely long-career
+    // card ("use all 11 ticket types") pulled to backfill that deep pack.
+    // Backfilled with dirty_harry (from Blackcurrant) — no clean thematic
+    // sibling among this pack's ticket/relationship cards, but the pack
+    // already carries one deliberate-setback card (burned_bridges), so a
+    // second friction outlier isn't a stretch, and it restores size to 10.
     achievementIds: [
       "golden_ticket",      // Use first ticket
       "sweat_equity",       // 4+ gains in double training
@@ -266,7 +340,7 @@ export const CIG_PACKS = [
       "the_dugout",         // Manually assign all 11 slots
       "diplomat",           // 3+ clubs at 50% relationship
       "burned_bridges",     // Club relationship to 0%
-      "ticket_tout",        // Use all 11 ticket types
+      "dirty_harry",        // 3+ yellows in a match (moved from Blackcurrant)
     ],
   },
   {
@@ -504,17 +578,25 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "seasons_played", count: 10 },
     unlockDesc: "Complete 10 seasons",
+    // century_club and band_of_brothers moved out (to Persimmon — see
+    // below); both are long-career cards in their own right, but Persimmon
+    // needed the backfill more and these two are the least Passionfruit-
+    // specific (they don't touch All-Time XI/records like their siblings).
+    // Backfilled with hat_trick and taxi_for (from Apple) — an in-match
+    // scoring feat and a red-card moment, framed as the personal highlights
+    // a manager still remembers alongside this pack's all-time records;
+    // restores size to 10.
     achievementIds: [
       "season_10",          // Complete 10 seasons
       "all_time_top",       // Top all-time league scorers
       "all_timers",         // All-Time XI all 7.0+
-      "century_club",       // 100 career goals
       "legendary_dynasty",  // Same surname in All-Time XI
       "brexit",             // All-British All-Time XI
-      "band_of_brothers",   // 8+ players 3+ seasons
       "first_name_terms",   // 3 players same first name
       "brothers_in_arms",   // Same surname both score
       "one_club_man",       // Youth intake 200 apps first
+      "hat_trick",          // Player scores 3+ (moved from Apple)
+      "taxi_for",           // Red card (moved from Apple)
     ],
   },
   {
@@ -576,17 +658,24 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "passionfruit_cigs" },
     unlockDesc: "Complete the Passionfruit Cigs pack",
+    // get_it_in_the_mixer, well_seasoned, and baby_faced moved out (to Pear
+    // — see above): trivial one-off squad-composition choices, not
+    // long-career achievements, so gating them behind 10 seasons + a full
+    // Passionfruit pack meant most players did the thing ages before ever
+    // getting credit for it. Backfilled with ticket_tout (from Fig) and
+    // veteran + always_bridesmaid (from Grape) — genuinely long-career
+    // content that belongs this deep.
     achievementIds: [
       "true_strike",        // Non-unlockable 50 goals first
       "purist",             // Non-unlockable 100 apps first
       "our_man",            // Non-unlockable 30 MotM first
       "on_your_head_son",   // Youth intake 100 goals first
       "fan_favourite",      // Youth intake 60 MotM first
-      "get_it_in_the_mixer",// 4+ forwards in XI
       "old_boys_network",   // Trade with every 75%+ club
       "full_circle",        // Prodigal player wins league
-      "well_seasoned",      // Starting XI avg age 30+
-      "baby_faced",         // Starting XI avg age under 20
+      "ticket_tout",        // Use all 11 ticket types
+      "veteran",            // Player reaches age 42
+      "always_bridesmaid",  // Finish 2nd three times
     ],
   },
   {
@@ -624,8 +713,12 @@ export const CIG_PACKS = [
     colorDark: "#9f1239",
     packSize: 5,
     starter: false,
-    unlockCondition: { type: "packs_complete", count: 3 },
-    unlockDesc: "Complete 3 cigarette packs",
+    // Gates deep now (was packs_complete: 3) — a FREAK-novelty pack built
+    // entirely around specific BGM-track-sync triggers has no business
+    // surfacing to a player 3 packs in, long before they've plausibly
+    // heard most of these tracks play out under the right conditions.
+    unlockCondition: { type: "packs_complete", count: 12 },
+    unlockDesc: "Complete 12 cigarette packs",
     achievementIds: [
       "forgot_kit",         // Injury while Forgot Kit plays
       "soundtrack",         // Win shootout while Shootout plays
@@ -643,8 +736,12 @@ export const CIG_PACKS = [
     colorDark: "#a16207",
     packSize: 5,
     starter: false,
-    unlockCondition: { type: "packs_complete", count: 3 },
-    unlockDesc: "Complete 3 cigarette packs",
+    // Gates deep now (was packs_complete: 3) — same FREAK-novelty reasoning
+    // as Rambutan above: perfect-conditions/luck triggers (specific player
+    // names, minute-equals-age, repeat scorelines) that shouldn't be the
+    // 4th pack a new player sees.
+    unlockCondition: { type: "packs_complete", count: 14 },
+    unlockDesc: "Complete 14 cigarette packs",
     achievementIds: [
       "enzo_drive",         // Enzo scores late winner
       "nomin_determ",       // Baker/Cook/King hat-trick
@@ -749,17 +846,23 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "pomegranate_cigs" },
     unlockDesc: "Complete the Pomegranate Cigs pack",
+    // shooting_blanks, injections, asymmetry, and jumpers_for_goalposts
+    // moved out (to Blackcurrant/Cherry/Apple — see above): one-off
+    // tactical/UI-action trivia, not late-game content. Backfilled with
+    // fifty_not_out (from Grape), century_club + band_of_brothers (from
+    // Passionfruit), and old_faithful (from Lychee) — genuinely long-career
+    // content pulled up from mid/late packs to restore packSize.
     achievementIds: [
       "open_all_hours",     // No clean sheets in season
-      "shooting_blanks",    // No goals in 4 matches
       "tactical_foul",      // Most booked player
       "old_pace",           // 30+ with 20 Pace
       "giant_killing",      // Beat Albion
       "impossible_job",     // Lose to Nomads
-      "injections",         // (secret)
-      "asymmetry",          // Win with asymmetric formation
       "good_engine",        // CM with 15+ Physical & Mental
-      "jumpers_for_goalposts", // Win with no training focus
+      "fifty_not_out",      // 50 career appearances
+      "century_club",       // 100 career goals
+      "band_of_brothers",   // 8+ players 3+ seasons
+      "old_faithful",       // Player aged 36+ starting
     ],
   },
 ];
