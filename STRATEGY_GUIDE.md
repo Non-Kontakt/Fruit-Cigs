@@ -409,7 +409,7 @@ Each of the 11 tiers layers a distinct rule on top of the base game. From the bo
 | **6** | Altitude Trials | At least 2 changes required between consecutive starting XIs; injury chance ×1.4; exhaustion injuries possible, resisted by Physical (up to 30% reduction at PHY 10+) |
 | **5** | The Federation | VAR: 12% of goals disallowed, 15% of yellows upgraded to red; negative board sentiment swings ×1.4; transfer window extended to 9 weeks |
 | **4** | Saudi Super League | 3 free instant-sign tickets per season; relationship building disabled entirely; a rival club attempts to poach one of your signings at the halfway mark |
-| **3** | Euro Dynasty | xG ×1.2 league-wide; 50% of matches are televised (MotM in a TV game gets a permanent +1 stat); penalty conversion −10%; top 4 at the season's halfway point qualify for an end-of-season knockout (Dynasty Cup) |
+| **3** | Euro Dynasty | xG ×1.2 league-wide; 50% of matches are televised (MotM in a TV game gets a permanent +1 stat); penalty conversion −10%; top 4 at the season's halfway point qualify for an end-of-season knockout (Dynasty Cup) — win the Dynasty Cup and you're promoted even from 4th place; a runner-up or semi-finalist still needs a top-3 league finish |
 | **2** | World XI Invitational | Training crawls at ×0.15 speed — only Duo Boosts and arc bonuses move the needle; fan sentiment swings ×2.5; top 4 at season end play a 5-a-side Mini-Tournament (two-leg semis, single-leg final) |
 | **1** | Intergalactic Elite | Players age 3 years per season; draws pay the player 1 point, the AI 2; the AI predicts a scoreline before kickoff and steals a full 3 points if the exact score is right — regardless of the actual result; 3 Rewind tickets per season (replay a lost league match) |
 
