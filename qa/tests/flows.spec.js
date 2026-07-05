@@ -97,6 +97,23 @@ test.describe("full-app flows", () => {
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
     await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
     await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+    // newGame rolls squads of 16-18; at exactly 16 (11 XI + 5 bench) there
+    // are zero reserves, so the RESERVES header this test taps never renders
+    // (~1-in-4 flake). Pad the squad to 18 deterministically so the reserves
+    // section always exists, keeping the rest of the flow real.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const attrs = (v) => ({ pace: v, shooting: v, passing: v, defending: v, physical: v, technique: v, mental: v });
+      const pad = [];
+      for (let i = s.squad.length; i < 18; i++) {
+        pad.push({
+          id: `qa-reserve-${i}`, name: `Quentin Zzeserve${i}`, position: "CM", age: 24,
+          attrs: attrs(8), potential: 12, statProgress: {}, training: null, gains: {},
+          tags: [], injury: null, injuryHistory: {}, history: [attrs(8)],
+        });
+      }
+      if (pad.length) window.__fc.setState({ squad: [...s.squad, ...pad] });
+    });
     await page.getByText("SQUAD", { exact: false }).first().click();
     await page.getByText("ASST XI", { exact: false }).first().click();
     await page.waitForFunction(() => (window.__fc.getState().startingXI || []).length === 11, null, { timeout: 5_000 });
