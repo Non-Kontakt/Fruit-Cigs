@@ -60,7 +60,7 @@ export function useAdvanceWeek({
       transferFocus, storyArcs, summerPhase, summerData, calendarIndex,
       seasonNumber, cup, trialPlayer, trialHistory, consecutiveWins,
       halfwayPosition, unlockedAchievements, startingXI, bench,
-      inboxMessages, trainedThisWeek, usedTicketTypes, scoutedPlayers,
+      inboxMessages, trainedThisWeek, manualTrainingThisWeek, usedTicketTypes, scoutedPlayers,
       clubRelationships, slotAssignments, formation, formationsWonWith,
       freeAgentSignings, allLeagueStates, leagueRosters, teamName,
       pendingTicketBoosts, dynastyCupQualifiers, prestigeLevel,
@@ -333,7 +333,7 @@ export function useAdvanceWeek({
     const focusUnlocks = checkAchievements({
       squad, unlocked: unlockedAchievements,
       lastMatchResult: null, league, weekGains: null,
-      startingXI, bench, matchweekIndex, trainedThisWeek,
+      startingXI, bench, matchweekIndex, trainedThisWeek, manualTrainingThisWeek,
       doubleTrainingWeek: s.doubleTrainingWeek, usedTicketTypes, scoutedPlayers, transferFocus,
       clubRelationships, slotAssignments, formation,
       formationsWonWith, freeAgentSignings,
@@ -903,6 +903,7 @@ export function useAdvanceWeek({
       // Apply squad changes immediately, no popup
       s.setSquad(newSquad);
       s.setTrainedThisWeek(new Set());
+      s.setManualTrainingThisWeek(new Set());
       // Don't set gains (no popup to show them)
       weekRecoveriesRef.current = weekRecoveries;
       revealedInjuryCount.current = 0;
@@ -1421,6 +1422,7 @@ export function useAdvanceWeek({
     }
 
     s.setTrainedThisWeek(new Set());
+    s.setManualTrainingThisWeek(new Set());
     const resolvedTicketBoosts = pendingTicketBoosts.map(tb => {
       if (tb.playerId) {
         const current = useGameStore.getState().squad.find(p => p.id === tb.playerId);

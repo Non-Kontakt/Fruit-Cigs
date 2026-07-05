@@ -22,12 +22,14 @@ const SET_FIELDS = [
   "retiringPlayers",
   "beatenTeams",
   "trainedThisWeek",
+  "manualTrainingThisWeek",
   "lopsidedWarned",
   "unlockedAchievements",
   "unlockedPacks",
   "usedTicketTypes",
   "formationsWonWith",
   "tradedWithClubs",
+  "manualSlotIndices",
 ];
 
 // Fields that use Map in-memory but must be serialized as plain objects for JSON
@@ -220,6 +222,10 @@ export const useGameStore = create((set, get) => ({
   bench: [],
   formation: DEFAULT_FORMATION.map(s => ({ ...s })),
   slotAssignments: null,
+  // Slot indices (0-10) that were manually assigned by the player (drag/tap),
+  // as opposed to filled by ASST XI / Fans XI / preset apply. Drives The
+  // Dugout achievement so bulk auto-fill can't instantly qualify it.
+  manualSlotIndices: new Set(),
   prevStartingXI: null,
   xiPresets: { primary: null, secondary: null },
 
@@ -246,6 +252,10 @@ export const useGameStore = create((set, get) => ({
   benchStreaks: {},
   highScoringMatches: 0,
   trainedThisWeek: new Set(),
+  // Player ids manually assigned training this week via the single-player
+  // picker, as opposed to bulk delegate-to-assistant / TRAIN ALL. Drives
+  // The Tinkerer achievement so bulk training can't instantly qualify it.
+  manualTrainingThisWeek: new Set(),
   lopsidedWarned: new Set(),
 
   // === Achievements / inbox / career tracking ===
@@ -399,6 +409,7 @@ export const useGameStore = create((set, get) => ({
   setBench: (val) => set(s => ({ bench: typeof val === "function" ? val(s.bench) : val })),
   setFormation: (val) => set(s => ({ formation: typeof val === "function" ? val(s.formation) : val })),
   setSlotAssignments: (val) => set(s => ({ slotAssignments: typeof val === "function" ? val(s.slotAssignments) : val })),
+  setManualSlotIndices: (val) => set(s => ({ manualSlotIndices: typeof val === "function" ? val(s.manualSlotIndices) : val })),
   setPrevStartingXI: (val) => set(s => ({ prevStartingXI: typeof val === "function" ? val(s.prevStartingXI) : val })),
   setXiPresets: (val) => set(s => ({ xiPresets: typeof val === "function" ? val(s.xiPresets) : val })),
 
@@ -423,6 +434,7 @@ export const useGameStore = create((set, get) => ({
   setBenchStreaks: (val) => set(s => ({ benchStreaks: typeof val === "function" ? val(s.benchStreaks) : val })),
   setHighScoringMatches: (val) => set(s => ({ highScoringMatches: typeof val === "function" ? val(s.highScoringMatches) : val })),
   setTrainedThisWeek: (val) => set(s => ({ trainedThisWeek: typeof val === "function" ? val(s.trainedThisWeek) : val })),
+  setManualTrainingThisWeek: (val) => set(s => ({ manualTrainingThisWeek: typeof val === "function" ? val(s.manualTrainingThisWeek) : val })),
   setLopsidedWarned: (val) => set(s => ({ lopsidedWarned: typeof val === "function" ? val(s.lopsidedWarned) : val })),
 
   setUnlockedAchievements: (val) => set(s => ({ unlockedAchievements: typeof val === "function" ? val(s.unlockedAchievements) : val })),

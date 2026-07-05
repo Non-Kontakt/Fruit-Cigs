@@ -276,13 +276,13 @@ function FruitCigs() {
     setHalfwayPosition, setPreviousLeaguePosition, setRecentScorelines, setSecondPlaceFinishes,
     setOvrHistory, setClubHistory, setLeagueHistory, setAllTimeLeagueStatsByTier, setSeasonLeagueStatsByTier, setSeasonLeagueStatsAvailable,
     setSeasonCupStatsByCup, setAllTimeCupStatsByCup, setSeasonCupStatsAvailable,
-    setStartingXI, setBench, setFormation, setSlotAssignments, setPrevStartingXI, setXiPresets,
+    setStartingXI, setBench, setFormation, setSlotAssignments, setManualSlotIndices, setPrevStartingXI, setXiPresets,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
     setPendingFreeAgent, setScoutedPlayers,
     setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames, setPlayerMatchLog, setBreakoutsThisSeason,
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
-    setHighScoringMatches, setTrainedThisWeek, setLopsidedWarned,
+    setHighScoringMatches, setTrainedThisWeek, setManualTrainingThisWeek, setLopsidedWarned,
     setUnlockedAchievements, setUnlockedPacks, setAchievementUnlockWeeks, setLastSeenAchievementCount, setInboxMessages,
     setLatestHeadline,
     setUsedTicketTypes, setFormationsWonWith, setFreeAgentSignings,
@@ -735,6 +735,7 @@ function FruitCigs() {
   const [squadView, setSquadView] = useState("attrs"); // "attrs" or "stats"
   const formation = useGameStore(s => s.formation);
   const slotAssignments = useGameStore(s => s.slotAssignments);
+  const manualSlotIndices = useGameStore(s => s.manualSlotIndices);
   const xiPresets = useGameStore(s => s.xiPresets);
   const [showTactics, setShowTactics] = useState(false);
   const [showSaveDropdown, setShowSaveDropdown] = useState(false);
@@ -1231,6 +1232,19 @@ function FruitCigs() {
     setSlotAssignments(result.slots);
     setStartingXI(result.startingXI);
     setBench(result.bench);
+    // Bulk fill (ASST XI / Fans XI / preset apply) — wipe manual-assignment
+    // tracking so auto-filled slots can't qualify The Dugout.
+    setManualSlotIndices(new Set());
+  }, []);
+
+  // Record slot indices as manually assigned (drag/tap), as opposed to bulk
+  // ASST XI / Fans XI / preset fill — drives The Dugout achievement.
+  const markManualSlots = useCallback((indices) => {
+    setManualSlotIndices(prev => {
+      const next = new Set(prev || []);
+      indices.forEach(i => next.add(i));
+      return next;
+    });
   }, []);
 
   const handleAsstXI = useCallback(() => {
@@ -1390,6 +1404,10 @@ function FruitCigs() {
       p.id === playerId ? { ...p, training: trainingKey } : p
     ));
     setTrainedThisWeek(prev => new Set([...prev, playerId]));
+    // Manual single-player assign only — bulk paths (delegate-to-assistant,
+    // TRAIN ALL) never touch this, so it's the true "manually changed every
+    // player" signal for the Tinkerer achievement.
+    setManualTrainingThisWeek(prev => new Set([...prev, playerId]));
   }, []);
 
   const assignPositionTraining = useCallback((playerId, targetPos) => {
@@ -4107,6 +4125,7 @@ function FruitCigs() {
           // Assign
           newSlots[slotIdx] = playerId;
           setSlotAssignments(newSlots);
+          markManualSlots([slotIdx]);
 
           // Sync startingXI and bench from assignments
           const newXI = [];
@@ -4176,6 +4195,7 @@ function FruitCigs() {
               newSlots[dragChipIdx] = targetPlayerId;
               newSlots[targetChipIdx] = dragId;
               setSlotAssignments(newSlots);
+              markManualSlots([dragChipIdx, targetChipIdx]);
               // Sync XI/bench
               const newXI = [];
               const newBench = [];
@@ -4292,6 +4312,7 @@ function FruitCigs() {
               newSlots[toChip] = fromId;
             }
             setSlotAssignments(newSlots);
+            markManualSlots(fromChip !== undefined && toChip !== undefined ? [fromChip, toChip] : fromChip !== undefined ? [fromChip] : [toChip]);
             const newXI = [];
             const newBench = [];
             newSlots.forEach((pid, i) => { if (pid != null) { if (i < 11) newXI.push(pid); else newBench.push(pid); } });
@@ -4751,6 +4772,7 @@ function FruitCigs() {
                         <button onClick={(e) => {
                           e.stopPropagation();
                           setSlotAssignments(null);
+                          setManualSlotIndices(new Set());
                           setStartingXI([]);
                           setBench([]);
                           setSelectedSlot(null);
@@ -5240,6 +5262,7 @@ function FruitCigs() {
           startingXI={startingXI} setStartingXI={setStartingXI}
           squad={squad} onClose={() => setShowTactics(false)} isMobile={isMobile}
           slotAssignments={slotAssignments} setSlotAssignments={setSlotAssignments}
+          markManualSlots={markManualSlots}
         />
       )}
 
@@ -5775,7 +5798,7 @@ function FruitCigs() {
                 highScoringMatches: highScoringMatches + ((cupPlayerGoals + cupOppGoals >= 5) ? 1 : 0),
                 trialHistory, playerSeasonStats, clubHistory,
                 consecutiveScoreless: cupPlayerGoals === 0 ? consecutiveScoreless + 1 : 0,
-                formation, slotAssignments,
+                formation, slotAssignments, manualSlotIndices,
                 usedTicketTypes, formationsWonWith: cupPlayerWon ? new Set([...formationsWonWith, formation.map(s => s.pos).join("-")]) : formationsWonWith,
                 freeAgentSignings, scoutedPlayers, transferFocus, clubRelationships,
                 isOnHoliday, wonLeagueOnHoliday: useGameStore.getState().wonLeagueOnHoliday, holidayMatchesThisSeason,
@@ -6333,6 +6356,7 @@ function FruitCigs() {
             setStartingXI(newXI);
             setBench(autoSelectBench(freshSquad, newXI));
             setSlotAssignments(null);
+            setManualSlotIndices(new Set());
 
             // Regenerate leagues
             const rosters = leagueRosters || initLeagueRosters(teamName);

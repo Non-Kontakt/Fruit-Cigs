@@ -124,6 +124,7 @@ export function useSaveGame({
         seasonCupStatsAvailable: s.seasonCupStatsAvailable,
         formation: s.formation,
         slotAssignments: s.slotAssignments,
+        manualSlotIndices: s.manualSlotIndices,
         xiPresets: s.xiPresets,
         allLeagueStates: s.allLeagueStates,
         clubRelationships: s.clubRelationships,
@@ -164,6 +165,7 @@ export function useSaveGame({
         ultimatumGamesLeft: s.ultimatumGamesLeft,
         ultimatumCupPending: s.ultimatumCupPending,
         trainedThisWeek: s.trainedThisWeek,
+        manualTrainingThisWeek: s.manualTrainingThisWeek,
         dynastyCupQualifiers: s.dynastyCupQualifiers,
         dynastyCupBracket: s.dynastyCupBracket,
         miniTournamentBracket: s.miniTournamentBracket,
@@ -278,6 +280,7 @@ export function useSaveGame({
       store.setUltimatumGamesLeft(s.ultimatumGamesLeft || 0);
       store.setUltimatumCupPending(s.ultimatumCupPending || false);
       store.setTrainedThisWeek(s.trainedThisWeek || new Set());
+      store.setManualTrainingThisWeek(s.manualTrainingThisWeek || new Set());
       // Migrate clubHistory league names
       s.clubHistory = migrateClubHistoryNames(s.clubHistory);
       if (s.clubHistory && s.clubHistory.totalWins > 0) {
@@ -388,6 +391,7 @@ export function useSaveGame({
       } else {
         store.setSlotAssignments(null);
       }
+      store.setManualSlotIndices(s.manualSlotIndices || new Set());
       store.setXiPresets(s.xiPresets || { primary: null, secondary: null });
       // Load AI league states
       if (s.allLeagueStates && Object.keys(s.allLeagueStates).length > 0) {
@@ -498,6 +502,7 @@ export function useSaveGame({
           clubHistory: s.clubHistory || null,
           formation: s.formation || null,
           slotAssignments: s.slotAssignments || null,
+          manualSlotIndices: s.manualSlotIndices || new Set(),
           usedTicketTypes: s.usedTicketTypes || new Set(),
           formationsWonWith: s.formationsWonWith || new Set(),
           freeAgentSignings: s.freeAgentSignings || 0,
