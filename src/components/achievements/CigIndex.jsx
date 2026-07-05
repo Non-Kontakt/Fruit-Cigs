@@ -28,6 +28,11 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
 
   const collectedCount = unlocked.size;
 
+  // The unlocked Set's insertion order IS the true unlock chronology (Sets
+  // iterate in insertion order and the save round-trip preserves it) — the
+  // week stamps alone can't order cards earned in the same week.
+  const unlockOrder = new Map([...unlocked].map((id, i) => [id, i]));
+
   const indexRows = ACHIEVEMENTS.map(ach => {
     const pack = CIG_PACKS.find(p => p.id === ACH_TO_PACK[ach.id]) || null;
     const packSealed = !!pack && !unlockedPacks.has(pack.id);
@@ -38,6 +43,7 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
       // collected card is always shown in full, sealed pack or not.
       kind: collected ? "collected" : packSealed ? "sealed" : "uncollected",
       abs: getAbsWeek(achievementUnlockWeeks[ach.id]),
+      order: unlockOrder.get(ach.id) ?? -1,
     };
   });
 
@@ -60,7 +66,7 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
       .sort((a, b) => a.ach.name.localeCompare(b.ach.name))
       .forEach(row => items.push({ row }));
   } else { // recent (default)
-    const collectedRows = indexRows.filter(r => r.collected).sort((a, b) => b.abs - a.abs);
+    const collectedRows = indexRows.filter(r => r.collected).sort((a, b) => b.abs - a.abs || b.order - a.order);
     const uncollectedRows = indexRows.filter(r => !r.collected).sort((a, b) => a.ach.name.localeCompare(b.ach.name));
     [...collectedRows, ...uncollectedRows].forEach(row => items.push({ row }));
   }

@@ -359,6 +359,41 @@ test.describe("full-app flows", () => {
     await shot(page, testInfo.project.name, "flow-achievement-index");
   });
 
+  test("index RECENT sort respects unlock chronology within a week", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Three cards earned in the SAME week, in a deliberate order that differs
+    // from their achievement-definition order: cup_exit_r32 / Early Bath
+    // (match), then reality_check, then forgot_kit. The unlocked Set's
+    // insertion order carries the chronology; week stamps alone tie.
+    await page.evaluate(() => {
+      const week = { season: 1, week: 6, seasonLen: 48 };
+      window.__fc.setState({
+        unlockedAchievements: new Set(["cup_exit_r32", "reality_check", "forgot_kit"]),
+        achievementUnlockWeeks: { cup_exit_r32: week, reality_check: week, forgot_kit: week },
+      });
+    });
+
+    await page.getByText("CORNER SHOP", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByText("CIG PACKS", { exact: false }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByRole("button", { name: "Index list view" }).click();
+    await page.waitForTimeout(300);
+
+    // RECENT is the default sort: newest unlock first means forgot_kit on
+    // top, early_bath (earned first) below the other two.
+    const names = await page.locator('[data-testid="cig-index-row"][data-kind="collected"] [data-testid="cig-index-row-name"]')
+      .allInnerTexts();
+    const top3 = names.slice(0, 3).map(n => n.trim());
+    expect(top3[0]).toBe("Forgot Kit");
+    expect(top3[1]).toBe("Reality Check");
+    expect(top3[2]).toBe("Early Bath");
+  });
+
   test("boot room schedule flags a rival opponent with a RIVAL chip", async ({ page }, testInfo) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
