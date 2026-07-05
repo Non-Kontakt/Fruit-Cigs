@@ -23,3 +23,12 @@ describe("transfer window beat messages", () => {
     expect(msg.id).toBeTruthy();
   });
 });
+
+describe("squadIdentityHeadline message", () => {
+  it("produces a distinct, non-empty message carrying the supplied body", () => {
+    const msg = MSG.squadIdentityHeadline('"COUNTER-ATTACK KINGS" — The Gazette');
+    expect(msg.title).toBeTruthy();
+    expect(msg.body).toBe('"COUNTER-ATTACK KINGS" — The Gazette');
+    expect(msg.id).toBeTruthy();
+  });
+});

@@ -155,6 +155,7 @@ export function useSaveGame({
         prevSeasonSquadIds: s.prevSeasonSquadIds,
         tradesMadeInWindow: s.tradesMadeInWindow,
         tradedWithClubs: s.tradedWithClubs,
+        weeksSinceIdentityHeadline: s.weeksSinceIdentityHeadline,
         fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment,
         sentimentLog: s.sentimentLog,
         gameMode: s.gameMode,
@@ -274,6 +275,7 @@ export function useSaveGame({
       store.setFiveASideSquad(s.fiveASideSquad || null);
       store.setGameMode(s.gameMode || "casual");
       store.setBoardWarnCount(s.boardWarnCount || 0);
+      store.setWeeksSinceIdentityHeadline(s.weeksSinceIdentityHeadline || 0);
       store.setUltimatumActive(s.ultimatumActive || false);
       store.setUltimatumTarget(s.ultimatumTarget || 0);
       store.setUltimatumPtsEarned(s.ultimatumPtsEarned || 0);

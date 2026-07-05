@@ -18,6 +18,8 @@ import { pushSentimentEntry } from "../utils/sentimentLog.js";
 import { SFX, BGM } from "../utils/sfx.js";
 import { buildAIFiveASide } from "../utils/fiveASide.js";
 import { advanceShortlistScouting } from "../utils/scouting.js";
+import { classifySquadIdentity } from "../utils/squadIdentity.js";
+import { generateIdentityHeadline } from "../utils/headlines.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
@@ -895,6 +897,49 @@ export function useAdvanceWeek({
           )]);
           if (isIronman) s.setBoardWarnCount(nextCount);
         }
+      }
+    }
+
+    // === SQUAD IDENTITY HEADLINE (periodic newspaper narrative beat) ===
+    // Checked roughly every 6-8 weeks rather than every week — a distinct
+    // training identity should read as a rare, earned front page, not
+    // routine noise. weeksSinceIdentityHeadline is persisted (see gameStore
+    // + useSaveGame) so the cadence survives save/load; old saves default it
+    // to 0. Comparing against a freshly-rolled rand(6,8) each week is a
+    // self-correcting cadence: it can fire as early as week 6, but is
+    // guaranteed to fire by week 8 (rand(6,8) always resolves to <= 8), with
+    // no need to separately persist the rolled threshold.
+    {
+      const weeksSince = useGameStore.getState().weeksSinceIdentityHeadline + 1;
+      if (weeksSince >= rand(6, 8)) {
+        s.setWeeksSinceIdentityHeadline(0);
+        const archetype = classifySquadIdentity(newSquad);
+        if (archetype) {
+          const freshState = useGameStore.getState();
+          const identityResult = generateIdentityHeadline({
+            teamName: freshState.teamName,
+            archetype,
+            newspaperName: freshState.newspaperName,
+            reporterName: freshState.reporterName,
+          });
+          if (identityResult) {
+            const { headline, byline: hlByline } = identityResult;
+            // Same masthead gate as the awards/season-preview headlines (see
+            // generateAwardsHeadline's docstring) — this isn't tied to a
+            // played match result, so setLatestHeadline would never surface
+            // it. Delivered as an inbox one-liner with the newspaper's
+            // byline instead, matching that established convention.
+            const attribution = freshState.newspaperName
+              ? `"${headline}"\n— ${freshState.newspaperName}${hlByline ? ` (${hlByline})` : ""}`
+              : headline;
+            s.setInboxMessages(prev => [...prev, createInboxMessage(
+              MSG.squadIdentityHeadline(attribution),
+              { calendarIndex, seasonNumber },
+            )]);
+          }
+        }
+      } else {
+        s.setWeeksSinceIdentityHeadline(weeksSince);
       }
     }
 

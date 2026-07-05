@@ -564,4 +564,49 @@ test.describe("full-app flows", () => {
     await page.waitForTimeout(300);
     await shot(page, testInfo.project.name, "flow-awards-night-inbox");
   });
+
+  test("squad identity headline lands in the inbox on the training cadence week", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Make every outfield player pace-trained (a clear "counter-attacking"
+    // identity per utils/squadIdentity.js), fill a starting XI (advanceWeek's
+    // caller shows a lineup warning instead of advancing when the next
+    // calendar entry is a match and no XI is set), and land one week short
+    // of the guaranteed-fire cadence ceiling (weeksSinceIdentityHeadline + 1
+    // >= 8 always beats rand(6,8) — see useAdvanceWeek.js) so the very next
+    // ADVANCE WEEK click is certain to check and post the headline.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const order = ["GK", "CB", "CB", "LB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
+      const used = new Set();
+      const startingXI = [];
+      for (const pos of order) {
+        const p = s.squad.find(pl => pl.position === pos && !used.has(pl.id));
+        if (p) { startingXI.push(p.id); used.add(p.id); }
+      }
+      const squad = s.squad.map(p => (p.position === "GK" ? p : { ...p, training: "pace" }));
+      window.__fc.setState({ squad, startingXI, weeksSinceIdentityHeadline: 7 });
+    });
+
+    await page.getByText("ADVANCE WEEK", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => (window.__fc.getState().inboxMessages || []).some(m => m.title === "What The Papers Say"),
+      null, { timeout: 10_000 },
+    );
+
+    const identityMsg = await page.evaluate(() =>
+      window.__fc.getState().inboxMessages.find(m => m.title === "What The Papers Say"));
+    expect(identityMsg, "squad identity headline should be posted").toBeTruthy();
+    // Any of the three counter-attacking template variants names the club —
+    // don't pin an exact variant since pickRandom chooses between them.
+    expect(identityMsg.body.toUpperCase()).toContain("RED LION FC");
+    expect(identityMsg.body).not.toContain("undefined");
+
+    // Cadence counter resets after firing.
+    const weeksSince = await page.evaluate(() => window.__fc.getState().weeksSinceIdentityHeadline);
+    expect(weeksSince).toBe(0);
+  });
 });

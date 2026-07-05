@@ -383,6 +383,39 @@ export function generateAwardsHeadline({ teamName, winnerName, newspaperName, re
 }
 
 // ---------------------------------------------------------------------------
+// Squad identity headline — the paper noticing what kind of team training
+// has built (see utils/squadIdentity.js for the archetype classification).
+// A rare, periodic beat, not tied to any match result, so — same reasoning
+// as AWARDS_TEMPLATES above — it's NOT wired to setLatestHeadline; the
+// caller delivers it as an inbox one-liner instead.
+// ---------------------------------------------------------------------------
+const IDENTITY_TEMPLATES = {
+  "counter-attacking": [
+    (ctx) => `${ctx.tn} BUILT ON PACE — ${(ctx.newspaperName || "THE GAZETTE").toUpperCase()} DUBS THEM THE COUNTER-ATTACK KINGS`,
+    (ctx) => `SPEED KILLS: ${ctx.tn} IDENTITY IS ALL ABOUT THE COUNTER-ATTACK`,
+    (ctx) => `${ctx.tn} PLAY ON THE BREAK — AND NO ONE CAN LIVE WITH THE PACE`,
+  ],
+  "defensive-wall": [
+    (ctx) => `${ctx.tn} BUILT ON A DEFENSIVE WALL — NOTHING GETS THROUGH`,
+    (ctx) => `FORTRESS ${ctx.tn}: THE TRAINING GROUND TELLS THE STORY OF A DEFENSIVE WALL`,
+    (ctx) => `${(ctx.newspaperName || "THE GAZETTE").toUpperCase()} NAMES ${ctx.tn} THE DIVISION'S DEFENSIVE WALL`,
+  ],
+  possession: [
+    (ctx) => `${ctx.tn} MAKE IT LOOK EASY — A POSSESSION SIDE THROUGH AND THROUGH`,
+    (ctx) => `PASS MASTERS: ${ctx.tn}'S IDENTITY IS BUILT ON POSSESSION`,
+    (ctx) => `${(ctx.newspaperName || "THE GAZETTE").toUpperCase()} ON ${ctx.tn}: A TEAM THAT WON'T GIVE UP THE BALL`,
+  ],
+};
+
+export function generateIdentityHeadline({ teamName, archetype, newspaperName, reporterName }) {
+  const pool = IDENTITY_TEMPLATES[archetype];
+  if (!pool) return null;
+  const ctx = { tn: (teamName || "THE CLUB").toUpperCase(), newspaperName, reporterName };
+  const headline = pickRandom(pool)(ctx);
+  return { headline, byline: byline(ctx) };
+}
+
+// ---------------------------------------------------------------------------
 // generateMatchHeadline
 // ---------------------------------------------------------------------------
 export function generateMatchHeadline(ctx = {}) {
