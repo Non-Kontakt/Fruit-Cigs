@@ -1,4 +1,4 @@
-# Achievement Audit — Jumpers Football Manager
+# Achievement Audit — Fruit Cigs (HISTORICAL)
 
 > This audit predates the current 290-achievement set and the cig-packs rework
 > (achievements are now grouped into collectible packs rather than the flat

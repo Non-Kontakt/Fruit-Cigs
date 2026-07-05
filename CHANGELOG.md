@@ -1,8 +1,55 @@
 # Changelog
 
-All notable updates to Jumpers for Goalposts, written for players.
+All notable updates to Fruit Cigs, written for players.
 
 ---
+
+## 5 July 2026 — The Great Sweep
+
+One weekend, the whole backlog. The largest single update the game has had.
+
+### See what the game is thinking
+- **OVR demystified**: the player panel now shows exactly how much each attribute counts for your player's position, so you know why that +1 did (or didn't) move the number.
+- **Club mood explained**: the fan bar expands to show *why* sentiment moved — every result, promotion, cup run and streak logged with its swing. The board line now tells you what they expect this season.
+- **Progress with a timeline**: player sparklines gained season markers and "last gain" labels — stagnation finally looks different from growth.
+- **Squad Progress → Most Improved**: a ranked view of who's actually developed since joining you.
+
+### A living, talking world
+- **The back page grew**: cup finals make the paper, season previews know your tenure and context, and every season now ends with **Awards Night** — Golden Boot, Young Player, and Player of the Season, league-wide.
+- **Rivalries**: your head-to-head history now breeds real rivals — RIVAL-flagged fixtures, needle in the kickoff commentary, derby headlines.
+- **League history**: every division's final table is archived every season. The new HISTORY tab answers "who won the Saudi Super League in Season 3?"
+- **Transfer window drama**: opening day, deadline week, and the slam of the window closing all land in your inbox.
+- **Scouting matters**: AI players' potential is hidden until scouted — shortlist and wait, or spend a Scout Dossier. Your own academy prospects now show their ceiling at intake, and homegrown players wear an HG badge.
+- **Free agents have pasts**: every free-agent tip arrives with a one-line backstory.
+- **The soundtrack knows the moment**: themed tracks now play at their moments — shootouts, prestige, title run-ins, late equalisers.
+
+### Fixes worth knowing about
+- Wonderkid scout reports now always name a real player you can actually find.
+- Promotion messages tell the truth about tournament results, and knockout-tier tables mark qualification spots.
+- Duo training boosts no longer wipe banked progress; holiday careers no longer silently lose compensation tickets.
+- The keeper will never again be announced as a substitute winger.
+
+## 3 July 2026 — The Cig Cards Update
+
+- **Achievements became cig cards**: all 290 are now collectible cigarette cards in themed packs. Packs unseal as your career deepens; until then their cards show name-only teases. Every card is earnable at any time — earning one behind a sealed pack files it away for the reveal.
+- **The Index**: a full-collection ledger with chronological, pack, and A-Z views. Tap any card for the full-art modal — foil shimmer included on the ones that deserve it.
+- **Every unlock celebrated**: achievement toasts fire the moment you earn anything, auto-dismiss politely, and pause when you hover.
+
+## April 2026 — The Stats Update
+
+- **Real league-wide stats**: top scorers, assisters, and card magnets tracked properly across every competition — league and cup, this season and all-time, every division.
+- **Career ledger**: per-tier and per-cup career history for every player who's passed through your club.
+- **Matchday polish**: grouped scorer rows, tighter rhythm, cleaner stats tabs.
+
+## March 2026 — The Foundation Update
+
+- The great decomposition: the game's engine was restructured under the hood (89 changes merged) — the foundation everything above stands on.
+
+---
+
+<details>
+<summary><b>Older entries (from the Jumpers for Goalposts era)</b></summary>
+
 
 ## 11 March 2026
 
@@ -67,3 +114,5 @@ All notable updates to Jumpers for Goalposts, written for players.
 ---
 
 *— Trask*
+
+</details>
