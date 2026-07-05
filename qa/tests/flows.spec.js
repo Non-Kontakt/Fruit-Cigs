@@ -456,17 +456,33 @@ test.describe("full-app flows", () => {
           [tier]: {
             players: {
               [winner.id]: { key: winner.id, playerId: winner.id, name: winner.name, teamId: 0, teamName: s.teamName, position: winner.position, goals: 16, assists: 7, yellows: 1, reds: 0 },
-              rival_a: { key: "rival_a", playerId: null, name: "Kwame Frimpong", teamId: 1, teamName: "Rovers", position: "ST", goals: 12, assists: 2, yellows: 0, reds: 0 },
+              // Canonical league top scorer is an AI RIVAL, deliberately
+              // outscoring the club's own best — the Team of the Season
+              // (club review) beat and Awards Night must not contradict
+              // each other about who won the real award.
+              rival_a: { key: "rival_a", playerId: null, name: "Kwame Frimpong", teamId: 1, teamName: "Rovers", position: "ST", goals: 19, assists: 2, yellows: 0, reds: 0 },
               rival_b: { key: "rival_b", playerId: null, name: "Samir Bello", teamId: 2, teamName: "United", position: "ST", goals: 9, assists: 1, yellows: 0, reds: 0 },
             },
             processedMatches: {},
           },
         },
         summerPhase: "break",
-        summerData: { weeksLeft: 3 },
+        summerData: { weeksLeft: 4 },
       });
     });
 
+    // Beat 1 (weeksLeft 4): Team of the Season — club-scoped review only.
+    await page.getByText("ADVANCE SUMMER", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => (window.__fc.getState().inboxMessages || []).some(m => m.title === "Team of the Season"),
+      null, { timeout: 10_000 },
+    );
+    const tots = await page.evaluate(() =>
+      window.__fc.getState().inboxMessages.find(m => m.title === "Team of the Season"));
+    expect(tots.body, "club review must not claim official awards").not.toContain("Golden Boot");
+    expect(tots.body, "club review must not claim official awards").not.toContain("Player of the Season");
+
+    // Beat 2 (weeksLeft 3): Awards Night — the official, league-wide awards.
     await page.getByText("ADVANCE SUMMER", { exact: false }).first().click();
     await page.waitForFunction(
       () => (window.__fc.getState().inboxMessages || []).some(m => m.title === "Player of the Season"),
@@ -480,6 +496,8 @@ test.describe("full-app flows", () => {
 
     expect(goldenBoot, "Golden Boot message should be posted").toBeTruthy();
     expect(goldenBoot.body).toContain("GOLDEN BOOT");
+    // The canonical league-wide winner (the AI rival), not the club's best.
+    expect(goldenBoot.body).toContain("KWAME FRIMPONG");
     expect(ypots, "Young Player of the Season message should be posted").toBeTruthy();
     expect(pots, "Player of the Season message should be posted").toBeTruthy();
     expect(pots.body).toContain("PLAYER OF THE SEASON");

@@ -308,10 +308,14 @@ export function useSeasonFlow({
       });
       const sorted = [...squad].sort((a, b) => getOverall(b) - getOverall(a));
       const totsNames = sorted.slice(0, 3).map(p => p.name).join(", ");
-      let totsBody = `End-of-season awards for ${league?.leagueName || "the league"} have been announced.`;
-      if (topScorer && topGoals > 0) totsBody += ` ${topScorer} won the Golden Boot with ${topGoals} goal${topGoals !== 1 ? "s" : ""}.`;
-      if (topMotmName && topMotm > 0) totsBody += ` ${topMotmName} was named Player of the Season (${topMotm} MOTM).`;
-      if (totsNames) totsBody += ` Your standout performers: ${totsNames}.`;
+      // Club-scoped review only — the OFFICIAL awards (Golden Boot, Player of
+      // the Season) are league-wide and announced at the Awards Night beat one
+      // click later; claiming them here from squad-only stats could crown a
+      // different name than the real winner.
+      let totsBody = `The season in review at ${league?.leagueName || "the league"}.`;
+      if (topScorer && topGoals > 0) totsBody += ` Your top scorer: ${topScorer} with ${topGoals} goal${topGoals !== 1 ? "s" : ""}.`;
+      if (topMotmName && topMotm > 0) totsBody += ` Most match-winning displays: ${topMotmName} (${topMotm} MOTM).`;
+      if (totsNames) totsBody += ` Your standout performers: ${totsNames}. League awards night is coming up.`;
       s.setInboxMessages(prev => [...prev, createInboxMessage(
         MSG.teamOfTheSeason(totsBody),
         { calendarIndex, seasonNumber },
