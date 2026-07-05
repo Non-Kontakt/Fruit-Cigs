@@ -4,7 +4,7 @@ import {
   migrateLegacyRosterKeys, ensureAllTierRosters, repairLeagueV2ToV3,
   migratePlayerRatingTracker, migrateClubHistoryNames, backfillClubHistory,
   resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
-  resolveCupStatsAvailable, migrateSummerPhase, stripCupNamePrefix,
+  resolveCupStatsAvailable, migrateSummerPhase, migrateSummerWeeksForAwards, stripCupNamePrefix,
   migrateStoryArcsCompletion, backfillOvrHistorySnapshot,
 } from "../saveMigrations.js";
 import { initLeagueRosters } from "../league.js";
@@ -331,5 +331,24 @@ describe("backfillOvrHistorySnapshot", () => {
     const out = backfillOvrHistorySnapshot([], null, null);
     expect(out[0].w).toBe(1);
     expect(out[0].s).toBe(1);
+  });
+});
+
+// The summer break grew 5 → 6 beats when Awards Night was inserted (save v3).
+describe("migrateSummerWeeksForAwards", () => {
+  it("shifts a v2 mid-summer save's weeksLeft up past the new beat", () => {
+    expect(migrateSummerWeeksForAwards(2, "break", { weeksLeft: 3 }).weeksLeft).toBe(4);
+    expect(migrateSummerWeeksForAwards(2, "break", { weeksLeft: 5 }).weeksLeft).toBe(6);
+  });
+
+  it("leaves youth-intake and preview weeks (below the insertion point) alone", () => {
+    expect(migrateSummerWeeksForAwards(2, "break", { weeksLeft: 2 }).weeksLeft).toBe(2);
+    expect(migrateSummerWeeksForAwards(2, "break", { weeksLeft: 1 }).weeksLeft).toBe(1);
+  });
+
+  it("does not touch v3+ saves, non-summer saves, or absent summer data", () => {
+    expect(migrateSummerWeeksForAwards(3, "break", { weeksLeft: 3 }).weeksLeft).toBe(3);
+    expect(migrateSummerWeeksForAwards(2, null, { weeksLeft: 3 }).weeksLeft).toBe(3);
+    expect(migrateSummerWeeksForAwards(2, "break", null)).toBe(null);
   });
 });

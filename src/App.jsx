@@ -6238,7 +6238,7 @@ function FruitCigs() {
             retirees: retirees.map(p => ({ id: p.id, name: p.name, position: p.position, age: p.age, attrs: { ...p.attrs }, nationality: p.nationality })),
             youthCandidates: candidates,
             preRetirementSquad,
-            weeksLeft: 3,
+            weeksLeft: 4,
           }));
           setRetiringPlayers(new Set());
           setSummerPhase("break");

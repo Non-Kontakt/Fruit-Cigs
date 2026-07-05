@@ -293,6 +293,33 @@ const seasonPreview = (body) => ({
   body,
 });
 
+// --- Awards Night — three gold/trophy messages posted in order (smallest
+// award first, Player of the Season last so it lands as the newest/top item) ---
+
+const goldenBootAward = (body) => ({
+  id: `msg_golden_boot_${Date.now()}`,
+  icon: "\u26BD", // ⚽
+  color: C.gold,
+  title: "The Golden Boot",
+  body,
+});
+
+const youngPlayerOfSeasonAward = (body) => ({
+  id: `msg_ypots_${Date.now()}`,
+  icon: "\uD83C\uDF31", // 🌱
+  color: C.gold,
+  title: "Young Player of the Season",
+  body,
+});
+
+const playerOfSeasonAward = (body) => ({
+  id: `msg_pots_${Date.now()}`,
+  icon: "\uD83C\uDFC6", // 🏆
+  color: C.gold,
+  title: "Player of the Season",
+  body,
+});
+
 const transferWindowOpen = () => ({
   id: `msg_tw_open_${Date.now()}`,
   icon: "\uD83D\uDCB0", // 💰
@@ -975,6 +1002,9 @@ export const MSG = {
   teamOfTheSeasonDetailed,
   wellRested,
   seasonPreview,
+  goldenBootAward,
+  youngPlayerOfSeasonAward,
+  playerOfSeasonAward,
   transferWindowOpen,
   transferWindowFinalWeek,
   transferWindowClosed,
