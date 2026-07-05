@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BGM, BGM_TRACKS } from "../../utils/sfx.js";
 import { StoryArcsPanel } from "../arcs/StoryArcsPanel.jsx";
 import { STORY_ARCS } from "../../data/storyArcs.js";
-import { F, C, FONT, MODAL, CARD, Z } from "../../data/tokens";
+import { F, C, FONT, MODAL, CARD } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
@@ -37,7 +37,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
     textAlign: "center",
   });
 
-  // Calendar helper functions (from CalendarView)
+  // Calendar helper functions
   const getLeagueFixture = (leagueMD) => {
     if (!league?.fixtures?.[leagueMD]) return null;
     const fixture = league.fixtures[leagueMD].find(f => f.home === 0 || f.away === 0);
@@ -905,183 +905,6 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ==================== CALENDAR VIEW ====================
-function CalendarView({ calendar, calendarIndex, league, cup, calendarResults, onClose }) {
-  // Get player fixture info for a league matchday
-  const getLeagueFixture = (leagueMD) => {
-    if (!league?.fixtures?.[leagueMD]) return null;
-    const fixture = league.fixtures[leagueMD].find(f => f.home === 0 || f.away === 0);
-    if (!fixture) return null;
-    const isHome = fixture.home === 0;
-    const oppIdx = isHome ? fixture.away : fixture.home;
-    const opponent = league.teams[oppIdx];
-    return { opponent, isHome };
-  };
-
-  // Get cup opponent for a round
-  const getCupInfo = (cupRound) => {
-    if (!cup?.rounds?.[cupRound]) return { opponent: null, status: cup?.playerEliminated ? "Eliminated" : "TBD" };
-    const round = cup.rounds[cupRound];
-    if (!round.matches || round.matches.length === 0) return { opponent: null, status: "TBD" };
-    const playerMatch = round.matches.find(m => m.home?.isPlayer || m.away?.isPlayer);
-    if (!playerMatch) {
-      if (cup.playerEliminated) return { opponent: null, status: "Eliminated" };
-      return { opponent: null, status: "TBD" };
-    }
-    const opponent = playerMatch.home?.isPlayer ? playerMatch.away : playerMatch.home;
-    const isHome = playerMatch.home?.isPlayer;
-    const neutral = playerMatch.neutral || false;
-    const result = playerMatch.result;
-    return { opponent, isHome, neutral, result, status: result ? "played" : "pending" };
-  };
-
-  const mob = useMobile();
-
-  return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      background: "rgba(0,0,0,0.85)", zIndex: Z.panel, overflow: "auto",
-      display: "flex", justifyContent: "center", alignItems: "flex-start",
-      paddingTop: mob ? 18 : 46, paddingBottom: 46,
-    }} onClick={onClose}>
-      <div style={{
-        background: "#0f172a", border: `1px solid ${C.bgInput}`, maxWidth: 805, width: mob ? "96%" : "100%",
-        padding: mob ? 18 : 35, fontFamily: FONT, position: "relative",
-        maxHeight: "calc(100vh - 80px)", overflow: "auto", height: "fit-content",
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: mob ? 14 : 23 }}>
-          <div style={{ fontSize: mob ? F.lg : F.h3, color: C.gold, letterSpacing: 2 }}>📅 CALENDAR</div>
-          <button onClick={onClose} style={{
-            background: "rgba(30,41,59,0.8)", border: `1px solid ${C.slate}`, color: C.textMuted,
-            padding: mob ? "12px 18px" : "12px 23px", cursor: "pointer", fontSize: F.sm,
-            fontFamily: FONT,
-          }}>← BACK</button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: mob ? "41px 55px 1fr 76px" : "58px 87px 1fr 1fr", gap: "0", fontSize: F.xs }}>
-          {/* Header */}
-          <div style={{ padding: "12px 6px", color: C.slate, borderBottom: `1px solid ${C.bgCard}` }}>WK</div>
-          <div style={{ padding: "12px 6px", color: C.slate, borderBottom: `1px solid ${C.bgCard}` }}>TYPE</div>
-          <div style={{ padding: "12px 6px", color: C.slate, borderBottom: `1px solid ${C.bgCard}` }}>FIXTURE</div>
-          <div style={{ padding: "12px 6px", color: C.slate, borderBottom: `1px solid ${C.bgCard}`, textAlign: "right" }}>RESULT</div>
-
-          {calendar.map((entry, idx) => {
-            const isCurrent = idx === calendarIndex;
-            const isPlayed = idx < calendarIndex;
-            const isCup = entry.type === "cup";
-            const isDynasty = entry.type === "dynasty";
-            const isMini = entry.type === "mini";
-            const isMatchType = isCup || isDynasty || isMini;
-            const typeAccent = isMatchType ? C.amber : C.green;
-            const bgColor = isCurrent ? "rgba(74,222,128,0.1)" : isMatchType ? "rgba(251,191,36,0.04)" : entry.type === "league" ? "rgba(74,222,128,0.03)" : "transparent";
-            const borderColor = isCurrent ? C.green : C.bgCard;
-            const rowBorderLeft = isCurrent ? `3px solid ${C.green}` : isMatchType ? `3px solid ${C.amber}44` : entry.type === "league" ? `3px solid ${C.green}44` : "3px solid transparent";
-
-            let fixtureText = "";
-            let resultText = "";
-            let resultColor = C.textMuted;
-
-            if (entry.type === "dynasty") {
-              const res = calendarResults?.[idx];
-              const dLabel = entry.round === "sf" ? "Semi-Final" : "Final";
-              fixtureText = res?.oppName ? `${dLabel} vs ${res.oppName}` : dLabel;
-              if (res?.spectator) {
-                resultText = res.label || "—";
-                resultColor = C.textMuted;
-              } else if (res) {
-                resultText = `${res.playerGoals}-${res.oppGoals}`;
-                if (res.pens) resultText += ` (${res.pens.homeScore}-${res.pens.awayScore}p)`;
-                resultColor = res.won ? C.green : C.red;
-              }
-            } else if (entry.type === "mini") {
-              const res = calendarResults?.[idx];
-              const mLabel = entry.round === "sf_leg1" ? "SF Leg 1" : entry.round === "sf_leg2" ? "SF Leg 2" : "Final";
-              fixtureText = res?.oppName ? `${mLabel} vs ${res.oppName}` : mLabel;
-              if (res?.spectator) {
-                resultText = res.label || "—";
-                resultColor = C.textMuted;
-              } else if (res) {
-                resultText = `${res.playerGoals}-${res.oppGoals}`;
-                if (res.pens) resultText += ` (${res.pens.homeScore}-${res.pens.awayScore}p)`;
-                resultColor = res.won ? C.green : C.red;
-              }
-            } else if (entry.type === "league") {
-              const fix = getLeagueFixture(entry.leagueMD);
-              if (fix) {
-                fixtureText = `${fix.opponent?.name || "?"} (${fix.isHome ? "H" : "A"})`;
-              }
-              const res = calendarResults?.[idx];
-              if (res) {
-                resultText = `${res.playerGoals}-${res.oppGoals}`;
-                resultColor = res.won ? C.green : res.draw ? C.gold : C.red;
-              }
-            } else {
-              const cupInfo = getCupInfo(entry.cupRound);
-              const cupRes = calendarResults?.[idx];
-              if (cupInfo.status === "Eliminated" && cupRes) {
-                fixtureText = `${entry.cupRoundName || "Cup"} — Eliminated`;
-                resultText = `${cupRes.playerGoals}-${cupRes.oppGoals}`;
-                resultColor = C.red;
-              } else if (cupInfo.status === "Eliminated") {
-                return null;
-              } else if (cupInfo.opponent) {
-                fixtureText = `vs ${cupInfo.opponent.name || "?"}${cupInfo.neutral ? " (N)" : cupInfo.isHome ? " (H)" : " (A)"}`;
-                if (cupRes) {
-                  resultText = `${cupRes.playerGoals}-${cupRes.oppGoals}`;
-                  resultColor = cupRes.won ? C.green : C.red;
-                  if (cupInfo.result?.penalties) {
-                    resultText += ` (${cupInfo.result.penalties.homeScore}-${cupInfo.result.penalties.awayScore}p)`;
-                  }
-                }
-              } else {
-                fixtureText = "Draw TBD";
-              }
-            }
-
-            return (
-              <React.Fragment key={idx}>
-                <div style={{
-                  padding: "12px 6px", color: isCurrent ? C.green : isPlayed ? C.textDim : C.textMuted,
-                  borderBottom: `1px solid ${borderColor}`, background: bgColor,
-                  borderLeft: rowBorderLeft,
-                }}>
-                  {idx + 1}
-                </div>
-                <div style={{
-                  padding: "12px 6px",
-                  color: isPlayed ? C.bgInput : typeAccent,
-                  borderBottom: `1px solid ${borderColor}`, background: bgColor,
-                  fontSize: F.xs,
-                }}>
-                  {isDynasty ? `DC` : isMini ? `5v5` : isCup ? `CUP` : `LGE`}
-                </div>
-                <div style={{
-                  padding: "12px 6px",
-                  color: isCurrent ? C.text : isPlayed ? C.textDim : C.textMuted,
-                  borderBottom: `1px solid ${borderColor}`, background: bgColor,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0,
-                }}>
-                  {entry.type === "league" && <span style={{ color: isPlayed ? C.bgInput : C.green, marginRight: 7 }}>MD {entry.leagueMD + 1}</span>}
-                  {isCup && <span style={{ color: isPlayed ? C.bgInput : C.amber, marginRight: 7 }}>{entry.cupRoundName}</span>}
-                  {fixtureText}
-                  {isCurrent && <span style={{ color: C.green, marginLeft: 9 }}>◄</span>}
-                </div>
-                <div style={{
-                  padding: "12px 6px", textAlign: "right",
-                  color: resultColor,
-                  borderBottom: `1px solid ${borderColor}`, background: bgColor,
-                }}>
-                  {resultText}
-                </div>
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
