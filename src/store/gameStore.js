@@ -276,6 +276,7 @@ export const useGameStore = create((set, get) => ({
   tradedWithClubs: new Set(),
   seasonCards: 0,
   readsThisWeek: 0,
+  weeksSinceIdentityHeadline: 0,
 
   // === Identity ===
   teamName: null,
@@ -352,6 +353,7 @@ export const useGameStore = create((set, get) => ({
   setGameOver: (val) => set({ gameOver: val }),
 
   setBoardWarnCount: (val) => set(s => ({ boardWarnCount: typeof val === "function" ? val(s.boardWarnCount) : val })),
+  setWeeksSinceIdentityHeadline: (val) => set(s => ({ weeksSinceIdentityHeadline: typeof val === "function" ? val(s.weeksSinceIdentityHeadline) : val })),
   setUltimatumActive: (val) => set({ ultimatumActive: val }),
   setUltimatumTarget: (val) => set(s => ({ ultimatumTarget: typeof val === "function" ? val(s.ultimatumTarget) : val })),
   setUltimatumPtsEarned: (val) => set(s => ({ ultimatumPtsEarned: typeof val === "function" ? val(s.ultimatumPtsEarned) : val })),

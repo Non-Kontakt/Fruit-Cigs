@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { selectHeadlineCategory, generateMatchHeadline } from "../headlines.js";
+import { selectHeadlineCategory, generateMatchHeadline, generateIdentityHeadline } from "../headlines.js";
 
 const BASE = {
   teamName: "City",
@@ -319,5 +319,43 @@ describe("generateMatchHeadline", () => {
       expect(result.headline.length).toBeGreaterThan(0);
       expect(result.byline).toBe("");
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateIdentityHeadline
+// ---------------------------------------------------------------------------
+describe("generateIdentityHeadline", () => {
+  const archetypes = ["counter-attacking", "defensive-wall", "possession"];
+
+  it("returns a headline + byline for every known archetype", () => {
+    for (const archetype of archetypes) {
+      for (let i = 0; i < 25; i++) {
+        const result = generateIdentityHeadline({
+          teamName: "City", archetype, newspaperName: "The Gazette", reporterName: "Sid Marsh",
+        });
+        expect(result).toBeTruthy();
+        expect(typeof result.headline).toBe("string");
+        expect(result.headline.length).toBeGreaterThan(0);
+        expect(result.headline).not.toContain("undefined");
+        expect(result.headline).toContain("CITY");
+      }
+    }
+  });
+
+  it("returns null for an unknown archetype", () => {
+    expect(generateIdentityHeadline({ teamName: "City", archetype: "tiki-taka", newspaperName: "The Gazette" })).toBeNull();
+    expect(generateIdentityHeadline({ teamName: "City", archetype: null })).toBeNull();
+  });
+
+  it("omits the byline when no reporterName is set", () => {
+    const result = generateIdentityHeadline({ teamName: "City", archetype: "possession", newspaperName: "The Gazette" });
+    expect(result.byline).toBe("");
+  });
+
+  it("falls back to a generic club name when teamName is missing", () => {
+    const result = generateIdentityHeadline({ archetype: "defensive-wall" });
+    expect(result.headline).not.toContain("undefined");
+    expect(result.headline.length).toBeGreaterThan(0);
   });
 });

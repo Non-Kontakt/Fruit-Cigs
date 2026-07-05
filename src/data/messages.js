@@ -320,6 +320,14 @@ const playerOfSeasonAward = (body) => ({
   body,
 });
 
+const squadIdentityHeadline = (body) => ({
+  id: `msg_identity_${Date.now()}`,
+  icon: "📰", // 📰
+  color: C.blue,
+  title: "What The Papers Say",
+  body,
+});
+
 const transferWindowOpen = () => ({
   id: `msg_tw_open_${Date.now()}`,
   icon: "\uD83D\uDCB0", // 💰
@@ -1005,6 +1013,7 @@ export const MSG = {
   goldenBootAward,
   youngPlayerOfSeasonAward,
   playerOfSeasonAward,
+  squadIdentityHeadline,
   transferWindowOpen,
   transferWindowFinalWeek,
   transferWindowClosed,
