@@ -12,6 +12,12 @@ describe("CIG_PACKS integrity", () => {
     }
   });
 
+  it("every pack's packSize is exactly 5 or 10 — no irregular pack sizes", () => {
+    for (const pack of CIG_PACKS) {
+      expect([5, 10], `${pack.id} has packSize ${pack.packSize}, not 5 or 10`).toContain(pack.packSize);
+    }
+  });
+
   it("every achievement appears in exactly one pack, covering all 290", () => {
     const seenIn = new Map();
     let total = 0;
