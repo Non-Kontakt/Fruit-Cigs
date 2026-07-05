@@ -147,7 +147,7 @@ export function useSeasonFlow({
       processing, squad, league, storyArcs, prodigalSon, trialPlayer, trialHistory,
       leagueTier, consecutiveWins, halfwayPosition, cup, calendarIndex, seasonNumber,
       summerData, playerSeasonStats, loanedOutPlayers, loanedInPlayers,
-      transferWindowOpen, transferWindowWeeksRemaining, clubRelationships, allLeagueStates, prestigeLevel,
+      clubRelationships, allLeagueStates, prestigeLevel,
     } = s;
     const ovrCap = getOvrCap(prestigeLevel || 0);
 
@@ -157,8 +157,14 @@ export function useSeasonFlow({
     const wl = summerData?.weeksLeft ?? 6;
 
     // Decrements the transfer window countdown and fires the deadline-week /
-    // closed inbox beats when the new value crosses those thresholds.
-    const decrementTransferWindow = (remaining) => {
+    // closed inbox beats when the new value crosses those thresholds. Reads
+    // transferWindowOpen/transferWindowWeeksRemaining fresh from the store
+    // (not from the destructured snapshot above) because the beat that OPENS
+    // the window (wl===4) also calls this in the same tick — the snapshot
+    // taken at function entry would still show the window closed.
+    const decrementTransferWindow = () => {
+      const { transferWindowOpen: isOpen, transferWindowWeeksRemaining: remaining } = useGameStore.getState();
+      if (!isOpen) return;
       const newRemaining = Math.max(0, remaining - 1);
       s.setTransferWindowWeeksRemaining(newRemaining);
       if (newRemaining === 1) {
@@ -334,7 +340,7 @@ export function useSeasonFlow({
       )]);
 
       s.setSummerData(prev => ({...prev, weeksLeft: 3}));
-      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
+      decrementTransferWindow();
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else if (wl === 3) {
@@ -389,7 +395,7 @@ export function useSeasonFlow({
       }
 
       s.setSummerData(prev => ({...prev, weeksLeft: 2}));
-      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
+      decrementTransferWindow();
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else if (wl === 2) {
@@ -397,7 +403,7 @@ export function useSeasonFlow({
       setShowYouthIntake(true);
       s.setSummerPhase("intake");
       // YouthIntake onDone will set weeksLeft=1 and return to break
-      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
+      decrementTransferWindow();
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
 
     } else {
@@ -447,7 +453,7 @@ export function useSeasonFlow({
         ...(names ? [createInboxMessage(MSG.wellRested(names), { calendarIndex, seasonNumber })] : []),
         createInboxMessage(MSG.seasonPreview(previewBody), { calendarIndex, seasonNumber }),
       ]);
-      if (transferWindowOpen) decrementTransferWindow(transferWindowWeeksRemaining);
+      decrementTransferWindow();
       s.setSummerPhase(null);
       s.setSummerData(null);
       setTimeout(() => { s.setProcessing(false); setWeekTransition(false); }, 1500);
