@@ -1,5 +1,5 @@
 import { POSITION_ORDER, TOTAL_SLOTS } from "../data/positions.js";
-import { getOverall } from "./calc.js";
+import { getOverall, getOOPPenalty } from "./calc.js";
 
 const canPlay = (p, pos) => p.position === pos || p.learnedPositions?.includes(pos);
 
@@ -74,10 +74,20 @@ export function buildAssistantLineup(squad, formation, { excludeLegends = true }
     if (anyGK) { newSlots[gkIdx] = anyGK.id; used.add(anyGK.id); }
   }
 
-  // Backfill: best available for remaining empty slots
-  formation.forEach((_, i) => {
+  // Backfill: best available for remaining empty slots, ranked by how the
+  // MATCH ENGINE will actually rate them there — raw OVR scaled by the same
+  // out-of-position penalty the sim applies. A 12-OVR keeper at left-back is
+  // worth 12 x 0.55 to the engine; the 10-OVR right-back's 10 x 0.92 beats it.
+  // Keepers never backfill an outfield slot unless they're literally the
+  // only body left.
+  formation.forEach((slot, i) => {
     if (newSlots[i] != null) return;
-    const best = available.filter(p => !used.has(p.id)).sort((a, b) => getOverall(b) - getOverall(a));
+    const pool = available.filter(p => !used.has(p.id));
+    const outfieldPool = slot.pos !== "GK" ? pool.filter(p => p.position !== "GK") : pool;
+    const best = (outfieldPool.length > 0 ? outfieldPool : pool)
+      .sort((a, b) =>
+        getOverall(b) * getOOPPenalty(b.position, slot.pos, b.learnedPositions)
+        - getOverall(a) * getOOPPenalty(a.position, slot.pos, a.learnedPositions));
     if (best.length > 0) { newSlots[i] = best[0].id; used.add(best[0].id); }
   });
 
