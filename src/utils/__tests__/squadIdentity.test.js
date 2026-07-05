@@ -1,16 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { classifySquadIdentity } from "../squadIdentity.js";
+import { generateSquad } from "../player.js";
 
-function makePlayer({ position, training = "balanced", attrs = {}, isTrial = false }) {
-  return {
-    position,
-    training,
-    isTrial,
-    attrs: {
-      pace: 10, shooting: 10, passing: 10, defending: 10, physical: 10, technique: 10, mental: 10,
-      ...attrs,
-    },
-  };
+function makePlayer({ position, training = "balanced", isTrial = false }) {
+  return { position, training, isTrial };
 }
 
 // A flat, evenly-mixed squad: one player per training focus, no lean at all.
@@ -37,7 +30,7 @@ describe("classifySquadIdentity", () => {
     expect(classifySquadIdentity(undefined)).toBeNull();
   });
 
-  it("returns null when training focus is evenly spread and no attr leads", () => {
+  it("returns null when training focus is evenly spread with no single-family majority", () => {
     expect(classifySquadIdentity(balancedSquad())).toBeNull();
   });
 
@@ -54,25 +47,6 @@ describe("classifySquadIdentity", () => {
       makePlayer({ position: "LW", training: "pace" }),
       makePlayer({ position: "RW", training: "pace" }),
       makePlayer({ position: "ST", training: "pace" }),
-    ];
-    expect(classifySquadIdentity(squad)).toBe("counter-attacking");
-  });
-
-  it("classifies counter-attacking via a clearly leading front-line pace average, without majority training share", () => {
-    const squad = [
-      makePlayer({ position: "GK", training: "balanced" }),
-      makePlayer({ position: "CB", training: "defending", attrs: { pace: 8 } }),
-      makePlayer({ position: "CB", training: "defending", attrs: { pace: 8 } }),
-      makePlayer({ position: "LB", training: "defending", attrs: { pace: 9 } }),
-      makePlayer({ position: "RB", training: "defending", attrs: { pace: 9 } }),
-      makePlayer({ position: "CM", training: "passing", attrs: { pace: 9 } }),
-      makePlayer({ position: "CM", training: "passing", attrs: { pace: 9 } }),
-      makePlayer({ position: "AM", training: "mental", attrs: { pace: 9 } }),
-      // Front line (FWD group) has a dramatically higher pace average than
-      // the rest of the squad, with no single training focus dominating.
-      makePlayer({ position: "LW", training: "shooting", attrs: { pace: 18 } }),
-      makePlayer({ position: "RW", training: "technique", attrs: { pace: 18 } }),
-      makePlayer({ position: "ST", training: "physical", attrs: { pace: 18 } }),
     ];
     expect(classifySquadIdentity(squad)).toBe("counter-attacking");
   });
@@ -137,5 +111,17 @@ describe("classifySquadIdentity", () => {
     const squad = balancedSquad();
     const results = Array.from({ length: 20 }, () => classifySquadIdentity(squad));
     expect(new Set(results).size).toBe(1);
+  });
+
+  // Regression for #255: the attribute-average route used to fire on
+  // ordinary positional stat bias (defenders naturally lead defending,
+  // forwards naturally lead pace, etc.) even with no deliberate training
+  // identity. generateSquad() assigns training: null to every player, so
+  // none of them can clear the 50% focus-family bar — every freshly
+  // generated squad must classify as null.
+  it("returns null for every freshly generated squad on null training (N=30)", () => {
+    const N = 30;
+    const results = Array.from({ length: N }, () => classifySquadIdentity(generateSquad()));
+    expect(results.every((r) => r === null)).toBe(true);
   });
 });
