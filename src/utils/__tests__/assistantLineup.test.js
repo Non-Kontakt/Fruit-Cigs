@@ -32,7 +32,8 @@ function baseSquad() {
 describe("buildAssistantLineup backfill position fit", () => {
   it("prefers a benched natural RB over a higher-OVR backup GK for an empty LB slot", () => {
     // No natural LB anywhere; leftovers are a 14-OVR GK and a 9-OVR RB.
-    // Engine values them at 14x0.55=7.7 vs 9x0.92=8.28 — the RB must win.
+    // Engine values them at 14x0.60=8.4 vs 9x0.92=8.28 — close, but the GK
+    // is excluded from outfield backfill outright, so the RB must win.
     const squad = [...baseSquad(), player("gk2", "GK", 14), player("rb2", "RB", 9)];
     const { startingXI } = buildAssistantLineup(squad, FORMATION);
     const lbSlot = startingXI[FORMATION.findIndex(s => s.pos === "LB")];
@@ -60,5 +61,27 @@ describe("buildAssistantLineup backfill position fit", () => {
     const { startingXI } = buildAssistantLineup(squad, FORMATION);
     const lbSlot = startingXI[FORMATION.findIndex(s => s.pos === "LB")];
     expect(lbSlot).toBe("lb1"); // a weak natural LB beats any strong out-of-position leftover
+  });
+});
+
+// The preset fallback path (MY XI / 2ND XI with a missing saved starter)
+// shares the same backfill picker — a saved LB out injured must not hand
+// the slot to a high-OVR backup keeper over a natural RB.
+describe("buildPresetLineup fallback position fit", () => {
+  it("fills an injured saved LB's slot with the leftover RB, not the higher-OVR GK", async () => {
+    const { buildPresetLineup } = await import("../lineup.js");
+    const squad = [...baseSquad(), player("lb1", "LB", 7), player("gk2", "GK", 14), player("rb2", "RB", 9)];
+    squad.find(p => p.id === "lb1").injury = { name: "Knock", weeksLeft: 2 };
+    const preset = {
+      formationSnapshot: FORMATION,
+      slots: [
+        "gk1", "lb1", "cb1", "cb2", "rb1",
+        "lw1", "cm1", "cm2", "rw1", "st1", "st2",
+        null, null, null, null, null,
+      ],
+    };
+    const { startingXI } = buildPresetLineup(preset, squad, FORMATION);
+    const lbSlot = startingXI[FORMATION.findIndex(s => s.pos === "LB")];
+    expect(lbSlot).toBe("rb2");
   });
 });
