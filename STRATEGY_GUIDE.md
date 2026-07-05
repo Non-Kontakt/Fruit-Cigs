@@ -81,8 +81,8 @@ The per-slot multipliers and training times to remove them (learn the position, 
 
 | Mismatch type | Multiplier | Weeks to learn |
 |---|---|---|
-| GK → Outfield | 0.55 | 22 weeks |
-| Outfield → GK | 0.60 | 24 weeks |
+| GK → Outfield | 0.60 | 22 weeks |
+| Outfield → GK | 0.55 | 24 weeks |
 | Distant group (e.g. defender → winger) | 0.65 | 16 weeks |
 | Adjacent group (e.g. CM → ST) | 0.80 | 10 weeks |
 | Same group (e.g. LB → RB, CM → AM) | 0.92 | 5 weeks |
@@ -92,7 +92,7 @@ Whatever your team-average OOP multiplier ends up being, the opponent also gets 
 
 ### Injured starters, Talisman, and stacking order
 
-Playing an injured starter costs your team **−8% xG per injured starter, stacking multiplicatively** (three injured starters = ×0.76, not ×0.76 from a flat sum). Same as the OOP penalty, the opponent gets a partial boost too: `oppXG *= 1 + (injuredCount × 0.08) × 0.5`.
+Playing an injured starter costs your team a **flat 8 percentage points of xG per injured starter, summed** — one injured starter is ×0.92, two are ×0.84, three are ×0.76. The opponent gets a partial boost off the same summed penalty: `oppXG *= 1 + (injuredCount × 0.08) × 0.5`.
 
 The **Talisman** — automatically whoever has the highest OVR among your non-legend players, reassigned permanently to your Captain Fantastic arc target once that arc completes — swings your xG **±5%** depending on whether they're in the starting XI, independent of whether they're injured. Starting an injured Talisman still gets you the +5% for playing them; benching them (injured or not) costs you the −5%. These modifiers apply in sequence — injury penalty first, then Talisman, then OOP, then league-specific modifiers — each one multiplying the running total, not adding to it.
 
@@ -352,7 +352,7 @@ Trask Ulgo deserves a special note: his unlock condition is getting relegated ou
 
 ## Trials: The Best Talent Pipeline
 
-Trial players arrive automatically with roughly **70% probability each week**. All trial players are:
+Each trial cycle produces **one trial offer**, scheduled to arrive a random 2–5 weeks after the previous trial resolves (the first lands early in a new career). All trial players are:
 
 - **Age 16, always**
 - **Foreign nationality, always** (never British)
@@ -539,7 +539,7 @@ Most of the 290 achievements happen naturally over a long save. A handful are wo
 | High-potential vs low-potential training gap | ~1.9× at the same OVR gap (varies with potential itself) |
 | Beyond-potential training | continues at 15% speed, not zero |
 | Match form training multiplier | ×0.6 (poor) to ×1.5 (rating 7.5+) |
-| Duo Boost chance | 15%/week per eligible pair; +1 (+2 in Sunday League) |
+| Duo Boost chance | 15%/week per eligible single-focus group; one random pair gets +1 (+2 in Sunday League) |
 | Decay chance, age 33–34 / 35–37 / 38+ | 3% / 7% / 12% per stat per week |
 | Prodigy/Veteran decay modifier | ×0.5 |
 | Training injury chance (focused training) | 4%, halved to 2% with Injury Shield |
