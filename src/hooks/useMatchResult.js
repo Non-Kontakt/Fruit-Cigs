@@ -355,7 +355,7 @@ export function useMatchResult({
           trialHistory: s.trialHistory,
           playerSeasonStats: s.playerSeasonStats, clubHistory: s.clubHistory, consecutiveScoreless: playerGoals === 0 ? s.consecutiveScoreless + 1 : 0,
           formation: s.formation,
-          slotAssignments: s.slotAssignments,
+          slotAssignments: s.slotAssignments, manualSlotIndices: s.manualSlotIndices,
           usedTicketTypes: s.usedTicketTypes, formationsWonWith: playerWon ? new Set([...s.formationsWonWith, s.formation.map(sl => sl.pos).join("-")]) : s.formationsWonWith,
           freeAgentSignings: s.freeAgentSignings, scoutedPlayers: s.scoutedPlayers, transferFocus: s.transferFocus, clubRelationships: s.clubRelationships,
           isOnHoliday: s.isOnHoliday, wonLeagueOnHoliday: s.wonLeagueOnHoliday, holidayMatchesThisSeason: s.holidayMatchesThisSeason,

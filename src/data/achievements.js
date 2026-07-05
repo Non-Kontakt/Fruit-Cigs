@@ -53,7 +53,7 @@ export const ACHIEVEMENTS = [
   { id: "the_specialist", name: "The Specialist", desc: "Have a player with 20 in one stat but under 5 in another", icon: "🔬" },
 
   // === SQUAD TACTICS — lineup and formation decisions ===
-  { id: "rotation", name: "Rotation Policy", desc: "Start a different Starting XI in two consecutive matches", icon: "🔄" },
+  { id: "rotation", name: "Rotation Policy", desc: "Make 4 or more changes to your Starting XI between consecutive matches", icon: "🔄" },
   { id: "out_of_pos", name: "He Doesn't Even Go Here", desc: "Play a match with a player out of position", icon: "🤷" },
   { id: "bench_best", name: "I'm The Manager", desc: "Bench your highest rated player (not injured) for a match", icon: "😤" },
   { id: "all_or_nothing", name: "All Or Nothing", desc: "Start a match with 0 players on the bench", icon: "🎲" },

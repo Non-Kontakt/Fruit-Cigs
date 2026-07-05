@@ -4,7 +4,7 @@ import { FORMATION_PRESETS } from "../../data/formations.js";
 import { detectFormationName, getEffectiveSlots } from "../../utils/formation.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 
-export function TacticsPanel({ formation, setFormation, startingXI, setStartingXI, squad, onClose, isMobile, slotAssignments, setSlotAssignments }) {
+export function TacticsPanel({ formation, setFormation, startingXI, setStartingXI, squad, onClose, isMobile, slotAssignments, setSlotAssignments, markManualSlots }) {
   const [dragging, setDragging] = useState(null);
   const [dragPos, setDragPos] = useState(null);
   const [editingSlot, setEditingSlot] = useState(null);
@@ -64,6 +64,7 @@ export function TacticsPanel({ formation, setFormation, startingXI, setStartingX
           [next[swapSource], next[idx]] = [next[idx], next[swapSource]];
           return next;
         });
+        markManualSlots?.([swapSource, idx]);
       }
       setSwapSource(null);
     } else {

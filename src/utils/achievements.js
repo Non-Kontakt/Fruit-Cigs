@@ -72,6 +72,7 @@ export function checkAchievements(state) {
     leagueWins, wasAlwaysFast, recoveries, recentScorelines, secondPlaceFinishes,
     playerInjuryCount, benchStreaks, highScoringMatches, trialHistory,
     playerSeasonStats, clubHistory, consecutiveScoreless, formation: stateFormation, slotAssignments: stateSlotAssignments,
+    manualSlotIndices,
     usedTicketTypes, formationsWonWith, freeAgentSignings, scoutedPlayers, transferFocus, clubRelationships,
     isOnHoliday, wonLeagueOnHoliday, holidayMatchesThisSeason, doubleTrainingWeek, testimonialPlayer,
     seasonNumber, lastSeasonPosition,
@@ -162,7 +163,9 @@ export function checkAchievements(state) {
     }
 
     // Tinkerer — manually changed training on every player this week
-    if (!unlocked.has("tinkerer") && state.trainedThisWeek && state.trainedThisWeek.size >= squad.length) newUnlocks.push("tinkerer");
+    // (manualTrainingThisWeek only grows via the single-player assign path —
+    // bulk delegate-to-assistant / TRAIN ALL never touch it)
+    if (!unlocked.has("tinkerer") && state.manualTrainingThisWeek && state.manualTrainingThisWeek.size >= squad.length) newUnlocks.push("tinkerer");
 
     // Peak Performance — all XI have OVR 15+
     if (!unlocked.has("peak_perf") && xiPlayers.length === 11 && xiPlayers.every(p => getOverall(p) >= 15)) {
@@ -537,7 +540,7 @@ export function checkAchievements(state) {
       const prevSet = new Set(prevStartingXI);
       const currSet = new Set(startingXI);
       const different = [...currSet].filter(id => !prevSet.has(id)).length;
-      if (different >= 1) newUnlocks.push("rotation");
+      if (different >= 4) newUnlocks.push("rotation");
     }
 
     // Consecutive tracking
@@ -902,9 +905,12 @@ export function checkAchievements(state) {
   if (!unlocked.has("formation_roulette") && formationsWonWith && formationsWonWith.size >= 3) newUnlocks.push("formation_roulette");
 
   // The Dugout — manually assign all 11 slot positions
-  if (!unlocked.has("the_dugout") && stateSlotAssignments) {
-    const assigned = stateSlotAssignments.filter(s => s != null).length;
-    if (assigned >= 11) newUnlocks.push("the_dugout");
+  // (manualSlotIndices only grows via single-slot drag/tap assignment —
+  // ASST XI / Fans XI / preset apply reset it, so auto-fill can't qualify it)
+  if (!unlocked.has("the_dugout") && stateSlotAssignments && manualSlotIndices) {
+    const dugoutComplete = Array.from({ length: 11 }, (_, i) => i)
+      .every(i => manualSlotIndices.has(i) && stateSlotAssignments[i] != null);
+    if (dugoutComplete) newUnlocks.push("the_dugout");
   }
 
   // === UNIQUE PLAY — rewarding creative playstyles ===
