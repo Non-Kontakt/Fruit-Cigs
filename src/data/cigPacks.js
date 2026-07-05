@@ -155,17 +155,26 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "pack_complete", packId: "cherry_cigs" },
     unlockDesc: "Complete the Cherry Cigs pack",
+    // mixed_up, perfect_motm, and mr_consistent moved out (to Passionfruit —
+    // see below): 3 luck/freak-trigger cards (an exact 10.0 rating, an exact
+    // 7.0 rating three times, a defensive player scoring) were too much
+    // FREAK-novelty weight for an early pack, and belong with the
+    // long-odds/long-career company they now keep. Backfilled with
+    // tots_league_one and tots_championship (from Plum — see below) and
+    // hat_trick (from Passionfruit) — normal in-match feats that fit
+    // alongside this pack's comeback/last_gasp/all_four_of_them cluster,
+    // restoring size to 10.
     achievementIds: [
-      "mixed_up",           // Defensive striker scores (player unlock)
       "total_football",     // Win by 5+ goals
       "fergie_time",        // Goal in 89th/90th minute
       "last_gasp",          // 90th minute winner
       "comeback",           // Win from 2-0 down
       "all_four_of_them",   // Player scores 4+
-      "perfect_motm",       // 10.0 MotM
       "wonderkid",          // Under-19 MotM
       "captain_material",   // Same player MotM 3 times
-      "mr_consistent",      // Exactly 7.0 rating 3 times
+      "tots_league_one",    // TOTS in Forest Hills (moved from Plum — genuinely still ahead of you this early, unlike from Plum's own tier-5 gate)
+      "tots_championship",  // TOTS in Altitude Trials (moved from Plum — same reasoning)
+      "hat_trick",          // Player scores 3+ (moved from Passionfruit)
     ],
   },
   {
@@ -239,17 +248,21 @@ export const CIG_PACKS = [
     // pack, already open, already home to cup_exit_r32) so unsealing Lime
     // is a genuine 10-unknowns reveal. Backfilled with the_double (from
     // Kiwi) to restore packSize.
+    // cup_final_loss and wembley moved out (to Kiwi — see below), two MID
+    // "reached/lost a final" cup cards paired one-for-one with cult_hero
+    // and worth_the_wait moving in (from Durian, freed up by win_global and
+    // win_ultimate moving there), keeping this pack at 10.
     achievementIds: [
       "cup_upset",          // Beat team 3+ tiers above
-      "cup_final_loss",     // Lose a cup final
       "nerves_of_steel",    // Win penalty shootout
       "heartbreak",         // Lose penalty shootout
       "perfect_five",       // Win shootout without missing
       "sudden_death",       // Sudden death shootout win
-      "wembley",            // Play in a cup final
       "joga_bonito",        // Brazilian scores in cup (player unlock)
       "professional_job",   // Cup win without penalties
       "the_double",         // Win league and cup same season (moved from Kiwi)
+      "cult_hero",          // Unlockable scores 20+ (moved from Durian)
+      "worth_the_wait",     // Unlockable MotM on debut (moved from Durian)
     ],
   },
   {
@@ -267,14 +280,20 @@ export const CIG_PACKS = [
     // the_double moving out to Lime, to keep this pack at 10. hands_off
     // (go on holiday) echoes postcard_edge (win a cup on holiday), already
     // in this pack — a natural neighbor for the holiday-mode theme.
+    // win_global and win_ultimate moved out (to Durian — the finale pack,
+    // joining its win_saudi/win_european/win_world_xi/win_intergalactic
+    // tier-win cluster as the cup-equivalent completionist cards).
+    // Backfilled with cup_final_loss and wembley (from Lime) — MID
+    // reached-a-final cup cards that sit naturally alongside this pack's
+    // other assorted cup milestones, restoring size to 10.
     achievementIds: [
       "catenaccio",         // Cup win without conceding
       "cup_collector",      // Win 2 different cups
       "postcard_edge",      // Win cup while on holiday
       "win_sub_money",      // Win Sub Money Cup
       "win_clubman",        // Win Clubman Cup
-      "win_global",         // Win Global Cup
-      "win_ultimate",       // Win Ultimate Cup
+      "cup_final_loss",     // Lose a cup final (moved from Lime)
+      "wembley",            // Play in a cup final (moved from Lime)
       "do_it_cold",         // Win cup away from home
       "one_and_done",       // Beat both single-fixture opponents
       "hands_off",          // Go on holiday (moved from Cherry)
@@ -484,7 +503,7 @@ export const CIG_PACKS = [
       "squeaky",            // Win league by 1 point
       "aguero",             // Win league on final matchday
       "efficient_machine",  // Win league without best GD
-      "mentality_monsters", // Win every match in season
+      "mentality_monsters", // Win every match in every competition in a season
       "flat_track",         // Beat every bottom-half team
       "big_game",           // Beat every top-3 team
       "respect_badge",      // Beat every team at least once
@@ -582,10 +601,13 @@ export const CIG_PACKS = [
     // below); both are long-career cards in their own right, but Persimmon
     // needed the backfill more and these two are the least Passionfruit-
     // specific (they don't touch All-Time XI/records like their siblings).
-    // Backfilled with hat_trick and taxi_for (from Apple) — an in-match
-    // scoring feat and a red-card moment, framed as the personal highlights
-    // a manager still remembers alongside this pack's all-time records;
-    // restores size to 10.
+    // hat_trick, taxi_for, and brothers_in_arms — themselves a prior
+    // backfill from Apple — moved out again (to Mango and Plum — see
+    // above): none of the three touch All-Time XI/records like this pack's
+    // other cards, and Mango/Plum needed the backfill more. Backfilled with
+    // mixed_up, perfect_motm, and mr_consistent (from Mango) — luck/freak
+    // in-match triggers that fit this pack's "things that take a long time
+    // to see" depth better than an early pack; restores size to 10.
     achievementIds: [
       "season_10",          // Complete 10 seasons
       "all_time_top",       // Top all-time league scorers
@@ -593,10 +615,10 @@ export const CIG_PACKS = [
       "legendary_dynasty",  // Same surname in All-Time XI
       "brexit",             // All-British All-Time XI
       "first_name_terms",   // 3 players same first name
-      "brothers_in_arms",   // Same surname both score
       "one_club_man",       // Youth intake 200 apps first
-      "hat_trick",          // Player scores 3+ (moved from Apple)
-      "taxi_for",           // Red card (moved from Apple)
+      "mixed_up",           // Defensive striker scores (player unlock, moved from Mango)
+      "perfect_motm",       // 10.0 MotM (moved from Mango)
+      "mr_consistent",      // Exactly 7.0 rating 3 times (moved from Mango)
     ],
   },
   {
@@ -761,12 +783,19 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "tier_reached", tier: 5 },
     unlockDesc: "Reach tier 5",
+    // tots_league_one (Forest Hills, tier 7) and tots_championship (Altitude
+    // Trials, tier 6) moved out (to Mango — see above): both tiers are
+    // already behind you by the time you reach tier 5 and this pack
+    // unseals, so they were guaranteed pre-banked on open — the exact
+    // pre-bank-in-the-unlock-condition problem this file's own conventions
+    // call out (see the Lime Cigs fix). Backfilled with taxi_for and
+    // brothers_in_arms (from Passionfruit) to restore size to 5.
     achievementIds: [
-      "tots_league_one",    // TOTS in Forest Hills
-      "tots_championship",  // TOTS in Altitude Trials
       "tots_premier",       // TOTS at Federation+
       "tots_premier_3",     // 3+ in TOTS at Federation+
       "tots_premier_5",     // 5+ in TOTS at Federation+
+      "taxi_for",           // Red card (moved from Passionfruit)
+      "brothers_in_arms",   // Same surname both score (moved from Passionfruit)
     ],
   },
   {
@@ -820,17 +849,24 @@ export const CIG_PACKS = [
     starter: false,
     unlockCondition: { type: "packs_complete", count: 15 },
     unlockDesc: "Complete 15 cigarette packs",
+    // cult_hero and worth_the_wait moved out (to Lime — see above): neither
+    // is a "win a tier's title" card like the rest of this pack, and Kiwi's
+    // win_global/win_ultimate moving in (see below) needed the room.
+    // Backfilled with win_global and win_ultimate (from Kiwi) — the two cup
+    // completionist wins join this pack's tier-title completionist cluster,
+    // making every card here a "win the whole thing" achievement and
+    // restoring size to 10.
     achievementIds: [
       "sunday_to_stars",    // Title in every tier
       "tinpot_treble",      // Titles in 3 divisions
       "win_premier",        // Win The Federation
-      "cult_hero",          // Unlockable scores 20+
-      "worth_the_wait",     // Unlockable MotM on debut
       "scooty_puff_sr",     // Win IG in 2nd season
       "win_saudi",          // Win Saudi Super League
       "win_european",       // Win Euro Dynasty
       "win_world_xi",       // Win World XI Invitational
       "win_intergalactic",  // Win Intergalactic Elite
+      "win_global",         // Win Global Cup (moved from Kiwi)
+      "win_ultimate",       // Win Ultimate Cup (moved from Kiwi)
     ],
   },
 

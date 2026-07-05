@@ -860,8 +860,10 @@ export function checkAchievements(state) {
     if (!unlocked.has("wooden_spoon") && playerIdx === sorted.length - 1) newUnlocks.push("wooden_spoon");
     // Open All Hours — entire season with 0 clean sheets
     if (!unlocked.has("open_all_hours") && seasonCleanSheets === 0) newUnlocks.push("open_all_hours");
-    // Mentality Monsters — won every single match
-    if (!unlocked.has("mentality_monsters") && sorted[playerIdx]?.lost === 0 && sorted[playerIdx]?.drawn === 0) newUnlocks.push("mentality_monsters");
+    // Mentality Monsters moved to collectSeasonEndAchievements (utils/league.js)
+    // — it now needs the full season's cup/knockout results, which this
+    // per-match, league-table-only check can't see (and, for Euro Dynasty
+    // and World XI, fires before the post-league knockout is even played).
   }
 
   // === SQUAD EXTREME ACHIEVEMENTS ===

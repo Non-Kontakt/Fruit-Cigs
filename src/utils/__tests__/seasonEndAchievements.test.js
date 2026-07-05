@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collectSeasonEndAchievements } from "../league.js";
+import { collectSeasonEndAchievements, wonEveryPlayedMatchThisSeason } from "../league.js";
 
 // Bag Man (top scorer plays for the player's team) and Tactical Foul (most
 // booked player is on the player's team) now read directly from the canonical
@@ -67,6 +67,71 @@ describe("collectSeasonEndAchievements — Bag Man via canonical", () => {
       unlockedAchievements: new Set(["bag_man"]),
     }));
     expect(achs).not.toContain("bag_man");
+  });
+});
+
+describe("wonEveryPlayedMatchThisSeason — pure calendarResults check", () => {
+  it("false with no played entries (fresh/empty season)", () => {
+    expect(wonEveryPlayedMatchThisSeason({})).toBe(false);
+    expect(wonEveryPlayedMatchThisSeason(null)).toBe(false);
+  });
+
+  it("true when every played entry was a win, ignoring spectator entries", () => {
+    const calendarResults = {
+      0: { playerGoals: 2, oppGoals: 0, won: true, draw: false },
+      1: { playerGoals: 3, oppGoals: 1, won: true, draw: false },
+      2: { spectator: true, label: "Dynasty Cup Semi-Finals" }, // player didn't qualify — doesn't count
+      3: { playerGoals: 1, oppGoals: 0, won: true, draw: false },
+    };
+    expect(wonEveryPlayedMatchThisSeason(calendarResults)).toBe(true);
+  });
+
+  it("false when a cup match was drawn or lost, even with a perfect league", () => {
+    const calendarResults = {
+      0: { playerGoals: 2, oppGoals: 0, won: true, draw: false },   // league win
+      1: { playerGoals: 1, oppGoals: 1, won: false, draw: true },  // cup draw
+      2: { playerGoals: 4, oppGoals: 0, won: true, draw: false },   // league win
+    };
+    expect(wonEveryPlayedMatchThisSeason(calendarResults)).toBe(false);
+  });
+
+  it("false when a played Dynasty Cup / Mini Tournament match was lost", () => {
+    const calendarResults = {
+      0: { playerGoals: 2, oppGoals: 0, won: true, draw: false },
+      1: { playerGoals: 0, oppGoals: 1, won: false, draw: false }, // lost the dynasty final
+    };
+    expect(wonEveryPlayedMatchThisSeason(calendarResults)).toBe(false);
+  });
+});
+
+describe("collectSeasonEndAchievements — Mentality Monsters (all-competitions perfect season)", () => {
+  it("does NOT unlock mentality_monsters on a perfect league undone by a cup loss (Centurions is a separate, league-only check unaffected by this)", () => {
+    const calendarResults = {
+      0: { playerGoals: 2, oppGoals: 0, won: true, draw: false },
+      1: { playerGoals: 0, oppGoals: 2, won: false, draw: false }, // cup loss
+      2: { playerGoals: 3, oppGoals: 0, won: true, draw: false },
+    };
+    const achs = collectSeasonEndAchievements(baseInput({ calendarResults }));
+    expect(achs).not.toContain("mentality_monsters");
+  });
+
+  it("unlocks mentality_monsters when every played match across every competition was won", () => {
+    const calendarResults = {
+      0: { playerGoals: 2, oppGoals: 0, won: true, draw: false },
+      1: { playerGoals: 3, oppGoals: 1, won: true, draw: false }, // cup win
+      2: { playerGoals: 1, oppGoals: 0, won: true, draw: false }, // dynasty final win
+    };
+    const achs = collectSeasonEndAchievements(baseInput({ calendarResults }));
+    expect(achs).toContain("mentality_monsters");
+  });
+
+  it("respects already-unlocked state", () => {
+    const calendarResults = { 0: { playerGoals: 1, oppGoals: 0, won: true, draw: false } };
+    const achs = collectSeasonEndAchievements(baseInput({
+      calendarResults,
+      unlockedAchievements: new Set(["mentality_monsters"]),
+    }));
+    expect(achs).not.toContain("mentality_monsters");
   });
 });
 

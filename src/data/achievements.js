@@ -188,7 +188,7 @@ export const ACHIEVEMENTS = [
   { id: "wooden_spoon", name: "Wooden Spoon", desc: "Finish bottom of the league", icon: "🥄" },
   { id: "open_all_hours", name: "Open All Hours", desc: "Go an entire season without keeping a clean sheet", icon: "🚪" },
   // Perfect season
-  { id: "mentality_monsters", name: "Mentality Monsters", desc: "Win every match in a league season", icon: "🧠" },
+  { id: "mentality_monsters", name: "Mentality Monsters", desc: "Win every match you play in a season, in every competition — league, cup, and any knockout", icon: "🧠" },
   // Cup achievements
   { id: "catenaccio", name: "Catenaccio", desc: "Win the cup without conceding a goal in any round", icon: "🔒" },
   { id: "professional_job", name: "A Professional Job", desc: "Win the cup without needing a single penalty shootout", icon: "💼" },

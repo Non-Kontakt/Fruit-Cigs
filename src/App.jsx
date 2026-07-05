@@ -5899,6 +5899,7 @@ function FruitCigs() {
                 wonCupThisSeason: unlockedAchievements.has("cup_winner") || cupAchs.includes("cup_winner"),
                 squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
                 dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
+                calendarResults: useGameStore.getState().calendarResults,
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });
