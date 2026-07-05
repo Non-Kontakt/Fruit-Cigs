@@ -352,7 +352,7 @@ Trask Ulgo deserves a special note: his unlock condition is getting relegated ou
 
 ## Trials: The Best Talent Pipeline
 
-Each trial cycle produces **one trial offer**, scheduled to arrive a random 2–5 weeks after the previous trial resolves (the first lands early in a new career). All trial players are:
+Each season produces **one trial offer**, scheduled to arrive in a random week 2–5. The first lands early in a new career, and future seasons generate a fresh offer during new-season setup. All trial players are:
 
 - **Age 16, always**
 - **Foreign nationality, always** (never British)
