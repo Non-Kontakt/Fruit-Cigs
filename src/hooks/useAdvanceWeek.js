@@ -10,7 +10,7 @@ import { rand, getOverall, progressToPips, getTrainingProgress, pickRandom, comp
 import { getOvrCap } from "../utils/player.js";
 import { getArcById, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "../utils/arcs.js";
 import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
-import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound } from "../utils/league.js";
+import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { checkAchievements } from "../utils/achievements.js";
 import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
@@ -89,22 +89,18 @@ export function useAdvanceWeek({
         const currentTier = league.tier || leagueTier;
         let newTier = currentTier;
         let moveType = "stayed";
-        // Promotion logic: mini-tournament tiers — all 3 promo spots from tournament results
+        // Promotion: one shared rule for mini-tournament, Dynasty Cup and
+        // standard tiers — see resolveKnockoutPromotion.
         const mod = getModifier(currentTier);
         const mBkt = useGameStore.getState().miniTournamentBracket;
-        if (mod.miniTournament && currentTier > 1 && mBkt) {
-          const isWinner = mBkt.winner?.isPlayer;
-          const derivedRunnerUp = mBkt.runnerUp || (mBkt.winner && mBkt.final?.home && mBkt.final?.away ? (mBkt.winner.name === mBkt.final.home.name ? mBkt.final.away : mBkt.final.home) : null);
-          const isRunnerUp = derivedRunnerUp?.isPlayer;
-          const is3rdPlace = (mBkt.thirdPlaceWinner || mBkt.thirdPlace?.winner)?.isPlayer;
-          if (isWinner || isRunnerUp || is3rdPlace) { newTier = currentTier - 1; moveType = "promoted"; }
-          else if (position >= sorted.length - 2 && currentTier < NUM_TIERS) { newTier = currentTier + 1; moveType = "relegated"; }
-        } else {
-          // Standard: top 3 promoted (if not already at the top)
-          if (position <= 3 && currentTier > 1) { newTier = currentTier - 1; moveType = "promoted"; }
-          // Bottom 3 relegated (if not already at the bottom)
-          else if (position >= sorted.length - 2 && currentTier < NUM_TIERS) { newTier = currentTier + 1; moveType = "relegated"; }
-        }
+        newTier = resolveKnockoutPromotion({
+          mod, currentTier, position, newTier,
+          miniTournamentBracket: mBkt,
+          dynastyCupBracket: useGameStore.getState().dynastyCupBracket,
+        });
+        if (newTier < currentTier) moveType = "promoted";
+        // Bottom 3 relegated (if not already at the bottom)
+        else if (position >= sorted.length - 2 && currentTier < NUM_TIERS) { newTier = currentTier + 1; moveType = "relegated"; }
         // Process roster swaps for recovery path too
         const currentRosters = leagueRosters || initLeagueRosters(teamName);
         const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates, teamName);
