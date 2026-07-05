@@ -32,3 +32,34 @@ describe("squadIdentityHeadline message", () => {
     expect(msg.id).toBeTruthy();
   });
 });
+
+describe("poachEvent message", () => {
+  const players = [
+    { name: "Remy Diaby" },
+    { name: "Aksel Torvin" },
+    { name: "Boma Kesse" },
+  ];
+
+  it("offers a sign choice for each of the three players, plus a refusal", () => {
+    const msg = MSG.poachEvent("Three players have emerged.", players, 1);
+    expect(msg.type).toBe("poach_event");
+    expect(msg.poachPlayers).toBe(players);
+    expect(msg.poachRivalIdx).toBe(1);
+    expect(msg.choices).toHaveLength(4);
+
+    const signChoices = msg.choices.filter(c => c.value !== "decline");
+    expect(signChoices).toHaveLength(3);
+    signChoices.forEach((c, i) => {
+      expect(c.tone).toBe("primary");
+      expect(c.label).toBe(`Sign ${players[i].name}`);
+    });
+  });
+
+  it("the refusal choice is neutral-toned and costs nothing scaled — flat by design", () => {
+    const msg = MSG.poachEvent("body", players, 0);
+    const decline = msg.choices.find(c => c.value === "decline");
+    expect(decline).toBeTruthy();
+    expect(decline.tone).toBe("neutral");
+    expect(decline.resultText).toMatch(/turned down/i);
+  });
+});

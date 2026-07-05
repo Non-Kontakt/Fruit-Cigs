@@ -18,7 +18,7 @@ export const FIXTURES = [
   { id: "inbox-asst-training", label: "Inbox — asst. manager training (unresolved)" },
   { id: "inbox-asst-training-resolved", label: "Inbox — asst. manager training (resolved)" },
   { id: "inbox-trial", label: "Inbox — trial offer (accept/decline)" },
-  { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)" },
+  { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices + refusal)" },
   { id: "leaguestats-mid", label: "League — stats tab mid-season", clickText: "STATS" },
   { id: "league-history", label: "League — history tab with an archived champion", clickText: "HISTORY" },
   { id: "league-qualifying-zone", label: "League — Dynasty Cup qualification Q chips" },
