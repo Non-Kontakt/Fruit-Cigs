@@ -387,8 +387,21 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
               background: "rgba(96,165,250,0.06)",
               border: "1px solid rgba(96,165,250,0.2)",
             }}>
-              <div style={{ color: C.blue, fontSize: F.md, letterSpacing: 2, marginBottom: 16 }}>
-                MAKE AN OFFER
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ color: C.blue, fontSize: F.md, letterSpacing: 2 }}>
+                  MAKE AN OFFER
+                </div>
+                {tradeContext.onCompare && (
+                  <button
+                    onClick={() => tradeContext.onCompare(player)}
+                    style={{
+                      background: "none", border: `1px solid ${C.bgInput}`, color: C.textMuted,
+                      padding: "6px 12px", cursor: "pointer", fontSize: F.xs, fontFamily: FONT,
+                    }}
+                  >
+                    ⚖ COMPARE
+                  </button>
+                )}
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>

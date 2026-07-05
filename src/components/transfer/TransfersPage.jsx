@@ -3,12 +3,13 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, relColor } from "../../utils/calc.js";
-import { generateTradeId } from "../../utils/transfer.js";
+import { generateTradeId, findComparablePlayer } from "../../utils/transfer.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { XpBar } from "../ui/XpBar.jsx";
 import { PlayerPanel } from "../player/PlayerPanel.jsx";
 import { PlayerSearch } from "./PlayerSearch.jsx";
+import { PlayerCompareModal } from "./PlayerCompareModal.jsx";
 import { TradeProposal } from "./TradeProposal.jsx";
 import { OffersPanel } from "./OffersPanel.jsx";
 import { TradeHistory } from "./TradeHistory.jsx";
@@ -57,6 +58,7 @@ export function TransfersPage({
   const [viewSquad, setViewSquad] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null); // AI player profile
   const [tradeTarget, setTradeTarget] = useState(null); // { player, club } for TradeProposal
+  const [compareTarget, setCompareTarget] = useState(null); // AI player being compared against your squad
   const [relSortCol,  setRelSortCol]  = useState(null); // null | "club" | "league" | "status" | "pct" | "wk"
   const [relSortDir,  setRelSortDir]  = useState("desc");
   const mob = useMobile();
@@ -188,6 +190,11 @@ export function TransfersPage({
   const handlePlayerClick = (player) => {
     // player has clubName, clubColor, clubTier from PlayerSearch's allPlayers
     setSelectedPlayer(player);
+  };
+
+  // --- Open the compare modal for a specific AI transfer target ---
+  const handleCompare = (player) => {
+    setCompareTarget(player);
   };
 
   // --- Open trade proposal for a specific AI player ---
@@ -764,10 +771,22 @@ export function TransfersPage({
               transferWindowOpen: !!transferWindowOpen,
               transferWindowWeeksRemaining,
               onMakeOffer: handleMakeOffer,
+              onCompare: handleCompare,
             }}
           />
         );
       })()}
+
+      {/* Player compare modal */}
+      {compareTarget && (
+        <PlayerCompareModal
+          yourPlayer={findComparablePlayer(squad, compareTarget.position)}
+          targetPlayer={compareTarget}
+          ovrCap={ovrCap}
+          scoutedPlayers={scoutedPlayers}
+          onClose={() => setCompareTarget(null)}
+        />
+      )}
 
       {/* Trade Proposal modal */}
       {tradeTarget && (

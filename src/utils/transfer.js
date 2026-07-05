@@ -1,4 +1,4 @@
-import { getOverall, pickRandom } from "./calc.js";
+import { getOverall, pickRandom, getOOPPenalty } from "./calc.js";
 import { POSITION_TYPES } from "../data/positions.js";
 
 /**
@@ -288,4 +288,32 @@ export function getManagerQuote(ratio) {
  */
 export function generateTradeId(season, week) {
   return `trade-s${season}-w${week}-${Date.now().toString(36)}`;
+}
+
+/**
+ * Find the squad member to line up against a transfer target for comparison:
+ * the best-OVR player who shares the target's exact position, or — if the
+ * squad has none — the closest positional fit by getOOPPenalty (ties broken
+ * by OVR). Returns null for an empty squad.
+ * @param {Array} squad - Player's own squad
+ * @param {string} targetPosition - The transfer target's position
+ * @returns {{ player: Object, exactMatch: boolean } | null}
+ */
+export function findComparablePlayer(squad, targetPosition) {
+  const eligible = (squad || []).filter(p => p && p.attrs);
+  if (eligible.length === 0) return null;
+
+  const samePosition = eligible.filter(p => p.position === targetPosition);
+  if (samePosition.length > 0) {
+    const best = samePosition.reduce((a, b) => (getOverall(b) > getOverall(a) ? b : a));
+    return { player: best, exactMatch: true };
+  }
+
+  const best = eligible.reduce((a, b) => {
+    const fitA = getOOPPenalty(a.position, targetPosition, a.learnedPositions);
+    const fitB = getOOPPenalty(b.position, targetPosition, b.learnedPositions);
+    if (fitB !== fitA) return fitB > fitA ? b : a;
+    return getOverall(b) > getOverall(a) ? b : a;
+  });
+  return { player: best, exactMatch: false };
 }
