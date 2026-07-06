@@ -2280,6 +2280,10 @@ function FruitCigs() {
         const accentColor = isCupBanner ? C.amber : leagueColor;
         // Context line: "SEASON X · WEEK Y — LEAGUE TWO MD 5" or "— CLUBMAN CUP QUARTER-FINAL"
         const contextLabel = bannerMatch ? bannerMatch.label.toUpperCase() : (calEntry?.type === "training" ? "TRAINING" : "");
+        // Mobile keeps only the parts that carry meaning for a league fixture
+        // — just the matchday number, dropping the league name (it's visible
+        // one tap away via the LEAGUE nav button and rarely changes anyway).
+        const mobileMatchdayLabel = bannerMatch?.type === "league" ? `MD ${calEntry.leagueMD + 1}` : null;
         // Action button logic
         const isCupMatch = calEntry?.type === "cup" && useGameStore.getState().cup?.pendingPlayerMatch && !useGameStore.getState().cup?.playerEliminated;
         const isDisabled = processing || (summerPhase === "summary" || summerPhase === "intake");
@@ -2299,9 +2303,16 @@ function FruitCigs() {
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.textDim, letterSpacing: 1.2, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {isMobile ? `S${seasonNumber} · W${calendarIndex + 1}` : `SEASON ${seasonNumber} · WEEK ${calendarIndex + 1}`}{contextLabel ? ` — ${contextLabel}` : ""}
+                {isMobile
+                  ? `S${seasonNumber} · W${calendarIndex + 1}${mobileMatchdayLabel ? ` · ${mobileMatchdayLabel}` : (contextLabel ? ` — ${contextLabel}` : "")}`
+                  : `SEASON ${seasonNumber} · WEEK ${calendarIndex + 1}${contextLabel ? ` — ${contextLabel}` : ""}`}
               </div>
               {bannerMatch ? (
+                // Team name and "vs" are short and known; the opponent name
+                // is the variable-length part. Whichever side it renders on,
+                // nowrap + ellipsis clips from the tail of the line, so the
+                // opponent already gets whatever space remains rather than
+                // splitting it evenly with the known-short parts.
                 <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: 1.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {bannerMatch.isHome ? (
                     <>
