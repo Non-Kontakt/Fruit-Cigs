@@ -674,4 +674,70 @@ test.describe("full-app flows", () => {
     const laterDripMessages = afterOptOut.filter(m => m.id?.startsWith("msg_onboarding_") && m.id !== "msg_onboarding_matchday");
     expect(laterDripMessages).toHaveLength(0);
   });
+
+  test("Saudi poach event: refusing costs sentiment and relationship but keeps the squad untouched", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Inject a poach_event message directly (the real trigger requires
+    // simulating half a Saudi Super League season) — same shape MSG.poachEvent
+    // produces, with a rival team pulled from the real league so the
+    // relationship-worsening path has something real to act on.
+    const before = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const rivalIdx = s.league.teams.findIndex(t => !t.isPlayer);
+      const rivalName = s.league.teams[rivalIdx].name;
+      const clubRelationships = { ...s.clubRelationships, [rivalName]: { pct: 40, tier: s.leagueTier } };
+      const poachMsg = {
+        id: "msg_poach_test", icon: "🕌", title: "Mid-Season Poach Event",
+        body: "Three players have emerged on the Saudi market.",
+        color: "#d4a017", type: "poach_event",
+        poachPlayers: [
+          { name: "Test Player A", position: "ST", age: 24, attrs: {} },
+          { name: "Test Player B", position: "CM", age: 26, attrs: {} },
+          { name: "Test Player C", position: "CB", age: 22, attrs: {} },
+        ],
+        poachRivalIdx: rivalIdx,
+        choices: [
+          { label: "Sign Test Player A", value: "0", tone: "primary", resultText: "You signed Test Player A." },
+          { label: "Sign Test Player B", value: "1", tone: "primary", resultText: "You signed Test Player B." },
+          { label: "Sign Test Player C", value: "2", tone: "primary", resultText: "You signed Test Player C." },
+          { label: "Turn down the money", value: "decline", tone: "neutral", resultText: "You turned down the Saudi money." },
+        ],
+        read: false, week: s.calendarIndex + 1, season: s.seasonNumber, seq: 999999,
+      };
+      window.__fc.setState({ clubRelationships, inboxMessages: [...s.inboxMessages, poachMsg] });
+      return { fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment, rivalName, squadSize: s.squad.length };
+    });
+
+    await page.getByText("BOOT ROOM", { exact: false }).first().click();
+    await expect(page.getByText("Mid-Season Poach Event", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await page.getByText("Turn down the money", { exact: false }).first().click();
+
+    await page.waitForFunction(
+      () => window.__fc.getState().inboxMessages.find(m => m.id === "msg_poach_test")?.choiceResult === "decline",
+      null, { timeout: 5_000 },
+    );
+
+    const after = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return {
+        fanSentiment: s.fanSentiment,
+        boardSentiment: s.boardSentiment,
+        squadSize: s.squad.length,
+        lastSentimentEntry: s.sentimentLog[s.sentimentLog.length - 1],
+        clubRelationships: s.clubRelationships,
+      };
+    });
+
+    // Flat v1 costs — refusing doesn't scale with squad quality or league position.
+    expect(after.fanSentiment).toBe(Math.max(0, before.fanSentiment - 8));
+    expect(after.boardSentiment).toBe(Math.max(0, before.boardSentiment - 5));
+    expect(after.lastSentimentEntry.reason).toBe("Turned down the Saudi money");
+    expect(after.clubRelationships[before.rivalName].pct).toBe(35);
+    // Refusal keeps the squad exactly as it was — no signing, no departure.
+    expect(after.squadSize).toBe(before.squadSize);
+  });
 });

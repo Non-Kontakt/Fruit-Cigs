@@ -162,12 +162,13 @@ const trialMsg = () => ({
 const poachMsg = () => ({
   id: "msg_poach_x", seq: 2, week: 6, season: 1,
   icon: "🎯", color: "#d4a017", title: "Poaching Opportunity",
-  body: "Three players are unsettled at their clubs and open to a move. Pick one to make an approach.",
+  body: "Three players are unsettled at their clubs and open to a move. Pick one to make an approach, or turn down the money altogether.",
   type: "poach_event",
   choices: [
-    { label: "Sign Remy Diaby", value: "0" },
-    { label: "Sign Karl Voss", value: "1" },
-    { label: "Sign Tunde Bello", value: "2" },
+    { label: "Sign Remy Diaby", value: "0", tone: "primary" },
+    { label: "Sign Karl Voss", value: "1", tone: "primary" },
+    { label: "Sign Tunde Bello", value: "2", tone: "primary" },
+    { label: "Turn down the money", value: "decline", tone: "neutral" },
   ],
 });
 

@@ -969,6 +969,9 @@ const poachEvent = (body, players, rivalIdx) => ({
     { label: `Sign ${players[0].name}`, value: "0", tone: "primary", resultText: `You signed ${players[0].name}.` },
     { label: `Sign ${players[1].name}`, value: "1", tone: "primary", resultText: `You signed ${players[1].name}.` },
     { label: `Sign ${players[2].name}`, value: "2", tone: "primary", resultText: `You signed ${players[2].name}.` },
+    // Refusal — turns down the whole deal. Neutral tone per this file's own
+    // convention: refusal-style choices don't default to danger red.
+    { label: "Turn down the money", value: "decline", tone: "neutral", resultText: "You turned down the Saudi money." },
   ],
 });
 
