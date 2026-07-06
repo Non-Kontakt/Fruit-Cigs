@@ -33,8 +33,9 @@ describe("resolveKnockoutPromotion — Dynasty Cup (Euro Dynasty, tier 3)", () =
     expect(newTier).toBe(2);
   });
 
-  it("4th place cup winner already relegated by other rules is not un-relegated below currentTier - 1", () => {
-    // newTier already worse than currentTier (relegated) — cup win only ever moves you UP one tier max, never further.
+  it("a cup win overrides an incoming relegation: 4th-place winner is promoted to exactly currentTier - 1", () => {
+    // newTier arrives as relegation (4) but the cup win promotes — and the
+    // promotion is exactly one tier up from currentTier, never more.
     const newTier = resolveKnockoutPromotion({
       mod: dynastyMod, currentTier: 3, position: 4, newTier: 4,
       miniTournamentBracket: null,
