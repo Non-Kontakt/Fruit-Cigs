@@ -25,6 +25,7 @@ export const FIXTURES = [
   { id: "squad-progress-improved", label: "Squad progress — most improved ranked view", clickText: "MOST IMPROVED" },
   { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },
   { id: "achievement-toast", label: "Achievement — unlock toast (auto-dismiss)" },
+  { id: "ticket-cards", label: "Scratch cards — full description, disabled card hides USE", clickText: "SCRATCH CARDS" },
   { id: "cig-card-states", label: "Cig cards — hidden/uncollected/collected/legendary" },
   { id: "cig-pack-detail", label: "Cig packs — pack detail card grid", clickText: "Cherry Cigs" },
   { id: "player-stats", label: "Player panel — STATS tab with OVR weighting" },

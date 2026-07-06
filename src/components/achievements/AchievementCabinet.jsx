@@ -410,7 +410,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                         }}
                         style={{
                           width: tW,
-                          height: mob ? 100 : 110,
+                          minHeight: mob ? 100 : 110,
                           display: "flex",
                           alignItems: "stretch",
                           borderRadius: 12,
@@ -449,8 +449,6 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                               fontSize: F.micro, color: disabledReason ? C.slate : C.textDim,
                               lineHeight: 1.7,
                               fontStyle: disabledReason ? "italic" : "normal",
-                              display: "-webkit-box", WebkitLineClamp: 3,
-                              WebkitBoxOrient: "vertical", overflow: "hidden",
                             }}>{disabledReason || def.desc}</div>
                           </div>
                         </div>
@@ -472,11 +470,16 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                               ? `linear-gradient(135deg, ${def.color}12, transparent)`
                               : "transparent",
                         }}>
-                          <span style={{
-                            fontSize: F.xs, fontFamily: FONT,
-                            color: isPicking ? C.red : canUse ? def.color : C.textDim,
-                            letterSpacing: 1,
-                          }}>{isPicking ? "X" : "USE"}</span>
+                          {/* Disabled cards drop the button entirely — the
+                              inline reason in the description is the whole
+                              story, not a redundant "USE" that does nothing. */}
+                          {(canUse || isPicking) && (
+                            <span style={{
+                              fontSize: F.xs, fontFamily: FONT,
+                              color: isPicking ? C.red : def.color,
+                              letterSpacing: 1,
+                            }}>{isPicking ? "X" : "USE"}</span>
+                          )}
                         </div>
                       </div>
                     );
