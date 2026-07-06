@@ -8,7 +8,7 @@ import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall } from "../utils/calc.js";
 import { generateFreeAgent, getOvrCap } from "../utils/player.js";
 import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resolveSeasonEndArcs } from "../utils/arcs.js";
-import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound } from "../utils/league.js";
+import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
 import { checkAchievements } from "../utils/achievements.js";
@@ -125,13 +125,7 @@ export function useMatchResult({
         let newTier = swapResult.playerNewTier;
         const _mod = getModifier(currentTier);
         const _mBkt = s.miniTournamentBracket;
-        if (_mod.miniTournament && currentTier > 1 && _mBkt) {
-          const _dRU = _mBkt.runnerUp || (_mBkt.winner && _mBkt.final?.home && _mBkt.final?.away ? (_mBkt.winner.name === _mBkt.final.home.name ? _mBkt.final.away : _mBkt.final.home) : null);
-          const _promoted = _mBkt.winner?.isPlayer || _dRU?.isPlayer || (_mBkt.thirdPlaceWinner || _mBkt.thirdPlace?.winner)?.isPlayer;
-          if (_promoted && newTier >= currentTier) newTier = currentTier - 1;
-        } else {
-          if (position <= 3 && currentTier > 1 && newTier >= currentTier) newTier = currentTier - 1;
-        }
+        newTier = resolveKnockoutPromotion({ mod: _mod, currentTier, position, newTier, miniTournamentBracket: _mBkt, dynastyCupBracket: s.dynastyCupBracket });
         if (newTier < currentTier - 1) newTier = currentTier - 1;
         if (newTier > currentTier + 1) newTier = currentTier + 1;
         newTier = Math.max(1, Math.min(NUM_TIERS, newTier));
@@ -206,7 +200,7 @@ export function useMatchResult({
         // Detect Dynasty Cup finish for promotion text
         const dBkt = s.dynastyCupBracket;
         let dynastyCupFinish = null;
-        if (mod.knockoutAtEnd && dBkt) {
+        if (_mod.knockoutAtEnd && dBkt) {
           if (dBkt.winner?.isPlayer) dynastyCupFinish = "winner";
           else if (dBkt.final?.home?.isPlayer || dBkt.final?.away?.isPlayer) dynastyCupFinish = "runner_up";
           else if (dBkt.sf1?.home?.isPlayer || dBkt.sf1?.away?.isPlayer || dBkt.sf2?.home?.isPlayer || dBkt.sf2?.away?.isPlayer) dynastyCupFinish = "semi_finalist";

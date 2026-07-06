@@ -388,6 +388,29 @@ export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueS
   return { rosters: newRosters, playerNewTier, playerPosition: (playerPos ?? 0) + 1 };
 }
 
+// Post-league-position promotion can be overridden by an end-of-season
+// knockout. World XI's 5v5 Mini-Tournament forces promotion for its winner,
+// runner-up, or third-place playoff winner (top 3 of the bracket), regardless
+// of league position. Euro Dynasty's Dynasty Cup only forces promotion for
+// its outright winner — a runner-up or semi-finalist gets no bonus and falls
+// back to the plain top-3-by-position rule.
+export function resolveKnockoutPromotion({ mod, currentTier, position, newTier, miniTournamentBracket, dynastyCupBracket }) {
+  if (mod.miniTournament && currentTier > 1 && miniTournamentBracket) {
+    const bkt = miniTournamentBracket;
+    const runnerUp = bkt.runnerUp || (bkt.winner && bkt.final?.home && bkt.final?.away
+      ? (bkt.winner.name === bkt.final.home.name ? bkt.final.away : bkt.final.home)
+      : null);
+    const thirdPlaceWinner = bkt.thirdPlaceWinner || bkt.thirdPlace?.winner;
+    const promoted = bkt.winner?.isPlayer || runnerUp?.isPlayer || thirdPlaceWinner?.isPlayer;
+    return (promoted && newTier >= currentTier) ? currentTier - 1 : newTier;
+  }
+  const cupWinnerPromotion = mod.knockoutAtEnd && dynastyCupBracket?.winner?.isPlayer;
+  if ((position <= 3 || cupWinnerPromotion) && currentTier > 1 && newTier >= currentTier) {
+    return currentTier - 1;
+  }
+  return newTier;
+}
+
 export function initLeague(playerSquad, teamName, tier, rosters, preservedSquads, prestigeLevel = 0) {
   const leagueDef = LEAGUE_DEFS[tier] || LEAGUE_DEFS[2];
 
