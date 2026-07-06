@@ -2524,11 +2524,16 @@ function FruitCigs() {
           cursor: "pointer",
           fontFamily: FONT,
           fontSize: isMobile ? F.xs : F.md,
-          flex: isMobile ? "1 1 auto" : undefined,
           minHeight: isMobile ? 40 : undefined,
         });
+        // Mobile: a strict 4-column grid keeps every row full (8 items = two
+        // even rows of 4) instead of flex-wrap's content-width wrapping,
+        // which left CORNER SHOP alone on a banner-width third row.
         return (
-          <div style={{ display: "flex", gap: isMobile ? 6 : 8, marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={isMobile
+            ? { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }
+            : { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }
+          }>
             <button onClick={() => clearAll()} style={navBtn(isHome, C.green)}>🏠 HOME</button>
             <button onClick={() => { clearAll(); setShowSquad(true); }} style={navBtn(showSquad, C.blue)}>📋 SQUAD</button>
             <button onClick={() => { if (showCalendar) setBootRoomKey(k => k + 1); clearAll(); setInitialBootRoomTab("inbox"); setShowCalendar(true); }} style={navBtn(showCalendar, C.blue)}>
@@ -2544,7 +2549,7 @@ function FruitCigs() {
                 );
               })()}
             </button>
-            <button onClick={() => { if (showTable) setLeagueKey(k => k + 1); clearAll(); setShowTable(true); }} style={navBtn(showTable, C.gold)}>🏆 LEAGUE</button>
+            <button onClick={() => { if (showTable) setLeagueKey(k => k + 1); clearAll(); setShowTable(true); }} style={navBtn(showTable, C.gold)}>📊 LEAGUE</button>
             {cup && <button onClick={() => { if (showCup) setCupKey(k => k + 1); clearAll(); setShowCup(true); }} style={navBtn(showCup, cup.playerEliminated ? C.slate : C.gold)}>🏆 CUP{cup.playerEliminated ? " (OUT)" : ""}</button>}
             <button onClick={() => { if (showTransfers) setTransfersKey(k => k + 1); clearAll(); setShowTransfers(true); }} style={navBtn(showTransfers, C.green)}>🤝 TRANSFERS{transferOffers && transferOffers.length > 0 && !showTransfers ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.red, marginLeft: 6, verticalAlign: "middle", boxShadow: "0 0 6px rgba(248,113,113,0.6)" }} /> : null}</button>
             <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>📜 CLUB</button>
