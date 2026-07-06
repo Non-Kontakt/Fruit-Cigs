@@ -1065,8 +1065,10 @@ export function Dashboard({
         fontFamily: FONT,
       }}>
         {latestResults.length === 0 && tickerBeats.length === 0 ? (
+          // Form Guide above already says "No results yet" — echoing it here
+          // reads as a bug, not confirmation. Context-appropriate copy instead.
           <div style={{ width: "100%", textAlign: "center", fontSize: mob ? F.xs : F.sm, color: C.bgInput }}>
-            No results yet
+            The ticker starts once your first match is played.
           </div>
         ) : (
           <div style={{

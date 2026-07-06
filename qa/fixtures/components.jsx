@@ -556,6 +556,14 @@ const RENDERERS = {
       <LeaguePage {...leagueHistoryProps()} />
     </div>
   ),
+  // Lands on the TABLE tab; the spec clicks "ALL-TIME" (registry.clickText).
+  // No season or all-time stats at all — every section is empty, so this
+  // freezes the consolidated empty state (not four per-section shrugs).
+  "league-alltime-empty": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <LeaguePage {...leagueStatsProps({ seasonLeagueStatsByTier: {}, allTimeLeagueStatsByTier: {} })} />
+    </div>
+  ),
   // Lands on the (default) LEAGUES tab — no clickText needed.
   "league-qualifying-zone": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
