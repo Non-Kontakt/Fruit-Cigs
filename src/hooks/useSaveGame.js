@@ -65,6 +65,7 @@ export function useSaveGame({
         startingXI: s.startingXI, bench: s.bench,
         unlockedAchievements: s.unlockedAchievements, unlockedPacks: s.unlockedPacks,
         achievementUnlockWeeks: s.achievementUnlockWeeks, lastSeenAchievementCount: s.lastSeenAchievementCount,
+        onboardingDripSuppressed: s.onboardingDripSuppressed,
         seasonCards: s.seasonCards, seasonNumber: s.seasonNumber, leagueWins: s.leagueWins,
         leagueTier: s.leagueTier, prestigeLevel: s.prestigeLevel, leagueVersion: 3,
         lastSeasonMove: s.lastSeasonMove, matchSpeed: s.matchSpeed,
@@ -245,6 +246,10 @@ export function useSaveGame({
       store.setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
       if (s.achievementUnlockWeeks) { store.setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
       store.setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
+      // Saves predating this field never ran the drip — default suppressed,
+      // so only a genuinely new career (which sets this false explicitly)
+      // ever sees it.
+      store.setOnboardingDripSuppressed(s.onboardingDripSuppressed ?? true);
       store.setSeasonCards(s.seasonCards || 0);
       store.setSeasonNumber(s.seasonNumber || 1);
       store.setLeagueWins(s.leagueWins || 0);

@@ -264,6 +264,12 @@ export const useGameStore = create((set, get) => ({
   achievementUnlockWeeks: {},
   lastSeenAchievementCount: 0,
   inboxMessages: [],
+  // Skippable assistant-manager onboarding drip (new careers only). Set true
+  // by the "I Know What I'm Doing" choice on the week-1 training intro, or
+  // by default for anything hydrated from a save that predates this field —
+  // existing players never see the drip. New careers explicitly set this
+  // false at creation (see App.jsx's league-init effect).
+  onboardingDripSuppressed: true,
   usedTicketTypes: new Set(),
   formationsWonWith: new Set(),
   freeAgentSignings: 0,
@@ -444,6 +450,7 @@ export const useGameStore = create((set, get) => ({
   setAchievementUnlockWeeks: (val) => set(s => ({ achievementUnlockWeeks: typeof val === "function" ? val(s.achievementUnlockWeeks) : val })),
   setLastSeenAchievementCount: (val) => set({ lastSeenAchievementCount: val }),
   setInboxMessages: (val) => set(s => ({ inboxMessages: typeof val === "function" ? val(s.inboxMessages) : val })),
+  setOnboardingDripSuppressed: (val) => set({ onboardingDripSuppressed: val }),
   setUsedTicketTypes: (val) => set(s => ({ usedTicketTypes: typeof val === "function" ? val(s.usedTicketTypes) : val })),
   setFormationsWonWith: (val) => set(s => ({ formationsWonWith: typeof val === "function" ? val(s.formationsWonWith) : val })),
   setFreeAgentSignings: (val) => set(s => ({ freeAgentSignings: typeof val === "function" ? val(s.freeAgentSignings) : val })),
