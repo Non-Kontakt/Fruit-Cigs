@@ -30,7 +30,7 @@ function weeklyNet(entry, isFocus, playerTier, inLeague) {
   return focus + passive - decay;
 }
 
-const TABS = ["PLAYER SEARCH", "RELATIONS", "OFFERS IN", "SHORTLIST", "HISTORY"];
+const TABS = ["PLAYER SEARCH", "RELATIONSHIPS", "OFFERS IN", "SHORTLIST", "HISTORY"];
 
 export function TransfersPage({
   clubRelationships, setClubRelationships,
@@ -376,8 +376,8 @@ export function TransfersPage({
       {/* Tab content */}
       <div style={{ background: C.bg, border: `1px solid ${C.bgCard}` }}>
 
-        {/* ===== RELATIONS TAB ===== */}
-        {activeTab === "RELATIONS" && (
+        {/* ===== RELATIONSHIPS TAB ===== */}
+        {activeTab === "RELATIONSHIPS" && (
           <div style={{ padding: mob ? "16px 10px" : "20px" }}>
 
             {/* Active Focus — 2 slots */}
@@ -577,7 +577,7 @@ export function TransfersPage({
                             color: C.green, fontSize: F.xs, cursor: "pointer",
                             padding: "8px 13px", fontFamily: FONT,
                           }}
-                        >IMPROVE RELATIONS</button>
+                        >IMPROVE RELATIONSHIP</button>
                       )}
                     </div>
                   )}

@@ -458,11 +458,13 @@ export function PlayerSearch({
             {/* Nationality flag */}
             <span style={{ textAlign: "center", fontSize: F.md }}>{flag}</span>
 
-            {/* Age */}
+            {/* Age — veteran age is amber (matching the Veteran 🤝 tag), not
+                red: red is reserved for genuinely negative states (INJ,
+                relegation, losses), and an older player isn't an error. */}
             {!mob && (
               <span style={{
                 textAlign: "center", fontSize: F.sm,
-                color: p.age <= 21 ? C.green : p.age >= 32 ? C.red : C.textMuted,
+                color: p.age <= 21 ? C.green : p.age >= 32 ? C.amber : C.textMuted,
               }}>
                 {p.age || "—"}
               </span>
