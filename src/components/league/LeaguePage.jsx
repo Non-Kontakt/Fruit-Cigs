@@ -936,31 +936,45 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
           const yellowList = rows.filter(r => r.yellows > 0).sort((a, b) => b.yellows - a.yellows).slice(0, 20);
           const redList = rows.filter(r => r.reds > 0).sort((a, b) => b.reds - a.reds).slice(0, 20);
           const scopeSuffix = isAllDivisions ? " — ALL DIVISIONS" : "";
+          // Four consecutive "no data yet" shrugs read as robotic pileup on a
+          // fresh save. When every section is empty, show one line in the
+          // HISTORY tab's voice instead — per-section empties still stand
+          // once any section has data (e.g. goals recorded but no reds yet).
+          const allSectionsEmpty = scorerList.length === 0 && assisterList.length === 0
+            && yellowList.length === 0 && redList.length === 0;
 
           return (
             <div style={{ padding: mob ? "20px 14px" : "24px" }}>
               {renderTierChips({ showAllOption: true })}
               <div style={{ marginTop: 18 }}>
-                {renderRankedList({
-                  title: `TOP SCORERS${scopeSuffix}`, icon: "⚽",
-                  list: scorerList, valueField: "goals", valueColor: C.green,
-                  emptyText: "No goals on record yet",
-                })}
-                {renderRankedList({
-                  title: `TOP ASSISTS${scopeSuffix}`, icon: "🎯",
-                  list: assisterList, valueField: "assists", valueColor: "#38bdf8",
-                  emptyText: "No assists on record yet",
-                })}
-                {renderRankedList({
-                  title: `MOST YELLOW CARDS${scopeSuffix}`, icon: "🟨",
-                  list: yellowList, valueField: "yellows", valueColor: C.amber,
-                  emptyText: "No yellows on record yet",
-                })}
-                {renderRankedList({
-                  title: `MOST RED CARDS${scopeSuffix}`, icon: "🟥",
-                  list: redList, valueField: "reds", valueColor: C.red,
-                  emptyText: "No reds on record yet",
-                })}
+                {allSectionsEmpty ? (
+                  <div style={{ textAlign: "center", fontSize: F.sm, color: C.bgInput, padding: "20px 0" }}>
+                    The record books open once matches are played.
+                  </div>
+                ) : (
+                  <>
+                    {renderRankedList({
+                      title: `TOP SCORERS${scopeSuffix}`, icon: "⚽",
+                      list: scorerList, valueField: "goals", valueColor: C.green,
+                      emptyText: "No goals on record yet",
+                    })}
+                    {renderRankedList({
+                      title: `TOP ASSISTS${scopeSuffix}`, icon: "🎯",
+                      list: assisterList, valueField: "assists", valueColor: "#38bdf8",
+                      emptyText: "No assists on record yet",
+                    })}
+                    {renderRankedList({
+                      title: `MOST YELLOW CARDS${scopeSuffix}`, icon: "🟨",
+                      list: yellowList, valueField: "yellows", valueColor: C.amber,
+                      emptyText: "No yellows on record yet",
+                    })}
+                    {renderRankedList({
+                      title: `MOST RED CARDS${scopeSuffix}`, icon: "🟥",
+                      list: redList, valueField: "reds", valueColor: C.red,
+                      emptyText: "No reds on record yet",
+                    })}
+                  </>
+                )}
               </div>
             </div>
           );

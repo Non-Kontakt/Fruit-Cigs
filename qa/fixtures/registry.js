@@ -21,6 +21,7 @@ export const FIXTURES = [
   { id: "inbox-poach", label: "Inbox — poach (3 equivalent choices)" },
   { id: "leaguestats-mid", label: "League — stats tab mid-season", clickText: "STATS" },
   { id: "league-history", label: "League — history tab with an archived champion", clickText: "HISTORY" },
+  { id: "league-alltime-empty", label: "League — ALL-TIME tab, consolidated empty state", clickText: "ALL-TIME" },
   { id: "league-qualifying-zone", label: "League — Dynasty Cup qualification Q chips" },
   { id: "squad-progress-improved", label: "Squad progress — most improved ranked view", clickText: "MOST IMPROVED" },
   { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },

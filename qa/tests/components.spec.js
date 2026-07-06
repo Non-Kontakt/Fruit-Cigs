@@ -188,6 +188,19 @@ test("scratch cards: full description renders, disabled cards hide USE", async (
   await expect(page.getByText("USE", { exact: true })).toHaveCount(1);
 });
 
+// League ALL-TIME tab: with no season or all-time stats at all, one
+// consolidated line replaces the four per-section "no data yet" shrugs.
+test("league ALL-TIME tab: shows one consolidated empty state, not four shrugs", async ({ page }) => {
+  await page.goto("qa.html?c=league-alltime-empty");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("ALL-TIME", { exact: false }).first().click();
+  await expect(page.getByText("The record books open once matches are played.", { exact: true })).toBeVisible();
+  await expect(page.getByText("No goals on record yet", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("No assists on record yet", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("No yellows on record yet", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("No reds on record yet", { exact: true })).toHaveCount(0);
+});
+
 // Dynasty Cup qualification (knockout-tier) Q chips — exactly the top 4
 // standings get the chip, and it's absent below the qualification line.
 test("league table: Q chip marks exactly the top-4 knockout qualification zone", async ({ page }) => {
