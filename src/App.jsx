@@ -3461,6 +3461,8 @@ function FruitCigs() {
       ) : showTransfers ? (
         <TransfersPage
           key={transfersKey}
+          formation={formation}
+          slotAssignments={slotAssignments}
           clubRelationships={clubRelationships}
           setClubRelationships={setClubRelationships}
           transferFocus={transferFocus}

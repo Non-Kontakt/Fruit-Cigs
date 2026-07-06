@@ -45,6 +45,7 @@ export function TransfersPage({
   setSquad, setAllLeagueStates,
   seasonNumber, week,
   startingXI, setStartingXI,
+  formation, slotAssignments,
   onPlayerClick, onTeamClick,
   shortlist, setShortlist, onToggleShortlist,
   pendingTradeTarget, onClearPendingTrade,
@@ -780,7 +781,7 @@ export function TransfersPage({
       {/* Player compare modal */}
       {compareTarget && (
         <PlayerCompareModal
-          yourPlayer={findComparablePlayer(squad, compareTarget.position)}
+          yourPlayer={findComparablePlayer(squad, compareTarget.position, { startingXI, formation, slotAssignments })}
           targetPlayer={compareTarget}
           ovrCap={ovrCap}
           scoutedPlayers={scoutedPlayers}

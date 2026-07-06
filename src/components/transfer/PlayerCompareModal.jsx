@@ -82,7 +82,7 @@ function PlayerColumn({ player, potentialKnown, ovrCap, better, mob }) {
 }
 
 // Props:
-//   yourPlayer   — { player, exactMatch } from findComparablePlayer(), or null
+//   yourPlayer   — { player, naturalPosition, fromXI } from findComparablePlayer(), or null
 //                   if the squad has nobody at all (e.g. an empty squad edge case)
 //   targetPlayer — the AI transfer target (carries clubName/clubColor/clubTier)
 //   scoutedPlayers — same map PlayerPanel uses to gate the target's POT reveal
@@ -119,7 +119,7 @@ export function PlayerCompareModal({ yourPlayer, targetPlayer, ovrCap = 20, scou
           }}>✕</button>
         </div>
 
-        {yourPlayer && !yourPlayer.exactMatch && (
+        {yourPlayer && !yourPlayer.naturalPosition && (
           <div style={{
             fontSize: F.xs, color: C.textDim, marginBottom: 18,
             background: "rgba(148,163,184,0.08)", border: `1px solid ${C.bgCard}`,

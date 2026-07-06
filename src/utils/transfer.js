@@ -1,4 +1,5 @@
 import { getOverall, pickRandom, getOOPPenalty } from "./calc.js";
+import { getEffectiveSlots } from "./formation.js";
 import { POSITION_TYPES } from "../data/positions.js";
 
 /**
@@ -291,29 +292,65 @@ export function generateTradeId(season, week) {
 }
 
 /**
- * Find the squad member to line up against a transfer target for comparison:
- * the best-OVR player who shares the target's exact position, or — if the
- * squad has none — the closest positional fit by getOOPPenalty (ties broken
- * by OVR). Returns null for an empty squad.
- * @param {Array} squad - Player's own squad
- * @param {string} targetPosition - The transfer target's position
- * @returns {{ player: Object, exactMatch: boolean } | null}
+ * Find who to line up against a transfer target for comparison: your CURRENT
+ * STARTER for the target's position — the decision the comparison actually
+ * informs is "does this target improve my starting XI".
+ *
+ * Selection order:
+ *  1. the starter assigned to a formation slot matching the target's
+ *     position (best OVR if the formation has several such slots);
+ *  2. no matching slot in the formation — the closest positional fit among
+ *     the current XI (getOOPPenalty, ties by OVR);
+ *  3. no usable XI at all (fresh save, no lineup) — squad-wide fallback,
+ *     flagged via fromXI: false.
+ *
+ * @returns {{ player: Object, naturalPosition: boolean, fromXI: boolean } | null}
  */
-export function findComparablePlayer(squad, targetPosition) {
+export function findComparablePlayer(squad, targetPosition, { startingXI, formation, slotAssignments } = {}) {
   const eligible = (squad || []).filter(p => p && p.attrs);
   if (eligible.length === 0) return null;
 
+  const byId = new Map(eligible.map(p => [p.id, p]));
+  let starters = [];
+  let slotPositions = new Map(); // player id -> assigned slot position
+  if (startingXI && startingXI.length > 0 && formation) {
+    const slots = getEffectiveSlots(startingXI, formation, squad, slotAssignments);
+    slots.forEach((pid, i) => {
+      if (i < 11 && pid != null && byId.has(pid)) {
+        starters.push(byId.get(pid));
+        slotPositions.set(pid, formation[i]?.pos || null);
+      }
+    });
+  }
+
+  if (starters.length > 0) {
+    // 1. Starter(s) assigned to a slot matching the target's position.
+    const inMatchingSlot = starters.filter(p => slotPositions.get(p.id) === targetPosition);
+    if (inMatchingSlot.length > 0) {
+      const best = inMatchingSlot.reduce((a, b) => (getOverall(b) > getOverall(a) ? b : a));
+      return { player: best, naturalPosition: best.position === targetPosition, fromXI: true };
+    }
+    // 2. Closest positional fit among the current XI.
+    const best = starters.reduce((a, b) => {
+      const fitA = getOOPPenalty(a.position, targetPosition, a.learnedPositions);
+      const fitB = getOOPPenalty(b.position, targetPosition, b.learnedPositions);
+      if (fitB !== fitA) return fitB > fitA ? b : a;
+      return getOverall(b) > getOverall(a) ? b : a;
+    });
+    return { player: best, naturalPosition: best.position === targetPosition, fromXI: true };
+  }
+
+  // 3. No usable XI — squad-wide fallback.
   const samePosition = eligible.filter(p => p.position === targetPosition);
   if (samePosition.length > 0) {
     const best = samePosition.reduce((a, b) => (getOverall(b) > getOverall(a) ? b : a));
-    return { player: best, exactMatch: true };
+    return { player: best, naturalPosition: true, fromXI: false };
   }
-
   const best = eligible.reduce((a, b) => {
     const fitA = getOOPPenalty(a.position, targetPosition, a.learnedPositions);
     const fitB = getOOPPenalty(b.position, targetPosition, b.learnedPositions);
     if (fitB !== fitA) return fitB > fitA ? b : a;
     return getOverall(b) > getOverall(a) ? b : a;
   });
-  return { player: best, exactMatch: false };
+  return { player: best, naturalPosition: false, fromXI: false };
 }
