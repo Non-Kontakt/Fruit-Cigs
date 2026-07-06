@@ -125,7 +125,9 @@ export function PlayerCompareModal({ yourPlayer, targetPlayer, ovrCap = 20, scou
             background: "rgba(148,163,184,0.08)", border: `1px solid ${C.bgCard}`,
             padding: "10px 14px",
           }}>
-            No {targetPlayer.position} in your squad — showing your closest positional fit instead.
+            {yourPlayer.fromXI
+              ? <>Your current {targetPlayer.position} is a converted {yourPlayer.player.position} — comparing against the actual starter.</>
+              : <>No natural {targetPlayer.position} in your squad — showing your closest positional fit instead.</>}
           </div>
         )}
 
