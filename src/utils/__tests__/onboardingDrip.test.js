@@ -143,3 +143,21 @@ describe("getNextOnboardingDripMessage — per-step triggers", () => {
     expect(getNextOnboardingDripMessage(state)).toBeNull();
   });
 });
+
+// Every tip carries its own opt-out so a manager never has to hunt for the
+// week-1 intro to silence the drip.
+describe("drip message choices", () => {
+  it("every step offers Got It and Stop These Tips", async () => {
+    const { getNextOnboardingDripMessage } = await import("../onboardingDrip.js");
+    const msg = getNextOnboardingDripMessage({
+      onboardingDripSuppressed: false, seasonNumber: 1,
+      inboxMessages: [], matchweekIndex: 1, calendarIndex: 1,
+      unlockedAchievements: new Set(), seasonCalendar: [],
+    });
+    expect(msg).toBeTruthy();
+    expect(msg.type).toBe("onboarding_drip");
+    const values = msg.choices.map(c => c.value);
+    expect(values).toContain("ack");
+    expect(values).toContain("drip_stop");
+  });
+});

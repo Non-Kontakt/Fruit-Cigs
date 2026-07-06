@@ -1427,6 +1427,9 @@ function FruitCigs() {
         setOnboardingDripSuppressed(true);
       }
     }
+    if (msg.type === "onboarding_drip" && choice === "drip_stop") {
+      setOnboardingDripSuppressed(true);
+    }
   }, [leagueTier, seasonNumber, unlockedAchievements]); // eslint-disable-line
 
   const assignTraining = useCallback((playerId, trainingKey) => {

@@ -19,6 +19,13 @@
 // returns at most one message to post (the first unsent, ready step, in
 // the order below) — never more than one drip message in the same week.
 
+// Every tip carries its own exit — a new manager shouldn't need to dig out
+// the week-1 intro message to silence the rest of the drip.
+const DRIP_CHOICES = [
+  { label: "Got It",          value: "ack",       tone: "primary", resultText: "Noted." },
+  { label: "Stop These Tips", value: "drip_stop", tone: "neutral", resultText: "The assistant will keep his tips to himself." },
+];
+
 const STEPS = [
   {
     id: "msg_onboarding_matchday",
@@ -28,6 +35,8 @@ const STEPS = [
       icon: "📰",
       color: "#f59e0b",
       title: "Asst. Manager's Notes",
+      type: "onboarding_drip",
+      choices: DRIP_CHOICES,
       body: "First result's in, boss. Results land in your inbox, and the BACK PAGE on the dashboard has the paper's take on it — worth a read after every match.",
     }),
   },
@@ -39,6 +48,8 @@ const STEPS = [
       icon: "🤝", // 🤝
       color: "#f59e0b",
       title: "Asst. Manager's Notes",
+      type: "onboarding_drip",
+      choices: DRIP_CHOICES,
       body: "Worth a look at the TRANSFERS tab even this early, boss. Building a relationship with a club now makes it easier to do business with them once the window actually opens.",
     }),
   },
@@ -50,6 +61,8 @@ const STEPS = [
       icon: "🎴", // 🎴
       color: "#f59e0b",
       title: "Asst. Manager's Notes",
+      type: "onboarding_drip",
+      choices: DRIP_CHOICES,
       body: "That's your first achievement, boss. Every one you unlock earns Cig Packs — open them from the CORNER SHOP for cards, tickets and the odd surprise.",
     }),
   },
@@ -61,6 +74,8 @@ const STEPS = [
       icon: "📋", // 📋
       color: "#f59e0b",
       title: "Asst. Manager's Notes",
+      type: "onboarding_drip",
+      choices: DRIP_CHOICES,
       body: "Keep an eye on the CLUB tab, boss — fan mood and the board's patience both move with results, and if either runs out it comes back on you.",
     }),
   },
@@ -75,6 +90,8 @@ const STEPS = [
       icon: "🏆", // 🏆
       color: "#f59e0b",
       title: "Asst. Manager's Notes",
+      type: "onboarding_drip",
+      choices: DRIP_CHOICES,
       body: "Cup football's up next, boss. It runs alongside the league on its own knockout bracket — lose and you're out for the season, so check the CUP tab before you pick your XI.",
     }),
   },
