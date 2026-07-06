@@ -402,7 +402,11 @@ export function resolveKnockoutPromotion({ mod, currentTier, position, newTier, 
       : null);
     const thirdPlaceWinner = bkt.thirdPlaceWinner || bkt.thirdPlace?.winner;
     const promoted = bkt.winner?.isPlayer || runnerUp?.isPlayer || thirdPlaceWinner?.isPlayer;
-    return (promoted && newTier >= currentTier) ? currentTier - 1 : newTier;
+    if (promoted && newTier >= currentTier) return currentTier - 1;
+    // When the bracket exists, promotion comes ONLY from the bracket — an
+    // incoming newTier that processSeasonSwaps already promoted on league
+    // position must be suppressed. Relegation, if already decided, stands.
+    return newTier > currentTier ? newTier : currentTier;
   }
   const cupWinnerPromotion = mod.knockoutAtEnd && dynastyCupBracket?.winner?.isPlayer;
   if ((position <= 3 || cupWinnerPromotion) && currentTier > 1 && newTier >= currentTier) {

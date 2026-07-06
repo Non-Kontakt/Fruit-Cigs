@@ -105,3 +105,23 @@ describe("resolveKnockoutPromotion — plain tiers (no knockout modifier)", () =
     expect(newTier).toBe(7);
   });
 });
+
+  it("suppresses league top-3 promotion when the bracket exists and the player flopped it", () => {
+    // processSeasonSwaps already promoted on league position (newTier = 1),
+    // but with a live mini-tournament, only the bracket promotes.
+    const newTier = resolveKnockoutPromotion({
+      mod: { miniTournament: true }, currentTier: 2, position: 1, newTier: 1,
+      miniTournamentBracket: { winner: { isPlayer: false }, final: { home: { name: "A" }, away: { name: "B" } } },
+      dynastyCupBracket: null,
+    });
+    expect(newTier).toBe(2);
+  });
+
+  it("preserves an incoming relegation in a mini-tournament tier", () => {
+    const newTier = resolveKnockoutPromotion({
+      mod: { miniTournament: true }, currentTier: 2, position: 10, newTier: 3,
+      miniTournamentBracket: { winner: { isPlayer: false } },
+      dynastyCupBracket: null,
+    });
+    expect(newTier).toBe(3);
+  });
