@@ -261,7 +261,8 @@ export function useMatchResult({
                 `Three players have emerged on the Saudi market. Pick one to sign — the other two will be snapped up by ${sorted[1] ? currentLeague.teams[sorted[1].teamIndex]?.name : "a rival"}.\n\n` +
                 `A) ${p1.name} — ${p1.position}, Age ${p1.age}, OVR ${getOverall(p1)}\n` +
                 `B) ${p2.name} — ${p2.position}, Age ${p2.age}, OVR ${getOverall(p2)}\n` +
-                `C) ${p3.name} — ${p3.position}, Age ${p3.age}, OVR ${getOverall(p3)}`,
+                `C) ${p3.name} — ${p3.position}, Age ${p3.age}, OVR ${getOverall(p3)}\n\n` +
+                `Or turn down the money altogether — the deal walks, but so does your standing with the fans and board.`,
                 [p1, p2, p3], sorted[1]?.teamIndex ?? 1,
               ),
               { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber },

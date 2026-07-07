@@ -1362,6 +1362,27 @@ function FruitCigs() {
       }
     }
     if (msg.type === "poach_event" && msg.poachPlayers) {
+      if (choice === "decline") {
+        // Refusing the Saudi money is flat, non-scaling — v1 doesn't weigh
+        // squad quality or league position, just the fact of turning it down.
+        const freshFan = useGameStore.getState().fanSentiment;
+        const nextFan = Math.max(0, Math.min(100, freshFan - 8));
+        setFanSentiment(nextFan);
+        setSentimentLog(prev => pushSentimentEntry(prev, {
+          delta: nextFan - freshFan, reason: "Turned down the Saudi money",
+          week: calendarIndex + 1, season: seasonNumber,
+        }));
+        setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment - 5)));
+        const rivalTeam = useGameStore.getState().league?.teams?.[msg.poachRivalIdx];
+        if (rivalTeam) {
+          setClubRelationships(prev => {
+            const rel = prev[rivalTeam.name];
+            if (!rel) return prev;
+            return { ...prev, [rivalTeam.name]: { ...rel, pct: Math.max(0, (rel.pct || 0) - 5) } };
+          });
+        }
+        return;
+      }
       const idx = parseInt(choice, 10);
       const chosen = msg.poachPlayers[idx];
       if (chosen) {
