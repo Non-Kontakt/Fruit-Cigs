@@ -284,6 +284,7 @@ function FruitCigs() {
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setManualTrainingThisWeek, setLopsidedWarned,
     setUnlockedAchievements, setUnlockedPacks, setAchievementUnlockWeeks, setLastSeenAchievementCount, setInboxMessages,
+    setOnboardingDripSuppressed,
     setLatestHeadline,
     setUsedTicketTypes, setFormationsWonWith, setFreeAgentSignings,
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
@@ -942,7 +943,10 @@ function FruitCigs() {
         createInboxMessage(MSG.boardExpectations(leagueTier, useGameStore.getState().managerName), { calendarIndex: 0, seasonNumber: 1 }),
         createInboxMessage(MSG.trialOffer(trialP, trialWeek), { calendarIndex: 0, seasonNumber: 1 }),
       ]);
-      // Asst Manager intro — training onboarding
+      // Asst Manager intro — training onboarding. Also arms the rest of the
+      // onboarding drip for this new career (see utils/onboardingDrip.js) —
+      // its own "I Know What I'm Doing" choice suppresses it again.
+      setOnboardingDripSuppressed(false);
       setInboxMessages(prev => [...prev, createInboxMessage(
         MSG.asstMgrTrainingIntro(),
         { calendarIndex: 0, seasonNumber: 1 },
@@ -1415,7 +1419,15 @@ function FruitCigs() {
         // focus choices or position training.
         setSquad(prev => prev.map(p => p.positionTraining ? p : { ...p, training: p.training || "balanced" }));
         setTrainedThisWeek(new Set(useGameStore.getState().squad.map(p => p.id)));
+      } else if (choice === "opt_out") {
+        // "I Know What I'm Doing" — silences the rest of the onboarding
+        // drip (utils/onboardingDrip.js). Training itself is left to the
+        // player, same as "I'll Set It Up".
+        setOnboardingDripSuppressed(true);
       }
+    }
+    if (msg.type === "onboarding_drip" && choice === "drip_stop") {
+      setOnboardingDripSuppressed(true);
     }
   }, [leagueTier, seasonNumber, unlockedAchievements]); // eslint-disable-line
 

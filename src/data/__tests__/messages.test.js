@@ -33,6 +33,17 @@ describe("squadIdentityHeadline message", () => {
   });
 });
 
+describe("asstMgrTrainingIntro message", () => {
+  it("offers an opt-out choice alongside the two training choices", () => {
+    const msg = MSG.asstMgrTrainingIntro();
+    expect(msg.choices).toHaveLength(3);
+    const optOut = msg.choices.find(c => c.value === "opt_out");
+    expect(optOut).toBeTruthy();
+    expect(optOut.tone).toBe("neutral");
+    expect(optOut.resultText).toBeTruthy();
+  });
+});
+
 describe("poachEvent message", () => {
   const players = [
     { name: "Remy Diaby" },

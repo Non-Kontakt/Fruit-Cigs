@@ -610,6 +610,71 @@ test.describe("full-app flows", () => {
     expect(weeksSince).toBe(0);
   });
 
+  test("onboarding drip posts the first-matchday note, and opting out silences the rest", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Drip City" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // A brand new career starts with the drip armed.
+    const armed = await page.evaluate(() => window.__fc.getState().onboardingDripSuppressed);
+    expect(armed).toBe(false);
+
+    // Fill a starting XI (advanceWeek won't proceed into a match week
+    // without one), then fast-forward the counters to "week 1 already
+    // played" — the drip's matchday step reads state as it stood at the
+    // *end* of the previous week, so the very next ADVANCE WEEK call
+    // should post it.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const order = ["GK", "CB", "CB", "LB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
+      const used = new Set();
+      const startingXI = [];
+      for (const pos of order) {
+        const p = s.squad.find(pl => pl.position === pos && !used.has(pl.id));
+        if (p) { startingXI.push(p.id); used.add(p.id); }
+      }
+      window.__fc.setState({ startingXI, matchweekIndex: 1, calendarIndex: 1 });
+    });
+
+    await page.getByText("ADVANCE WEEK", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => (window.__fc.getState().inboxMessages || []).some(m => m.id === "msg_onboarding_matchday"),
+      null, { timeout: 10_000 },
+    );
+    const matchdayMsg = await page.evaluate(() =>
+      window.__fc.getState().inboxMessages.find(m => m.id === "msg_onboarding_matchday"));
+    expect(matchdayMsg.title).toBe("Asst. Manager's Notes");
+
+    // advanceWeek() queues that week's fixture rather than playing it
+    // instantly — clear the pending match so the Home view offers ADVANCE
+    // WEEK again rather than PLAY MATCH (this test only cares about the
+    // drip, not match resolution).
+    await page.evaluate(() => window.__fc.setState({ matchPending: false }));
+
+    // Reveal the week-1 training intro (visibleFromIndex: 2) and opt out
+    // of the rest of the drip via its third choice.
+    await page.evaluate(() => window.__fc.setState({ calendarIndex: 2 }));
+    await page.getByText("BOOT ROOM", { exact: false }).first().click();
+    await expect(page.getByText("I Know What I'm Doing", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await page.getByText("I Know What I'm Doing", { exact: false }).first().click();
+    await page.waitForFunction(() => window.__fc.getState().onboardingDripSuppressed === true, null, { timeout: 5_000 });
+
+    // Force every remaining step's condition true, then advance again —
+    // suppressed means none of them should post. ADVANCE WEEK only renders
+    // on the Home view, so navigate back there first.
+    await page.evaluate(() => window.__fc.setState({
+      calendarIndex: 5, unlockedAchievements: new Set(["first_win"]), matchPending: false,
+    }));
+    await page.getByText("HOME", { exact: false }).first().click();
+    await page.getByText("ADVANCE WEEK", { exact: false }).first().click();
+    await page.waitForTimeout(2000);
+
+    const afterOptOut = await page.evaluate(() => window.__fc.getState().inboxMessages);
+    const laterDripMessages = afterOptOut.filter(m => m.id?.startsWith("msg_onboarding_") && m.id !== "msg_onboarding_matchday");
+    expect(laterDripMessages).toHaveLength(0);
+  });
+
   test("Saudi poach event: refusing costs sentiment and relationship but keeps the squad untouched", async ({ page }) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });

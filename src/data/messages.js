@@ -98,12 +98,13 @@ const asstMgrTrainingIntro = () => ({
   icon: "\uD83D\uDCCB", // 📋
   color: "#f59e0b",
   title: "Asst. Manager's Notes",
-  body: "Boss, now that we've got a match under our belt, I wanted to have a word about training.\n\nEach week, your players can be assigned a training focus \u2014 shooting, defending, pace, the lot. It's how they improve over time. Without it, they'll stay exactly where they are.\n\nYou can set it up on the Squad page, or if you'd rather focus on tactics and transfers, I'm happy to put everyone on a general programme for now. Your call.",
+  body: "Boss, now that we've got a match under our belt, I wanted to have a word about training.\n\nEach week, your players can be assigned a training focus \u2014 shooting, defending, pace, the lot. It's how they improve over time. Without it, they'll stay exactly where they are.\n\nYou can set it up on the Squad page, or if you'd rather focus on tactics and transfers, I'm happy to put everyone on a general programme for now. Your call.\n\nOne more thing \u2014 I'll drop you a note like this whenever something new comes up early on. If you've done this before, just say the word and I'll leave you to it.",
   type: "asst_mgr_training_intro",
   visibleFromIndex: 2,
   choices: [
     { label: "You Handle It",  value: "delegate", tone: "primary", resultText: "Asst. Manager has put everyone on a balanced training programme." },
     { label: "I'll Set It Up", value: "manual",   tone: "neutral", resultText: "You'll set training assignments yourself on the Squad page." },
+    { label: "I Know What I'm Doing", value: "opt_out", tone: "neutral", resultText: "Got it, boss \u2014 I'll leave you to find your feet." },
   ],
 });
 

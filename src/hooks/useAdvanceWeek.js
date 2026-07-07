@@ -20,6 +20,7 @@ import { buildAIFiveASide } from "../utils/fiveASide.js";
 import { advanceShortlistScouting } from "../utils/scouting.js";
 import { classifySquadIdentity } from "../utils/squadIdentity.js";
 import { generateIdentityHeadline } from "../utils/headlines.js";
+import { getNextOnboardingDripMessage } from "../utils/onboardingDrip.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
@@ -163,6 +164,17 @@ export function useAdvanceWeek({
       return;
     }
     if (summerPhase) return;
+
+    // Assistant-manager onboarding drip (new careers only, skippable — see
+    // utils/onboardingDrip.js). Checked at the top of every normal week
+    // advance, off state as it stood at the end of the previous week, so
+    // "first matchday" etc. reflect a result that's actually landed.
+    {
+      const dripMsg = getNextOnboardingDripMessage(useGameStore.getState());
+      if (dripMsg) {
+        s.setInboxMessages(prev => [...prev, createInboxMessage(dripMsg, { calendarIndex, seasonNumber })]);
+      }
+    }
 
     s.setProcessing(true);
     if (!useGameStore.getState().isOnHoliday) {

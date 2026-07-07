@@ -145,7 +145,11 @@ const asstTrainingMsg = (resolved) => ({
   icon: "📋", color: "#f59e0b", title: "Asst. Manager's Notes",
   body: "Boss, now that we've got a match under our belt, I wanted to have a word about training.\n\nEach week, your players can be assigned a training focus. It's how they improve over time.\n\nYou can set it up on the Squad page, or I'm happy to put everyone on a general programme for now. Your call.",
   type: "asst_mgr_training_intro", visibleFromIndex: 2,
-  choices: [{ label: "You Handle It", value: "delegate" }, { label: "I'll Set It Up", value: "manual" }],
+  choices: [
+    { label: "You Handle It", value: "delegate" },
+    { label: "I'll Set It Up", value: "manual" },
+    { label: "I Know What I'm Doing", value: "opt_out" },
+  ],
   ...(resolved ? { choiceResult: "delegate" } : {}),
 });
 
