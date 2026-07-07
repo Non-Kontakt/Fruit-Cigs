@@ -156,6 +156,9 @@ export function useMatchResult({
           wonCupThisSeason: s.unlockedAchievements.has("cup_winner"),
           squad: s.squad, prevSeasonSquadIds: s.prevSeasonSquadIds, seasonNumber: s.seasonNumber,
           dynastyCupBracket: s.dynastyCupBracket, cup: s.cup,
+          // Fresh read: the calendar entry for the match that just completed
+          // was written via setCalendarResults above, after `s` was captured.
+          calendarResults: useGameStore.getState().calendarResults,
         }, BGM.getCurrentTrackId());
         if (newSeasonUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });

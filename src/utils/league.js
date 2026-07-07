@@ -121,7 +121,7 @@ export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueSt
 
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -277,7 +277,25 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
     if (priorTier1Seasons === 1) achs.push("scooty_puff_sr");
   }
 
+  // Mentality Monsters — won every match the player actually played this
+  // season, across every competition (league, cup, and any post-league
+  // knockout). Distinct from Centurions (league-only): a perfect league
+  // campaign undone by a single cup or knockout loss earns Centurions but
+  // not this. calendarResults holds one entry per calendar slot, reset at
+  // the start of each season — {won, draw} for matches the player actually
+  // played, {spectator: true} for entries simulated without them (didn't
+  // qualify, already eliminated). Only the former count.
+  if (!unlockedAchievements.has("mentality_monsters") && wonEveryPlayedMatchThisSeason(calendarResults)) {
+    achs.push("mentality_monsters");
+  }
+
   return achs.filter(id => !unlockedAchievements.has(id));
+}
+
+export function wonEveryPlayedMatchThisSeason(calendarResults) {
+  const playedEntries = Object.values(calendarResults || {}).filter(e => e && !e.spectator && typeof e.won === "boolean");
+  if (playedEntries.length === 0) return false;
+  return playedEntries.every(e => e.won === true);
 }
 
 export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueStates, playerTeamName = null) {
