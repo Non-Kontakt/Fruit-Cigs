@@ -14,6 +14,7 @@ import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./
 import { generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, getOvrCap, displayName } from "./utils/player.js";
 import { resolveSeasonEndArcs } from "./utils/arcs.js";
 import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
+import { decrementOfferExpiry } from "./utils/transfer.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
@@ -1149,6 +1150,7 @@ function FruitCigs() {
     setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
     setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
     setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
+    unlockedAchievements, tryUnlockAchievement,
   });
 
   // Rewind ticket — replay a chosen lost or drawn league match
@@ -3528,6 +3530,8 @@ function FruitCigs() {
           onClearPendingTrade={() => setPendingTradeTarget(null)}
           scoutedPlayers={scoutedPlayers}
           ovrCap={ovrCap}
+          unlockedAchievements={unlockedAchievements}
+          tryUnlockAchievement={tryUnlockAchievement}
         />
       ) : showLegends ? (
         <ClubLegends key={clubKey} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
@@ -3859,10 +3863,14 @@ function FruitCigs() {
                       }
                       return newWks;
                     });
-                    setTransferOffers(prev => prev
-                      .map(o => ({ ...o, expiresWeeks: (o.expiresWeeks || 1) - 1 }))
-                      .filter(o => o.expiresWeeks > 0)
-                    );
+                    setTransferOffers(prev => {
+                      const { offers: kept, anyExpired } = decrementOfferExpiry(prev);
+                      // Let It Ride — an offer expired unanswered
+                      if (anyExpired && !unlockedAchievements.has("let_it_ride")) {
+                        tryUnlockAchievement("let_it_ride");
+                      }
+                      return kept;
+                    });
                   }
                   // Advance every AI league by one matchweek in parallel.
                   // Capture each tier's full matchweek results so each tier
@@ -5911,6 +5919,7 @@ function FruitCigs() {
                 squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
                 dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
                 calendarResults: useGameStore.getState().calendarResults,
+                transferHistory, shortlist,
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });

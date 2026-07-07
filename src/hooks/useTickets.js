@@ -4,7 +4,7 @@ import { getOverall, pickRandom } from "../utils/calc.js";
 import { generateFreeAgent, generateNameForNation } from "../utils/player.js";
 import { useGameStore } from "../store/gameStore.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { fallbackPotential } from "../utils/scouting.js";
+import { fallbackPotential, countRevealedPlayers, isWastedTrip } from "../utils/scouting.js";
 import { MSG } from "../data/messages.js";
 
 export function useTickets({
@@ -13,6 +13,7 @@ export function useTickets({
   setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
   setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
   setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
+  unlockedAchievements, tryUnlockAchievement,
 }) {
 
   const useTicketDelayRetirement = useCallback((ticketId, playerId) => {
@@ -155,7 +156,14 @@ export function useTickets({
     const potential = sp.potential ?? fallbackPotential(sp, ovrCap);
     const currentOvr = sp.ovr || 0;
     const actualPot = Math.max(potential, currentOvr);
-    setScoutedPlayers(prev => ({ ...prev, [playerId]: actualPot }));
+    setScoutedPlayers(prev => {
+      const next = { ...prev, [playerId]: actualPot };
+      // Card Index — revealed the potential of ten different players
+      if (tryUnlockAchievement && !unlockedAchievements?.has?.("card_index") && countRevealedPlayers(next) >= 10) {
+        tryUnlockAchievement("card_index");
+      }
+      return next;
+    });
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "scout_dossier"]));
 
@@ -167,6 +175,10 @@ export function useTickets({
       lines.push(`Ceiling: ${actualPot}/${ovrCap} — ${headroom} points of growth still in him.`);
     } else {
       lines.push(`Ceiling: ${actualPot}/${ovrCap} — what you see is what you get. Fully developed.`);
+    }
+    // Wasted Trip — revealed a potential no higher than current ability
+    if (tryUnlockAchievement && !unlockedAchievements?.has?.("wasted_trip") && isWastedTrip(actualPot, currentOvr)) {
+      tryUnlockAchievement("wasted_trip");
     }
 
     // Season form — G/A tallied from leagueResults (hidden, nobody tracks this manually)
@@ -212,7 +224,7 @@ export function useTickets({
       MSG.scoutDossier(sp.name, lines.join("\n")),
       { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber },
     )]);
-  }, [shortlist, seasonNumber, ovrCap, league, leagueResults]);
+  }, [shortlist, seasonNumber, ovrCap, league, leagueResults, unlockedAchievements, tryUnlockAchievement]);
 
   const useTicketTestimonialMatch = useCallback((ticketId, careerName) => {
     // `careerName` here is the canonical playerCareers key passed straight

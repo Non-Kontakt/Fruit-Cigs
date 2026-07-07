@@ -4,6 +4,9 @@ import { TIER_WIN_ACHS } from "../data/achievements.js";
 import { generateAITeam, generateSquadPhilosophy } from "./player.js";
 import { generateFixtures, simulateMatch } from "./match.js";
 import { getModifier } from "../data/leagueModifiers.js";
+import { getTopScorers } from "./competitionStats.js";
+import { getPlayersTradedAwayThisSeason } from "./transfer.js";
+import { getStaleShortlistEntries } from "./scouting.js";
 
 // The tier defs reuse plausible club names ("Red Lion FC", "Dog & Duck"...),
 // so a player can pick a name that already belongs to an AI team. AI configs
@@ -121,7 +124,7 @@ export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueSt
 
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, transferHistory = [], shortlist = [] }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -287,6 +290,21 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   // qualify, already eliminated). Only the former count.
   if (!unlockedAchievements.has("mentality_monsters") && wonEveryPlayedMatchThisSeason(calendarResults)) {
     achs.push("mentality_monsters");
+  }
+
+  // Seller's Remorse — a player traded away this season finishes as the
+  // league's top scorer.
+  if (!unlockedAchievements.has("sellers_remorse")) {
+    const topScorer = getTopScorers(seasonLeagueStats, 1)[0];
+    if (topScorer?.name) {
+      const soldNames = getPlayersTradedAwayThisSeason(transferHistory, seasonNumber);
+      if (soldNames.has(topScorer.name)) achs.push("sellers_remorse");
+    }
+  }
+
+  // Cold Case — a shortlisted player survived a full season without being signed.
+  if (!unlockedAchievements.has("cold_case") && getStaleShortlistEntries(shortlist, seasonNumber).length > 0) {
+    achs.push("cold_case");
   }
 
   return achs.filter(id => !unlockedAchievements.has(id));

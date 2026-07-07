@@ -3,7 +3,9 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, relColor } from "../../utils/calc.js";
-import { generateTradeId, findComparablePlayer } from "../../utils/transfer.js";
+import { generateTradeId, findComparablePlayer, getOfferValueRatio } from "../../utils/transfer.js";
+import { getCareerApps } from "../../utils/careerLedger.js";
+import { isRevealedAtCap } from "../../utils/scouting.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { XpBar } from "../ui/XpBar.jsx";
@@ -52,6 +54,8 @@ export function TransfersPage({
   scoutedPlayers,
   onTradeComplete,
   ovrCap,
+  unlockedAchievements,
+  tryUnlockAchievement,
 }) {
   const [activeTab, setActiveTab] = useState("PLAYER SEARCH");
   const [expandedClub, setExpandedClub] = useState(null);
@@ -217,6 +221,15 @@ export function TransfersPage({
     const receivedIds = new Set(received.map(p => p.id));
     const targetClubName = tradeTarget.clubName;
 
+    // The Academy Pays For Itself — traded away a homegrown player
+    if (tryUnlockAchievement && !unlockedAchievements?.has?.("academy_pays") && offered.some(p => p.isYouthIntake || p.isYouthCoup)) {
+      tryUnlockAchievement("academy_pays");
+    }
+    // The Real Deal — signed a player whose revealed potential is the cap
+    if (tryUnlockAchievement && !unlockedAchievements?.has?.("the_real_deal") && received.some(p => isRevealedAtCap(scoutedPlayers, p.id, ovrCap))) {
+      tryUnlockAchievement("the_real_deal");
+    }
+
     // Remove offered players from user squad, add received
     setSquad(prev => {
       const updated = prev.filter(p => !offeredIds.has(p.id));
@@ -293,6 +306,22 @@ export function TransfersPage({
     const offeredIds = new Set(offer.aiWants.map(p => p.id));
     const receivedIds = new Set(offer.aiOffers.map(p => p.id));
 
+    if (tryUnlockAchievement) {
+      const ratio = getOfferValueRatio(offer);
+      // Daylight Robbery — accepted an offer worth double what you gave up
+      if (!unlockedAchievements?.has?.("daylight_robbery") && ratio >= 2) {
+        tryUnlockAchievement("daylight_robbery");
+      }
+      // Fire Sale — accepted an offer worth less than half what you gave up
+      if (!unlockedAchievements?.has?.("fire_sale") && ratio > 0 && ratio < 0.5) {
+        tryUnlockAchievement("fire_sale");
+      }
+      // The Academy Pays For Itself — traded away a homegrown player
+      if (!unlockedAchievements?.has?.("academy_pays") && offer.aiWants.some(p => p.isYouthIntake || p.isYouthCoup)) {
+        tryUnlockAchievement("academy_pays");
+      }
+    }
+
     setSquad(prev => {
       const updated = prev.filter(p => !offeredIds.has(p.id));
       const incoming = offer.aiOffers.map(p => ({
@@ -343,6 +372,14 @@ export function TransfersPage({
   };
 
   const handleRejectOffer = (idx) => {
+    const offer = (transferOffers || [])[idx];
+    // Not For Sale — rejected an offer for a player with 50+ career apps
+    if (offer && tryUnlockAchievement && !unlockedAchievements?.has?.("not_for_sale")) {
+      const wanted = offer.aiWants || [];
+      if (wanted.some(p => getCareerApps(p, playerSeasonStats, clubHistory?.playerCareers) >= 50)) {
+        tryUnlockAchievement("not_for_sale");
+      }
+    }
     if (setTransferOffers) setTransferOffers(prev => prev.filter((_, i) => i !== idx));
   };
 

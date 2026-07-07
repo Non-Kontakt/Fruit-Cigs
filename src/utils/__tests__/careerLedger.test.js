@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "../careerLedger.js";
+import { archivePlayerSeason, deriveCupLabels, findCareerKey, getCareerApps } from "../careerLedger.js";
 
 // === Fixtures ===============================================================
 
@@ -475,5 +475,31 @@ describe("deriveCupLabels", () => {
     expect(deriveCupLabels(null, { a: "Sub Money Cup", b: "Clubman Cup" })).toEqual({
       Sub_Money_Cup: "Sub Money Cup", Clubman_Cup: "Clubman Cup",
     });
+  });
+});
+
+describe("getCareerApps", () => {
+  it("sums archived career apps with the in-progress season's apps", () => {
+    const playerCareers = { "Remy Diaby": { playerId: "p1", apps: 32 } };
+    const playerSeasonStats = { "Remy Diaby": { apps: 18 } };
+    const apps = getCareerApps({ id: "p1", name: "Remy Diaby" }, playerSeasonStats, playerCareers);
+    expect(apps).toBe(50);
+  });
+
+  it("resolves the career by playerId even if the player's name changed since archiving", () => {
+    const playerCareers = { "Old Name": { playerId: "p1", apps: 40 } };
+    const playerSeasonStats = { "New Name": { apps: 5 } };
+    const apps = getCareerApps({ id: "p1", name: "New Name" }, playerSeasonStats, playerCareers);
+    expect(apps).toBe(45);
+  });
+
+  it("returns just the season total when there's no archived career", () => {
+    const apps = getCareerApps({ id: "new1", name: "Fresh Signing" }, { "Fresh Signing": { apps: 3 } }, {});
+    expect(apps).toBe(3);
+  });
+
+  it("handles missing playerCareers/playerSeasonStats gracefully", () => {
+    expect(getCareerApps({ id: "p1", name: "Nobody" }, null, null)).toBe(0);
+    expect(getCareerApps({ id: "p1", name: "Nobody" }, {}, {})).toBe(0);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { advanceShortlistScouting, SCOUT_REVEAL_WEEKS, fallbackPotential } from "../scouting.js";
+import { advanceShortlistScouting, SCOUT_REVEAL_WEEKS, fallbackPotential, isWastedTrip, countRevealedPlayers, isRevealedAtCap, getStaleShortlistEntries } from "../scouting.js";
 
 function entry(overrides = {}) {
   return { id: "p1", name: "Test Player", age: 19, ovr: 12, potential: 16, scoutWeeksLeft: SCOUT_REVEAL_WEEKS, ...overrides };
@@ -56,5 +56,66 @@ describe("advanceShortlistScouting", () => {
     );
     expect(revealed.map(r => r.id)).toEqual(["p1"]);
     expect(nextShortlist.find(e => e.id === "p2").scoutWeeksLeft).toBe(2);
+  });
+});
+
+describe("isWastedTrip", () => {
+  it("true when the revealed potential is no higher than current ability", () => {
+    expect(isWastedTrip(14, 14)).toBe(true);
+    expect(isWastedTrip(12, 14)).toBe(true);
+  });
+
+  it("false when there's real headroom", () => {
+    expect(isWastedTrip(18, 14)).toBe(false);
+  });
+
+  it("treats missing values as 0", () => {
+    expect(isWastedTrip(undefined, undefined)).toBe(true);
+  });
+});
+
+describe("countRevealedPlayers", () => {
+  it("counts distinct player ids with a recorded reveal", () => {
+    expect(countRevealedPlayers({ p1: 16, p2: 18, p3: 12 })).toBe(3);
+  });
+
+  it("returns 0 for empty/missing input", () => {
+    expect(countRevealedPlayers({})).toBe(0);
+    expect(countRevealedPlayers(null)).toBe(0);
+  });
+});
+
+describe("isRevealedAtCap", () => {
+  it("true when the revealed potential meets or exceeds the cap", () => {
+    expect(isRevealedAtCap({ p1: 20 }, "p1", 20)).toBe(true);
+    expect(isRevealedAtCap({ p1: 22 }, "p1", 20)).toBe(true);
+  });
+
+  it("false when below cap or not yet revealed", () => {
+    expect(isRevealedAtCap({ p1: 18 }, "p1", 20)).toBe(false);
+    expect(isRevealedAtCap({}, "p1", 20)).toBe(false);
+    expect(isRevealedAtCap(null, "p1", 20)).toBe(false);
+  });
+});
+
+describe("getStaleShortlistEntries", () => {
+  it("returns entries added before the season that just ended", () => {
+    const shortlist = [
+      { id: "p1", addedSeason: 1 },
+      { id: "p2", addedSeason: 3 },
+      { id: "p3", addedSeason: 2 },
+    ];
+    const stale = getStaleShortlistEntries(shortlist, 3);
+    expect(stale.map(e => e.id)).toEqual(["p1", "p3"]);
+  });
+
+  it("returns an empty array when everything was added this season", () => {
+    const shortlist = [{ id: "p1", addedSeason: 3 }];
+    expect(getStaleShortlistEntries(shortlist, 3)).toEqual([]);
+  });
+
+  it("handles an empty/missing shortlist", () => {
+    expect(getStaleShortlistEntries([], 3)).toEqual([]);
+    expect(getStaleShortlistEntries(undefined, 3)).toEqual([]);
   });
 });

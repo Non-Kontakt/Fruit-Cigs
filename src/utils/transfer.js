@@ -202,6 +202,67 @@ export function getAvailableLoanPlayers(aiTeam, squadAvgOvr, relationship) {
 }
 
 /**
+ * Ratio of what an AI-initiated offer hands back vs. what it asks for —
+ * getTotalValue(aiOffers) / getTotalValue(aiWants). Drives Daylight Robbery
+ * (ratio >= 2) and Fire Sale (ratio < 0.5) at accept time.
+ * @param {{ aiWants: Array, aiOffers: Array }} offer
+ * @returns {number} 0 when aiWants has no value (nothing to compare against)
+ */
+export function getOfferValueRatio(offer) {
+  const given = getTotalValue(offer?.aiWants || []);
+  const received = getTotalValue(offer?.aiOffers || []);
+  if (given <= 0) return 0;
+  return received / given;
+}
+
+/**
+ * Count distinct target players (by id) requested across a set of live
+ * incoming offers — Everyone Has A Price fires once 3+ different players
+ * are simultaneously wanted.
+ * @param {Array} offers - live transferOffers array
+ * @returns {number}
+ */
+export function countDistinctOfferTargets(offers) {
+  const ids = new Set();
+  (offers || []).forEach(o => (o.aiWants || []).forEach(p => { if (p?.id != null) ids.add(p.id); }));
+  return ids.size;
+}
+
+/**
+ * Decrement every offer's expiry by one week, dropping any that reach zero.
+ * Reports whether at least one offer actually expired this tick (Let It
+ * Ride), distinct from offers that were simply rejected/accepted already.
+ * @param {Array} offers
+ * @returns {{ offers: Array, anyExpired: boolean }}
+ */
+export function decrementOfferExpiry(offers) {
+  const decremented = (offers || []).map(o => ({ ...o, expiresWeeks: (o.expiresWeeks || 1) - 1 }));
+  return {
+    offers: decremented.filter(o => o.expiresWeeks > 0),
+    anyExpired: decremented.some(o => o.expiresWeeks <= 0),
+  };
+}
+
+/**
+ * Names of every player who left the squad via a trade logged this season
+ * (both direct trades and accepted incoming offers log their departing
+ * player(s) under `offered` — see TransfersPage's handleTradeConfirm and
+ * handleAcceptOffer). Used by Seller's Remorse to check the season's top
+ * scorer against who was sold.
+ * @param {Array} transferHistory
+ * @param {number} seasonNumber
+ * @returns {Set<string>}
+ */
+export function getPlayersTradedAwayThisSeason(transferHistory, seasonNumber) {
+  const names = new Set();
+  (transferHistory || []).forEach(t => {
+    if (t.season !== seasonNumber) return;
+    (t.offered || []).forEach(p => { if (p?.name) names.add(p.name); });
+  });
+  return names;
+}
+
+/**
  * Get relationship tier name for display
  * @param {number} pct - Relationship percentage
  * @returns {string} Tier name
