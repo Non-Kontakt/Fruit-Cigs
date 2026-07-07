@@ -7,6 +7,7 @@ import { getFormationPositions, getEffectiveSlots } from "../utils/formation.js"
 import { sortStandings } from "../utils/league.js";
 import { getFirstName, getLastName } from "../utils/player.js";
 import { findCareerKey } from "./careerLedger.js";
+import { isRival } from "./rivalries.js";
 
 export function createUnlockablePlayer(unlockDef, joinedSeason, ovrCap = 20) {
   // capBonus: player's attrs can exceed the normal ovrCap by this amount (e.g. Trask Ulgo)
@@ -1241,6 +1242,164 @@ export function checkAchievements(state) {
   }
 
   // All earned achievements returned regardless of pack status — banking handled by caller
+  return newUnlocks;
+}
+
+// === CIG CARDS — MATCH DOMAIN ===
+
+/**
+ * Gooseberry Cigs — breakout-moment achievements. Pure: takes this match's
+ * `breakoutResults` (see checkBreakouts, src/utils/breakouts.js) plus the
+ * season's breakout ledger as it stood BEFORE those results were applied,
+ * and returns newly-earned achievement ids. Never mutates its inputs — the
+ * caller is responsible for actually applying breakoutResults to squad/
+ * breakoutsThisSeason; this function only reads.
+ *
+ * @param {object} params
+ * @param {Array} params.breakoutResults - this match's checkBreakouts() output
+ * @param {Array} params.squad - full current squad (for position/age/potential lookups)
+ * @param {Map} params.breakoutsThisSeason - season ledger BEFORE breakoutResults applied
+ * @param {object} params.playerMatchLog - { playerId: MatchLogEntry[] }
+ * @param {number} params.ovrCap - current OVR/potential cap
+ * @param {boolean} params.isCup - whether this match was a cup tie
+ * @param {Set} params.unlocked - already-unlocked achievement ids
+ * @returns {string[]} newly-earned achievement ids (deduped)
+ */
+export function collectBreakoutAchievements({ breakoutResults, squad, breakoutsThisSeason, playerMatchLog, ovrCap, isCup, unlocked }) {
+  const newUnlocks = [];
+  if (!breakoutResults || breakoutResults.length === 0) return newUnlocks;
+
+  const findPlayer = (id) => (squad || []).find(p => p.id === id);
+  const add = (id) => { if (!unlocked.has(id) && !newUnlocks.includes(id)) newUnlocks.push(id); };
+
+  // Fold this match's results onto a local copy of the season ledger — never
+  // mutates breakoutsThisSeason, which the caller applies separately.
+  const merged = new Map();
+  (breakoutsThisSeason || new Map()).forEach((raw, id) => {
+    const triggers = raw instanceof Set ? new Set(raw) : new Set(raw?.triggers || []);
+    merged.set(id, { triggers, lastLogIndex: raw instanceof Set ? -99 : (raw?.lastLogIndex ?? -99) });
+  });
+  for (const bo of breakoutResults) {
+    const entry = merged.get(bo.playerId) || { triggers: new Set(), lastLogIndex: bo.logIndex };
+    entry.triggers.add(bo.trigger.id);
+    entry.lastLogIndex = bo.logIndex;
+    merged.set(bo.playerId, entry);
+  }
+
+  // Scenes — first breakout moment, ever
+  add("scenes");
+
+  for (const bo of breakoutResults) {
+    const player = findPlayer(bo.playerId);
+    const seasonEntry = merged.get(bo.playerId);
+
+    if (seasonEntry && seasonEntry.triggers.size >= 2) add("purple_patch");
+    if (isCup) add("made_for_occasion");
+    if (player && player.age >= 30) add("vintage_performance");
+
+    const logLen = playerMatchLog?.[bo.playerId]?.length;
+    if (logLen != null && logLen <= 5) add("fast_learner");
+
+    if (player) {
+      if ((player.potential || 0) <= 9) add("never_saw_him_coming");
+      if (bo.potentialGain > 0) {
+        const postPotential = Math.min(ovrCap, (player.potential || 0) + bo.potentialGain);
+        if (postPotential >= ovrCap) add("raising_ceiling");
+      }
+    }
+
+    if (POSITION_TYPES[bo.playerPosition] === "GK") add("wonderwall");
+  }
+
+  // Everyone's Invited — FWD/MID/DEF/GK all represented among this season's
+  // breakout players (existing ledger entries + this match's incoming ones)
+  const groupsPresent = new Set();
+  for (const [pid, entry] of merged.entries()) {
+    if (!entry.triggers || entry.triggers.size === 0) continue;
+    const player = findPlayer(pid);
+    if (!player) continue;
+    groupsPresent.add(POSITION_TYPES[player.position]);
+  }
+  if (["FWD", "MID", "DEF", "GK"].every(g => groupsPresent.has(g))) add("everyones_invited");
+
+  // Production Line — 5+ breakout moments across the squad this season
+  let totalTriggers = 0;
+  for (const entry of merged.values()) totalTriggers += entry.triggers.size;
+  if (totalTriggers >= 5) add("production_line");
+
+  return newUnlocks;
+}
+
+// Last-gasp winner check shared with the "last_gasp" achievement above (see
+// the ~line-700 block) — same rule, generalized to any match result object.
+function isLastGaspWinner(matchResult) {
+  if (!matchResult || !matchResult.events) return false;
+  const side = matchResult.isPlayerHome ? "home" : "away";
+  const playerGoals = matchResult.events.filter(e => e.type === "goal" && e.side === side);
+  const oppGoals = matchResult.events.filter(e => e.type === "goal" && e.side !== side);
+  const lastMinuteGoals = playerGoals.filter(e => e.minute === 90);
+  if (lastMinuteGoals.length === 0) return false;
+  if (playerGoals.length <= oppGoals.length) return false;
+  const goalsWithout = playerGoals.filter(e => e.minute < 90).length;
+  return goalsWithout <= oppGoals.length;
+}
+
+/**
+ * Blood Orange Cigs — per-match rivalry achievements. Pure: reads the
+ * rivalry ledger entry for this opponent from before and after this match's
+ * clubHistory.rivalryLedger update (see useMatchResult.js), plus the raw
+ * match result, and returns newly-earned achievement ids.
+ *
+ * Rivalry status ("derby") is `isRival(ledgerEntryBefore)` throughout — the
+ * PRE-match record — except kept_the_receipts, which is inherently about
+ * the record AFTER this match's meeting is counted.
+ *
+ * Safe to call with null/undefined matchResult, ledger entries, or goals
+ * (e.g. during a retroactive re-check with no live match) — always returns
+ * an array, never throws.
+ *
+ * @param {object} params
+ * @param {object|null} params.ledgerEntryBefore - opponent's ledger entry before this match
+ * @param {object|null} params.ledgerEntryAfter - opponent's ledger entry after this match
+ * @param {object} [params.ledger] - full rivalryLedger after this match (unused directly here, kept for callers/future cards)
+ * @param {object|null} params.matchResult - raw simulateMatch result (events, redCards, isPlayerHome)
+ * @param {number} params.playerGoals
+ * @param {number} params.oppGoals
+ * @param {Set} params.unlocked - already-unlocked achievement ids
+ * @returns {string[]} newly-earned achievement ids (deduped)
+ */
+export function collectRivalryMatchAchievements({ ledgerEntryBefore, ledgerEntryAfter, ledger, matchResult, playerGoals, oppGoals, unlocked }) {
+  const newUnlocks = [];
+  const add = (id) => { if (!unlocked.has(id) && !newUnlocks.includes(id)) newUnlocks.push(id); };
+
+  const won = (playerGoals ?? -1) > (oppGoals ?? -1) && playerGoals != null && oppGoals != null;
+  const rivalBefore = isRival(ledgerEntryBefore);
+
+  if (won && rivalBefore) add("bragging_rights");
+
+  if (won && rivalBefore && (matchResult?.redCards?.length || 0) >= 2) add("no_love_lost");
+
+  if (rivalBefore && isLastGaspWinner(matchResult)) add("twist_the_knife");
+
+  if (ledgerEntryAfter?.lastMeetings?.length) {
+    const meetings = ledgerEntryAfter.lastMeetings;
+    const currentSeason = meetings[meetings.length - 1].season;
+    const thisSeasonMeetings = meetings.filter(m => m.season === currentSeason);
+    if (thisSeasonMeetings.length >= 2 && thisSeasonMeetings.every(m => m.playerGoals > m.oppGoals)) {
+      add("home_and_away");
+    }
+  }
+
+  if (won && rivalBefore && (ledgerEntryBefore?.played || 0) >= 5 && (ledgerEntryBefore?.wins || 0) === 0) {
+    add("breaking_the_curse");
+  }
+
+  if (rivalBefore && playerGoals != null && oppGoals != null && (playerGoals - oppGoals) >= 4) {
+    add("statement_win");
+  }
+
+  if (isRival(ledgerEntryAfter) && (ledgerEntryAfter?.played || 0) >= 10) add("kept_the_receipts");
+
   return newUnlocks;
 }
 

@@ -1,3 +1,5 @@
+import { POSITION_TYPES } from "../data/positions.js";
+
 // Canonical competition-wide stats accumulator and selectors.
 //
 // Competition-agnostic — the accumulator and selectors are reused for both
@@ -427,6 +429,99 @@ export function mergeStatsAcrossTiers(statsByTier, currentSeasonPlayers) {
   }
 
   return { players };
+}
+
+// === Team of the Cup ===
+
+/**
+ * Best XI across an ended cup competition (4-3-3), scored by how far each
+ * contributing team went, team goals (weighted by position), match wins,
+ * and a bonus for the eventual winner. Mirrors the Team of the Season pick,
+ * scoped to one cup run. Extracted from CupPage.jsx's teamOfCup memo so the
+ * cup-archive flow (App.jsx) can compute the same XI for cig-card checks.
+ *
+ * Cup match objects are lightweight stubs (name/tier/isPlayer) with no
+ * squad — `teamByName` resolves each stub to the live team object (with
+ * `.squad`) so the pool can be built. Build it from the player's league plus
+ * every AI tier the cup can draw from.
+ *
+ * Pure — returns [] until the cup has an actual winner; an in-progress cup
+ * has no truthful "team of the cup" yet.
+ *
+ * @param {object} params
+ * @param {object|null} params.cup - cup state ({ winner, rounds })
+ * @param {Map<string, object>} params.teamByName - team name -> live team object (with .squad)
+ * @returns {Array<{name, position, teamName, isPlayerTeam, score, roundReached}>}
+ */
+export function computeTeamOfCup({ cup, teamByName }) {
+  if (!cup?.winner || !cup?.rounds) return [];
+
+  const candidates = [];
+  const teamRoundReached = {}; // teamName → furthest round index
+  const teamGoals = {}; // teamName → { scored, wins }
+
+  cup.rounds.forEach((round, rIdx) => {
+    (round.matches || []).forEach(match => {
+      if (!match.result || match.result.bye) return;
+      const hg = match.result.homeGoals;
+      const ag = match.result.awayGoals;
+      const hName = match.home?.name || "?";
+      const aName = match.away?.name || "?";
+
+      if (!teamGoals[hName]) teamGoals[hName] = { scored: 0, wins: 0 };
+      if (!teamGoals[aName]) teamGoals[aName] = { scored: 0, wins: 0 };
+      teamGoals[hName].scored += hg;
+      teamGoals[aName].scored += ag;
+      const winner = match.result.winner;
+      if (winner?.name && teamGoals[winner.name]) teamGoals[winner.name].wins++;
+
+      [match.home, match.away].forEach(team => {
+        if (!team) return;
+        if (!teamByName.get(team.name)?.squad) return;
+        const tName = team.name;
+        if (!teamRoundReached[tName] || rIdx > teamRoundReached[tName]) {
+          teamRoundReached[tName] = rIdx;
+        }
+      });
+    });
+  });
+
+  // For each team, score their starters based on: round reached, team goals, and whether they won
+  Object.entries(teamRoundReached).forEach(([tName, maxRound]) => {
+    const teamObj = teamByName.get(tName);
+    if (!teamObj?.squad) return;
+
+    const stats = teamGoals[tName] || { scored: 0, wins: 0 };
+    const roundBonus = (maxRound + 1) * 3; // further you go, bigger boost
+    const isWinner = cup.winner?.name === tName;
+
+    teamObj.squad.filter(p => !p.isBench).forEach(p => {
+      const posType = POSITION_TYPES[p.position] || "MID";
+      const goalWeight = posType === "FWD" ? 2 : posType === "MID" ? 1.5 : 0.5;
+      const score = roundBonus + stats.scored * goalWeight + stats.wins * 2 + (isWinner ? 10 : 0);
+      candidates.push({
+        name: p.name, position: p.position, teamName: tName,
+        isPlayerTeam: teamObj.isPlayer, score,
+        roundReached: cup.rounds[maxRound]?.name || "?",
+      });
+    });
+  });
+
+  // Pick best per position in 4-3-3
+  const totcPositions = ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
+  const used = new Set();
+  const xi = [];
+  for (const pos of totcPositions) {
+    const eligible = candidates
+      .filter(c => c.position === pos && !used.has(`${c.name}|${c.teamName}`))
+      .sort((a, b) => b.score - a.score);
+    if (eligible.length > 0) {
+      const pick = eligible[0];
+      used.add(`${pick.name}|${pick.teamName}`);
+      xi.push(pick);
+    }
+  }
+  return xi;
 }
 
 // Internal — exposed only for tests
