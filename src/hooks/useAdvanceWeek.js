@@ -51,7 +51,6 @@ export function useAdvanceWeek({
   weekRecoveriesRef,
   cardedPlayerIdsRef,
   boardWarnWeekRef,
-  aiPredictionRef,
   revealedInjuryCount,
   pendingTrialAction,
 }) {
@@ -1420,23 +1419,6 @@ export function useAdvanceWeek({
             s.setCalendarIndex(prev => prev + 1);
           }
         } else if (nextEntry?.type === "league") {
-          // Intergalactic Elite: generate pre-match prediction
-          const _predMod = getModifier(leagueTier);
-          if (_predMod.prediction) {
-            const _holFix = useGameStore.getState().league?.fixtures?.[nextEntry.leagueMD]?.find(f => f.home === 0 || f.away === 0);
-            const _holPlHome = _holFix ? _holFix.home === 0 : true;
-            // Weighted goal pool: 0-5, realistic distribution
-            const _ps = [0,0,0,1,1,1,1,1,2,2,2,2,3,3,3,4,4,5];
-            // Only predict draws or player wins (AI already gets 3 pts from own wins)
-            let _holPred;
-            for (let _try = 0; _try < 20; _try++) {
-              const h = pickRandom(_ps);
-              const a = pickRandom(_ps);
-              const aiWins = _holPlHome ? a > h : h > a;
-              if (!aiWins) { _holPred = { home: h, away: a }; break; }
-            }
-            aiPredictionRef.current = _holPred || { home: 1, away: 1 };
-          }
           s.setMatchPending(true);
         }
       }

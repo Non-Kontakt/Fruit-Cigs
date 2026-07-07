@@ -900,32 +900,6 @@ const televisionBoostHol = (playerName, attrLabel, leagueTier) => ({
   color: LEAGUE_DEFS[leagueTier]?.color || C.green,
 });
 
-const aiPredictionCorrect = (homeScore, awayScore) => ({
-  id: `msg_pred_correct_${Date.now()}`,
-  icon: "\uD83D\uDEF8", // 🛸
-  title: "AI Prediction Correct!",
-  body: `The AI predicted ${homeScore}-${awayScore} and was right! The opposition steals the full 3 points from this fixture.`,
-  color: "#a78bfa",
-});
-
-const aiPredictionCorrectHol = (homeScore, awayScore) => ({
-  id: `msg_hol_pred_correct_${Date.now()}`,
-  icon: "\uD83D\uDEF8", // 🛸
-  title: "AI Prediction Correct!",
-  body: `The AI predicted ${homeScore}-${awayScore} and was right! The opposition steals the full 3 points from this fixture.`,
-  color: "#a78bfa",
-});
-
-const aiPredictionWrong = (predHome, predAway, actualHome, actualAway, playerLost) => ({
-  id: `msg_pred_wrong_${Date.now()}`,
-  icon: "\uD83D\uDEF8", // 🛸
-  title: "AI Prediction Wrong",
-  body: playerLost
-    ? `The AI predicted ${predHome}-${predAway} but the result was ${actualHome}-${actualAway}. They got the 3 points the old-fashioned way.`
-    : `The AI predicted ${predHome}-${predAway} but the result was ${actualHome}-${actualAway}. No points stolen.`,
-  color: "#6b7280",
-});
-
 const rewindMatch = (oldLabel, oppName, newPGoals, newOGoals, wasDraw) => {
   const base = `You replayed your ${oldLabel} against ${oppName || "the opposition"}. New result: ${newPGoals}-${newOGoals}`;
   const newWon = newPGoals > newOGoals;
@@ -1082,9 +1056,6 @@ export const MSG = {
   // Special
   televisionBoost,
   televisionBoostHol,
-  aiPredictionCorrect,
-  aiPredictionCorrectHol,
-  aiPredictionWrong,
   rewindMatch,
   atkBlock,
   poachEvent,

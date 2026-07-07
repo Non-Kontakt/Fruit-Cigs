@@ -36,7 +36,6 @@ export function useMatchResult({
   updateMatchLog,
   pendingLeagueRef,
   cardedPlayerIdsRef,
-  aiPredictionRef,
   weekRecoveriesRef,
   setPendingPlayerUnlock,
 }) {
@@ -449,44 +448,6 @@ export function useMatchResult({
           : isDraw ? `Drew with ${oppTeam?.name || "opponent"} ${_matchScore}`
           : `Lost to ${oppTeam?.name || "opponent"} ${_matchScore}`;
         s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_fanAfter - _fanBefore), reason: _matchReason, week: s.calendarIndex + 1, season: s.seasonNumber }));
-        // Intergalactic Elite: AI prediction check
-        if (aiPredictionRef.current && fanMatchMod.prediction) {
-          const pred = aiPredictionRef.current;
-          const predCorrect = pred.home === matchResult.homeGoals && pred.away === matchResult.awayGoals;
-          if (predCorrect) {
-            const leagueNow = currentLeague;
-            if (leagueNow) {
-              const oppIdx = playerIsHome ? matchResult.away : matchResult.home;
-              const playerIdx = playerIsHome ? matchResult.home : matchResult.away;
-              const oppRow = leagueNow.table.find(r => r.teamIndex === oppIdx);
-              const playerRowP = leagueNow.table.find(r => r.teamIndex === playerIdx);
-              const hg = matchResult.homeGoals, ag = matchResult.awayGoals;
-              let normalPlayerPts, normalOppPts;
-              if (hg === ag) {
-                normalPlayerPts = fanMatchMod.drawPointsPlayer ?? 1;
-                normalOppPts = fanMatchMod.drawPointsAI ?? 1;
-              } else {
-                const playerWonMatch = playerIsHome ? hg > ag : ag > hg;
-                normalPlayerPts = playerWonMatch ? 3 : 0;
-                normalOppPts = playerWonMatch ? 0 : 3;
-              }
-              if (oppRow) oppRow.points += (3 - normalOppPts);
-              if (playerRowP) playerRowP.points -= normalPlayerPts;
-              if (pendingLeagueRef.current) pendingLeagueRef.current = leagueNow;
-              else s.setLeague({ ...leagueNow, table: leagueNow.table.map(r => ({ ...r })) });
-            }
-            s.setInboxMessages(prev => [...prev, createInboxMessage(
-              MSG.aiPredictionCorrect(pred.home, pred.away),
-              { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber },
-            )]);
-          } else {
-            s.setInboxMessages(prev => [...prev, createInboxMessage(
-              MSG.aiPredictionWrong(pred.home, pred.away, matchResult.homeGoals, matchResult.awayGoals, playerLost),
-              { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber },
-            )]);
-          }
-          aiPredictionRef.current = null;
-        }
         // Ultimatum tracking (Ironman)
         if (useGameStore.getState().ultimatumActive) {
           updateUltimatumProgress(playerWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
@@ -981,7 +942,7 @@ export function useMatchResult({
       setMatchResult(null);
       s.setProcessing(false);
     }
-  }, [setMatchResult, setAchievementQueue, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef]);
+  }, [setMatchResult, setAchievementQueue, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef]);
 
   return { processMatchDone };
 }

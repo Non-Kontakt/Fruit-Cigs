@@ -119,11 +119,10 @@ export const LEAGUE_MODIFIERS = {
     drawPointsPlayer: 1,
     drawPointsAI: 2,
     rewindTickets: 3,
-    prediction: true,
     inboxIntro: {
       icon: "🛸",
       title: "Welcome to the Intergalactic Elite",
-      body: "Time moves differently at the top. Your players age 3 years per season — careers burn fast.\n\nDraws favour the opposition (they get 2 pts, you get 1). Before each match, the AI reveals its predicted scoreline — if it's right, they steal 3 points regardless of result.\n\nYou'll receive 3 Rewind tickets. Each one lets you replay a lost league match.",
+      body: "Time moves differently at the top. Your players age 3 years per season — careers burn fast.\n\nDraws favour the opposition (they get 2 pts, you get 1).\n\nYou'll receive 3 Rewind tickets. Each one lets you replay a lost league match.",
     },
   },
 };

@@ -3,7 +3,7 @@ export const LEAGUE_DEFS = {
     name: "Intergalactic Elite",
     shortName: "IE",
     color: "#c084fc",
-    ovrMin: 18, ovrMax: 20,
+    ovrMin: 17, ovrMax: 19,
     natMix: [["ALN",70],["BRA",8],["ARG",6],["FRA",5],["ESP",4],["GER",4],["NGA",3]],
     teams: [
       { name: "Nebula FC",      color: "#c084fc", strength: 0.95, trait: "dominant" },

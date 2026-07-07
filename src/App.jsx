@@ -313,7 +313,6 @@ function FruitCigs() {
   const miniTournamentBracket = useGameStore(s => s.miniTournamentBracket);
   const fiveASideSquad = useGameStore(s => s.fiveASideSquad); // Tier 2: player's 5v5 squad selection [5 player IDs]
   // showFiveASidePicker removed — squad page panel handles 5v5 selection
-  const aiPredictionRef = useRef(null); // Tier 1: AI predicted scoreline for current match
   const pendingTrialAction = useRef(null); // deferred trial processing after gains popup
   const holidayTargetRef = useRef(null); // Tracks target matchweek for Go on Holiday feature
   const holidayIntervalRef = useRef(null); // Interval ID for auto-advance
@@ -1431,7 +1430,7 @@ function FruitCigs() {
     setShowTransfers, setShowLegends, setShowSquad,
     tryUnlockAchievement,
     storyArcsRef, pendingFinalRewardRef, weekRecoveriesRef, cardedPlayerIdsRef,
-    boardWarnWeekRef, aiPredictionRef, revealedInjuryCount,
+    boardWarnWeekRef, revealedInjuryCount,
     pendingTrialAction,
   });
 
@@ -1669,14 +1668,14 @@ function FruitCigs() {
   const { processMatchDone } = useMatchResult({
     setMatchResult, setAchievementQueue,
     tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
-    pendingLeagueRef, cardedPlayerIdsRef, aiPredictionRef, weekRecoveriesRef,
+    pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef,
     setPendingPlayerUnlock,
   });
 
   const { processGainsDone } = useGainPopupHandler({
     setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning,
     tryUnlockAchievement,
-    pendingTrialAction, aiPredictionRef,
+    pendingTrialAction,
   });
 
   // Keyboard shortcuts for desktop play
@@ -2494,11 +2493,6 @@ function FruitCigs() {
                 >
                   ▶ ADVANCE WEEK
                 </button>
-              )}
-              {matchPending && !isCupMatch && getModifier(leagueTier).prediction && aiPredictionRef.current && (
-                <div style={{ fontFamily: FONT, fontSize: F.xs, color: "#a78bfa", marginTop: 6, textAlign: "center" }}>
-                  🛸 AI predicts: {aiPredictionRef.current.home} - {aiPredictionRef.current.away}
-                </div>
               )}
             </div>
           </div>
@@ -3348,37 +3342,6 @@ function FruitCigs() {
                                 { calendarIndex, seasonNumber },
                               )]);
                             }
-                          }
-                        }
-                        // Intergalactic Elite: AI prediction check (holiday)
-                        if (_holTvMod.prediction) {
-                          const _holPredPool = [0,0,1,1,1,2,2,2,3,3];
-                          const _holPred = { home: _holPredPool[rand(0, _holPredPool.length - 1)], away: _holPredPool[rand(0, _holPredPool.length - 1)] };
-                          const _holPredCorrect = _holPred.home === playerMatch.homeGoals && _holPred.away === playerMatch.awayGoals;
-                          if (_holPredCorrect) {
-                            const _oppIdx = pIsHome ? playerMatch.away : playerMatch.home;
-                            const _playerIdx = pIsHome ? playerMatch.home : playerMatch.away;
-                            const _holLeague = useGameStore.getState().league;
-                            if (_holLeague) {
-                              const _oppRow = _holLeague.table.find(r => r.teamIndex === _oppIdx);
-                              const _plRow = _holLeague.table.find(r => r.teamIndex === _playerIdx);
-                              const hg = playerMatch.homeGoals, ag = playerMatch.awayGoals;
-                              let _normalPlPts, _normalOppPts;
-                              if (hg === ag) {
-                                _normalPlPts = _holTvMod.drawPointsPlayer ?? 1;
-                                _normalOppPts = _holTvMod.drawPointsAI ?? 1;
-                              } else {
-                                const _plWon = pIsHome ? hg > ag : ag > hg;
-                                _normalPlPts = _plWon ? 3 : 0;
-                                _normalOppPts = _plWon ? 0 : 3;
-                              }
-                              if (_oppRow) _oppRow.points += (3 - _normalOppPts);
-                              if (_plRow) _plRow.points -= _normalPlPts;
-                            }
-                            setInboxMessages(prev => [...prev, createInboxMessage(
-                              MSG.aiPredictionCorrectHol(_holPred.home, _holPred.away),
-                              { calendarIndex, seasonNumber },
-                            )]);
                           }
                         }
                         // No need to block — stats processed inline
@@ -6436,7 +6399,6 @@ function FruitCigs() {
             setTransferWindowWeeksRemaining(0);
             setTransferOffers([]);
             // setShowFiveASidePicker removed
-            aiPredictionRef.current = null;
 
             // Generate prestige-scaled trial player for new season
             const newCap = getOvrCap(newPrestige);
@@ -7102,7 +7064,6 @@ function FruitCigs() {
               setDynastyCupBracket(null);
               setMiniTournamentBracket(null);
               setFiveASideSquad(null);
-              aiPredictionRef.current = null;
 
               // === PRODIGAL SON NARRATIVE ===
               // Triggers once, in season 2+, if not already active/completed

@@ -4,7 +4,7 @@ import { ATTRIBUTES, TRAINING_FOCUSES } from "../data/training.js";
 import { POSITION_TYPES } from "../data/positions.js";
 import { MSG } from "../data/messages.js";
 import { getModifier } from "../data/leagueModifiers.js";
-import { rand, getOverall, pickRandom } from "../utils/calc.js";
+import { rand, getOverall } from "../utils/calc.js";
 import { getOvrCap } from "../utils/player.js";
 import { sortStandings, advanceCupRound, buildNextCupRound } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
@@ -27,7 +27,6 @@ export function useGainPopupHandler({
   tryUnlockAchievement,
   // Refs
   pendingTrialAction,
-  aiPredictionRef,
 }) {
   const processGainsDone = useCallback((gains) => {
     const s = useGameStore.getState();
@@ -494,25 +493,10 @@ export function useGainPopupHandler({
           }
         }
       } else {
-        // Intergalactic Elite: generate pre-match prediction for league matches
-        const _predMod2 = getModifier(s.leagueTier);
-        if (_predMod2.prediction && _nextCal.type === "league") {
-          const _fix2 = s.league?.fixtures?.[_nextCal.leagueMD]?.find(f => f.home === 0 || f.away === 0);
-          const _plHome2 = _fix2 ? _fix2.home === 0 : true;
-          const _ps2 = [0,0,0,1,1,1,1,1,2,2,2,2,3,3,3,4,4,5];
-          let _pred2;
-          for (let _try = 0; _try < 20; _try++) {
-            const h = pickRandom(_ps2);
-            const a = pickRandom(_ps2);
-            const aiWins = _plHome2 ? a > h : h > a;
-            if (!aiWins) { _pred2 = { home: h, away: a }; break; }
-          }
-          aiPredictionRef.current = _pred2 || { home: 1, away: 1 };
-        }
         s.setMatchPending(true);
       }
     }
-  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement, pendingTrialAction, aiPredictionRef]);
+  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement, pendingTrialAction]);
 
   return { processGainsDone };
 }
