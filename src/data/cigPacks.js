@@ -730,7 +730,7 @@ export const CIG_PACKS = [
   {
     id: "quince_cigs",
     name: "Quince Cigs",
-    icon: "🍎",
+    icon: "💛",
     color: "#ca8a04",
     colorLight: "#fde68a",
     colorDark: "#854d0e",
