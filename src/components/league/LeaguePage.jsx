@@ -706,7 +706,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
 
               {/* Promo/relego legend */}
               <div style={{ fontSize: mob ? F.micro : F.xs, color: C.slate, marginBottom: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {displayTier > 1 && <span><span style={{ color: C.gold }}>■</span> {displayMod.miniTournament ? "5v5 tournament: top 3 promoted" : "Top 3 promoted"}</span>}
+                {displayTier > 1 && <span><span style={{ color: C.gold }}>■</span> {displayMod.miniTournament ? "5v5 tournament: top 3 promoted" : displayMod.knockoutAtEnd ? "Top 3 promoted (or win the Dynasty Cup)" : "Top 3 promoted"}</span>}
                 {displayTier < NUM_TIERS && <span><span style={{ color: C.red }}>■</span> Bottom 3 relegated</span>}
                 {qualifyCount > 0 && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><QualChip color={leagueColor2} /> Top {qualifyCount} qualify for the {qualifyLabel}</span>}
               </div>
@@ -839,7 +839,10 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                           if (m3 && row.name === m3.name) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6, flexShrink: 0 }}>(P)</span>;
                         } else {
                           if (isChamp) return <span style={{ fontSize: F.micro, color: "#facc15", marginLeft: 6, flexShrink: 0 }}>(C)</span>;
-                          if (displayTier > 1 && inPromoZone && !isChamp) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6, flexShrink: 0 }}>(P)</span>;
+                          // Dynasty Cup winner is promoted even from outside the top 3 —
+                          // credit the marker to whichever row actually lifted the cup.
+                          const cupWinnerPromoted = mod.knockoutAtEnd && dynastyCupBracket?.winner?.name === row.name;
+                          if (displayTier > 1 && (inPromoZone || cupWinnerPromoted) && !isChamp) return <span style={{ fontSize: F.micro, color: C.gold, marginLeft: 6, flexShrink: 0 }}>(P)</span>;
                         }
                         return null;
                       })()}

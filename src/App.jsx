@@ -17,7 +17,7 @@ import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
-import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot } from "./utils/league.js";
+import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion } from "./utils/league.js";
 import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
 import { getRivalryModifierForFixture } from "./utils/rivalries.js";
@@ -5872,16 +5872,13 @@ function FruitCigs() {
               const swapResult = processSeasonSwaps(currentRosters, league, currentTier, allLeagueStates, teamName);
               const position = swapResult.playerPosition;
               let newTier = swapResult.playerNewTier;
-              // Safety: promote if eligible — tournament tiers use tournament results
-              const _mod3 = getModifier(currentTier);
-              const _mBkt3 = useGameStore.getState().miniTournamentBracket;
-              if (_mod3.miniTournament && currentTier > 1 && _mBkt3) {
-                const _dRU3 = _mBkt3.runnerUp || (_mBkt3.winner && _mBkt3.final?.home && _mBkt3.final?.away ? (_mBkt3.winner.name === _mBkt3.final.home.name ? _mBkt3.final.away : _mBkt3.final.home) : null);
-                const _promoted3 = _mBkt3.winner?.isPlayer || _dRU3?.isPlayer || (_mBkt3.thirdPlaceWinner || _mBkt3.thirdPlace?.winner)?.isPlayer;
-                if (_promoted3 && newTier >= currentTier) newTier = currentTier - 1;
-              } else {
-                if (position <= 3 && currentTier > 1 && newTier >= currentTier) newTier = currentTier - 1;
-              }
+              // Safety: promote if eligible — one shared rule for tournament
+              // and standard tiers (see resolveKnockoutPromotion).
+              newTier = resolveKnockoutPromotion({
+                mod: getModifier(currentTier), currentTier, position, newTier,
+                miniTournamentBracket: useGameStore.getState().miniTournamentBracket,
+                dynastyCupBracket: useGameStore.getState().dynastyCupBracket,
+              });
               // HARD SAFETY: never jump more than 1 tier in either direction
               if (newTier < currentTier - 1) newTier = currentTier - 1;
               if (newTier > currentTier + 1) newTier = currentTier + 1;
