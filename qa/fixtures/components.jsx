@@ -7,6 +7,7 @@ import { OvrProgressChart } from "../../src/components/charts/OvrCharts.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
+import { PackUnlockReveal } from "../../src/components/achievements/PackUnlockReveal.jsx";
 import { AchievementCabinet } from "../../src/components/achievements/AchievementCabinet.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
@@ -365,6 +366,25 @@ function AchievementToastHarness() {
   return <AchievementToast achievement="champion" muteSound onDone={() => setDone(true)} />;
 }
 
+// --- Pack unlock reveal ------------------------------------------------------
+
+// Mounts the full ceremony (tear → deal → settle) and swaps in a marker div
+// once it self-dismisses. Uses a real pack; the banked variant passes three
+// of the pack's own achievement ids so the deal phase has cards to pull.
+function PackUnlockRevealHarness({ banked }) {
+  const [done, setDone] = useState(false);
+  const pack = CIG_PACKS.find((p) => p.id === "cherry_cigs");
+  if (done) return <div>REVEAL DONE</div>;
+  return (
+    <PackUnlockReveal
+      pack={pack}
+      bankedIds={banked ? pack.achievementIds.slice(0, 3) : []}
+      muteSound
+      onDone={() => setDone(true)}
+    />
+  );
+}
+
 // --- Cig cards ---------------------------------------------------------
 
 // "champion" is a real, ungraded achievement. "mentality_monsters" is a
@@ -619,6 +639,8 @@ const RENDERERS = {
     </div>
   ),
   "achievement-toast": () => <AchievementToastHarness />,
+  "pack-reveal-banked": () => <PackUnlockRevealHarness banked />,
+  "pack-reveal-empty": () => <PackUnlockRevealHarness banked={false} />,
   // Lands on the CIG PACKS tab; the spec clicks "SCRATCH CARDS" (registry.clickText).
   // One enabled card with the longest ticket description in the game (verify
   // it wraps in full, no mid-sentence ellipsis), and two disabled cards with

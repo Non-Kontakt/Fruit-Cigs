@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { SFX } from "../../utils/sfx.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { CigCard } from "./CigCard.jsx";
 
 const hexToRgb = (hex) => {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -12,9 +13,18 @@ const hexToRgb = (hex) => {
 
 const AUTO_ADVANCE_MS = 8000;
 const REDUCED_MOTION_AUTO_ADVANCE_MS = 10000;
+const TEAR_AT_MS = 2100;
+const DEAL_AT_MS = 2500;
+const DEAL_STAGGER_MS = 280;
 
-export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday }) {
-  const [phase, setPhase] = useState("enter");   // enter → locked → reveal → shown → exit
+// Stepped zigzag tear line (pixel-art serration, not a smooth wave).
+const TEAR_CLIP =
+  "polygon(0% 100%, 0% 55%, 8% 55%, 8% 100%, 16% 100%, 16% 55%, 24% 55%, 24% 100%, 32% 100%, 32% 55%, 40% 55%, 40% 100%, 48% 100%, 48% 55%, 56% 55%, 56% 100%, 64% 100%, 64% 55%, 72% 55%, 72% 100%, 80% 100%, 80% 55%, 88% 55%, 88% 100%, 96% 100%, 96% 55%, 100% 55%, 100% 100%)";
+
+export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, muteSound = false }) {
+  // enter → locked → reveal → torn → dealing → shown → exit
+  const [phase, setPhase] = useState("enter");
+  const [dealtCount, setDealtCount] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [paused, setPaused] = useState(false);
   const doneCalledRef = useRef(false);
@@ -24,6 +34,9 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
       : false
   );
+
+  const bankedCount = bankedIds.length;
+  const remaining = pack ? pack.packSize - bankedCount : 0;
 
   // Auto-close when on holiday
   useEffect(() => {
@@ -38,17 +51,40 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
   // Animation sequence
   useEffect(() => {
     if (isOnHoliday) return;
+    const timers = [];
     // Phase 1: fade in overlay
-    const t1 = setTimeout(() => setPhase("locked"), 50);
+    timers.push(setTimeout(() => setPhase("locked"), 50));
     // Phase 2: hold silhouette, play SFX, then reveal
-    const t2 = setTimeout(() => {
-      SFX.reveal();
+    timers.push(setTimeout(() => {
+      if (!muteSound) SFX.reveal();
       setPhase("reveal");
-    }, 800);
-    // Phase 3: shown (fully revealed)
-    const t3 = setTimeout(() => setPhase("shown"), 1400);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [isOnHoliday]);
+    }, 800));
+    if (reducedMotionRef.current) {
+      // Reduced motion: no tear/deal choreography — jump to the settled
+      // layout with everything already in place.
+      timers.push(setTimeout(() => {
+        setDealtCount(bankedCount);
+        setPhase("shown");
+      }, 1400));
+      return () => timers.forEach(clearTimeout);
+    }
+    // Phase 3: the pack tears open
+    timers.push(setTimeout(() => setPhase("torn"), TEAR_AT_MS));
+    // Phase 4: deal the banked cards one by one
+    timers.push(setTimeout(() => setPhase("dealing"), DEAL_AT_MS));
+    for (let i = 0; i < bankedCount; i++) {
+      timers.push(setTimeout(() => {
+        if (!muteSound) SFX.progress();
+        setDealtCount(i + 1);
+      }, DEAL_AT_MS + 100 + i * DEAL_STAGGER_MS));
+    }
+    // Phase 5: settled
+    timers.push(setTimeout(
+      () => setPhase("shown"),
+      DEAL_AT_MS + 300 + bankedCount * DEAL_STAGGER_MS
+    ));
+    return () => timers.forEach(clearTimeout);
+  }, [isOnHoliday, bankedCount, muteSound]);
 
   const handleDismiss = () => {
     if (dismissed) return;
@@ -59,7 +95,7 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
     }, 400);
   };
 
-  // Auto-advance once fully revealed, paused on hover; cancelled by manual dismiss.
+  // Auto-advance once fully settled, paused on hover; cancelled by manual dismiss.
   useEffect(() => {
     if (phase !== "shown" || isOnHoliday || paused) return;
     const ms = reducedMotionRef.current ? REDUCED_MOTION_AUTO_ADVANCE_MS : AUTO_ADVANCE_MS;
@@ -71,8 +107,10 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
 
   const rgb = hexToRgb(pack.color);
   const rgbDark = hexToRgb(pack.colorDark);
-  const isRevealed = phase === "reveal" || phase === "shown";
+  const isRevealed = phase !== "enter" && phase !== "locked" && phase !== "exit";
+  const isOpen = phase === "torn" || phase === "dealing" || phase === "shown";
   const overlayVisible = phase !== "enter" && phase !== "exit";
+  const lidH = mob ? 34 : 40;
 
   return (
     <div
@@ -93,6 +131,7 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
         transition: "opacity 0.3s ease",
         fontFamily: FONT,
         cursor: "pointer",
+        overflow: "hidden",
       }}
     >
       <style>{`
@@ -117,6 +156,26 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
           50%  { transform: scale(0.9); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
+        @keyframes lidTear {
+          0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+          60%  { transform: translate(24px, -70px) rotate(9deg); opacity: 1; }
+          100% { transform: translate(48px, -130px) rotate(14deg); opacity: 0; }
+        }
+        @keyframes packJolt {
+          0%   { transform: scale(1); }
+          30%  { transform: scale(1.04) rotate(-1deg); }
+          60%  { transform: scale(0.99) rotate(0.5deg); }
+          100% { transform: scale(1); }
+        }
+        @keyframes cardDeal {
+          0%   { transform: translateY(-90px) scale(0.3) rotate(-6deg); opacity: 0; }
+          60%  { transform: translateY(8px) scale(1.05) rotate(1deg); opacity: 1; }
+          100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes slotFan {
+          0%   { transform: translateY(-30px) scale(0.6); opacity: 0; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
       `}</style>
 
       {/* "NEW PACK UNLOCKED" header */}
@@ -139,7 +198,6 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
         position: "relative",
         width: mob ? 200 : 240,
         minHeight: mob ? 260 : 300,
-        borderRadius: 12,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -150,12 +208,21 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
         background: isRevealed
           ? `linear-gradient(160deg, rgba(${rgbDark}, 0.25) 0%, rgba(${rgb}, 0.08) 100%)`
           : "rgba(15,15,35,0.9)",
-        border: isRevealed
-          ? `2px solid rgba(${rgb}, 0.5)`
-          : `2px solid ${C.bgCard}`,
-        transform: phase === "shown"
+        // Sides set individually (no shorthand): once torn, the top edge is
+        // the serrated tear line, not the lid's rounded corners.
+        borderLeft: `2px solid ${isRevealed ? `rgba(${rgb}, 0.5)` : C.bgCard}`,
+        borderRight: `2px solid ${isRevealed ? `rgba(${rgb}, 0.5)` : C.bgCard}`,
+        borderBottom: `2px solid ${isRevealed ? `rgba(${rgb}, 0.5)` : C.bgCard}`,
+        borderTop: isOpen
+          ? `2px dashed rgba(${rgb}, 0.5)`
+          : `2px solid ${isRevealed ? `rgba(${rgb}, 0.5)` : C.bgCard}`,
+        borderTopLeftRadius: isOpen ? 2 : 12,
+        borderTopRightRadius: isOpen ? 2 : 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+        transform: phase === "shown" || phase === "dealing"
           ? "scale(1)"
-          : phase === "reveal"
+          : phase === "reveal" || phase === "torn"
             ? "scale(1.05)"
             : phase === "locked"
               ? "scale(1)"
@@ -163,8 +230,30 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
         opacity: phase === "enter" ? 0 : 1,
         filter: isRevealed ? "none" : "brightness(0.6)",
         transition: "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        animation: phase === "shown" ? "packGlow 2.5s ease-in-out infinite" : undefined,
+        animation: phase === "shown"
+          ? "packGlow 2.5s ease-in-out infinite"
+          : phase === "torn" ? "packJolt 0.4s ease" : undefined,
       }}>
+        {/* The lid: flush with the pack top until the tear, then flies off
+            along the serrated line. Rendered only while relevant. */}
+        {isRevealed && phase !== "shown" && (
+          <div style={{
+            position: "absolute",
+            top: -2,
+            left: -2,
+            right: -2,
+            height: lidH,
+            borderRadius: "12px 12px 0 0",
+            background: `linear-gradient(160deg, rgba(${rgbDark}, 0.9) 0%, rgba(${rgb}, 0.45) 100%)`,
+            border: `2px solid rgba(${rgb}, 0.5)`,
+            borderBottom: "none",
+            clipPath: TEAR_CLIP,
+            zIndex: 2,
+            animation: isOpen ? "lidTear 0.6s ease-in forwards" : undefined,
+            pointerEvents: "none",
+          }} />
+        )}
+
         {/* Background texture — diagonal lines (only when revealed) */}
         {isRevealed && (
           <div style={{
@@ -226,7 +315,7 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
           animation: phase === "shown" ? "packFloat 2s ease-in-out infinite" : undefined,
           transition: "opacity 0.4s ease, filter 0.4s ease",
         }}>
-          {isRevealed ? pack.icon : "\uD83D\uDD12"}
+          {isRevealed ? pack.icon : "🔒"}
         </div>
 
         {/* Pack name or ??? */}
@@ -278,13 +367,68 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
         {pack.name}
       </div>
 
-      {/* Banked achievements count */}
-      {phase === "shown" && bankedCount > 0 && (
+      {/* The pull: banked cards dealt face-up out of the torn pack */}
+      {(phase === "dealing" || phase === "shown") && bankedCount > 0 && (
         <div style={{
-          fontSize: F.xs, color: pack.color, marginTop: 10,
-          letterSpacing: 1, opacity: 0.8, textAlign: "center",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: "flex-start",
+          gap: mob ? 6 : 10,
+          marginTop: 14,
+          maxWidth: mob ? 320 : 560,
         }}>
-          {bankedCount} CARD{bankedCount !== 1 ? "S" : ""} ALREADY COLLECTED
+          {bankedIds.slice(0, dealtCount).map((id) => (
+            <div key={id} style={{ animation: reducedMotionRef.current ? undefined : "cardDeal 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
+              <CigCard achievementId={id} state="collected" scale={mob ? 0.4 : 0.5} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Banked line + the rest of the pack, face down */}
+      {phase === "shown" && (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 12,
+          animation: reducedMotionRef.current ? undefined : "slotFan 0.4s ease-out",
+        }}>
+          {bankedCount > 0 && (
+            <div style={{
+              fontSize: F.xs, color: pack.color,
+              letterSpacing: 1, opacity: 0.8, textAlign: "center",
+            }}>
+              {bankedCount} CARD{bankedCount !== 1 ? "S" : ""} ALREADY COLLECTED
+            </div>
+          )}
+          {remaining > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex" }}>
+                {Array.from({ length: Math.min(remaining, 5) }).map((_, i) => (
+                  <div key={i} style={{
+                    width: mob ? 18 : 22,
+                    height: mob ? 26 : 32,
+                    borderRadius: 3,
+                    marginLeft: i === 0 ? 0 : -(mob ? 8 : 10),
+                    background: `linear-gradient(160deg, rgba(${rgbDark}, 0.9) 0%, rgba(${rgb}, 0.3) 100%)`,
+                    border: `1px solid rgba(${rgb}, 0.5)`,
+                    transform: `rotate(${(i - Math.min(remaining, 5) / 2) * 4}deg)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: mob ? 8 : 10,
+                    color: `rgba(${rgb}, 0.7)`,
+                  }}>?</div>
+                ))}
+              </div>
+              <div style={{ fontSize: F.micro, color: C.textMuted, letterSpacing: 1 }}>
+                {remaining} TO FIND
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -293,7 +437,7 @@ export function PackUnlockReveal({ pack, bankedCount = 0, onDone, isOnHoliday })
         <div style={{
           fontSize: F.xs,
           color: C.textDim,
-          marginTop: 28,
+          marginTop: 22,
           opacity: 0.5,
           letterSpacing: 1,
         }}>

@@ -7251,7 +7251,7 @@ function FruitCigs() {
           <PackUnlockReveal
             key={pack.id}
             pack={pack}
-            bankedCount={pack.achievementIds.filter(id => unlockedAchievements.has(id)).length}
+            bankedIds={pack.achievementIds.filter(id => unlockedAchievements.has(id))}
             isOnHoliday={isOnHoliday}
             onDone={() => setPackUnlockQueue(prev => prev.slice(1))}
           />
