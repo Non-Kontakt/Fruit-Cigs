@@ -165,6 +165,29 @@ test("player panel: STATS view shows position weight percentages", async ({ page
   await expect(page.getByText("OVR = position-weighted average for ST", { exact: true })).toBeVisible();
 });
 
+// Scratch cards: the longest ticket description renders in full (no
+// mid-sentence line-clamp ellipsis), and disabled cards hide their USE
+// button while keeping the inline disabled reason.
+test("scratch cards: full description renders, disabled cards hide USE", async ({ page }) => {
+  await page.goto("qa.html?c=ticket-cards");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  await page.getByText("SCRATCH CARDS", { exact: false }).first().click();
+
+  // Full text, not an ellipsized fragment.
+  await expect(page.getByText(
+    "A club legend rallies the fans for a massive home crowd boost in the next home game.",
+    { exact: true },
+  )).toBeVisible();
+
+  // Long title renders in full.
+  await expect(page.getByText("Testimonial Match", { exact: true })).toBeVisible();
+
+  // Disabled cards show their reason but no USE button.
+  await expect(page.getByText("No retired players", { exact: true })).toBeVisible();
+  await expect(page.getByText("No retiring players", { exact: true })).toBeVisible();
+  await expect(page.getByText("USE", { exact: true })).toHaveCount(1);
+});
+
 // League ALL-TIME tab: with no season or all-time stats at all, one
 // consolidated line replaces the four per-section "no data yet" shrugs.
 test("league ALL-TIME tab: shows one consolidated empty state, not four shrugs", async ({ page }) => {

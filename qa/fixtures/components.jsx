@@ -7,6 +7,7 @@ import { OvrProgressChart } from "../../src/components/charts/OvrCharts.jsx";
 import { CupPage } from "../../src/components/cup/CupPage.jsx";
 import { AchievementToast } from "../../src/components/achievements/AchievementToast.jsx";
 import { CigCard } from "../../src/components/achievements/CigCard.jsx";
+import { AchievementCabinet } from "../../src/components/achievements/AchievementCabinet.jsx";
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
 import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
@@ -618,6 +619,26 @@ const RENDERERS = {
     </div>
   ),
   "achievement-toast": () => <AchievementToastHarness />,
+  // Lands on the CIG PACKS tab; the spec clicks "SCRATCH CARDS" (registry.clickText).
+  // One enabled card with the longest ticket description in the game (verify
+  // it wraps in full, no mid-sentence ellipsis), and two disabled cards with
+  // no retiring/retired players so their USE button is hidden and the inline
+  // reason is the whole story. "Testimonial Match" is the long-title example
+  // named in the issue this fixture guards against regressing.
+  "ticket-cards": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <AchievementCabinet
+        unlocked={new Set()} unlockedPacks={new Set()} squad={[]} clubHistory={{}} currentTier={11} ovrCap={20}
+        tickets={[
+          { id: "t1", type: "twelfth_man" },
+          { id: "t2", type: "testimonial_match" },
+          { id: "t3", type: "delay_retirement" },
+        ]}
+        retiringPlayers={new Set()} transferFocus={[]} scoutedPlayers={{}} shortlist={[]}
+        onUseTicket={{}} onPlayerClick={noop} onTeamClick={noop}
+      />
+    </div>
+  ),
   "cig-card-states": () => (
     <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start", background: "#0a0a17", padding: 32, minHeight: "100vh" }}>
       <div data-testid="cig-card-hidden"><CigCard achievementId="first_win" state="hidden" /></div>
