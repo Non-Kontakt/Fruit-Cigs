@@ -907,7 +907,7 @@ export const CIG_PACKS = [
   {
     id: "papaya_cigs",
     name: "Papaya Cigs",
-    icon: "🍍",
+    icon: "🍠",
     color: "#fb923c",
     colorLight: "#fed7aa",
     colorDark: "#c2410c",
