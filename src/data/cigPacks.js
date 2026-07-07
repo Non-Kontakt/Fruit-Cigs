@@ -1,7 +1,8 @@
 // Cigarette pack collection system for achievements
 // Every pack contains EXACTLY 5 or 10 achievements — this is a hard
-// invariant, not a rough guideline. All 290 achievements distributed
-// across 32 packs (v3.1, recomposed v3.2, re-recomposed v3.3).
+// invariant, not a rough guideline. All 325 achievements distributed
+// across 36 packs (v3.1, recomposed v3.2, re-recomposed v3.3, expanded v3.4
+// with the season-domain wave — Quince, Pineapple, Date, Redcurrant).
 //
 // Curation principle:
 //   - Early packs (starter + first couple of unlocks) should be mostly
@@ -722,6 +723,99 @@ export const CIG_PACKS = [
       "absentee_landlord",  // Win league on holiday
       "from_the_bottom",    // Win at Federation or above
       "just_right",         // Every Euro Dynasty opponent 2x
+    ],
+  },
+
+  // ── SEASON DOMAIN (Awards Night, knockouts, history, newspaper) ─
+  {
+    id: "quince_cigs",
+    name: "Quince Cigs",
+    icon: "🍎",
+    color: "#ca8a04",
+    colorLight: "#fde68a",
+    colorDark: "#854d0e",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 6 },
+    unlockDesc: "Play 6 seasons",
+    achievementIds: [
+      "top_of_the_bill",       // Your player wins Player of the Season
+      "raised_right",          // Homegrown player wins Young Player of the Season
+      "clean_sweep",           // Your players win all three awards
+      "robbed",                // 20+ goals but miss the Golden Boot
+      "doing_it_all",          // Same player wins POTS and YPOTS
+      "no_country_for_old_men", // 33+ year old wins Player of the Season
+      "defenders_no_respect",  // Defender/GK wins Player of the Season
+      "repeat_offender",       // Same player wins POTS twice
+      "class_of_their_own",    // All three awards go to one rival club
+      "carried",               // Golden Boot but bottom-half finish
+    ],
+  },
+  {
+    id: "pineapple_cigs",
+    name: "Pineapple Cigs",
+    icon: "🍍",
+    color: "#fbbf24",
+    colorLight: "#fde68a",
+    colorDark: "#b45309",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "tier_reached", tier: 3 },
+    unlockDesc: "Reach tier 3",
+    achievementIds: [
+      "succession",            // Win the Dynasty Cup
+      "through_side_door",     // 4th place, promoted via the Dynasty Cup
+      "five_a_side_story",     // Win the 5v5 Mini-Tournament
+      "both_barrels",          // League + Dynasty Cup same season
+      "bottled_it_beautifully", // Win league, lose Dynasty Cup final
+      "bronze_age",            // Win the 5v5 third-place playoff
+      "giant_slaying_mini",    // Win the 5v5 as the 4th seed
+      "knockout_artist",       // Win both knockout competitions, career
+      "undercard",             // Reach Dynasty Cup final from 4th
+      "kingmaker_denied",      // Beat the league champions in a final
+    ],
+  },
+  {
+    id: "date_cigs",
+    name: "Date Cigs",
+    icon: "🌰",
+    color: "#78350f",
+    colorLight: "#d6a67a",
+    colorDark: "#451a03",
+    packSize: 5,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 8 },
+    unlockDesc: "Complete 8 seasons",
+    achievementIds: [
+      "been_everywhere_man",   // Finish 1st through 10th across a career
+      "unfinished_business",   // Win a division you were relegated from
+      "yo_yo_years",           // Promoted, relegated, promoted again
+      "watching_the_throne",   // A rival wins 3 straight titles elsewhere
+      "wooden_spoon_collection", // Finish bottom in 2 different divisions
+    ],
+  },
+  {
+    id: "redcurrant_cigs",
+    name: "Redcurrant Cigs",
+    icon: "🍅",
+    color: "#dc2626",
+    colorLight: "#fca5a5",
+    colorDark: "#7f1d1d",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 5 },
+    unlockDesc: "Play 5 seasons",
+    achievementIds: [
+      "the_blueprint",         // Paper names your squad's playing identity
+      "route_one_reputation",  // Labelled a counter-attacking side
+      "nothing_gets_past_us",  // Labelled a defensive wall
+      "keep_ball_merchants",   // Labelled a possession side
+      "front_page_news",       // Earn a special back page
+      "framed_above_desk",     // Collect all three special back pages
+      "derby_day_ink",         // Make the back page with a derby result
+      "same_time_next_year",   // Same league position 3 seasons running
+      "fixtures_and_fittings", // Season preview calls you part of the furniture
+      "hat_trick_headlines",   // Hat-trick back pages for 3 players, 1 season
     ],
   },
 

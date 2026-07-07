@@ -17,7 +17,7 @@ import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
-import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion } from "./utils/league.js";
+import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion, collectDynastyCupFinalAchievements, collectMiniTournamentThirdPlaceAchievements, collectMiniTournamentFinalAchievements } from "./utils/league.js";
 import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
 import { getRivalryModifierForFixture } from "./utils/rivalries.js";
@@ -1695,6 +1695,7 @@ function FruitCigs() {
         title: `FWD: ${result.headline}`,
         body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${result.headline}"\n— ${newspaperName || "the local paper"}`,
       }, { calendarIndex, seasonNumber })]);
+      tryUnlockAchievement("front_page_news");
     }
   };
 
@@ -5361,6 +5362,19 @@ function FruitCigs() {
                   final: { ...prev.final, result: { homeGoals: hg, awayGoals: ag, winner, pens: penResult } },
                   winner,
                 }));
+                // Pineapple Cigs — Dynasty Cup final achievements
+                {
+                  const dynastyOpponentName = (winner === cupMatchResult.cupHome ? cupMatchResult.cupAway : cupMatchResult.cupHome)?.name || null;
+                  const freshUnlocked = useGameStore.getState().unlockedAchievements;
+                  const dcAchs = collectDynastyCupFinalAchievements({
+                    playerWon, dynastyCupQualifiers, league, opponentName: dynastyOpponentName,
+                    unlockedAchievements: freshUnlocked,
+                  });
+                  dcAchs.forEach(id => tryUnlockAchievement(id));
+                  if ((dcAchs.includes("succession") || freshUnlocked.has("succession")) && freshUnlocked.has("five_a_side_story")) {
+                    tryUnlockAchievement("knockout_artist");
+                  }
+                }
                 // MotM +1 stat boost if player won the Dynasty Cup
                 if (playerWon) {
                   const eligible = useGameStore.getState().squad.filter(p => startingXI.includes(p.id));
@@ -5496,6 +5510,10 @@ function FruitCigs() {
                   thirdPlaceWinner: tpWinner,
                   playerEliminated: !playerWon3rd && !prev.playerInFinal,
                 }));
+                // Pineapple Cigs — Bronze Age
+                collectMiniTournamentThirdPlaceAchievements({
+                  playerWon3rd, unlockedAchievements: useGameStore.getState().unlockedAchievements,
+                }).forEach(id => tryUnlockAchievement(id));
                 // Sim the final if player is NOT in the final (AI vs AI)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (!bracket.playerInFinal && bracket.final?.home && bracket.final?.away) {
@@ -5533,6 +5551,23 @@ function FruitCigs() {
                   winner: mWinner,
                   runnerUp: finalLoser,
                 }));
+                // Pineapple Cigs — 5v5 Mini-Tournament final achievements.
+                // No stored qualifiers list for the mini tournament (unlike
+                // dynastyCupQualifiers) — 4th seed is read off final league
+                // position instead.
+                {
+                  const miniSorted = league?.table ? sortStandings(league.table) : [];
+                  const miniPlayerPos = miniSorted.findIndex(r => league?.teams?.[r.teamIndex]?.isPlayer) + 1;
+                  const freshUnlocked = useGameStore.getState().unlockedAchievements;
+                  const miniAchs = collectMiniTournamentFinalAchievements({
+                    playerWonFinal, playerLeaguePosition: miniPlayerPos || null, league, opponentName: finalLoser?.name || null,
+                    unlockedAchievements: freshUnlocked,
+                  });
+                  miniAchs.forEach(id => tryUnlockAchievement(id));
+                  if ((miniAchs.includes("five_a_side_story") || freshUnlocked.has("five_a_side_story")) && freshUnlocked.has("succession")) {
+                    tryUnlockAchievement("knockout_artist");
+                  }
+                }
                 // Sim 3rd-place playoff if player was in the final (AI vs AI 3rd place)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (bracket.thirdPlace && !bracket.thirdPlace.winner) {
@@ -5911,6 +5946,7 @@ function FruitCigs() {
                 squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
                 dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
                 calendarResults: useGameStore.getState().calendarResults,
+                leagueHistory, teamName,
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });

@@ -119,9 +119,113 @@ export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueSt
   return snapshot;
 }
 
+// Date Cigs / Redcurrant Cigs — pure archive-based season-end checks, split
+// out so they're testable against synthetic clubHistory without going
+// through collectSeasonEndAchievements' full parameter list.
+export function checkBeenEverywhereMan(clubHistory, position) {
+  const positions = new Set();
+  (clubHistory?.seasonArchive || []).forEach(s => { if (s.position >= 1 && s.position <= 10) positions.add(s.position); });
+  if (position >= 1 && position <= 10) positions.add(position);
+  for (let p = 1; p <= 10; p++) if (!positions.has(p)) return false;
+  return true;
+}
+
+export function checkUnfinishedBusiness(clubHistory, position, currentTier) {
+  if (position !== 1) return false;
+  return (clubHistory?.seasonArchive || []).some(s => s.tier === currentTier && s.result === "relegated");
+}
+
+export function checkYoYoYears(clubHistory, moveType) {
+  const archive = clubHistory?.seasonArchive || [];
+  if (archive.length < 2) return false;
+  const [prevPrev, prev] = archive.slice(-2);
+  return prevPrev.result === "promoted" && prev.result === "relegated" && moveType === "promoted";
+}
+
+// Watching The Throne reads the living-world leagueHistory snapshot (one
+// entry per season, keyed by tier, standings sorted — see
+// buildLeagueHistorySnapshot above) rather than clubHistory, since it's
+// about a division the player was never necessarily part of.
+export function checkWatchingTheThrone(leagueHistory, teamName) {
+  const seasons = Object.keys(leagueHistory || {}).map(Number).sort((a, b) => a - b);
+  const tiers = new Set();
+  seasons.forEach(sn => Object.keys(leagueHistory[sn] || {}).forEach(t => tiers.add(Number(t))));
+  for (const tier of tiers) {
+    let streak = 0;
+    let lastChamp = null;
+    for (const sn of seasons) {
+      const champ = leagueHistory[sn]?.[tier]?.standings?.[0]?.name || null;
+      const isRivalChamp = champ && champ !== teamName;
+      streak = isRivalChamp && champ === lastChamp ? streak + 1 : (isRivalChamp ? 1 : 0);
+      lastChamp = isRivalChamp ? champ : null;
+      if (streak >= 3) return true;
+    }
+  }
+  return false;
+}
+
+export function checkWoodenSpoonCollection(clubHistory, position, currentTier) {
+  const tiers = new Set();
+  (clubHistory?.seasonArchive || []).forEach(s => { if (s.position === 10) tiers.add(s.tier); });
+  if (position === 10) tiers.add(currentTier);
+  return tiers.size >= 2;
+}
+
+export function checkSameTimeNextYear(clubHistory, position) {
+  const archive = clubHistory?.seasonArchive || [];
+  if (archive.length < 2) return false;
+  const [prevPrev, prev] = archive.slice(-2);
+  return prevPrev.position === position && prev.position === position;
+}
+
+// Pineapple Cigs — season-knockout achievements. Pure so App.jsx's onDone
+// handler (the highest-risk file in the repo) only has to call these and
+// forward the ids to tryUnlockAchievement, never re-derive the logic inline.
+export function collectDynastyCupFinalAchievements({ playerWon, dynastyCupQualifiers, league, opponentName, unlockedAchievements }) {
+  const unlocked = unlockedAchievements || new Set();
+  const achs = [];
+  const add = (id) => { if (!unlocked.has(id) && !achs.includes(id)) achs.push(id); };
+  const sorted = league?.table ? sortStandings(league.table) : [];
+  const champRow = sorted[0] || null;
+  const champName = champRow ? league?.teams?.[champRow.teamIndex]?.name : null;
+  const playerIsChamp = !!(champRow && league?.teams?.[champRow.teamIndex]?.isPlayer);
+  const isFourthSeed = !!(dynastyCupQualifiers?.[3] && league?.teams?.[dynastyCupQualifiers[3].teamIndex]?.isPlayer);
+
+  if (isFourthSeed) add("undercard"); // reached the final from the 4th seed, win or lose
+  if (playerWon) {
+    add("succession");
+    if (isFourthSeed) add("through_side_door");
+    if (playerIsChamp) add("both_barrels");
+    if (champName && opponentName === champName) add("kingmaker_denied");
+  } else if (playerIsChamp) {
+    add("bottled_it_beautifully");
+  }
+  return achs;
+}
+
+export function collectMiniTournamentThirdPlaceAchievements({ playerWon3rd, unlockedAchievements }) {
+  const unlocked = unlockedAchievements || new Set();
+  return playerWon3rd && !unlocked.has("bronze_age") ? ["bronze_age"] : [];
+}
+
+export function collectMiniTournamentFinalAchievements({ playerWonFinal, playerLeaguePosition, league, opponentName, unlockedAchievements }) {
+  const unlocked = unlockedAchievements || new Set();
+  const achs = [];
+  const add = (id) => { if (!unlocked.has(id) && !achs.includes(id)) achs.push(id); };
+  if (playerWonFinal) {
+    add("five_a_side_story");
+    if (playerLeaguePosition === 4) add("giant_slaying_mini");
+    const sorted = league?.table ? sortStandings(league.table) : [];
+    const champRow = sorted[0] || null;
+    const champName = champRow ? league?.teams?.[champRow.teamIndex]?.name : null;
+    if (champName && opponentName === champName) add("kingmaker_denied");
+  }
+  return achs;
+}
+
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, leagueHistory, teamName }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -288,6 +392,17 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   if (!unlockedAchievements.has("mentality_monsters") && wonEveryPlayedMatchThisSeason(calendarResults)) {
     achs.push("mentality_monsters");
   }
+
+  // Date Cigs — league history, read from clubHistory.seasonArchive (prior
+  // seasons only; this season's position/moveType arrive as params above).
+  if (!unlockedAchievements.has("been_everywhere_man") && checkBeenEverywhereMan(clubHistory, position)) achs.push("been_everywhere_man");
+  if (!unlockedAchievements.has("unfinished_business") && checkUnfinishedBusiness(clubHistory, position, currentTier)) achs.push("unfinished_business");
+  if (!unlockedAchievements.has("yo_yo_years") && checkYoYoYears(clubHistory, moveType)) achs.push("yo_yo_years");
+  if (!unlockedAchievements.has("watching_the_throne") && checkWatchingTheThrone(leagueHistory, teamName)) achs.push("watching_the_throne");
+  if (!unlockedAchievements.has("wooden_spoon_collection") && checkWoodenSpoonCollection(clubHistory, position, currentTier)) achs.push("wooden_spoon_collection");
+
+  // Redcurrant Cigs — Same Time Next Year (season-end archive check)
+  if (!unlockedAchievements.has("same_time_next_year") && checkSameTimeNextYear(clubHistory, position)) achs.push("same_time_next_year");
 
   return achs.filter(id => !unlockedAchievements.has(id));
 }
