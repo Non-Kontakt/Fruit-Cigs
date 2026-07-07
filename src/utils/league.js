@@ -304,12 +304,6 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
     if (meetingsThisSeason >= 2 && !anyLossThisSeason) achs.push("settled_scores");
   }
 
-  // Surrounded — 3+ clubs currently qualify as rivals
-  if (!unlockedAchievements.has("surrounded") && clubHistory?.rivalryLedger) {
-    const rivalCount = Object.values(clubHistory.rivalryLedger).filter(isRival).length;
-    if (rivalCount >= 3) achs.push("surrounded");
-  }
-
   return achs.filter(id => !unlockedAchievements.has(id));
 }
 

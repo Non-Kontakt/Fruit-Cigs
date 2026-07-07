@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { collectRivalryMatchAchievements } from "../achievements.js";
 import { collectSeasonEndAchievements } from "../league.js";
 
-// Blood Orange Cigs — rivalry cig cards. Per-match cards live in
-// collectRivalryMatchAchievements (fed synthetic ledger entries below);
-// settled_scores and surrounded are season-end checks folded into
+// Blood Orange Cigs — rivalry cig cards. Per-match cards (surrounded
+// included — it reads the full post-update ledger) live in
+// collectRivalryMatchAchievements, fed synthetic ledger entries below;
+// settled_scores is a season-end check folded into
 // collectSeasonEndAchievements (see seasonEndAchievements.test.js for the
 // non-rivalry coverage of that function).
 
@@ -169,6 +170,18 @@ describe("home_and_away — beat the same rival home and away in one season", ()
     const result = collectRivalryMatchAchievements(baseInput({ ledgerEntryAfter, playerGoals: 1, oppGoals: 0 }));
     expect(result).not.toContain("home_and_away");
   });
+
+  it("does NOT unlock for a double over a club that is not a rival", () => {
+    const ledgerEntryAfter = baseLedgerEntry({
+      played: 2, wins: 2,
+      lastMeetings: [
+        { season: 3, week: 4, playerGoals: 2, oppGoals: 0 },
+        { season: 3, week: 15, playerGoals: 1, oppGoals: 0 },
+      ],
+    });
+    const result = collectRivalryMatchAchievements(baseInput({ ledgerEntryAfter, playerGoals: 1, oppGoals: 0 }));
+    expect(result).not.toContain("home_and_away");
+  });
 });
 
 describe("breaking_the_curse — beat a rival you'd never beaten in 5+ meetings", () => {
@@ -326,35 +339,26 @@ describe("collectSeasonEndAchievements — Settled Scores", () => {
   });
 });
 
-describe("collectSeasonEndAchievements — Surrounded", () => {
-  it("unlocks with 3+ current rivals", () => {
-    const clubHistory = {
-      seasonArchive: [],
-      rivalryLedger: {
-        A: rivalEntry(), B: rivalEntry(), C: rivalEntry(),
-      },
-    };
-    const achs = collectSeasonEndAchievements(seasonEndInput({ clubHistory }));
-    expect(achs).toContain("surrounded");
+describe("surrounded — 3+ clubs qualify as rivals at once (per-match, full ledger)", () => {
+  it("unlocks the moment the ledger holds 3 rivals", () => {
+    const result = collectRivalryMatchAchievements(baseInput({
+      ledger: { A: rivalEntry(), B: rivalEntry(), C: rivalEntry() },
+    }));
+    expect(result).toContain("surrounded");
   });
 
   it("does NOT unlock with only 2 rivals", () => {
-    const clubHistory = {
-      seasonArchive: [],
-      rivalryLedger: { A: rivalEntry(), B: rivalEntry(), C: baseLedgerEntry({ played: 1 }) },
-    };
-    const achs = collectSeasonEndAchievements(seasonEndInput({ clubHistory }));
-    expect(achs).not.toContain("surrounded");
+    const result = collectRivalryMatchAchievements(baseInput({
+      ledger: { A: rivalEntry(), B: rivalEntry(), C: baseLedgerEntry({ played: 1 }) },
+    }));
+    expect(result).not.toContain("surrounded");
   });
 
   it("respects already-unlocked state", () => {
-    const clubHistory = {
-      seasonArchive: [],
-      rivalryLedger: { A: rivalEntry(), B: rivalEntry(), C: rivalEntry() },
-    };
-    const achs = collectSeasonEndAchievements(seasonEndInput({
-      clubHistory, unlockedAchievements: new Set(["surrounded"]),
+    const result = collectRivalryMatchAchievements(baseInput({
+      ledger: { A: rivalEntry(), B: rivalEntry(), C: rivalEntry() },
+      unlocked: new Set(["surrounded"]),
     }));
-    expect(achs).not.toContain("surrounded");
+    expect(result).not.toContain("surrounded");
   });
 });

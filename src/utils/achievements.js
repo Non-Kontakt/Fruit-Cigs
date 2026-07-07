@@ -1381,7 +1381,9 @@ export function collectRivalryMatchAchievements({ ledgerEntryBefore, ledgerEntry
 
   if (rivalBefore && isLastGaspWinner(matchResult)) add("twist_the_knife");
 
-  if (ledgerEntryAfter?.lastMeetings?.length) {
+  // Rival status judged AFTER this meeting counts — a club that only tips
+  // into rivalry on the second beating still qualifies.
+  if (isRival(ledgerEntryAfter) && ledgerEntryAfter?.lastMeetings?.length) {
     const meetings = ledgerEntryAfter.lastMeetings;
     const currentSeason = meetings[meetings.length - 1].season;
     const thisSeasonMeetings = meetings.filter(m => m.season === currentSeason);
@@ -1389,6 +1391,8 @@ export function collectRivalryMatchAchievements({ ledgerEntryBefore, ledgerEntry
       add("home_and_away");
     }
   }
+
+  if (ledger && Object.values(ledger).filter(isRival).length >= 3) add("surrounded");
 
   if (won && rivalBefore && (ledgerEntryBefore?.played || 0) >= 5 && (ledgerEntryBefore?.wins || 0) === 0) {
     add("breaking_the_curse");
