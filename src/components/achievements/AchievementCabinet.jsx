@@ -80,7 +80,9 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
         marginBottom: 18, padding: "9px 0",
         borderBottom: `2px solid ${C.bgInput}`,
       }}>
-        <div style={{ fontSize: mob ? F.xl : F.h2, color: C.gold, letterSpacing: 2 }}>🏪 CORNER SHOP</div>
+        <div style={{ fontSize: mob ? F.xl : F.h2, color: C.gold, letterSpacing: 2 }}>
+          <span style={{ display: "inline-block", verticalAlign: "middle" }}>🏪</span> CORNER SHOP
+        </div>
       </div>
 
       {/* Tabs */}
