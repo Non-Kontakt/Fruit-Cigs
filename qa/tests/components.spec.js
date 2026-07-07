@@ -189,3 +189,17 @@ test("squad progress: most improved view ranks by OVR delta", async ({ page }) =
   await expect(page.getByText("+6", { exact: true })).toBeVisible();
   await expect(page.getByText("+3", { exact: true })).toBeVisible();
 });
+
+// Transfer target compare: both the user's squad player and the AI target
+// render side by side, and the target's hidden (unscouted) potential shows
+// "???" while the user's own player's potential is always visible. Names
+// are mobile-shortened (displayName) same as everywhere else in the app.
+test("player compare: your player and the transfer target render side by side", async ({ page }, testInfo) => {
+  await page.goto("qa.html?c=player-compare");
+  await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
+  const mobile = testInfo.project.name === "mobile";
+  await expect(page.getByText(mobile ? "L.Adams" : "Louie Adams", { exact: true })).toBeVisible();
+  await expect(page.getByText(mobile ? "M.Rossi" : "Mateo Rossi", { exact: true })).toBeVisible();
+  await expect(page.getByText("POT 18", { exact: true })).toBeVisible(); // yours — always visible
+  await expect(page.getByText("POT ???", { exact: true })).toBeVisible(); // target — unscouted, hidden
+});

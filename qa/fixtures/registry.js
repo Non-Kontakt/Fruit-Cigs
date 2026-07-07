@@ -31,6 +31,7 @@ export const FIXTURES = [
   { id: "player-progress", label: "Player panel — progress sparklines with season ticks", clickText: "PROGRESS" },
   { id: "alltime-xi", label: "Club — All-Time XI with long defender names", clickText: "ALL-TIME XI" },
   { id: "youth-intake", label: "Youth intake — prospects with potential" },
+  { id: "player-compare", label: "Transfer target compare — two players side by side" },
 ];
 
 export const FIXTURE_IDS = FIXTURES.map(f => f.id);

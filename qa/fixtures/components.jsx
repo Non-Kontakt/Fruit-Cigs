@@ -11,6 +11,8 @@ import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
 import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
 import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
+import { PlayerCompareModal } from "../../src/components/transfer/PlayerCompareModal.jsx";
+import { findComparablePlayer } from "../../src/utils/transfer.js";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
 // ---------------------------------------------------------------------------
@@ -490,6 +492,25 @@ const youthIntake = {
   retirees: [],
 };
 
+// --- Transfer target compare ------------------------------------------
+
+// Your squad has an exact-position match (a ST) — so the compare should
+// pick "Louie Adams" over any positional-fit fallback. Target's potential
+// stays hidden ("???") — not in scoutedPlayers — proving the same POT
+// reveal rule as PlayerPanel applies here too.
+const compareSquad = [
+  { id: "cmp-yours", name: "Louie Adams", position: "ST", age: 24, nationality: "ENG", potential: 18,
+    attrs: { pace: 14, shooting: 15, passing: 10, defending: 5, physical: 13, technique: 12, mental: 11 } },
+  { id: "cmp-yours2", name: "Kai Bennett", position: "LW", age: 22, nationality: "ENG", potential: 16,
+    attrs: { pace: 16, shooting: 11, passing: 12, defending: 6, physical: 10, technique: 13, mental: 10 } },
+];
+
+const compareTargetPlayer = {
+  id: "cmp-target", name: "Mateo Rossi", position: "ST", age: 21, nationality: "ITA", potential: 19,
+  attrs: { pace: 17, shooting: 16, passing: 11, defending: 4, physical: 12, technique: 14, mental: 12 },
+  clubName: "Vantage Point", clubColor: "#38bdf8", clubTier: 8,
+};
+
 // ---------------------------------------------------------------------------
 // Renderers, keyed by registry id. Ids/labels/clickText live ONLY in
 // registry.js — this map just attaches a renderer to each of them, and the
@@ -637,6 +658,15 @@ const RENDERERS = {
       squadSize={22}
       onClose={noop}
       ovrCap={20}
+    />
+  ),
+  "player-compare": () => (
+    <PlayerCompareModal
+      yourPlayer={findComparablePlayer(compareSquad, compareTargetPlayer.position)}
+      targetPlayer={compareTargetPlayer}
+      ovrCap={20}
+      scoutedPlayers={{}}
+      onClose={noop}
     />
   ),
 };
