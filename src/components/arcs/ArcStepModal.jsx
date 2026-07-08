@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getArcById } from "../../utils/arcs.js";
 import { SFX, BGM } from "../../utils/sfx.js";
-import { F, C, FONT, MODAL, Z } from "../../data/tokens";
+import { F, C, FONT, MODAL, Z, TEXT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday }) {
@@ -118,7 +118,7 @@ export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday 
           <div style={{ fontSize:mob?F.micro:F.xs, color:C.textDim, marginBottom:4 }}>
             {isComplete ? "FINAL STEP" : `STEP ${stepIdx + 1}`}
           </div>
-          <div style={{ fontSize:mob?F.xs:F.sm, color:C.text }}>✓ {stepDesc}</div>
+          <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:C.text }}>✓ {stepDesc}</div>
         </div>
 
         {/* Narrative */}
@@ -135,7 +135,7 @@ export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday 
         {gains && (
           <div style={{
             background:"rgba(74,222,128,0.08)", border:"1px solid rgba(74,222,128,0.2)",
-            padding:"10px 16px", marginBottom:12, fontSize:mob?F.micro:F.xs, color:C.green,
+            padding:"10px 16px", marginBottom:12, ...(mob?TEXT.microMultiline:TEXT.xsMultiline), color:C.green,
           }}>
             📈 {gains}
           </div>
@@ -148,7 +148,7 @@ export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday 
             padding:"13px 18px", marginBottom:12,
           }}>
             <div style={{ fontSize:mob?F.micro:F.xs, color:C.amber, marginBottom:4 }}>🏆 REWARD UNLOCKED</div>
-            <div style={{ fontSize:mob?F.xs:F.sm, color:"#fde68a" }}>{rewardDesc}</div>
+            <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:"#fde68a" }}>{rewardDesc}</div>
           </div>
         )}
 

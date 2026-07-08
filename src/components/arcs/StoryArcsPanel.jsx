@@ -3,7 +3,7 @@ import { ARC_CATS, ARC_CAT_LABELS } from "../../data/storyArcs.js";
 import { getOverall, getPosColor } from "../../utils/calc.js";
 import { getArcById, getArcsForCat, getValidTargets } from "../../utils/arcs.js";
 import { displayName } from "../../utils/player.js";
-import { F, C, FONT, EMOJI } from "../../data/tokens";
+import { F, C, FONT, EMOJI, TEXT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodigalSon, league, leagueTier, onAchievementCheck, week, seasonNumber }) {
@@ -57,7 +57,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
     if (catState.completed) {
       return (
         <div style={{ padding:"12px 0" }}>
-          <div style={{ color:C.green, fontSize:mob?F.xs:F.sm, marginBottom:12 }}>✅ {arc.rewardDesc}</div>
+          <div style={{ color:C.green, ...(mob?TEXT.xsMultiline:TEXT.smMultiline), marginBottom:12 }}>✅ {arc.rewardDesc}</div>
           <button onClick={() => {
             setStoryArcs(prev => ({...prev, [cat]: null}));
           }} style={{
@@ -109,7 +109,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
                   textAlign:"left", fontFamily:FONT,
                 }}>
                   <div style={{ fontSize:mob?F.xs:F.sm, color:ch==="a"?"#a78bfa":C.blue, marginBottom:5 }}>{opt.name}</div>
-                  <div style={{ fontSize:mob?F.xs:F.sm, color:C.textMuted }}>{opt.w} weeks · {opt.desc}</div>
+                  <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:C.textMuted }}>{opt.w} weeks · {opt.desc}</div>
                 </button>
               );
             })}
@@ -128,14 +128,14 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
           <div style={{ background:C.bgCard, height:9, borderRadius:5, overflow:"hidden", marginBottom:5 }}>
             <div style={{ width:`${pct}%`, height:"100%", background:"linear-gradient(90deg,#a78bfa,#60a5fa)", transition:"width 0.3s" }} />
           </div>
-          <div style={{ fontSize:mob?F.xs:F.sm, color:C.textDim }}>{catState.focus.weeksLeft} weeks remaining · {opt.desc}</div>
+          <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:C.textDim }}>{catState.focus.weeksLeft} weeks remaining · {opt.desc}</div>
         </div>
       );
     }
 
     // Condition step
     if (step.t === "cond") {
-      return <div style={{ color:C.textMuted, fontSize:mob?F.xs:F.sm }}>📋 {step.desc}</div>;
+      return <div style={{ color:C.textMuted, ...(mob?TEXT.xsMultiline:TEXT.smMultiline) }}>📋 {step.desc}</div>;
     }
     return null;
   };
@@ -308,7 +308,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
         if (b.trialStatBoost) parts.push(`Trial players +${b.trialStatBoost} stats`);
         if (b.injuryShield) parts.push(`Injury shield: ${b.injuryShield}w`);
         if (parts.length === 0) return null;
-        return <div style={{ fontSize:mob?F.xs:F.sm, color:"#a78bfa", marginBottom:14 }}>🎁 Active bonuses: {parts.join(" · ")}</div>;
+        return <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:"#a78bfa", marginBottom:14 }}>🎁 Active bonuses: {parts.join(" · ")}</div>;
       })()}
       <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
         {ARC_CATS.map(cat => (

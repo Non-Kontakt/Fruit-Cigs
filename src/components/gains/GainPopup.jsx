@@ -7,7 +7,7 @@ import { AnimatedPips } from "../ui/AnimatedPips.jsx";
 import { LevelUpPips } from "../ui/LevelUpPips.jsx";
 import { PixelDissolveCard } from "../ui/PixelDissolveCard.jsx";
 import { MysteryCard } from "./MysteryCard.jsx";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, TEXT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 import { TICKET_DEFS } from "../../data/tickets.js";
@@ -468,8 +468,8 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                     }}
                   >
                     <div style={{ fontSize: F.lg, marginBottom: 4 }}>{def.icon}</div>
-                    <div style={{ fontSize: F.micro, color: def.color, marginBottom: 4, lineHeight: 1.3 }}>{def.name}</div>
-                    <div style={{ fontSize: F.micro, color: C.textDim, lineHeight: 1.3 }}>{def.desc}</div>
+                    <div style={{ ...TEXT.microMultiline, color: def.color, marginBottom: 4 }}>{def.name}</div>
+                    <div style={{ ...TEXT.microMultiline, color: C.textDim }}>{def.desc}</div>
                   </div>
                 );
               })}

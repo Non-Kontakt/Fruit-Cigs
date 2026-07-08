@@ -3,7 +3,7 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { sortStandings } from "../../utils/league.js";
 import { getNatFlag, inferNationality, displayName } from "../../utils/player.js";
 import { OvrProgressChart } from "../charts/OvrCharts.jsx";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, TEXT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { findCareerKey } from "../../utils/careerLedger.js";
 
@@ -369,7 +369,7 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
         {tab === "xi" && (
           <div style={{ padding: mob ? "18px 14px" : "24px" }}>
             <div style={{ fontSize: F.sm, color: C.gold, letterSpacing: 2, marginBottom: 4, textAlign: "center" }}>⭐ ALL-TIME BEST XI</div>
-            <div style={{ fontSize: F.xs, color: C.slate, textAlign: "center", marginBottom: 12 }}>Best single-season avg rating per position (min 5 apps) · {chosenFormation}</div>
+            <div style={{ ...TEXT.xsMultiline, color: C.slate, textAlign: "center", marginBottom: 12 }}>Best single-season avg rating per position (min 5 apps) · {chosenFormation}</div>
 
             {/* Formation visual — full width */}
             <div style={{ position: "relative", width: "100%", paddingBottom: "130%", margin: "0 auto" }}>

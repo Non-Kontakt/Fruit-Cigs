@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, TEXT } from "../../data/tokens";
 import { ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../../data/achievements.js";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { CUP_DEFS } from "../../data/cups.js";
@@ -294,9 +294,9 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                   </div>
                 )}
                 {isUnlocked ? (
-                  <div style={{ fontSize: F.xs, color: C.textDim, fontStyle: "italic" }}>{up.flavour}</div>
+                  <div style={{ ...TEXT.xsMultiline, color: C.textDim, fontStyle: "italic" }}>{up.flavour}</div>
                 ) : linkedAch ? (
-                  <div style={{ fontSize: F.xs, color: C.slate }}>🔒 {linkedAch.desc}</div>
+                  <div style={{ ...TEXT.xsMultiline, color: C.slate }}>🔒 {linkedAch.desc}</div>
                 ) : (
                   <div style={{ fontSize: F.xs, color: C.bgCard }}>🔒 ???</div>
                 )}

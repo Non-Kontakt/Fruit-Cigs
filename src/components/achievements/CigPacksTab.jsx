@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { F, C, FONT, MODAL, Z } from "../../data/tokens";
+import { F, C, FONT, MODAL, Z, TEXT } from "../../data/tokens";
 import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { getAchievementProgress } from "../../data/achievementProgress.js";
@@ -577,6 +577,7 @@ function LockedCard({ pack, mob }) {
       {pack.unlockDesc && (
         <div style={{
           fontFamily: FONT,
+          ...TEXT.microMultiline,
           fontSize: F.micro - 1,
           color: pack.color,
           background: C.bg,
@@ -596,6 +597,7 @@ function LockedCard({ pack, mob }) {
       {/* Sealed count */}
       <div style={{
         fontFamily: FONT,
+        ...TEXT.microMultiline,
         fontSize: F.micro - 1,
         color: C.textDim,
         textAlign: "center",

@@ -32,6 +32,16 @@ export const F = {
   hero:  s(42),  // match scores
 };
 
+// Multiline text styles — Press Start 2P sets nearly solid; any small text
+// allowed to wrap needs explicit leading. Single-line labels/buttons stay
+// tight — apply these ONLY where wrapping is possible.
+// Usage: <div style={{ ...TEXT.xsMultiline, color: C.textMuted }}>
+export const TEXT = {
+  microMultiline: { fontSize: F.micro, lineHeight: 1.7 },
+  xsMultiline: { fontSize: F.xs, lineHeight: 1.6 },
+  smMultiline: { fontSize: F.sm, lineHeight: 1.5 },
+};
+
 // Z-index layering — semantic layer names for consistent stacking
 export const Z = {
   card: 3,

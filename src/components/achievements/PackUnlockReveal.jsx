@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, TEXT } from "../../data/tokens";
 import { SFX } from "../../utils/sfx.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { CigCard } from "./CigCard.jsx";
@@ -398,7 +398,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         }}>
           {bankedCount > 0 && (
             <div style={{
-              fontSize: F.xs, color: pack.color,
+              ...TEXT.xsMultiline, color: pack.color,
               letterSpacing: 1, opacity: 0.8, textAlign: "center",
             }}>
               {bankedCount} CARD{bankedCount !== 1 ? "S" : ""} ALREADY COLLECTED
