@@ -23,7 +23,15 @@ export const RECURRING_SEASON_EFFECTS = new Set([
 export const DEFERRED_ONE_OFFS = new Set([
   "extra_intake_candidate", // bake_sale — consumed at the next youth intake
   "black_book",             // little_black_book — extra offer consumed at next window
+  "prodigy",                // prodigy_pipeline — waits for squad room if full at completion
 ]);
+
+// The signing cap the transfer UI enforces ("FULL — RELEASE PLAYERS TO SIGN
+// NEW ONES" at 25 non-legends). The prodigy respects it: no room at
+// completion → he waits in the wings until a spot opens.
+export function hasSquadRoom(squad) {
+  return (squad || []).filter(p => !p.isLegend).length < 25;
+}
 
 export function getFocusNode(id) {
   return NODE_BY_ID[id] || null;

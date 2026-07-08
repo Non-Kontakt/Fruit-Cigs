@@ -385,6 +385,14 @@ const clubFocusProdigy = (playerName, position) => ({
   body: `The academy's been buzzing all week. ${playerName}, a 16-year-old ${position}, has been fast-tracked into the setup — the coaches reckon he's the real thing. He's yours.`,
 });
 
+const clubFocusProdigyWaiting = () => ({
+  id: `msg_focus_prodigy_wait_${Date.now()}`,
+  icon: "🐣", // 🐣
+  color: C.gold,
+  title: "The Prodigy Pipeline",
+  body: `The pipeline's produced its gem — but the squad is full. Clear a space (release or trade someone) and he'll be fast-tracked into the setup the same week.`,
+});
+
 const clubFocusContinentalTip = (playerName, countryLabel, potential, ovrCap) => ({
   id: `msg_focus_continental_${Date.now()}`,
   icon: "🌍", // 🌍
@@ -1028,6 +1036,7 @@ export const MSG = {
   // Club Focus
   clubFocusComplete,
   clubFocusProdigy,
+  clubFocusProdigyWaiting,
   clubFocusContinentalTip,
   // League
   leagueModIntro,

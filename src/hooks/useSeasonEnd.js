@@ -13,7 +13,7 @@ import { emptyCompetitionStats, rollIntoAllTime, getTopScorers, computeTeamOfCup
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "../utils/careerLedger.js";
 import { applyLegendCarry } from "../utils/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { pickWonderkidCandidate } from "../utils/wonderkidScout.js";
+import { pickWonderkidCandidate, pickContinentalCandidate } from "../utils/wonderkidScout.js";
 import { getClubFocusBonuses, pendingSeasonGrants, markSeasonGranted, isDeferredOneOffPending } from "../utils/clubFocuses.js";
 import { defaultClubFocuses } from "../data/clubFocuses.js";
 import { getNatFlag } from "../utils/player.js";
@@ -993,6 +993,11 @@ export function useSeasonEnd({
         }
       }
 
+      // Hoisted for the Club Focus season grants below — evolvedSquads goes
+      // out of scope before the grant block runs, so the Continental Contacts
+      // candidate (a REAL player from next season's AI squads, id-stable) is
+      // picked here and consumed there.
+      let continentalTipCandidate = null;
       const evolvedSquads = new Map();
       const aiEvents = [];
       for (let t = 1; t <= NUM_TIERS; t++) {
@@ -1027,6 +1032,14 @@ export function useSeasonEnd({
       // trimming). Rarity check first \u2014 this is meant to read as an
       // occasional standout headline, not a weekly occurrence \u2014 then
       // skip silently if nobody currently qualifies.
+      // Continental Contacts (Club Focus): pick the tip from the squads the
+      // new season will actually field, while they're in scope. Only when the
+      // focus is complete — the grant block below decides whether it's due.
+      if ((useGameStore.getState().clubFocuses?.completedIds || []).includes("continental_contacts")) {
+        const tipTeamNames = (rosters[newTier] || []).map(cfg => cfg.name);
+        continentalTipCandidate = pickContinentalCandidate(evolvedSquads, tipTeamNames);
+      }
+
       if (Math.random() < 0.15) {
         const newTierTeamNames = (rosters[newTier] || []).map(cfg => cfg.name);
         const wonderkid = pickWonderkidCandidate(evolvedSquads, newTierTeamNames);
@@ -1314,25 +1327,26 @@ export function useSeasonEnd({
           } else if (effectId === "war_chest") {
             setTickets(prev => [...prev, { id: `t_focus_wcs_${Date.now()}`, type: pickRandom(wcPool) }]);
           } else if (effectId === "continental_tip") {
-            // A lead, not a signing: generate a non-ENG prospect, drop him on
-            // the shortlist with potential already revealed, and file a report.
-            const usedNames = new Set(useGameStore.getState().squad.map(p => p.name));
-            const avgOvr = Math.round(squad.reduce((a, p) => a + getOverall(p), 0) / Math.max(1, squad.length));
-            let tip = generateFreeAgent(leagueTier, avgOvr, ovrCap, usedNames);
-            let guard = 0;
-            while (tip.nationality === "ENG" && guard++ < 8) tip = generateFreeAgent(leagueTier, avgOvr, ovrCap, usedNames);
-            const tipPot = Math.min(ovrCap, Math.max(getOverall(tip) + 2, Math.round(ovrCap * 0.8)));
-            const flag = getNatFlag ? getNatFlag(tip.nationality) : "";
-            const countryLabel = `${flag} ${tip.nationality}`.trim();
-            setShortlist(prev => ([...prev, {
-              id: tip.id, name: tip.name, position: tip.position, ovr: getOverall(tip),
-              age: tip.age, attrs: { ...tip.attrs }, potential: tipPot, nationality: tip.nationality,
-              clubName: "Free Agent", clubColor: "#94a3b8", clubTier: leagueTier,
+            // A lead, not a signing — and crucially an ACTIONABLE one: the tip
+            // is a real player in a real AI squad (picked from evolvedSquads
+            // above, so his id survives into the new season's leagues and the
+            // normal shortlist→trade path works). No candidate this season
+            // (all-English tier)? Skip WITHOUT stamping — it retries next year.
+            const tip = continentalTipCandidate;
+            if (!tip) return;
+            const { player: tipP, teamName: tipTeam } = tip;
+            const tipPot = tipP.potential ?? getOverall(tipP);
+            const flag = getNatFlag ? getNatFlag(tipP.nationality) : "";
+            const countryLabel = `${flag} ${tipP.nationality}`.trim();
+            setShortlist(prev => prev.some(e => e.id === tipP.id) ? prev : ([...prev, {
+              id: tipP.id, name: tipP.name, position: tipP.position, ovr: getOverall(tipP),
+              age: tipP.age, attrs: { ...tipP.attrs }, potential: tipPot, nationality: tipP.nationality,
+              clubName: tipTeam, clubTier: newTier,
               addedSeason: nextSeasonCF, addedWeek: 0, scoutWeeksLeft: 0,
             }]));
-            setScoutedPlayers(prev => ({ ...prev, [tip.id]: tipPot }));
+            setScoutedPlayers(prev => ({ ...prev, [tipP.id]: tipPot }));
             setInboxMessages(prev => [...prev, createInboxMessage(
-              MSG.clubFocusContinentalTip(tip.name, countryLabel, tipPot, ovrCap),
+              MSG.clubFocusContinentalTip(tipP.name, countryLabel, tipPot, ovrCap),
               { calendarIndex: 0, seasonNumber: nextSeasonCF },
             )]);
           }

@@ -8,7 +8,27 @@ import { MSG } from "../data/messages.js";
 import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall, progressToPips, getTrainingProgress, pickRandom, computeDuoBoost } from "../utils/calc.js";
 import { getOvrCap, generateYouthPlayer, uniqueGenerate } from "../utils/player.js";
-import { getClubFocusBonuses, tickActiveFocus } from "../utils/clubFocuses.js";
+import { getClubFocusBonuses, tickActiveFocus, hasSquadRoom, isDeferredOneOffPending, markSeasonGranted } from "../utils/clubFocuses.js";
+
+// The Prodigy Pipeline's payoff, shared by the completion grant and the
+// full-squad retry: a 16-year-old, name-unique, potential high but capped.
+function grantProdigy(s, ovrCap, calendarIndex, seasonNumber) {
+  const usedNames = new Set(useGameStore.getState().squad.map(p => p.name));
+  const positions = ["ST","LW","RW","AM","CM","CB","LB","RB","GK"];
+  const wk = uniqueGenerate(() => generateYouthPlayer(positions[rand(0, positions.length - 1)], ovrCap), usedNames);
+  wk.age = 16;
+  wk.potential = Math.min(ovrCap, Math.max(wk.potential, Math.round(ovrCap * 0.85)));
+  wk.isYouthIntake = true;
+  wk.joinedSeason = seasonNumber;
+  wk.seasonStartOvr = getOverall(wk);
+  wk.seasonStartAttrs = { ...wk.attrs };
+  s.setSquad(prev => [...prev, wk]);
+  s.setInboxMessages(prev => [...prev, createInboxMessage(
+    MSG.clubFocusProdigy(wk.name, wk.position),
+    { calendarIndex, seasonNumber },
+  )]);
+  return wk;
+}
 import { getArcById, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "../utils/arcs.js";
 import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
 import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
@@ -358,6 +378,14 @@ export function useAdvanceWeek({
     // assistant-voice inbox note and applies the node's one-off effects here
     // (passives are derived at their seams, never applied). Season grants for
     // recurring nodes live in useSeasonEnd's rollover, not here.
+    // A prodigy deferred by a full squad (see below) retries every week.
+    {
+      const cfRetry = useGameStore.getState().clubFocuses;
+      if (isDeferredOneOffPending(cfRetry, "prodigy") && hasSquadRoom(useGameStore.getState().squad)) {
+        grantProdigy(s, ovrCap, calendarIndex, seasonNumber);
+        s.setClubFocuses(prev => markSeasonGranted(prev, "prodigy_pipeline", seasonNumber));
+      }
+    }
     {
       const cf = useGameStore.getState().clubFocuses;
       if (cf?.activeId) {
@@ -395,21 +423,20 @@ export function useAdvanceWeek({
             s.setTickets(prev => [...prev, ...Array.from({ length: 3 }, (_, i) => ({ id: `t_focus_wc_${Date.now()}_${i}`, type: pickRandom(pool) }))]);
             rewardLine = "Three tickets from the vault now, and one every season hereafter.";
           } else if (eff === "prodigy") {
-            const usedNames = new Set(useGameStore.getState().squad.map(p => p.name));
-            const positions = ["ST","LW","RW","AM","CM","CB","LB","RB","GK"];
-            const wk = uniqueGenerate(() => generateYouthPlayer(positions[rand(0, positions.length - 1)], ovrCap), usedNames);
-            wk.age = 16;
-            wk.potential = Math.min(ovrCap, Math.max(wk.potential, Math.round(ovrCap * 0.85)));
-            wk.isYouthIntake = true;
-            wk.joinedSeason = seasonNumber;
-            wk.seasonStartOvr = getOverall(wk);
-            wk.seasonStartAttrs = { ...wk.attrs };
-            s.setSquad(prev => [...prev, wk]);
-            s.setInboxMessages(prev => [...prev, createInboxMessage(
-              MSG.clubFocusProdigy(wk.name, wk.position),
-              { calendarIndex, seasonNumber },
-            )]);
-            rewardLine = `${wk.name} (16, ${wk.position}) joins the academy.`;
+            // Respects the same 25-non-legend cap the transfer UI enforces:
+            // no room at completion → he waits (unstamped in seasonGrants;
+            // the retry below grants him the week a spot opens).
+            if (hasSquadRoom(useGameStore.getState().squad)) {
+              const wk = grantProdigy(s, ovrCap, calendarIndex, seasonNumber);
+              s.setClubFocuses(prev => markSeasonGranted(prev, "prodigy_pipeline", seasonNumber));
+              rewardLine = `${wk.name} (16, ${wk.position}) joins the academy.`;
+            } else {
+              s.setInboxMessages(prev => [...prev, createInboxMessage(
+                MSG.clubFocusProdigyWaiting(),
+                { calendarIndex, seasonNumber },
+              )]);
+              rewardLine = "The squad is full — he'll join the moment a spot opens.";
+            }
           }
           // continental_tip / seasonal_cream have no completion payload — their
           // grants fire at the next season rollover (see useSeasonEnd).

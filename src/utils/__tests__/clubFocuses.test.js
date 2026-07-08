@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getFocusNode, isFocusAvailable, getMissingPrereqs, getClubFocusBonuses,
   tickActiveFocus, pendingSeasonGrants, markSeasonGranted, isDeferredOneOffPending,
-  migrateClubFocuses, RECURRING_SEASON_EFFECTS,
+  migrateClubFocuses, RECURRING_SEASON_EFFECTS, hasSquadRoom,
 } from "../clubFocuses.js";
 import { CLUB_FOCUS_NODES, defaultClubFocuses } from "../../data/clubFocuses.js";
 import { TICKET_DEFS } from "../../data/tickets.js";
@@ -174,5 +174,19 @@ describe("migrateClubFocuses — migration-by-default", () => {
     expect(migrated.activeId).toBeNull();
     expect(migrated.progressById).toEqual({});
     expect(migrated.seasonGrants).toEqual({});
+  });
+});
+
+describe("hasSquadRoom — the prodigy respects the signing cap", () => {
+  const player = (i, legend = false) => ({ id: `p${i}`, name: `P ${i}`, ...(legend ? { isLegend: true } : {}) });
+  it("true below 25 non-legends", () => {
+    expect(hasSquadRoom(Array.from({ length: 24 }, (_, i) => player(i)))).toBe(true);
+  });
+  it("false at 25 non-legends", () => {
+    expect(hasSquadRoom(Array.from({ length: 25 }, (_, i) => player(i)))).toBe(false);
+  });
+  it("legends don't count against the cap", () => {
+    const squad = [...Array.from({ length: 24 }, (_, i) => player(i)), player(99, true), player(100, true)];
+    expect(hasSquadRoom(squad)).toBe(true);
   });
 });
