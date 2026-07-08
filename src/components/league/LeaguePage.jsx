@@ -7,7 +7,7 @@ import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { AITeamPanel } from "./AITeamPanel.jsx";
 import { QualChip } from "../ui/QualChip.jsx";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, TEXT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers, resolveDisplayIdentity } from "../../utils/competitionStats.js";
 
@@ -620,7 +620,7 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
                   teamOfSeason.forEach(p => { teams[p.teamName] = (teams[p.teamName] || 0) + 1; });
                   const sorted = Object.entries(teams).sort((a, b) => b[1] - a[1]);
                   return (
-                    <div style={{ fontSize: mob ? F.micro : F.xs, color: C.slate, marginTop: 12, padding: "0 10px" }}>
+                    <div style={{ ...(mob ? TEXT.microMultiline : TEXT.xsMultiline), color: C.slate, marginTop: 12, padding: "0 10px" }}>
                       {sorted.map(([t, c]) => `${t} (${c})`).join(" · ")}
                     </div>
                   );
