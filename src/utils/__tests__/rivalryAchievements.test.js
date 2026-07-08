@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collectRivalryMatchAchievements } from "../achievements.js";
+import { collectRivalryMatchAchievements, isSignedFromRival } from "../achievements.js";
 import { collectSeasonEndAchievements } from "../league.js";
 
 // Blood Orange Cigs — rivalry cig cards. Per-match cards (surrounded
@@ -360,5 +360,22 @@ describe("surrounded — 3+ clubs qualify as rivals at once (per-match, full led
       unlocked: new Set(["surrounded"]),
     }));
     expect(result).not.toContain("surrounded");
+  });
+});
+
+describe("spoils_of_war — isSignedFromRival (trade-completion decision)", () => {
+  it("true when the trade partner's ledger entry qualifies as a rival", () => {
+    expect(isSignedFromRival("Rovers", { Rovers: rivalEntry() })).toBe(true);
+  });
+
+  it("false for a non-rival partner, an unknown club, or a missing ledger", () => {
+    expect(isSignedFromRival("Rovers", { Rovers: baseLedgerEntry({ played: 2 }) })).toBe(false);
+    expect(isSignedFromRival("Nobody FC", { Rovers: rivalEntry() })).toBe(false);
+    expect(isSignedFromRival("Rovers", undefined)).toBe(false);
+  });
+
+  it("false when the trade partner is unnamed", () => {
+    expect(isSignedFromRival(null, { Rovers: rivalEntry() })).toBe(false);
+    expect(isSignedFromRival(undefined, { Rovers: rivalEntry() })).toBe(false);
   });
 });

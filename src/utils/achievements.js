@@ -1368,6 +1368,16 @@ function isLastGaspWinner(matchResult) {
  * @param {Set} params.unlocked - already-unlocked achievement ids
  * @returns {string[]} newly-earned achievement ids (deduped)
  */
+/**
+ * Spoils Of War — a completed incoming trade counts as "signing from" the
+ * partner club; the card asks that club to be a current rival. Pure so the
+ * trade-completion wiring in App.jsx stays a one-liner.
+ */
+export function isSignedFromRival(clubName, rivalryLedger) {
+  if (!clubName) return false;
+  return isRival(rivalryLedger?.[clubName]);
+}
+
 export function collectRivalryMatchAchievements({ ledgerEntryBefore, ledgerEntryAfter, ledger, matchResult, playerGoals, oppGoals, unlocked }) {
   const newUnlocks = [];
   const add = (id) => { if (!unlocked.has(id) && !newUnlocks.includes(id)) newUnlocks.push(id); };

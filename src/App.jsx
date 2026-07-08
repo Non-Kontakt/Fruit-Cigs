@@ -20,7 +20,7 @@ import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./uti
 import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion } from "./utils/league.js";
 import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey, computeTeamOfCup } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
-import { getRivalryModifierForFixture, isRival } from "./utils/rivalries.js";
+import { getRivalryModifierForFixture } from "./utils/rivalries.js";
 import { checkBreakouts } from "./utils/breakouts.js";
 import { pushSentimentEntry } from "./utils/sentimentLog.js";
 import { SFX, BGM } from "./utils/sfx.js";
@@ -52,7 +52,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, collectBreakoutAchievements } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, collectBreakoutAchievements, isSignedFromRival } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
@@ -3510,8 +3510,8 @@ function FruitCigs() {
             if (clubName) setTradedWithClubs(prev => new Set([...prev, clubName]));
             // Spoils Of War — the incoming player(s) came from clubName, a
             // straight swap trade always sends players FROM that club TO us.
-            if (clubName && !unlockedAchievements.has("spoils_of_war")) {
-              if (isRival(clubHistory?.rivalryLedger?.[clubName])) tryUnlockAchievement("spoils_of_war");
+            if (!unlockedAchievements.has("spoils_of_war") && isSignedFromRival(clubName, clubHistory?.rivalryLedger)) {
+              tryUnlockAchievement("spoils_of_war");
             }
             // Deadline Day — trade in final week of transfer window
             if (transferWindowWeeksRemaining <= 1 && transferWindowOpen && !unlockedAchievements.has("deadline_day")) {
