@@ -4,6 +4,9 @@ import { TIER_WIN_ACHS } from "../data/achievements.js";
 import { generateAITeam, generateSquadPhilosophy } from "./player.js";
 import { generateFixtures, simulateMatch } from "./match.js";
 import { getModifier } from "../data/leagueModifiers.js";
+import { getTopScorers } from "./competitionStats.js";
+import { getPlayersTradedAwayThisSeason } from "./transfer.js";
+import { getStaleShortlistEntries, hasUnresolvedDossierBurn } from "./scouting.js";
 import { isRival } from "./rivalries.js";
 
 // The tier defs reuse plausible club names ("Red Lion FC", "Dog & Duck"...),
@@ -226,7 +229,7 @@ export function collectMiniTournamentFinalAchievements({ playerWonFinal, playerL
 
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, leagueHistory, teamName }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, leagueHistory, teamName, transferHistory = [], shortlist = [], dossierBurns = {} }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -392,6 +395,26 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   // qualify, already eliminated). Only the former count.
   if (!unlockedAchievements.has("mentality_monsters") && wonEveryPlayedMatchThisSeason(calendarResults)) {
     achs.push("mentality_monsters");
+  }
+
+  // Seller's Remorse — a player traded away this season finishes as the
+  // league's top scorer.
+  if (!unlockedAchievements.has("sellers_remorse")) {
+    const topScorer = getTopScorers(seasonLeagueStats, 1)[0];
+    if (topScorer?.name) {
+      const soldNames = getPlayersTradedAwayThisSeason(transferHistory, seasonNumber);
+      if (soldNames.has(topScorer.name)) achs.push("sellers_remorse");
+    }
+  }
+
+  // Cold Case — a shortlisted player carried into a second season without being signed.
+  if (!unlockedAchievements.has("cold_case") && getStaleShortlistEntries(shortlist, seasonNumber).length > 0) {
+    achs.push("cold_case");
+  }
+
+  // Just Browsing — burned a dossier on a player this season and never signed him.
+  if (!unlockedAchievements.has("just_browsing") && hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad, transferHistory)) {
+    achs.push("just_browsing");
   }
 
   // Date Cigs — league history, read from clubHistory.seasonArchive (prior

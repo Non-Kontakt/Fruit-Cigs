@@ -46,3 +46,74 @@ export function advanceShortlistScouting(shortlist, scoutedPlayers, ovrCap = 20)
   });
   return { nextShortlist, revealed };
 }
+
+/**
+ * A reveal that tells you nothing new — the ceiling is no higher than what
+ * the player already is. Shared by both reveal paths (passive timer + Scout
+ * Dossier ticket) for the Wasted Trip achievement.
+ * @param {number} potential - revealed potential
+ * @param {number} ovr - player's current overall
+ * @returns {boolean}
+ */
+export function isWastedTrip(potential, ovr) {
+  return (potential ?? 0) <= (ovr ?? 0);
+}
+
+/**
+ * How many distinct players have a revealed potential on record — Card
+ * Index fires once this reaches 10.
+ * @param {Object} scoutedPlayers - { [playerId]: revealedPotential }
+ * @returns {number}
+ */
+export function countRevealedPlayers(scoutedPlayers) {
+  return Object.keys(scoutedPlayers || {}).length;
+}
+
+/**
+ * Whether a given player's revealed potential is already at the prestige
+ * cap — shared by The Real Deal (signing) and Eye For Talent (awards night).
+ * @param {Object} scoutedPlayers - { [playerId]: revealedPotential }
+ * @param {string} playerId
+ * @param {number} ovrCap
+ * @returns {boolean}
+ */
+export function isRevealedAtCap(scoutedPlayers, playerId, ovrCap) {
+  return (scoutedPlayers?.[playerId] || 0) >= ovrCap;
+}
+
+/**
+ * Shortlist entries that have survived into a new season without being
+ * signed — Cold Case fires at season end for anyone added before the
+ * season that's now closing.
+ * @param {Array} shortlist
+ * @param {number} seasonNumber - the season that just ended
+ * @returns {Array}
+ */
+export function getStaleShortlistEntries(shortlist, seasonNumber) {
+  return (shortlist || []).filter(e => e.addedSeason < seasonNumber);
+}
+
+/**
+ * Just Browsing — burned a Scout Dossier ticket on a player and never
+ * signed him. Resolved at season end: a burn recorded in the closing
+ * season whose player id isn't in the current squad counts as "never
+ * signed him". Deliberately simple and season-scoped — it doesn't try to
+ * track a burn across a player's entire shortlist lifetime, only whether
+ * that season's burn went unrewarded.
+ * @param {Object} dossierBurns - { [playerId]: { season } }
+ * @param {number} seasonNumber - the season that just ended
+ * @param {Array} squad - current squad
+ * @returns {boolean}
+ */
+export function hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad, transferHistory) {
+  const squadIds = new Set((squad || []).map(p => p.id));
+  // A burned player who was signed and then moved on again before season end
+  // is still a signing — the squad alone can't tell; the trade record can.
+  const signedIds = new Set(
+    (transferHistory || [])
+      .filter(t => t.season === seasonNumber)
+      .flatMap(t => (t.received || []).map(p => p.id))
+  );
+  return Object.entries(dossierBurns || {}).some(([playerId, burn]) =>
+    burn?.season === seasonNumber && !squadIds.has(playerId) && !signedIds.has(playerId));
+}

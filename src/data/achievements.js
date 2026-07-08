@@ -436,6 +436,29 @@ export const ACHIEVEMENTS = [
   { id: "first_contact", name: "First Contact", desc: "Build a relationship with an Alien team to 100%", icon: "🤝" },
   { id: "phone_home", name: "Phone Home", desc: "Win all home games in a season in the Intergalactic Elite", icon: "🏠" },
 
+  // === TRANSFER MARKET — incoming offers ===
+  { id: "not_for_sale", name: "Not For Sale", desc: "Reject an offer for a player with 50+ appearances for you", icon: "🛡️" },
+  { id: "daylight_robbery", name: "Daylight Robbery", desc: "Accept an offer worth double what you gave up", icon: "💰" },
+  { id: "under_siege", name: "Under Siege", desc: "Reject five offers in a single window", icon: "🏰" },
+  { id: "pure_profit", name: "Pure Profit", desc: "Trade away a player you signed on a free", icon: "📈" },
+  { id: "academy_pays", name: "The Academy Pays For Itself", desc: "Trade away a homegrown player", icon: "🎓" },
+  { id: "everyone_has_a_price", name: "Everyone Has A Price", desc: "Field offers for three different players at once", icon: "🤑" },
+  { id: "let_it_ride", name: "Let It Ride", desc: "Let an offer expire unanswered", icon: "⌛" },
+  { id: "sellers_remorse", name: "Seller's Remorse", desc: "A player you traded away finishes as the league's top scorer that season", icon: "😬" },
+  { id: "loyalty_repaid", name: "Loyalty Repaid", desc: "Reject an offer, then watch that player score the winner in his next match", icon: "💙" },
+  { id: "fire_sale", name: "Fire Sale", desc: "Accept an offer worth less than half what you gave up", icon: "🔥" },
+
+  // === SCOUTING — shortlist and potential reveals ===
+  { id: "patience_pays", name: "Patience Pays", desc: "Let a shortlisted player's potential reveal itself", icon: "⏳" },
+  { id: "catch_of_day", name: "Catch Of The Day", desc: "Sign a wonderkid your scouts tipped you off about", icon: "🎣" },
+  { id: "card_index", name: "Card Index", desc: "Reveal the potential of ten different players", icon: "🗂️" },
+  { id: "the_real_deal", name: "The Real Deal", desc: "Sign a player whose revealed potential is the cap", icon: "💎" },
+  { id: "wasted_trip", name: "Wasted Trip", desc: "Reveal a potential no higher than the player's current ability", icon: "🚗" },
+  { id: "strike_while_hot", name: "Strike While It's Hot", desc: "Sign a player the same week his potential reveals", icon: "⚡" },
+  { id: "just_browsing", name: "Just Browsing", desc: "Burn a Scout Dossier on a player and never sign him", icon: "🪟" },
+  { id: "trust_the_process", name: "Trust The Process", desc: "Sign three passively-revealed players in one career", icon: "📋" },
+  { id: "eye_for_talent", name: "Eye For Talent", desc: "A player you revealed at max potential wins Young Player of the Season for you", icon: "🦅" },
+  { id: "cold_case", name: "Cold Case", desc: "Carry a shortlisted player into a second season without signing him", icon: "🧊" },
   // === BREAKOUT MOMENTS — Gooseberry Cigs ===
   { id: "scenes", name: "Scenes", desc: "Witness your first breakout moment", icon: "🎆" },
   { id: "purple_patch", name: "Purple Patch", desc: "One player has two breakout moments in the same season", icon: "🟣" },

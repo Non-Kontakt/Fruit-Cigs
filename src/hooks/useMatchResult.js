@@ -167,6 +167,7 @@ export function useMatchResult({
           // Fresh read: the calendar entry for the match that just completed
           // was written via setCalendarResults above, after `s` was captured.
           calendarResults: useGameStore.getState().calendarResults,
+          transferHistory: s.transferHistory, shortlist: s.shortlist, dossierBurns: s.dossierBurns,
           leagueHistory: s.leagueHistory, teamName: s.teamName,
         }, BGM.getCurrentTrackId());
         if (newSeasonUnlocks.length > 0) {

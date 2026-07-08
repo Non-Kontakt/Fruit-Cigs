@@ -10,7 +10,8 @@ import { getOvrCap } from "../utils/player.js";
 import { getBoardExpectation } from "../utils/boardExpectations.js";
 import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative } from "../utils/arcs.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { generateAITransferOffers } from "../utils/transfer.js";
+import { generateAITransferOffers, countDistinctOfferTargets } from "../utils/transfer.js";
+import { isRevealedAtCap } from "../utils/scouting.js";
 import { buildSeasonPreviewBody, getTenureBand, getSeasonContext } from "../utils/seasonPreview.js";
 import { computeSeasonAwards, buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody, collectAwardsNightAchievements } from "../utils/seasonAwards.js";
 import { generateAwardsHeadline } from "../utils/headlines.js";
@@ -332,8 +333,13 @@ export function useSeasonFlow({
       const twMod = getModifier(leagueTier);
       s.setTransferWindowWeeksRemaining(twMod.transferWindowWeeks || 6); // Federation: 9 weeks
       s.setTradesMadeInWindow(0); // Reset trade counter for new window
+      s.setOffersRejectedThisWindow(0); // Under Siege — reset per window, not per season
       const offers = generateAITransferOffers(clubRelationships, squad, allLeagueStates);
       s.setTransferOffers(offers);
+      // Everyone Has A Price — offers live for 3+ distinct players at once
+      if (!s.unlockedAchievements.has("everyone_has_a_price") && countDistinctOfferTargets(offers) >= 3) {
+        tryUnlockAchievement("everyone_has_a_price");
+      }
       s.setInboxMessages(prev => [...prev, createInboxMessage(
         MSG.transferWindowOpen(),
         { calendarIndex, seasonNumber },
@@ -390,6 +396,15 @@ export function useSeasonFlow({
             MSG.youngPlayerOfSeasonAward(ypotsBody),
             { calendarIndex, seasonNumber },
           )]);
+        }
+
+        // Eye For Talent — Young Player of the Season winner is one of yours,
+        // and you'd already revealed his potential at the prestige cap.
+        if (!freshState.unlockedAchievements.has("eye_for_talent") && awards.youngPlayerOfSeason?.winner?.isPlayerTeam) {
+          const winnerPlayer = squad.find(p => p.name === awards.youngPlayerOfSeason.winner.name);
+          if (winnerPlayer && isRevealedAtCap(freshState.scoutedPlayers, winnerPlayer.id, ovrCap)) {
+            tryUnlockAchievement("eye_for_talent");
+          }
         }
 
         const potsBody = buildPlayerOfSeasonBody(awards.playerOfSeason);

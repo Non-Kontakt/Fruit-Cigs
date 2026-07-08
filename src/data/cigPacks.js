@@ -1,8 +1,8 @@
 // Cigarette pack collection system for achievements
 // Every pack contains EXACTLY 5 or 10 achievements — this is a hard
-// invariant, not a rough guideline. All 350 achievements distributed
-// across 39 packs (v3.1, recomposed v3.2, re-recomposed v3.3, expanded v3.4
-// with the match-domain wave, v3.5 with the season-domain wave).
+// invariant, not a rough guideline. All 370 achievements distributed
+// across 41 packs (v3.1, recomposed v3.2, re-recomposed v3.3, expanded v3.4
+// with the match-domain wave, v3.5 season-domain, v3.6 market-domain).
 //
 // Curation principle:
 //   - Early packs (starter + first couple of unlocks) should be mostly
@@ -996,6 +996,55 @@ export const CIG_PACKS = [
     ],
   },
 
+  // ── MARKET DOMAIN ─────────────────────────────────────────────
+  {
+    id: "papaya_cigs",
+    name: "Papaya Cigs",
+    icon: "🍠",
+    color: "#fb923c",
+    colorLight: "#fed7aa",
+    colorDark: "#c2410c",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 3 },
+    unlockDesc: "Play 3 seasons",
+    achievementIds: [
+      "not_for_sale",        // Reject an offer for a 50+ apps player
+      "daylight_robbery",    // Accept an offer worth double
+      "under_siege",         // Reject five offers in a window
+      "pure_profit",         // Trade away a free-agent signing
+      "academy_pays",        // Trade away a homegrown player
+      "everyone_has_a_price", // Offers live for 3 different players at once
+      "let_it_ride",         // Let an offer expire unanswered
+      "sellers_remorse",     // Sold player tops the scoring charts
+      "loyalty_repaid",      // Rejected player scores the winner next match
+      "fire_sale",           // Accept an offer worth less than half
+    ],
+  },
+  {
+    id: "ackee_cigs",
+    name: "Ackee Cigs",
+    icon: "🥑",
+    color: "#eab308",
+    colorLight: "#fde68a",
+    colorDark: "#a16207",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "packs_complete", count: 6 },
+    unlockDesc: "Complete 6 cigarette packs",
+    achievementIds: [
+      "patience_pays",       // Shortlisted player's potential reveals passively
+      "catch_of_day",        // Sign a scouted wonderkid
+      "card_index",          // Reveal potential of ten different players
+      "the_real_deal",       // Sign a player revealed at cap potential
+      "wasted_trip",         // Reveal a potential no higher than current ability
+      "strike_while_hot",    // Sign a player the same week his potential reveals
+      "just_browsing",       // Burn a Dossier and never sign him
+      "trust_the_process",   // Sign three passively-revealed players
+      "eye_for_talent",      // Max-potential reveal wins Young Player of the Season
+      "cold_case",           // Carried a shortlisted player into a second season without signing
+    ],
+  },
   // ── MATCH DOMAIN — BREAKOUTS, RIVALRIES, TEAM OF THE CUP ────────
   {
     id: "gooseberry_cigs",

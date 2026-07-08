@@ -17,7 +17,7 @@ import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
 import { SFX, BGM } from "../utils/sfx.js";
 import { buildAIFiveASide } from "../utils/fiveASide.js";
-import { advanceShortlistScouting } from "../utils/scouting.js";
+import { advanceShortlistScouting, isWastedTrip, countRevealedPlayers } from "../utils/scouting.js";
 import { classifySquadIdentity } from "../utils/squadIdentity.js";
 import { generateIdentityHeadline } from "../utils/headlines.js";
 import { getNextOnboardingDripMessage } from "../utils/onboardingDrip.js";
@@ -195,9 +195,27 @@ export function useAdvanceWeek({
       const { nextShortlist, revealed } = advanceShortlistScouting(s.shortlist, s.scoutedPlayers, ovrCap);
       s.setShortlist(nextShortlist);
       if (revealed.length > 0) {
+        // Patience Pays — a shortlisted player's potential revealed itself passively
+        if (!unlockedAchievements.has("patience_pays")) tryUnlockAchievement("patience_pays");
+        // Wasted Trip — a passive reveal came back no higher than current ability
+        if (!unlockedAchievements.has("wasted_trip") && revealed.some(entry => isWastedTrip(entry.potential, entry.ovr))) {
+          tryUnlockAchievement("wasted_trip");
+        }
         s.setScoutedPlayers(prev => {
           const next = { ...prev };
           revealed.forEach(entry => { next[entry.id] = entry.potential; });
+          // Card Index — revealed the potential of ten different players
+          if (!unlockedAchievements.has("card_index") && countRevealedPlayers(next) >= 10) {
+            tryUnlockAchievement("card_index");
+          }
+          return next;
+        });
+        // Strike While It's Hot / Trust The Process — remember this was a
+        // passive reveal, and when, so a same-week or passive-origin signing
+        // can be detected later at trade time.
+        s.setScoutRevealMeta(prev => {
+          const next = { ...prev };
+          revealed.forEach(entry => { next[entry.id] = { week: calendarIndex, method: "passive" }; });
           return next;
         });
         s.setInboxMessages(prev => [

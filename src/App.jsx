@@ -14,6 +14,7 @@ import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./
 import { generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, getOvrCap, displayName } from "./utils/player.js";
 import { resolveSeasonEndArcs } from "./utils/arcs.js";
 import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
+import { decrementOfferExpiry, resolveLoyaltyWatch } from "./utils/transfer.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
@@ -278,7 +279,7 @@ function FruitCigs() {
     setSeasonCupStatsByCup, setAllTimeCupStatsByCup, setSeasonCupStatsAvailable,
     setStartingXI, setBench, setFormation, setSlotAssignments, setManualSlotIndices, setPrevStartingXI, setXiPresets,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
-    setPendingFreeAgent, setScoutedPlayers,
+    setPendingFreeAgent, setScoutedPlayers, setWonderkidTips, setScoutRevealMeta, setDossierBurns, setPassiveRevealSignings,
     setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames, setPlayerMatchLog, setBreakoutsThisSeason,
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
@@ -295,6 +296,7 @@ function FruitCigs() {
     setClubRelationships, setTransferFocus, setTransferWindowOpen,
     setTransferWindowWeeksRemaining, setTransferOffers, setLoanedOutPlayers,
     setLoanedInPlayers, setTransferHistory, setPendingTradeTarget, setShortlist,
+    setOffersRejectedThisWindow, setLoyaltyWatch,
     setTickets, setPendingTicketBoosts,
     setStoryArcs, setArcStepQueue,
     setSummerData, setLeagueRosters, setAllLeagueStates,
@@ -403,6 +405,8 @@ function FruitCigs() {
   const youthCoupActive = useGameStore(s => s.youthCoupActive);
   const pendingFreeAgent = useGameStore(s => s.pendingFreeAgent);
   const scoutedPlayers = useGameStore(s => s.scoutedPlayers);
+  const wonderkidTips = useGameStore(s => s.wonderkidTips); // Player ids tipped off via Scout Report: Wonderkid — Catch Of The Day
+  const scoutRevealMeta = useGameStore(s => s.scoutRevealMeta); // { [playerId]: { week, method } } — Strike While It's Hot / Trust The Process
   const testimonialPlayer = useGameStore(s => s.testimonialPlayer);
   // Achievement tracking state (Zustand)
   const usedTicketTypes = useGameStore(s => s.usedTicketTypes);
@@ -1150,6 +1154,8 @@ function FruitCigs() {
     setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
     setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
     setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
+    setScoutRevealMeta, setDossierBurns,
+    unlockedAchievements, tryUnlockAchievement,
   });
 
   // Rewind ticket — replay a chosen lost or drawn league match
@@ -1357,7 +1363,7 @@ function FruitCigs() {
           setSquadFullAlert(true);
           return false;
         }
-        const fa = { ...msg.freeAgentData, isFreeAgent: false, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData), seasonStartAttrs: { ...msg.freeAgentData.attrs } };
+        const fa = { ...msg.freeAgentData, isFreeAgent: false, signedOnFree: true, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData), seasonStartAttrs: { ...msg.freeAgentData.attrs } };
         setSquad(prev => [...prev, fa]);
         setPendingFreeAgent(null);
         setFreeAgentSignings(prev => prev + 1);
@@ -1395,7 +1401,7 @@ function FruitCigs() {
           setSquadFullAlert(true);
           return false;
         }
-        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, seasonStartOvr: getOverall(chosen), seasonStartAttrs: { ...chosen.attrs } }]);
+        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, signedOnFree: true, seasonStartOvr: getOverall(chosen), seasonStartAttrs: { ...chosen.attrs } }]);
         SFX.reveal();
         // The other 2 go to top AI team — boost their strength slightly
         const rivalIdx = msg.poachRivalIdx;
@@ -1546,6 +1552,21 @@ function FruitCigs() {
       }
       return next;
     });
+
+    // Loyalty Repaid — resolve the watched (rejected-offer) player's next
+    // match, whatever the result. The watch only clears once he actually
+    // appears — a benched player keeps the watch alive for his real next game.
+    {
+      const watch = useGameStore.getState().loyaltyWatch;
+      const watchedEntry = watch ? matchResult.playerRatings?.find(r => r.id === watch.playerId) : null;
+      const { appeared: watchResolved, scoredWinner } = resolveLoyaltyWatch(watch, appeared, winningGoalScorer, watchedEntry?.name);
+      if (watchResolved) {
+        if (scoredWinner && tryUnlockAchievement && !useGameStore.getState().unlockedAchievements.has("loyalty_repaid")) {
+          tryUnlockAchievement("loyalty_repaid");
+        }
+        setLoyaltyWatch(null);
+      }
+    }
 
     // Match XP: performance-based passive attr growth for players who appeared
     // Pace and Physical are training-only — not affected by match XP.
@@ -3565,6 +3586,13 @@ function FruitCigs() {
           onClearPendingTrade={() => setPendingTradeTarget(null)}
           scoutedPlayers={scoutedPlayers}
           ovrCap={ovrCap}
+          unlockedAchievements={unlockedAchievements}
+          tryUnlockAchievement={tryUnlockAchievement}
+          wonderkidTips={wonderkidTips}
+          scoutRevealMeta={scoutRevealMeta}
+          setOffersRejectedThisWindow={setOffersRejectedThisWindow}
+          setLoyaltyWatch={setLoyaltyWatch}
+          setPassiveRevealSignings={setPassiveRevealSignings}
         />
       ) : showLegends ? (
         <ClubLegends key={clubKey} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
@@ -3896,10 +3924,14 @@ function FruitCigs() {
                       }
                       return newWks;
                     });
-                    setTransferOffers(prev => prev
-                      .map(o => ({ ...o, expiresWeeks: (o.expiresWeeks || 1) - 1 }))
-                      .filter(o => o.expiresWeeks > 0)
-                    );
+                    setTransferOffers(prev => {
+                      const { offers: kept, anyExpired } = decrementOfferExpiry(prev);
+                      // Let It Ride — an offer expired unanswered
+                      if (anyExpired && !unlockedAchievements.has("let_it_ride")) {
+                        tryUnlockAchievement("let_it_ride");
+                      }
+                      return kept;
+                    });
                   }
                   // Advance every AI league by one matchweek in parallel.
                   // Capture each tier's full matchweek results so each tier
@@ -5982,6 +6014,7 @@ function FruitCigs() {
                 squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
                 dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
                 calendarResults: useGameStore.getState().calendarResults,
+                transferHistory, shortlist, dossierBurns: useGameStore.getState().dossierBurns,
                 leagueHistory, teamName,
               }, BGM.getCurrentTrackId());
               if (newSeasonUnlocks2.length > 0) {
@@ -6523,6 +6556,14 @@ function FruitCigs() {
             setTransferWindowOpen(false);
             setTransferWindowWeeksRemaining(0);
             setTransferOffers([]);
+            setOffersRejectedThisWindow(0);
+            setLoyaltyWatch(null);
+            // Squad-scoped scouting metadata — the squad is fully wiped by
+            // prestige, so any pending reveal/burn record can never match
+            // again. wonderkidTips and passiveRevealSignings are career-long
+            // and survive.
+            setScoutRevealMeta({});
+            setDossierBurns({});
             // setShowFiveASidePicker removed
 
             // Generate prestige-scaled trial player for new season
@@ -7090,6 +7131,11 @@ function FruitCigs() {
                     body: `Sources say ${wkTeam} have unearthed a generational talent in their youth academy. ${wkPlayer.name} (${wkPlayer.position}, ${wkPlayer.age}) is one to watch.`,
                     color: "#facc15",
                   }, { calendarIndex: 0, seasonNumber: _nextSN })]);
+                  // Catch Of The Day \u2014 remember the tipped player's id. The
+                  // same evolvedSquads objects feed straight into next
+                  // season's league/AI rosters (see initLeague/initAILeague
+                  // below), so this id survives into any later trade.
+                  if (wkPlayer.id != null) setWonderkidTips(prev => new Set(prev).add(wkPlayer.id));
                 }
               }
 
@@ -7154,6 +7200,13 @@ function FruitCigs() {
               setSeasonAwayGames(0);
               // Transfer window state is NOT reset here — the summer window opens
               // one break-week earlier and intentionally carries into the new season.
+              // offersRejectedThisWindow follows the same rule (reset only when a
+              // new window actually opens, in useSeasonFlow.js).
+              setLoyaltyWatch(null);
+              // Squad-scoped scouting metadata — pending reveals/burns for
+              // last season's shortlist can't resolve into a squad that's
+              // about to reset its per-season tracking anyway.
+              setScoutRevealMeta({});
               setMotmTracker({});
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});

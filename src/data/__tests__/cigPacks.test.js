@@ -28,8 +28,8 @@ describe("CIG_PACKS integrity", () => {
         seenIn.set(id, pack.id);
       }
     }
-    expect(total).toBe(350);
-    expect(seenIn.size).toBe(350);
+    expect(total).toBe(370);
+    expect(seenIn.size).toBe(370);
   });
 
   it("every achievement id referenced by a pack exists in ACHIEVEMENTS", () => {
@@ -47,7 +47,7 @@ describe("CIG_PACKS integrity", () => {
   });
 
   it("ACH_TO_PACK has no duplicate/overwritten entries (built from CIG_PACKS, exercises the same invariant)", () => {
-    expect(Object.keys(ACH_TO_PACK).length).toBe(350);
+    expect(Object.keys(ACH_TO_PACK).length).toBe(370);
   });
 
   it("starter packs are exactly cherry, banana, apple and have no unlock condition", () => {
