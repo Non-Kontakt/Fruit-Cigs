@@ -38,6 +38,13 @@ for (const fx of FIXTURES) {
     // Wait for the harness to mount the fixture.
     await page.waitForSelector("#qa-root > *", { timeout: 10_000 });
 
+    // Screenshots are typography evidence — a fixture page silently falling
+    // back to system fonts makes every visual review lie. Fail loudly instead.
+    await page.waitForFunction(
+      () => document.fonts.check('12px "Press Start 2P"'),
+      { timeout: 10_000 }
+    );
+
     // Optional sub-navigation (e.g. click the STATS tab on LeaguePage).
     if (fx.clickText) {
       await page.getByText(fx.clickText, { exact: false }).first().click();
