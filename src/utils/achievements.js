@@ -1245,6 +1245,32 @@ export function checkAchievements(state) {
   return newUnlocks;
 }
 
+// ---------------------------------------------------------------------------
+// Quince Cigs — season-domain ledger cards. Pure predicates over the
+// persisted ledger fields (gameStore's backPagesReceived / hatTrickHeadlinePlayers),
+// checked at each emission site rather than in checkAchievements() so the
+// unlock fires the moment the ledger completes, not on the next weekly pass.
+// ---------------------------------------------------------------------------
+
+// Framed Above The Desk — the three special back-page types this branch emits.
+export const BACK_PAGE_TYPES = ["title", "promotion", "cup_final"];
+
+/** True once backPagesReceived holds all three special back-page types. */
+export function hasAllBackPages(backPagesReceived) {
+  return BACK_PAGE_TYPES.every(t => backPagesReceived?.has(t));
+}
+
+/**
+ * Hat-Trick Headlines — append a hat-trick scorer's name if not already
+ * recorded this season. Returns the input array unchanged (same reference)
+ * when there's nothing new to add, so callers can skip a setState.
+ */
+export function addHatTrickScorer(hatTrickHeadlinePlayers, name) {
+  const prev = hatTrickHeadlinePlayers || [];
+  if (!name || prev.includes(name)) return prev;
+  return [...prev, name];
+}
+
 // === CIG CARDS — MATCH DOMAIN ===
 
 /**

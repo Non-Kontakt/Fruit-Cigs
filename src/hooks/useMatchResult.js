@@ -11,7 +11,7 @@ import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resol
 import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
-import { checkAchievements, collectRivalryMatchAchievements } from "../utils/achievements.js";
+import { checkAchievements, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
@@ -147,6 +147,14 @@ export function useMatchResult({
               title: `FWD: ${backPage}`,
               body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${backPage}"\n— ${s.newspaperName || "the local paper"}`,
             }, { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber })]);
+            if (backPageType === "champions" || backPageType === "promoted") {
+              tryUnlockAchievement("front_page_news");
+              const framedType = backPageType === "champions" ? "title" : "promotion";
+              const nextBackPages = new Set(s.backPagesReceived);
+              nextBackPages.add(framedType);
+              s.setBackPagesReceived(nextBackPages);
+              if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk");
+            }
           }
         }
         const newSeasonUnlocks = collectSeasonEndAchievements({
@@ -159,6 +167,7 @@ export function useMatchResult({
           // Fresh read: the calendar entry for the match that just completed
           // was written via setCalendarResults above, after `s` was captured.
           calendarResults: useGameStore.getState().calendarResults,
+          leagueHistory: s.leagueHistory, teamName: s.teamName,
         }, BGM.getCurrentTrackId());
         if (newSeasonUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
@@ -566,28 +575,40 @@ export function useMatchResult({
           const postPos = postTable.findIndex(r => currentLeague.teams[r.teamIndex]?.isPlayer) + 1;
           const prePos = useGameStore.getState().previousLeaguePosition;
           const rivalEntry = useGameStore.getState().clubHistory?.rivalryLedger?.[oppTeam?.name];
+          const headlineResult = generateMatchHeadline({
+            teamName: s.teamName,
+            opponentName: oppTeam?.name,
+            playerGoals, oppGoals, home: playerIsHome,
+            competition: "league",
+            reporterName: s.reporterName,
+            scorers: headlineScorers,
+            motmName: matchResult.motmName,
+            cleanSheet: oppGoals === 0,
+            cleanSheetStreak: oppGoals === 0 ? s.consecutiveCleanSheets + 1 : 0,
+            winStreak: newConsWins, lossStreak: newConsLosses, unbeatenRun: newConsUnbeaten,
+            wentTop: postPos === 1 && (prePos == null || prePos > 1),
+            position: postPos, prevPosition: prePos,
+            boardSentiment: s.boardSentiment,
+            recordUnbeatenRun: !playerLost && newConsUnbeaten >= 8 && newConsUnbeaten > (s.clubHistory?.bestUnbeatenRun || 0),
+            seasonBiggestWin: playerWon && goalDiff >= 4 && goalDiff > (s.clubHistory?.biggestWin?.diff || 0),
+            isDerby: isRival(rivalEntry),
+          });
           s.setLatestHeadline({
-            ...generateMatchHeadline({
-              teamName: s.teamName,
-              opponentName: oppTeam?.name,
-              playerGoals, oppGoals, home: playerIsHome,
-              competition: "league",
-              reporterName: s.reporterName,
-              scorers: headlineScorers,
-              motmName: matchResult.motmName,
-              cleanSheet: oppGoals === 0,
-              cleanSheetStreak: oppGoals === 0 ? s.consecutiveCleanSheets + 1 : 0,
-              winStreak: newConsWins, lossStreak: newConsLosses, unbeatenRun: newConsUnbeaten,
-              wentTop: postPos === 1 && (prePos == null || prePos > 1),
-              position: postPos, prevPosition: prePos,
-              boardSentiment: s.boardSentiment,
-              recordUnbeatenRun: !playerLost && newConsUnbeaten >= 8 && newConsUnbeaten > (s.clubHistory?.bestUnbeatenRun || 0),
-              seasonBiggestWin: playerWon && goalDiff >= 4 && goalDiff > (s.clubHistory?.biggestWin?.diff || 0),
-              isDerby: isRival(rivalEntry),
-            }),
+            ...headlineResult,
             season: s.seasonNumber,
             calendarIndex: calIdx,
           });
+          if (headlineResult.category === "derby_win" || headlineResult.category === "derby_loss") {
+            tryUnlockAchievement("derby_day_ink");
+          }
+          if (headlineResult.category === "hattrick") {
+            const scorer = headlineScorers.find(sc => sc.goals >= 3);
+            const nextPlayers = addHatTrickScorer(s.hatTrickHeadlinePlayers, scorer?.name);
+            if (nextPlayers !== s.hatTrickHeadlinePlayers) {
+              s.setHatTrickHeadlinePlayers(nextPlayers);
+              if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines");
+            }
+          }
         }
 
         if (matchResult.playerRatings) {

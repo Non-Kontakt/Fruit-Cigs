@@ -30,6 +30,7 @@ const SET_FIELDS = [
   "formationsWonWith",
   "tradedWithClubs",
   "manualSlotIndices",
+  "backPagesReceived",
 ];
 
 // Fields that use Map in-memory but must be serialized as plain objects for JSON
@@ -283,6 +284,16 @@ export const useGameStore = create((set, get) => ({
   seasonCards: 0,
   readsThisWeek: 0,
   weeksSinceIdentityHeadline: 0,
+  // Career-long Player of the Season honour board — one entry per season's
+  // Awards Night, { season, potsName, potsTeam, isPlayerTeam, ypotsName,
+  // goldenBootName }. Survives prestige. Drives Repeat Offender.
+  awardsHistory: [],
+  // Career-long set of special back-page types received: "title" |
+  // "promotion" | "cup_final". Survives prestige. Drives Framed Above The Desk.
+  backPagesReceived: new Set(),
+  // Per-season list of distinct players who earned a hat-trick back page.
+  // Reset at season rollover and prestige. Drives Hat-Trick Headlines.
+  hatTrickHeadlinePlayers: [],
 
   // === Identity ===
   teamName: null,
@@ -463,6 +474,9 @@ export const useGameStore = create((set, get) => ({
   setTradedWithClubs: (val) => set(s => ({ tradedWithClubs: typeof val === "function" ? val(s.tradedWithClubs) : val })),
   setSeasonCards: (val) => set(s => ({ seasonCards: typeof val === "function" ? val(s.seasonCards) : val })),
   setReadsThisWeek: (val) => set(s => ({ readsThisWeek: typeof val === "function" ? val(s.readsThisWeek) : val })),
+  setAwardsHistory: (val) => set(s => ({ awardsHistory: typeof val === "function" ? val(s.awardsHistory) : val })),
+  setBackPagesReceived: (val) => set(s => ({ backPagesReceived: typeof val === "function" ? val(s.backPagesReceived) : val })),
+  setHatTrickHeadlinePlayers: (val) => set(s => ({ hatTrickHeadlinePlayers: typeof val === "function" ? val(s.hatTrickHeadlinePlayers) : val })),
 
   setTeamName: (val) => set(s => ({ teamName: typeof val === "function" ? val(s.teamName) : val })),
   setNewspaperName: (val) => set(s => ({ newspaperName: typeof val === "function" ? val(s.newspaperName) : val })),

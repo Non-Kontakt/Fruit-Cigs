@@ -329,6 +329,49 @@ export const ACHIEVEMENTS = [
   { id: "jumpers_for_goalposts", name: "Jumpers For Goalposts", desc: "Win a match with no players assigned to a training focus", icon: "🧥" },
   { id: "good_engine", name: "Good Engine", desc: "Have a central midfielder with both Physical and Mental at 15 or above", icon: "🔋" },
 
+  // === AWARDS NIGHT ===
+  { id: "top_of_the_bill", name: "Top Of The Bill", desc: "Your player wins Player of the Season", icon: "🎟️" },
+  { id: "raised_right", name: "Raised Right", desc: "A homegrown player wins Young Player of the Season", icon: "🌱" },
+  { id: "clean_sweep", name: "Clean Sweep", desc: "Your players win all three end-of-season awards", icon: "🧹" },
+  { id: "robbed", name: "Robbed", desc: "Score 20+ league goals with one player and still miss out on the Golden Boot", icon: "😤" },
+  { id: "doing_it_all", name: "Doing It All", desc: "The same player wins Player of the Season and Young Player of the Season in one night", icon: "🎭" },
+  { id: "no_country_for_old_men", name: "No Country For Old Men", desc: "A 33+ year old of yours wins Player of the Season", icon: "👴" },
+  { id: "defenders_no_respect", name: "Defenders Get No Respect", desc: "A defender or goalkeeper of yours wins Player of the Season", icon: "🛡️" },
+  { id: "repeat_offender", name: "Repeat Offender", desc: "The same player wins Player of the Season twice", icon: "🔁" },
+  { id: "class_of_their_own", name: "Class Of Their Own", desc: "All three award winners come from the same club — and it isn't yours", icon: "🎓" },
+  { id: "carried", name: "Carried", desc: "Your player wins the Golden Boot while you finish in the bottom half", icon: "🎒" },
+
+  // === SEASON KNOCKOUTS ===
+  { id: "succession", name: "Succession", desc: "Win the Dynasty Cup", icon: "👑" },
+  { id: "through_side_door", name: "Through The Side Door", desc: "Finish 4th and get promoted anyway via the Dynasty Cup", icon: "🚪" },
+  { id: "five_a_side_story", name: "Five-A-Side Story", desc: "Win the 5v5 Mini-Tournament", icon: "🎭" },
+  { id: "both_barrels", name: "Both Barrels", desc: "Win the league and the Dynasty Cup in the same season", icon: "🔫" },
+  { id: "bottled_it_beautifully", name: "Bottled It Beautifully", desc: "Win the league but lose the Dynasty Cup final", icon: "🍾" },
+  { id: "bronze_age", name: "Bronze Age", desc: "Win the 5v5 third-place playoff", icon: "🥉" },
+  { id: "giant_slaying_mini", name: "Giant Slaying, Miniature Edition", desc: "Win the 5v5 as the 4th seed", icon: "⚔️" },
+  { id: "knockout_artist", name: "Knockout Artist", desc: "Win both knockout competitions in the same career", icon: "🥊" },
+  { id: "undercard", name: "Undercard", desc: "Reach the Dynasty Cup final from 4th place", icon: "🎫" },
+  { id: "kingmaker_denied", name: "Kingmaker Denied", desc: "Beat the league champions in a knockout final", icon: "🚫" },
+
+  // === LEAGUE HISTORY ===
+  { id: "been_everywhere_man", name: "Been Everywhere, Man", desc: "Finish a season in every position from 1st to 10th across your career", icon: "🗺️" },
+  { id: "unfinished_business", name: "Unfinished Business", desc: "Win a division you were once relegated from", icon: "🔙" },
+  { id: "yo_yo_years", name: "The Yo-Yo Years", desc: "Get promoted, relegated, and promoted again in consecutive seasons", icon: "🪀" },
+  { id: "watching_the_throne", name: "Watching The Throne", desc: "Watch the same club win three straight titles in another division", icon: "👀" },
+  { id: "wooden_spoon_collection", name: "Wooden Spoon Collection", desc: "Finish dead last in two different divisions", icon: "🥄" },
+
+  // === THE NEWSPAPER ===
+  { id: "the_blueprint", name: "The Blueprint", desc: "Have the paper name your squad's playing identity", icon: "📰" },
+  { id: "route_one_reputation", name: "Route One Reputation", desc: "Get labelled a counter-attacking side", icon: "🏃" },
+  { id: "nothing_gets_past_us", name: "Nothing Gets Past Us", desc: "Get labelled a defensive wall", icon: "🧤" },
+  { id: "keep_ball_merchants", name: "Keep-Ball Merchants", desc: "Get labelled a possession side", icon: "🔄" },
+  { id: "front_page_news", name: "Front Page News", desc: "Earn a special back page", icon: "🗞️" },
+  { id: "framed_above_desk", name: "Framed Above The Desk", desc: "Collect all three special back pages — title, promotion, and cup final", icon: "🖼️" },
+  { id: "derby_day_ink", name: "Derby Day Ink", desc: "Make the back page with a derby result", icon: "🖋️" },
+  { id: "same_time_next_year", name: "Same Time Next Year", desc: "Finish in the identical league position three seasons running", icon: "📅" },
+  { id: "fixtures_and_fittings", name: "Fixtures And Fittings", desc: "Receive the season preview that says you're part of the furniture", icon: "🛋️" },
+  { id: "hat_trick_headlines", name: "Hat-Trick Headlines", desc: "Hat-trick back pages for three different players in one season", icon: "🎩" },
+
   // === HOLIDAY MODE — power-user feature ===
   { id: "hands_off", name: "Hands Off", desc: "Go on holiday for the first time", icon: "🏖️" },
   { id: "cruise_control", name: "Cruise Control", desc: "Play 10+ consecutive matches on holiday", icon: "🚢" },

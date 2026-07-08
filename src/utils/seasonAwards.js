@@ -1,6 +1,7 @@
 import { getTopScorers } from "./competitionStats.js";
 import { POSITION_TYPES } from "../data/positions.js";
 import { getLastName } from "./player.js";
+import { sortStandings } from "./league.js";
 
 /**
  * End-of-season individual awards: Golden Boot, Player of the Season, Young
@@ -230,3 +231,65 @@ export function buildPlayerOfSeasonBody(playerOfSeason) {
 }
 
 export const __test = { MIN_APPS, YOUNG_AGE_CUTOFF, NOMINEE_COUNT, syntheticAIRating, nameHash, score };
+
+// ---------------------------------------------------------------------------
+// Quince Cigs — Awards Night achievements. Pure so the ten live checks are
+// testable against synthetic award objects without touching useSeasonFlow.js.
+// ---------------------------------------------------------------------------
+export function collectAwardsNightAchievements({ awards, squad, teamName, playerSeasonStats, league, unlockedAchievements, awardsHistory }) {
+  const unlocked = unlockedAchievements || new Set();
+  const achs = [];
+  const add = (id) => { if (!unlocked.has(id) && !achs.includes(id)) achs.push(id); };
+  const { goldenBoot, playerOfSeason, youngPlayerOfSeason } = awards || {};
+  const pots = playerOfSeason?.winner || null;
+  const ypots = youngPlayerOfSeason?.winner || null;
+  const gb = goldenBoot?.winner || null;
+
+  // Repeat Offender — this season's POTS winner (name + team) matches a
+  // prior season's POTS winner. awardsHistory holds entries from PRIOR
+  // seasons only — this season's entry is appended by the caller after
+  // this check runs.
+  if (pots) {
+    const repeat = (awardsHistory || []).some(entry => entry.potsName === pots.name && entry.potsTeam === pots.teamName);
+    if (repeat) add("repeat_offender");
+  }
+
+  if (pots?.isPlayerTeam) {
+    add("top_of_the_bill");
+    if (pots.age != null && pots.age >= 33) add("no_country_for_old_men");
+    const squadPlayer = (squad || []).find(p => p.name === pots.name);
+    if (squadPlayer) {
+      const posType = POSITION_TYPES[squadPlayer.position];
+      if (posType === "DEF" || posType === "GK") add("defenders_no_respect");
+    }
+  }
+
+  if (ypots?.isPlayerTeam) {
+    const squadPlayer = (squad || []).find(p => p.name === ypots.name);
+    if (squadPlayer && (squadPlayer.isYouthIntake || squadPlayer.isYouthCoup)) add("raised_right");
+  }
+
+  if (pots && ypots && pots.name === ypots.name) add("doing_it_all");
+
+  if (pots?.isPlayerTeam && ypots?.isPlayerTeam && gb && gb.teamName === teamName) add("clean_sweep");
+
+  if (gb) {
+    const outscored = (squad || []).some(p => {
+      const stat = (playerSeasonStats || {})[p.name];
+      return (stat?.goals || 0) >= 20 && p.name !== gb.name;
+    });
+    if (outscored) add("robbed");
+  }
+
+  if (pots && ypots && gb && pots.teamName === ypots.teamName && pots.teamName === gb.teamName && pots.teamName !== teamName) {
+    add("class_of_their_own");
+  }
+
+  if (gb && gb.teamName === teamName && league?.table) {
+    const sorted = sortStandings(league.table);
+    const posIdx = sorted.findIndex(r => league.teams?.[r.teamIndex]?.isPlayer);
+    if (posIdx >= 5) add("carried"); // 0-indexed: position 6+ in a 10-team league is the bottom half
+  }
+
+  return achs;
+}

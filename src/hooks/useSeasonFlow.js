@@ -11,8 +11,8 @@ import { getBoardExpectation } from "../utils/boardExpectations.js";
 import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative } from "../utils/arcs.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { generateAITransferOffers } from "../utils/transfer.js";
-import { buildSeasonPreviewBody } from "../utils/seasonPreview.js";
-import { computeSeasonAwards, buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody } from "../utils/seasonAwards.js";
+import { buildSeasonPreviewBody, getTenureBand, getSeasonContext } from "../utils/seasonPreview.js";
+import { computeSeasonAwards, buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody, collectAwardsNightAchievements } from "../utils/seasonAwards.js";
 import { generateAwardsHeadline } from "../utils/headlines.js";
 
 const FILTER_LABELS = { DEF: "Defenders", MID: "Midfielders", FWD: "Forwards", GK: "Goalkeepers" };
@@ -357,6 +357,25 @@ export function useSeasonFlow({
           league, seasonLeagueStats: (freshState.seasonLeagueStatsByTier || {})[leagueTier] || null,
         });
 
+        const awardsNightAchs = collectAwardsNightAchievements({
+          awards, squad, teamName: freshState.teamName, playerSeasonStats, league,
+          unlockedAchievements: freshState.unlockedAchievements,
+          awardsHistory: freshState.awardsHistory,
+        });
+        awardsNightAchs.forEach(id => tryUnlockAchievement(id));
+
+        // Career-long Player of the Season honour board — append this
+        // season's entry AFTER the repeat-offender check above so the check
+        // only ever compares against prior seasons, never itself.
+        s.setAwardsHistory(prev => [...(prev || []), {
+          season: seasonNumber,
+          potsName: awards.playerOfSeason?.winner?.name ?? null,
+          potsTeam: awards.playerOfSeason?.winner?.teamName ?? null,
+          isPlayerTeam: awards.playerOfSeason?.winner?.isPlayerTeam ?? null,
+          ypotsName: awards.youngPlayerOfSeason?.winner?.name ?? null,
+          goldenBootName: awards.goldenBoot?.winner?.name ?? null,
+        }]);
+
         const goldenBootBody = buildGoldenBootBody(awards.goldenBoot);
         if (goldenBootBody) {
           s.setInboxMessages(prev => [...prev, createInboxMessage(
@@ -449,6 +468,12 @@ export function useSeasonFlow({
         seasonNumber, leagueTier, leagueName: newLeagueName, topTeamName, expectation,
         lastSeasonMove, clubHistory,
       });
+      // Fixtures And Fittings — the preview's own tenure/context read, kept
+      // in lockstep with buildSeasonPreviewBody's internals rather than
+      // re-deriving band/context independently.
+      const previewBand = getTenureBand(seasonNumber);
+      const previewContext = previewBand === "fresh" ? "default" : getSeasonContext({ lastSeasonMove, clubHistory, leagueTier });
+      if (previewBand === "veteran" && previewContext === "default") tryUnlockAchievement("fixtures_and_fittings");
       s.setInboxMessages(prev => [...prev,
         ...(names ? [createInboxMessage(MSG.wellRested(names), { calendarIndex, seasonNumber })] : []),
         createInboxMessage(MSG.seasonPreview(previewBody), { calendarIndex, seasonNumber }),
