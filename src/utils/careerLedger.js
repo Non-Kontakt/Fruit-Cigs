@@ -97,6 +97,23 @@ export function findCareerKey(playerCareers, { playerId, name }) {
   return name || null;
 }
 
+/**
+ * Total appearances for the club across a player's whole career: archived
+ * seasons (clubHistory.playerCareers) plus the season in progress
+ * (playerSeasonStats). Mirrors the inline pattern used by the Fifty Not Out
+ * / Century Club achievement checks in utils/achievements.js.
+ * @param {Object} player - { id, name }
+ * @param {Object} playerSeasonStats - current-season stats, keyed by name
+ * @param {Object} playerCareers - clubHistory.playerCareers
+ * @returns {number}
+ */
+export function getCareerApps(player, playerSeasonStats, playerCareers) {
+  const cKey = findCareerKey(playerCareers, { playerId: player?.id, name: player?.name });
+  const archivedApps = (cKey ? playerCareers?.[cKey]?.apps : 0) || 0;
+  const seasonApps = playerSeasonStats?.[player?.name]?.apps || 0;
+  return archivedApps + seasonApps;
+}
+
 function findExistingCareer(playerCareers, playerId, name) {
   const key = findCareerKey(playerCareers, { playerId, name });
   return { name: key, career: key && playerCareers[key] ? playerCareers[key] : null };

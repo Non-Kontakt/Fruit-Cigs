@@ -4,9 +4,9 @@ import { ACHIEVEMENTS, LEGENDARY_ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from
 const achievementIds = new Set(ACHIEVEMENTS.map((a) => a.id));
 
 describe("achievement id membership", () => {
-  it("has exactly 325 achievements with unique ids", () => {
-    expect(ACHIEVEMENTS.length).toBe(325);
-    expect(achievementIds.size).toBe(325);
+  it("has exactly 405 achievements with unique ids", () => {
+    expect(ACHIEVEMENTS.length).toBe(405);
+    expect(achievementIds.size).toBe(405);
   });
 
   it("every LEGENDARY_ACHIEVEMENTS id exists in ACHIEVEMENTS", () => {

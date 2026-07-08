@@ -144,6 +144,12 @@ export function useSaveGame({
         youthCoupActive: s.youthCoupActive,
         pendingFreeAgent: s.pendingFreeAgent,
         scoutedPlayers: s.scoutedPlayers,
+        wonderkidTips: s.wonderkidTips,
+        scoutRevealMeta: s.scoutRevealMeta,
+        dossierBurns: s.dossierBurns,
+        passiveRevealSignings: s.passiveRevealSignings,
+        offersRejectedThisWindow: s.offersRejectedThisWindow,
+        loyaltyWatch: s.loyaltyWatch,
         testimonialPlayer: s.testimonialPlayer,
         usedTicketTypes: s.usedTicketTypes,
         formationsWonWith: s.formationsWonWith,
@@ -157,6 +163,9 @@ export function useSaveGame({
         tradesMadeInWindow: s.tradesMadeInWindow,
         tradedWithClubs: s.tradedWithClubs,
         weeksSinceIdentityHeadline: s.weeksSinceIdentityHeadline,
+        awardsHistory: s.awardsHistory,
+        backPagesReceived: s.backPagesReceived,
+        hatTrickHeadlinePlayers: s.hatTrickHeadlinePlayers,
         fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment,
         sentimentLog: s.sentimentLog,
         gameMode: s.gameMode,
@@ -463,6 +472,12 @@ export function useSaveGame({
       store.setYouthCoupActive(s.youthCoupActive || false);
       store.setPendingFreeAgent(s.pendingFreeAgent || null);
       store.setScoutedPlayers(s.scoutedPlayers || {});
+      store.setWonderkidTips(s.wonderkidTips || new Set());
+      store.setScoutRevealMeta(s.scoutRevealMeta || {});
+      store.setDossierBurns(s.dossierBurns || {});
+      store.setPassiveRevealSignings(s.passiveRevealSignings || 0);
+      store.setOffersRejectedThisWindow(s.offersRejectedThisWindow || 0);
+      store.setLoyaltyWatch(s.loyaltyWatch || null);
       store.setTestimonialPlayer(s.testimonialPlayer || null);
       store.setUsedTicketTypes(s.usedTicketTypes || new Set());
       store.setFormationsWonWith(s.formationsWonWith || new Set());
@@ -475,6 +490,9 @@ export function useSaveGame({
       store.setPrevSeasonSquadIds(s.prevSeasonSquadIds || null);
       store.setTradesMadeInWindow(s.tradesMadeInWindow || 0);
       store.setTradedWithClubs(s.tradedWithClubs || new Set());
+      store.setAwardsHistory(s.awardsHistory || []);
+      store.setBackPagesReceived(s.backPagesReceived || new Set());
+      store.setHatTrickHeadlinePlayers(s.hatTrickHeadlinePlayers || []);
       store.setPrestigeLevel(s.prestigeLevel || 0);
       // (No clubHistory → tier-scoped seed. clubHistory.playerCareers spans
       // tiers/clubs/cups by design; attributing those totals to one tier

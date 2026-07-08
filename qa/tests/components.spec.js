@@ -44,7 +44,8 @@ for (const fx of FIXTURES) {
     }
 
     // Let fade-ins / deferred timeouts settle (MatchResultScreen reveals ~50ms).
-    await page.waitForTimeout(450);
+    // Fixtures with longer choreography opt into a bigger window via settleMs.
+    await page.waitForTimeout(fx.settleMs || 450);
 
     await page.screenshot({
       path: path.join(SHOT_DIR, testInfo.project.name, `${fx.id}.png`),

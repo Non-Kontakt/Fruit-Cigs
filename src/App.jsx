@@ -14,11 +14,12 @@ import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./
 import { generateSquad, generatePrestigeSquad, autoSelectXI, autoSelectBench, generateAITeam, checkRetirements, generateYouthIntake, generateTrialPlayer, generateProdigalPlayer, evolveAISquad, generateSquadPhilosophy, getOvrCap, displayName } from "./utils/player.js";
 import { resolveSeasonEndArcs } from "./utils/arcs.js";
 import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
+import { decrementOfferExpiry, resolveLoyaltyWatch } from "./utils/transfer.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
-import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion } from "./utils/league.js";
-import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey } from "./utils/competitionStats.js";
+import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion, collectDynastyCupFinalAchievements, collectMiniTournamentThirdPlaceAchievements, collectMiniTournamentFinalAchievements } from "./utils/league.js";
+import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey, computeTeamOfCup } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
 import { getRivalryModifierForFixture } from "./utils/rivalries.js";
 import { checkBreakouts } from "./utils/breakouts.js";
@@ -52,7 +53,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
@@ -278,7 +279,7 @@ function FruitCigs() {
     setSeasonCupStatsByCup, setAllTimeCupStatsByCup, setSeasonCupStatsAvailable,
     setStartingXI, setBench, setFormation, setSlotAssignments, setManualSlotIndices, setPrevStartingXI, setXiPresets,
     setTrialPlayer, setTrialHistory, setProdigalSon, setRetiringPlayers,
-    setPendingFreeAgent, setScoutedPlayers,
+    setPendingFreeAgent, setScoutedPlayers, setWonderkidTips, setScoutRevealMeta, setDossierBurns, setPassiveRevealSignings,
     setMotmTracker, setStScoredConsecutive, setPlayerRatingTracker, setPlayerRatingNames, setPlayerMatchLog, setBreakoutsThisSeason,
     setPlayerSeasonStats, setBeatenTeams, setPlayerInjuryCount,
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
@@ -291,10 +292,12 @@ function FruitCigs() {
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
     setTotalShortlisted, setPrevSeasonSquadIds, setTradesMadeInWindow,
     setTradedWithClubs, setSeasonCards, setReadsThisWeek,
+    setBackPagesReceived, setHatTrickHeadlinePlayers,
     setTeamName, setNewspaperName, setReporterName, setManagerName, setManagerAvatar,
     setClubRelationships, setTransferFocus, setTransferWindowOpen,
     setTransferWindowWeeksRemaining, setTransferOffers, setLoanedOutPlayers,
     setLoanedInPlayers, setTransferHistory, setPendingTradeTarget, setShortlist,
+    setOffersRejectedThisWindow, setLoyaltyWatch,
     setTickets, setPendingTicketBoosts,
     setStoryArcs, setArcStepQueue,
     setSummerData, setLeagueRosters, setAllLeagueStates,
@@ -404,6 +407,8 @@ function FruitCigs() {
   const youthCoupActive = useGameStore(s => s.youthCoupActive);
   const pendingFreeAgent = useGameStore(s => s.pendingFreeAgent);
   const scoutedPlayers = useGameStore(s => s.scoutedPlayers);
+  const wonderkidTips = useGameStore(s => s.wonderkidTips); // Player ids tipped off via Scout Report: Wonderkid — Catch Of The Day
+  const scoutRevealMeta = useGameStore(s => s.scoutRevealMeta); // { [playerId]: { week, method } } — Strike While It's Hot / Trust The Process
   const testimonialPlayer = useGameStore(s => s.testimonialPlayer);
   // Achievement tracking state (Zustand)
   const usedTicketTypes = useGameStore(s => s.usedTicketTypes);
@@ -1158,6 +1163,8 @@ function FruitCigs() {
     setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
     setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
     setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
+    setScoutRevealMeta, setDossierBurns,
+    unlockedAchievements, tryUnlockAchievement,
   });
 
   // Rewind ticket — replay a chosen lost or drawn league match
@@ -1365,7 +1372,7 @@ function FruitCigs() {
           setSquadFullAlert(true);
           return false;
         }
-        const fa = { ...msg.freeAgentData, isFreeAgent: false, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData), seasonStartAttrs: { ...msg.freeAgentData.attrs } };
+        const fa = { ...msg.freeAgentData, isFreeAgent: false, signedOnFree: true, fromTransferInsider: true, seasonStartOvr: getOverall(msg.freeAgentData), seasonStartAttrs: { ...msg.freeAgentData.attrs } };
         setSquad(prev => [...prev, fa]);
         setPendingFreeAgent(null);
         setFreeAgentSignings(prev => prev + 1);
@@ -1403,7 +1410,7 @@ function FruitCigs() {
           setSquadFullAlert(true);
           return false;
         }
-        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, seasonStartOvr: getOverall(chosen), seasonStartAttrs: { ...chosen.attrs } }]);
+        setSquad(prev => [...prev, { ...chosen, isFreeAgent: false, signedOnFree: true, seasonStartOvr: getOverall(chosen), seasonStartAttrs: { ...chosen.attrs } }]);
         SFX.reveal();
         // The other 2 go to top AI team — boost their strength slightly
         const rivalIdx = msg.poachRivalIdx;
@@ -1561,6 +1568,21 @@ function FruitCigs() {
       return next;
     });
 
+    // Loyalty Repaid — resolve the watched (rejected-offer) player's next
+    // match, whatever the result. The watch only clears once he actually
+    // appears — a benched player keeps the watch alive for his real next game.
+    {
+      const watch = useGameStore.getState().loyaltyWatch;
+      const watchedEntry = watch ? matchResult.playerRatings?.find(r => r.id === watch.playerId) : null;
+      const { appeared: watchResolved, scoredWinner } = resolveLoyaltyWatch(watch, appeared, winningGoalScorer, watchedEntry?.name);
+      if (watchResolved) {
+        if (scoredWinner && tryUnlockAchievement && !useGameStore.getState().unlockedAchievements.has("loyalty_repaid")) {
+          tryUnlockAchievement("loyalty_repaid");
+        }
+        setLoyaltyWatch(null);
+      }
+    }
+
     // Match XP: performance-based passive attr growth for players who appeared
     // Pace and Physical are training-only — not affected by match XP.
     const _ovrCap = getOvrCap(useGameStore.getState().prestigeLevel || 0);
@@ -1613,10 +1635,22 @@ function FruitCigs() {
     // Breakout check — evaluate triggers against the fresh match log.
     // All four reads happen before any store write below — read once.
     try {
-      const { playerMatchLog: freshLog, squad: freshSquad, breakoutsThisSeason: freshBreakouts, prestigeLevel: _breakoutPrestigeLevel } = useGameStore.getState();
+      const { playerMatchLog: freshLog, squad: freshSquad, breakoutsThisSeason: freshBreakouts, prestigeLevel: _breakoutPrestigeLevel, unlockedAchievements: freshUnlocked } = useGameStore.getState();
       const _bOvrCap = getOvrCap(_breakoutPrestigeLevel || 0);
       const matchdaySquad = freshSquad.filter(p => appeared.has(p.id));
       const breakoutResults = checkBreakouts(matchdaySquad, freshLog, freshBreakouts, _bOvrCap, isCup);
+
+      // Gooseberry Cigs — breakout-moment cig cards. Reads the ledger as it
+      // stood BEFORE this match's results are applied below (matching
+      // checkBreakouts' own inputs) so season-aggregate cards see a
+      // consistent before/after picture.
+      if (breakoutResults.length > 0) {
+        const breakoutCardUnlocks = collectBreakoutAchievements({
+          breakoutResults, squad: freshSquad, breakoutsThisSeason: freshBreakouts,
+          playerMatchLog: freshLog, ovrCap: _bOvrCap, isCup, unlocked: freshUnlocked,
+        });
+        breakoutCardUnlocks.forEach(id => tryUnlockAchievement(id));
+      }
 
       for (const bo of breakoutResults) {
         // Apply attr gains + potential bump + update gains for display
@@ -1710,6 +1744,25 @@ function FruitCigs() {
         title: `FWD: ${result.headline}`,
         body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${result.headline}"\n— ${newspaperName || "the local paper"}`,
       }, { calendarIndex, seasonNumber })]);
+      tryUnlockAchievement("front_page_news");
+      const nextBackPages = new Set(useGameStore.getState().backPagesReceived);
+      nextBackPages.add("cup_final");
+      setBackPagesReceived(nextBackPages);
+      if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk");
+    }
+
+    // Hat-Trick Headlines: a hat-trick back page (league OR cup, but not a
+    // cup final — selectHeadlineCategory checks isCupFinal before hattrick,
+    // so a cup final win is never also categorised as "hattrick") for a new
+    // distinct player this season.
+    if (result.category === "hattrick") {
+      const scorer = headlineScorers.find(sc => sc.goals >= 3);
+      const prevPlayers = useGameStore.getState().hatTrickHeadlinePlayers;
+      const nextPlayers = addHatTrickScorer(prevPlayers, scorer?.name);
+      if (nextPlayers !== prevPlayers) {
+        setHatTrickHeadlinePlayers(nextPlayers);
+        if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines");
+      }
     }
   };
 
@@ -3522,6 +3575,11 @@ function FruitCigs() {
             // Track trades for Deadline Day + Old Boys Network + Window Shopping
             setTradesMadeInWindow(prev => prev + 1);
             if (clubName) setTradedWithClubs(prev => new Set([...prev, clubName]));
+            // Spoils Of War — the incoming player(s) came from clubName, a
+            // straight swap trade always sends players FROM that club TO us.
+            if (!unlockedAchievements.has("spoils_of_war") && isSignedFromRival(clubName, clubHistory?.rivalryLedger)) {
+              tryUnlockAchievement("spoils_of_war");
+            }
             // Deadline Day — trade in final week of transfer window
             if (transferWindowWeeksRemaining <= 1 && transferWindowOpen && !unlockedAchievements.has("deadline_day")) {
               tryUnlockAchievement("deadline_day");
@@ -3557,6 +3615,11 @@ function FruitCigs() {
           unlockedAchievements={unlockedAchievements}
           tryUnlockAchievement={tryUnlockAchievement}
           setCompareSignWatch={setCompareSignWatch}
+          wonderkidTips={wonderkidTips}
+          scoutRevealMeta={scoutRevealMeta}
+          setOffersRejectedThisWindow={setOffersRejectedThisWindow}
+          setLoyaltyWatch={setLoyaltyWatch}
+          setPassiveRevealSignings={setPassiveRevealSignings}
         />
       ) : showLegends ? (
         <ClubLegends key={clubKey} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
@@ -3888,10 +3951,14 @@ function FruitCigs() {
                       }
                       return newWks;
                     });
-                    setTransferOffers(prev => prev
-                      .map(o => ({ ...o, expiresWeeks: (o.expiresWeeks || 1) - 1 }))
-                      .filter(o => o.expiresWeeks > 0)
-                    );
+                    setTransferOffers(prev => {
+                      const { offers: kept, anyExpired } = decrementOfferExpiry(prev);
+                      // Let It Ride — an offer expired unanswered
+                      if (anyExpired && !unlockedAchievements.has("let_it_ride")) {
+                        tryUnlockAchievement("let_it_ride");
+                      }
+                      return kept;
+                    });
                   }
                   // Advance every AI league by one matchweek in parallel.
                   // Capture each tier's full matchweek results so each tier
@@ -5390,6 +5457,19 @@ function FruitCigs() {
                   final: { ...prev.final, result: { homeGoals: hg, awayGoals: ag, winner, pens: penResult } },
                   winner,
                 }));
+                // Pineapple Cigs — Dynasty Cup final achievements
+                {
+                  const dynastyOpponentName = (winner === cupMatchResult.cupHome ? cupMatchResult.cupAway : cupMatchResult.cupHome)?.name || null;
+                  const freshUnlocked = useGameStore.getState().unlockedAchievements;
+                  const dcAchs = collectDynastyCupFinalAchievements({
+                    playerWon, dynastyCupQualifiers, league, opponentName: dynastyOpponentName,
+                    unlockedAchievements: freshUnlocked,
+                  });
+                  dcAchs.forEach(id => tryUnlockAchievement(id));
+                  if ((dcAchs.includes("succession") || freshUnlocked.has("succession")) && freshUnlocked.has("five_a_side_story")) {
+                    tryUnlockAchievement("knockout_artist");
+                  }
+                }
                 // MotM +1 stat boost if player won the Dynasty Cup
                 if (playerWon) {
                   const eligible = useGameStore.getState().squad.filter(p => startingXI.includes(p.id));
@@ -5525,6 +5605,10 @@ function FruitCigs() {
                   thirdPlaceWinner: tpWinner,
                   playerEliminated: !playerWon3rd && !prev.playerInFinal,
                 }));
+                // Pineapple Cigs — Bronze Age
+                collectMiniTournamentThirdPlaceAchievements({
+                  playerWon3rd, unlockedAchievements: useGameStore.getState().unlockedAchievements,
+                }).forEach(id => tryUnlockAchievement(id));
                 // Sim the final if player is NOT in the final (AI vs AI)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (!bracket.playerInFinal && bracket.final?.home && bracket.final?.away) {
@@ -5562,6 +5646,23 @@ function FruitCigs() {
                   winner: mWinner,
                   runnerUp: finalLoser,
                 }));
+                // Pineapple Cigs — 5v5 Mini-Tournament final achievements.
+                // No stored qualifiers list for the mini tournament (unlike
+                // dynastyCupQualifiers) — 4th seed is read off final league
+                // position instead.
+                {
+                  const miniSorted = league?.table ? sortStandings(league.table) : [];
+                  const miniPlayerPos = miniSorted.findIndex(r => league?.teams?.[r.teamIndex]?.isPlayer) + 1;
+                  const freshUnlocked = useGameStore.getState().unlockedAchievements;
+                  const miniAchs = collectMiniTournamentFinalAchievements({
+                    playerWonFinal, playerLeaguePosition: miniPlayerPos || null, league, opponentName: finalLoser?.name || null,
+                    unlockedAchievements: freshUnlocked,
+                  });
+                  miniAchs.forEach(id => tryUnlockAchievement(id));
+                  if ((miniAchs.includes("five_a_side_story") || freshUnlocked.has("five_a_side_story")) && freshUnlocked.has("succession")) {
+                    tryUnlockAchievement("knockout_artist");
+                  }
+                }
                 // Sim 3rd-place playoff if player was in the final (AI vs AI 3rd place)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (bracket.thirdPlace && !bracket.thirdPlace.winner) {
@@ -5951,6 +6052,8 @@ function FruitCigs() {
                 compareSignWatch: useGameStore.getState().compareSignWatch,
                 fanSentimentSeasonFloor: useGameStore.getState().fanSentimentSeasonFloor,
                 seasonLeagueStatsAvailable: useGameStore.getState().seasonLeagueStatsAvailable,
+                transferHistory, shortlist, dossierBurns: useGameStore.getState().dossierBurns,
+                leagueHistory, teamName,
               }, BGM.getCurrentTrackId());
               // See the matching clear in useMatchResult.js — this is the
               // same season-end boundary, reached via the cup path instead
@@ -6504,6 +6607,7 @@ function FruitCigs() {
             setBreakoutsThisSeason(new Map());
             setPrevStartingXI(null);
             setMotmTracker({});
+            setHatTrickHeadlinePlayers([]);
             useGameStore.getState().setWonLeagueOnHoliday(false);
             // Sentiment partial carry-over on prestige reset
             const newPrestigeFanSentiment = Math.round(useGameStore.getState().fanSentiment * 0.5 + 25);
@@ -6531,6 +6635,14 @@ function FruitCigs() {
             setTransferWindowOpen(false);
             setTransferWindowWeeksRemaining(0);
             setTransferOffers([]);
+            setOffersRejectedThisWindow(0);
+            setLoyaltyWatch(null);
+            // Squad-scoped scouting metadata — the squad is fully wiped by
+            // prestige, so any pending reveal/burn record can never match
+            // again. wonderkidTips and passiveRevealSignings are career-long
+            // and survive.
+            setScoutRevealMeta({});
+            setDossierBurns({});
             // setShowFiveASidePicker removed
 
             // Generate prestige-scaled trial player for new season
@@ -6637,6 +6749,12 @@ function FruitCigs() {
               // Use pre-retirement squad so retired players are still included
               const archiveSquad = summerData.preRetirementSquad || squad;
 
+              // Hoisted out of the TOTS try block below so the Team of the
+              // Cup cig-card check (which runs after it, same summer beat)
+              // can intersect the two XIs for "Best Of Both" without
+              // persisting any new state.
+              let totsXIForAchievements = [];
+
               // === TOTS Email ===
               try {
                 const nameHash = (name) => { let h = 0; for (let i = 0; i < name.length; i++) h = ((h << 5) - h + name.charCodeAt(i)) | 0; return (Math.abs(h) % 100) / 100; };
@@ -6686,6 +6804,7 @@ function FruitCigs() {
                   const el = totsCandidates.filter(c => c.position === pos && !usedTots.has(`${c.name}|${c.teamName}`)).sort((a, b) => b.score - a.score);
                   if (el.length > 0) { usedTots.add(`${el[0].name}|${el[0].teamName}`); totsXI.push(el[0]); }
                 }
+                totsXIForAchievements = totsXI;
                 if (totsXI.length > 0) {
                   const playerCount = totsXI.filter(p => p.isPlayerTeam).length;
                   const lines = totsXI.map(p => `${p.position} ${p.name} (${p.teamName}) — ${p.goals > 0 ? p.goals + "⚽ " : ""}${p.avgRating?.toFixed(1) || "—"}`);
@@ -6712,6 +6831,52 @@ function FruitCigs() {
                   }
                 }
               } catch(err) { console.error("TOTS email error:", err); }
+
+              // === Team of the Cup cig cards (Kumquat Cigs) ===
+              // Mirrors the TOTS achievement block above — computed as a
+              // sibling statement (not nested inside the setClubHistory
+              // updater just below) so tryUnlockAchievement's own setState
+              // calls stay outside another setState's updater function.
+              try {
+                if (cup && cup.winner) {
+                  const totcTeamByName = new Map();
+                  (league?.teams || []).forEach(t => totcTeamByName.set(t.name, t));
+                  Object.values(allLeagueStates || {}).forEach(st => (st?.teams || []).forEach(t => totcTeamByName.set(t.name, t)));
+                  const totcXI = computeTeamOfCup({ cup, teamByName: totcTeamByName });
+                  const playerCount = totcXI.filter(p => p.isPlayerTeam).length;
+                  if (playerCount > 0) {
+                    const cupAchs = [];
+                    if (playerCount >= 3 && !unlockedAchievements.has("cup_runneth_over")) cupAchs.push("cup_runneth_over");
+                    if (playerCount >= 6 && !unlockedAchievements.has("eleven_out_of_eleven")) cupAchs.push("eleven_out_of_eleven");
+                    const gkSlot = totcXI.find(p => p.position === "GK");
+                    if (gkSlot?.isPlayerTeam && !unlockedAchievements.has("cup_keeper")) cupAchs.push("cup_keeper");
+
+                    // Beaten But Not Forgotten — made TOTC despite exiting
+                    // before the final. A final-round exit is "So Close"
+                    // (cup_final_loss), not this.
+                    if (cup.playerEliminated && !unlockedAchievements.has("beaten_not_forgotten")) {
+                      let eliminatedRoundIdx = -1;
+                      for (let ri = 0; ri < cup.rounds.length; ri++) {
+                        const rnd = cup.rounds[ri];
+                        const pm = rnd.matches?.find(m => m.result && (m.home?.isPlayer || m.away?.isPlayer));
+                        if (pm && !pm.result?.winner?.isPlayer) { eliminatedRoundIdx = ri; break; }
+                      }
+                      if (eliminatedRoundIdx >= 0 && eliminatedRoundIdx < cup.rounds.length - 1) {
+                        cupAchs.push("beaten_not_forgotten");
+                      }
+                    }
+
+                    // Best Of Both — same player made both TOTS and TOTC this season
+                    if (totsXIForAchievements.length > 0 && !unlockedAchievements.has("best_of_both")) {
+                      const totsPlayerNames = new Set(totsXIForAchievements.filter(p => p.isPlayerTeam).map(p => p.name));
+                      if (totcXI.some(p => p.isPlayerTeam && totsPlayerNames.has(p.name))) cupAchs.push("best_of_both");
+                    }
+
+                    cupAchs.forEach(id => tryUnlockAchievement(id));
+                  }
+                }
+              } catch (err) { console.error("Team of the Cup achievement error:", err); }
+
               setClubHistory(prev => {
                 const h = JSON.parse(JSON.stringify(prev || {}));
                 if (!h.playerCareers) h.playerCareers = {};
@@ -7045,6 +7210,11 @@ function FruitCigs() {
                     body: `Sources say ${wkTeam} have unearthed a generational talent in their youth academy. ${wkPlayer.name} (${wkPlayer.position}, ${wkPlayer.age}) is one to watch.`,
                     color: "#facc15",
                   }, { calendarIndex: 0, seasonNumber: _nextSN })]);
+                  // Catch Of The Day \u2014 remember the tipped player's id. The
+                  // same evolvedSquads objects feed straight into next
+                  // season's league/AI rosters (see initLeague/initAILeague
+                  // below), so this id survives into any later trade.
+                  if (wkPlayer.id != null) setWonderkidTips(prev => new Set(prev).add(wkPlayer.id));
                 }
               }
 
@@ -7109,6 +7279,13 @@ function FruitCigs() {
               setSeasonAwayGames(0);
               // Transfer window state is NOT reset here — the summer window opens
               // one break-week earlier and intentionally carries into the new season.
+              // offersRejectedThisWindow follows the same rule (reset only when a
+              // new window actually opens, in useSeasonFlow.js).
+              setLoyaltyWatch(null);
+              // Squad-scoped scouting metadata — pending reveals/burns for
+              // last season's shortlist can't resolve into a squad that's
+              // about to reset its per-season tracking anyway.
+              setScoutRevealMeta({});
               setMotmTracker({});
               setStScoredConsecutive(0);
               setPlayerRatingTracker({});
@@ -7117,6 +7294,7 @@ function FruitCigs() {
               setBreakoutsThisSeason(new Map());
               setPrevStartingXI(null);
               setPlayerSeasonStats({});
+              setHatTrickHeadlinePlayers([]);
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));
               setBeatenTeams(new Set());
@@ -7337,7 +7515,7 @@ function FruitCigs() {
           <PackUnlockReveal
             key={pack.id}
             pack={pack}
-            bankedCount={pack.achievementIds.filter(id => unlockedAchievements.has(id)).length}
+            bankedIds={pack.achievementIds.filter(id => unlockedAchievements.has(id))}
             isOnHoliday={isOnHoliday}
             onDone={() => setPackUnlockQueue(prev => prev.slice(1))}
           />
