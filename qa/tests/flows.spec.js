@@ -754,4 +754,235 @@ test.describe("full-app flows", () => {
     // Refusal keeps the squad exactly as it was — no signing, no departure.
     expect(after.squadSize).toBe(before.squadSize);
   });
+
+  test("season rollover: reveal → summer beats → youth intake rolls the world into season 2", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Land directly on the season-end reveal (the wl===5 summer beat — see
+    // useSeasonFlow.js) with the summerData shape SeasonEndReveal reads, one
+    // retiring player, and enough season stats to give the archive something
+    // real to pin: a top scorer, a breakout, a hat-trick back page, a prev XI.
+    const seeded = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const retiree = s.squad[0];
+      const scorer = s.squad[1];
+      window.__fc.setState({
+        retiringPlayers: new Set([retiree.id]),
+        playerSeasonStats: {
+          [retiree.name]: { goals: 3, assists: 1, apps: 18, motm: 0, yellows: 0, reds: 0 },
+          [scorer.name]: { goals: 16, assists: 7, apps: 18, motm: 4, yellows: 1, reds: 0 },
+        },
+        breakoutsThisSeason: new Map([[scorer.id, { triggers: new Set(["t1"]), lastLogIndex: 0 }]]),
+        hatTrickHeadlinePlayers: [scorer.name],
+        prevStartingXI: [retiree.id],
+        summerPhase: "summary",
+        summerData: {
+          moveType: "stayed", fromTier: s.leagueTier, toTier: s.leagueTier,
+          position: 4, leagueName: s.league.leagueName, newLeagueName: s.league.leagueName,
+          isInvincible: false, weeksLeft: 5,
+        },
+      });
+      return { retireeId: retiree.id, retireeName: retiree.name, scorerName: scorer.name, tier: s.leagueTier };
+    });
+
+    // SeasonEndReveal is a full-screen tap target that arms after its 800ms
+    // fade-in — clicking earlier is a no-op by design.
+    await expect(page.getByText("SEASON COMPLETE")).toBeVisible({ timeout: 5_000 });
+    await page.waitForTimeout(1200);
+    await page.getByText("TAP TO CONTINUE").click();
+    await page.waitForFunction(() => window.__fc.getState().summerPhase === "break", null, { timeout: 10_000 });
+
+    // The reveal's onDone consumed the summary: retiree removed from the
+    // squad, youth candidates rolled, back on the break track at weeksLeft 4.
+    const afterReveal = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return {
+        weeksLeft: s.summerData?.weeksLeft,
+        candidates: (s.summerData?.youthCandidates || []).length,
+        squadIds: s.squad.map(p => p.id),
+      };
+    });
+    expect(afterReveal.weeksLeft).toBe(4);
+    expect(afterReveal.candidates, "youth candidates should be generated").toBeGreaterThan(0);
+    expect(afterReveal.squadIds, "retiree should have left the squad").not.toContain(seeded.retireeId);
+
+    // Advance the real summer beats: TOTS review (wl 4) then Awards Night
+    // (wl 3) — each click holds a 1.5s week transition before releasing.
+    // Awards Night can pop achievement toasts (e.g. Top Of The Bill) that
+    // overlap the button on mobile, so dispatch the click straight to the
+    // button's handler instead of relying on hit-testing past the toast.
+    for (const nextWl of [3, 2]) {
+      await page.getByText("ADVANCE SUMMER", { exact: false }).first().dispatchEvent("click");
+      await page.waitForFunction(
+        (n) => { const s = window.__fc.getState(); return s.summerData?.weeksLeft === n && !s.processing; },
+        nextWl, { timeout: 10_000 },
+      );
+    }
+
+    // wl 2: retirements + youth intake beat.
+    await page.getByText("ADVANCE SUMMER", { exact: false }).first().dispatchEvent("click");
+    await page.waitForFunction(
+      () => window.__fc.getState().summerPhase === "intake" && !window.__fc.getState().processing,
+      null, { timeout: 10_000 },
+    );
+    await expect(page.getByText("YOUTH INTAKE", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+
+    // Sign nobody — the rollover runs regardless of intake choice.
+    await page.getByText("SKIP INTAKE", { exact: true }).dispatchEvent("click");
+    await page.waitForFunction(
+      () => { const s = window.__fc.getState(); return s.seasonNumber === 2 && s.summerPhase === "break"; },
+      null, { timeout: 10_000 },
+    );
+
+    const save = await page.evaluate(() => window.__fc.dumpSave());
+    // Season advanced, one more break week (Well Rested + Preview) remains.
+    expect(save.seasonNumber).toBe(2);
+    expect(save.summerPhase).toBe("break");
+    expect(save.summerData.weeksLeft).toBe(1);
+    // The closed season landed in the club archive.
+    expect(save.clubHistory.seasonArchive).toHaveLength(1);
+    const archived = save.clubHistory.seasonArchive[0];
+    expect(archived.season).toBe(1);
+    expect(archived.tier).toBe(seeded.tier);
+    expect(archived.result).toBe("stayed");
+    expect(archived.topScorer).toBe(`${seeded.scorerName} (16)`);
+    // Player careers picked up the closing season; the retiree also carries
+    // retirement metadata stamped from summerData.retirees.
+    expect(save.clubHistory.playerCareers[seeded.scorerName]?.goals).toBe(16);
+    expect(save.clubHistory.playerCareers[seeded.retireeName]?.retiredSeason).toBe(1);
+    // Season-scoped stores reset for the new season.
+    expect(save.playerSeasonStats).toEqual({});
+    expect(save.breakoutsThisSeason).toEqual({});
+    expect(save.hatTrickHeadlinePlayers).toEqual([]);
+    expect(save.prevStartingXI).toBeNull();
+    // League rebuilt for the new tier: fresh table, calendar rewound.
+    expect(save.league.tier).toBe(seeded.tier);
+    expect(save.league.table.every(r => r.played === 0)).toBe(true);
+    expect(save.calendarIndex).toBe(0);
+    expect(save.calendarResults).toEqual({});
+  });
+
+  test("prestige: winning the Intergalactic Elite runs the wormhole reset and carries legends", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC", tier: 1 }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Champion of tier 1 at prestige 0 → the reveal's onDone must divert into
+    // the prestige wormhole instead of the youth-intake track. Swap in a tiny
+    // controlled squad so LegendSelectionScreen's pick count (min(5, pickable))
+    // is exactly 2 and the two inductees are known by name.
+    await page.evaluate(() => {
+      const attrs = (v) => ({ pace: v, shooting: v, passing: v, defending: v, physical: v, technique: v, mental: v });
+      const mk = (id, name, position, v) => ({
+        id, name, position, age: 24, attrs: attrs(v), potential: 16,
+        statProgress: {}, training: null, gains: {}, tags: [], injury: null,
+        injuryHistory: {}, history: [attrs(v)],
+      });
+      const s = window.__fc.getState();
+      // Put the player top of the closing table so the prestige archive entry
+      // records a champion's row.
+      const table = s.league.table.map(r => s.league.teams[r.teamIndex].isPlayer
+        ? { ...r, played: 18, won: 15, drawn: 3, lost: 0, goalsFor: 40, goalsAgainst: 10, points: 48 }
+        : r);
+      window.__fc.setState({
+        squad: [mk("qa-legend-1", "Zed Alpharow", "ST", 14), mk("qa-legend-2", "Yon Betarow", "GK", 12)],
+        startingXI: [], bench: [],
+        fanSentiment: 80, boardSentiment: 60,
+        dossierBurns: { "qa-burn": { season: 1 } },
+        playerSeasonStats: {
+          "Zed Alpharow": { goals: 21, assists: 4, apps: 18, motm: 5, yellows: 0, reds: 0 },
+          "Yon Betarow": { goals: 0, assists: 0, apps: 18, motm: 1, yellows: 1, reds: 0 },
+        },
+        league: { ...s.league, table },
+        summerPhase: "summary",
+        summerData: {
+          moveType: "stayed", fromTier: 1, toTier: 1, position: 1,
+          leagueName: s.league.leagueName, newLeagueName: s.league.leagueName,
+          isInvincible: false, weeksLeft: 5,
+        },
+      });
+    });
+
+    // Champion reveal → prestige trigger (fromTier 1, position 1, prestige < 5).
+    await expect(page.getByText("CHAMPIONS!", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await page.waitForTimeout(1200);
+    await page.getByText("TAP TO CONTINUE").click();
+    await page.waitForFunction(() => window.__fc.getState().summerPhase === "prestige", null, { timeout: 10_000 });
+
+    // First half of the split club-history write: the prestige season's
+    // archive entry is committed by the reveal, before legend selection.
+    const midFlow = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return { archive: s.clubHistory.seasonArchive, ages: s.squad.map(p => p.age) };
+    });
+    expect(midFlow.archive).toHaveLength(1);
+    expect(midFlow.archive[0].result).toBe("prestige");
+    // IE aging (3 years/season) applies before the reset.
+    expect(midFlow.ages).toEqual([27, 27]);
+
+    // Wormhole screen → legend selection.
+    await expect(page.getByText("ENTER THE WORMHOLE")).toBeVisible({ timeout: 10_000 });
+    await page.getByText("ENTER THE WORMHOLE").click();
+    await page.waitForFunction(() => window.__fc.getState().summerPhase === "legendSelect", null, { timeout: 10_000 });
+
+    // Pick both squad players (pickable = 2 → required picks = 2) and induct.
+    // Scope to the Hall of Legends scroll container — the dashboard behind
+    // the overlay also prints the players' names (top scorers / squad news).
+    // The card-reveal animation keeps rows translated while they fade in, so
+    // dispatch clicks straight to the row handlers rather than hit-testing
+    // through the animation.
+    const hall = page.locator(".legend-scroll");
+    await expect(page.getByText("HALL OF LEGENDS")).toBeVisible({ timeout: 10_000 });
+    await expect(hall.getByText("Alpharow", { exact: false }).first()).toBeVisible({ timeout: 10_000 });
+    await hall.getByText("Alpharow", { exact: false }).first().dispatchEvent("click");
+    await hall.getByText("Betarow", { exact: false }).first().dispatchEvent("click");
+    await expect(hall.getByText("2/2", { exact: true })).toBeVisible({ timeout: 5_000 });
+    await hall.getByText("INDUCT LEGENDS").first().dispatchEvent("click");
+    await expect(page.getByText("CONFIRM LEGENDS?")).toBeVisible({ timeout: 5_000 });
+    await page.getByText("INDUCT LEGENDS").first().dispatchEvent("click");
+    await page.waitForFunction(() => window.__fc.getState().prestigeLevel === 1, null, { timeout: 10_000 });
+
+    const save = await page.evaluate(() => window.__fc.dumpSave());
+    // The wormhole reset: prestige up, back to the bottom tier, new season.
+    expect(save.prestigeLevel).toBe(1);
+    expect(save.leagueTier).toBe(11);
+    expect(save.league.tier).toBe(11);
+    expect(save.seasonNumber).toBe(2);
+    expect(save.summerPhase).toBeNull();
+    expect(save.summerData).toBeNull();
+    expect(save.calendarIndex).toBe(0);
+    // Squad rebuilt around the two inducted legends plus a fresh generation.
+    const legend1 = save.squad.find(p => p.id === "qa-legend-1");
+    const legend2 = save.squad.find(p => p.id === "qa-legend-2");
+    expect(legend1?.isLegend).toBe(true);
+    expect(legend2?.isLegend).toBe(true);
+    expect(legend1.legendAppearances).toBe(0);
+    expect(legend2.legendAppearances).toBe(0);
+    expect(legend1.legendPrestige).toBe(1);
+    expect(save.squad.length).toBeGreaterThan(2);
+    // Both halves of the split club-history write survived: the seasonArchive
+    // entry (written at the reveal) AND the playerCareers archive (written at
+    // legend selection, two renders later).
+    expect(save.clubHistory.seasonArchive).toHaveLength(1);
+    expect(save.clubHistory.seasonArchive[0]).toMatchObject({
+      season: 1, tier: 1, result: "prestige", position: 1, points: 48,
+      topScorer: "Zed Alpharow (21)",
+    });
+    expect(save.clubHistory.playerCareers["Zed Alpharow"]?.goals).toBe(21);
+    expect(save.clubHistory.playerCareers["Yon Betarow"]?.apps).toBe(18);
+    // Season stores reset; prestige also clears dossier burns.
+    expect(save.playerSeasonStats).toEqual({});
+    expect(save.seasonLeagueStatsByTier).toEqual({});
+    expect(save.breakoutsThisSeason).toEqual({});
+    expect(save.hatTrickHeadlinePlayers).toEqual([]);
+    expect(save.prevStartingXI).toBeNull();
+    expect(save.dossierBurns).toEqual({});
+    // Sentiment carries at the documented half + 25 formula.
+    expect(save.fanSentiment).toBe(65);
+    expect(save.boardSentiment).toBe(55);
+  });
 });
