@@ -233,12 +233,10 @@ export function buildPlayerOfSeasonBody(playerOfSeason) {
 export const __test = { MIN_APPS, YOUNG_AGE_CUTOFF, NOMINEE_COUNT, syntheticAIRating, nameHash, score };
 
 // ---------------------------------------------------------------------------
-// Quince Cigs — Awards Night achievements. Pure so the nine live checks are
+// Quince Cigs — Awards Night achievements. Pure so the ten live checks are
 // testable against synthetic award objects without touching useSeasonFlow.js.
-// Repeat Offender (same player wins Player of the Season twice) isn't here —
-// it needs a persisted "past POTS winners" record this branch doesn't add.
 // ---------------------------------------------------------------------------
-export function collectAwardsNightAchievements({ awards, squad, teamName, playerSeasonStats, league, unlockedAchievements }) {
+export function collectAwardsNightAchievements({ awards, squad, teamName, playerSeasonStats, league, unlockedAchievements, awardsHistory }) {
   const unlocked = unlockedAchievements || new Set();
   const achs = [];
   const add = (id) => { if (!unlocked.has(id) && !achs.includes(id)) achs.push(id); };
@@ -246,6 +244,15 @@ export function collectAwardsNightAchievements({ awards, squad, teamName, player
   const pots = playerOfSeason?.winner || null;
   const ypots = youngPlayerOfSeason?.winner || null;
   const gb = goldenBoot?.winner || null;
+
+  // Repeat Offender — this season's POTS winner (name + team) matches a
+  // prior season's POTS winner. awardsHistory holds entries from PRIOR
+  // seasons only — this season's entry is appended by the caller after
+  // this check runs.
+  if (pots) {
+    const repeat = (awardsHistory || []).some(entry => entry.potsName === pots.name && entry.potsTeam === pots.teamName);
+    if (repeat) add("repeat_offender");
+  }
 
   if (pots?.isPlayerTeam) {
     add("top_of_the_bill");

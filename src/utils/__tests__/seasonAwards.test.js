@@ -364,4 +364,36 @@ describe("collectAwardsNightAchievements — Quince Cigs", () => {
     const result = collectAwardsNightAchievements(baseArgs({ awards, unlockedAchievements: new Set(["top_of_the_bill"]) }));
     expect(result).not.toContain("top_of_the_bill");
   });
+
+  describe("repeat_offender — same player wins POTS twice", () => {
+    it("unlocks when this season's POTS winner (name + team) matches a prior season's entry", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory }))).toContain("repeat_offender");
+    });
+
+    it("does NOT unlock for a first-time winner with no prior history", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory: [] }))).not.toContain("repeat_offender");
+    });
+
+    it("does NOT unlock when the name matches but the team differs (transfer)", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "New Club", isPlayerTeam: false, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory }))).not.toContain("repeat_offender");
+    });
+
+    it("does NOT unlock when a different player won this season", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Someone Else", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory }))).not.toContain("repeat_offender");
+    });
+
+    it("respects already-unlocked state", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      const result = collectAwardsNightAchievements(baseArgs({ awards, awardsHistory, unlockedAchievements: new Set(["repeat_offender"]) }));
+      expect(result).not.toContain("repeat_offender");
+    });
+  });
 });

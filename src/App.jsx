@@ -52,7 +52,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, hasAllBackPages, addHatTrickScorer } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
@@ -290,6 +290,7 @@ function FruitCigs() {
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
     setTotalShortlisted, setPrevSeasonSquadIds, setTradesMadeInWindow,
     setTradedWithClubs, setSeasonCards, setReadsThisWeek,
+    setBackPagesReceived, setHatTrickHeadlinePlayers,
     setTeamName, setNewspaperName, setReporterName, setManagerName, setManagerAvatar,
     setClubRelationships, setTransferFocus, setTransferWindowOpen,
     setTransferWindowWeeksRemaining, setTransferOffers, setLoanedOutPlayers,
@@ -1696,6 +1697,24 @@ function FruitCigs() {
         body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${result.headline}"\n— ${newspaperName || "the local paper"}`,
       }, { calendarIndex, seasonNumber })]);
       tryUnlockAchievement("front_page_news");
+      const nextBackPages = new Set(useGameStore.getState().backPagesReceived);
+      nextBackPages.add("cup_final");
+      setBackPagesReceived(nextBackPages);
+      if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk");
+    }
+
+    // Hat-Trick Headlines: a hat-trick back page (league OR cup, but not a
+    // cup final — selectHeadlineCategory checks isCupFinal before hattrick,
+    // so a cup final win is never also categorised as "hattrick") for a new
+    // distinct player this season.
+    if (result.category === "hattrick") {
+      const scorer = headlineScorers.find(sc => sc.goals >= 3);
+      const prevPlayers = useGameStore.getState().hatTrickHeadlinePlayers;
+      const nextPlayers = addHatTrickScorer(prevPlayers, scorer?.name);
+      if (nextPlayers !== prevPlayers) {
+        setHatTrickHeadlinePlayers(nextPlayers);
+        if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines");
+      }
     }
   };
 
@@ -6465,6 +6484,7 @@ function FruitCigs() {
             setBreakoutsThisSeason(new Map());
             setPrevStartingXI(null);
             setMotmTracker({});
+            setHatTrickHeadlinePlayers([]);
             useGameStore.getState().setWonLeagueOnHoliday(false);
             // Sentiment partial carry-over on prestige reset
             setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
@@ -7072,6 +7092,7 @@ function FruitCigs() {
               setBreakoutsThisSeason(new Map());
               setPrevStartingXI(null);
               setPlayerSeasonStats({});
+              setHatTrickHeadlinePlayers([]);
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));
               setBeatenTeams(new Set());

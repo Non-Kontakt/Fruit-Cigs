@@ -11,7 +11,7 @@ import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resol
 import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
-import { checkAchievements } from "../utils/achievements.js";
+import { checkAchievements, hasAllBackPages, addHatTrickScorer } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
@@ -147,7 +147,14 @@ export function useMatchResult({
               title: `FWD: ${backPage}`,
               body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${backPage}"\n— ${s.newspaperName || "the local paper"}`,
             }, { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber })]);
-            if (backPageType === "champions" || backPageType === "promoted") tryUnlockAchievement("front_page_news");
+            if (backPageType === "champions" || backPageType === "promoted") {
+              tryUnlockAchievement("front_page_news");
+              const framedType = backPageType === "champions" ? "title" : "promotion";
+              const nextBackPages = new Set(s.backPagesReceived);
+              nextBackPages.add(framedType);
+              s.setBackPagesReceived(nextBackPages);
+              if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk");
+            }
           }
         }
         const newSeasonUnlocks = collectSeasonEndAchievements({
@@ -569,6 +576,14 @@ export function useMatchResult({
           });
           if (headlineResult.category === "derby_win" || headlineResult.category === "derby_loss") {
             tryUnlockAchievement("derby_day_ink");
+          }
+          if (headlineResult.category === "hattrick") {
+            const scorer = headlineScorers.find(sc => sc.goals >= 3);
+            const nextPlayers = addHatTrickScorer(s.hatTrickHeadlinePlayers, scorer?.name);
+            if (nextPlayers !== s.hatTrickHeadlinePlayers) {
+              s.setHatTrickHeadlinePlayers(nextPlayers);
+              if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines");
+            }
           }
         }
 

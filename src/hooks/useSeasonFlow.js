@@ -360,8 +360,21 @@ export function useSeasonFlow({
         const awardsNightAchs = collectAwardsNightAchievements({
           awards, squad, teamName: freshState.teamName, playerSeasonStats, league,
           unlockedAchievements: freshState.unlockedAchievements,
+          awardsHistory: freshState.awardsHistory,
         });
         awardsNightAchs.forEach(id => tryUnlockAchievement(id));
+
+        // Career-long Player of the Season honour board — append this
+        // season's entry AFTER the repeat-offender check above so the check
+        // only ever compares against prior seasons, never itself.
+        s.setAwardsHistory(prev => [...(prev || []), {
+          season: seasonNumber,
+          potsName: awards.playerOfSeason?.winner?.name ?? null,
+          potsTeam: awards.playerOfSeason?.winner?.teamName ?? null,
+          isPlayerTeam: awards.playerOfSeason?.winner?.isPlayerTeam ?? null,
+          ypotsName: awards.youngPlayerOfSeason?.winner?.name ?? null,
+          goldenBootName: awards.goldenBoot?.winner?.name ?? null,
+        }]);
 
         const goldenBootBody = buildGoldenBootBody(awards.goldenBoot);
         if (goldenBootBody) {
