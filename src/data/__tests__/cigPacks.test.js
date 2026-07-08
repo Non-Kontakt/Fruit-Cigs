@@ -18,7 +18,7 @@ describe("CIG_PACKS integrity", () => {
     }
   });
 
-  it("every achievement appears in exactly one pack, covering all 290", () => {
+  it("every achievement appears in exactly one pack, covering all 315", () => {
     const seenIn = new Map();
     let total = 0;
     for (const pack of CIG_PACKS) {
@@ -28,8 +28,8 @@ describe("CIG_PACKS integrity", () => {
         seenIn.set(id, pack.id);
       }
     }
-    expect(total).toBe(290);
-    expect(seenIn.size).toBe(290);
+    expect(total).toBe(315);
+    expect(seenIn.size).toBe(315);
   });
 
   it("every achievement id referenced by a pack exists in ACHIEVEMENTS", () => {
@@ -47,7 +47,7 @@ describe("CIG_PACKS integrity", () => {
   });
 
   it("ACH_TO_PACK has no duplicate/overwritten entries (built from CIG_PACKS, exercises the same invariant)", () => {
-    expect(Object.keys(ACH_TO_PACK).length).toBe(290);
+    expect(Object.keys(ACH_TO_PACK).length).toBe(315);
   });
 
   it("starter packs are exactly cherry, banana, apple and have no unlock condition", () => {

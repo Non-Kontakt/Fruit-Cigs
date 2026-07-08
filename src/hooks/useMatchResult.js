@@ -11,7 +11,7 @@ import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resol
 import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
-import { checkAchievements } from "../utils/achievements.js";
+import { checkAchievements, collectRivalryMatchAchievements } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
@@ -525,6 +525,30 @@ export function useMatchResult({
           }
           return h;
         });
+
+        // Blood Orange Cigs — per-match rivalry cig cards. ledgerEntryBefore
+        // comes from `s` (captured pre-match, at the top of this callback);
+        // ledgerEntryAfter is read fresh since setClubHistory just above
+        // committed this match's ledger update synchronously.
+        if (oppTeam?.name) {
+          try {
+            const freshRivalryState = useGameStore.getState();
+            const entryBefore = s.clubHistory?.rivalryLedger?.[oppTeam.name] || null;
+            const entryAfter = freshRivalryState.clubHistory?.rivalryLedger?.[oppTeam.name] || null;
+            const rivalryUnlocks = collectRivalryMatchAchievements({
+              ledgerEntryBefore: entryBefore, ledgerEntryAfter: entryAfter,
+              ledger: freshRivalryState.clubHistory?.rivalryLedger || {},
+              matchResult, playerGoals, oppGoals,
+              unlocked: freshRivalryState.unlockedAchievements,
+            });
+            if (rivalryUnlocks.length > 0) {
+              s.setUnlockedAchievements(prev => { const next = new Set(prev); rivalryUnlocks.forEach(id => next.add(id)); return next; });
+              setAchievementQueue(prev => { const ex = new Set(prev); const f = rivalryUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
+            }
+          } catch (err) {
+            console.error("Rivalry achievement check error:", err);
+          }
+        }
 
         s.setStScoredConsecutive(prev => stScored ? prev + 1 : 0);
 

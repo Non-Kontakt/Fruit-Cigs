@@ -4,6 +4,7 @@ import { TIER_WIN_ACHS } from "../data/achievements.js";
 import { generateAITeam, generateSquadPhilosophy } from "./player.js";
 import { generateFixtures, simulateMatch } from "./match.js";
 import { getModifier } from "../data/leagueModifiers.js";
+import { isRival } from "./rivalries.js";
 
 // The tier defs reuse plausible club names ("Red Lion FC", "Dog & Duck"...),
 // so a player can pick a name that already belongs to an AI team. AI configs
@@ -287,6 +288,20 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   // qualify, already eliminated). Only the former count.
   if (!unlockedAchievements.has("mentality_monsters") && wonEveryPlayedMatchThisSeason(calendarResults)) {
     achs.push("mentality_monsters");
+  }
+
+  // Settled Scores — unbeaten this season against every current rival, with
+  // at least 2 rival meetings to actually judge a record on.
+  if (!unlockedAchievements.has("settled_scores") && clubHistory?.rivalryLedger) {
+    let meetingsThisSeason = 0;
+    let anyLossThisSeason = false;
+    for (const entry of Object.values(clubHistory.rivalryLedger)) {
+      if (!isRival(entry)) continue;
+      const meetings = (entry.lastMeetings || []).filter(m => m.season === seasonNumber);
+      meetingsThisSeason += meetings.length;
+      if (meetings.some(m => m.playerGoals < m.oppGoals)) anyLossThisSeason = true;
+    }
+    if (meetingsThisSeason >= 2 && !anyLossThisSeason) achs.push("settled_scores");
   }
 
   return achs.filter(id => !unlockedAchievements.has(id));
