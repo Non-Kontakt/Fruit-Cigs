@@ -685,6 +685,22 @@ const RENDERERS = {
       />
     </div>
   ),
+  // Stays on the top-level packs grid (no clickText): a few unsealed packs —
+  // one part-collected so the mini progress bar shows — with the rest sealed,
+  // so the sealed three-card stacks and the unsealed emoji/title spacing can
+  // both be eyeballed in one shot.
+  "pack-grid-sealed": () => (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+      <CigPacksTab
+        unlockedPacks={new Set(["cherry_cigs", "banana_cigs", "apple_cigs"])}
+        unlocked={cherryUnlocked}
+        achievementUnlockWeeks={cherryUnlockWeeks}
+        calendarIndex={16}
+        seasonNumber={1}
+        seasonLength={48}
+      />
+    </div>
+  ),
   // PlayerPanel opens on STATS by default — no clickText needed.
   "player-stats": () => (
     <PlayerPanel player={statsPanelPlayer} onClose={noop} ovrCap={20} />

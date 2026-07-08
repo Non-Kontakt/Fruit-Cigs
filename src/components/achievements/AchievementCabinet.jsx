@@ -421,21 +421,23 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                           boxShadow: isPicking
                             ? `0 0 0 2px ${def.color}, 0 0 20px ${def.color}20, 0 6px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 ${def.color}15`
                             : `0 0 0 1px ${def.color}30, 0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 ${def.color}10`,
-                          opacity: !canUse ? 0.45 : 1,
                           cursor: canUse ? "pointer" : "default",
                           transition: "box-shadow 0.3s, opacity 0.2s",
                         }}
                       >
-                        {/* Main body */}
+                        {/* Main body — icon and ticket name dim for a disabled
+                            card, but the reason line is excluded from that
+                            opacity so it stays legible instead of stacking
+                            with its own muted color. */}
                         <div style={{
                           flex: 1,
                           padding: mob ? "14px 4px 14px 26px" : "16px 6px 16px 28px",
                           display: "flex", alignItems: "center", gap: 12,
                           minWidth: 0,
                         }}>
-                          <div style={{ fontSize: mob ? F.h2 : F.h1, flexShrink: 0 }}>{def.icon}</div>
+                          <div style={{ fontSize: mob ? F.h2 : F.h1, flexShrink: 0, opacity: !canUse ? 0.45 : 1 }}>{def.icon}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, opacity: !canUse ? 0.45 : 1 }}>
                               <span style={{
                                 fontSize: mob ? F.xs : F.sm, color: def.color, letterSpacing: 0.5,
                               }}>{def.name}</span>
@@ -448,7 +450,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                               )}
                             </div>
                             <div style={{
-                              fontSize: F.micro, color: disabledReason ? C.slate : C.textDim,
+                              fontSize: F.micro, color: C.textDim,
                               lineHeight: 1.7,
                               fontStyle: disabledReason ? "italic" : "normal",
                             }}>{disabledReason || def.desc}</div>
