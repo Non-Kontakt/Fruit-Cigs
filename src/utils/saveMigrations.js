@@ -453,3 +453,18 @@ export function mergeIdentityCrisisIntoOutOfPos(unlockedAchievements) {
   next.add("out_of_pos");
   return next;
 }
+
+// Companion to the Set migration above: the unlock-week metadata keyed under
+// the stale identity_crisis id carries the card's original collection timing
+// (shown on the card face and used for index chronology). Move it to
+// out_of_pos when that key is missing — an existing out_of_pos week wins,
+// since that unlock genuinely happened under the surviving id — and drop the
+// stale key either way. Returns the same reference when there's nothing to do.
+export function migrateIdentityCrisisUnlockWeek(achievementUnlockWeeks) {
+  const prev = achievementUnlockWeeks;
+  if (!prev || typeof prev !== "object" || !("identity_crisis" in prev)) return prev;
+  const next = { ...prev };
+  if (!("out_of_pos" in next)) next.out_of_pos = next.identity_crisis;
+  delete next.identity_crisis;
+  return next;
+}

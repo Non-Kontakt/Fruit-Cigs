@@ -282,3 +282,23 @@ describe("getPriorPlayedResult — the prior *played* match, skipping spectator 
     expect(getPriorPlayedResult(calendarResults)).toEqual({ playerGoals: 0, oppGoals: 5, won: false, draw: false });
   });
 });
+
+// The Favourite counts competitive starts, not league-only — the cup
+// resolution path (App.jsx) applies the same increment as the league path
+// (useMatchResult.js). This pins the shared accumulation semantics both
+// call sites rely on: ten increments from ANY mix of matches crosses the
+// threshold the trigger reads.
+describe("getFavouriteStartsIncrement — accumulates across call sites to the unlock threshold", () => {
+  it("nine league starts plus a cup start reaches 10 for the same player", () => {
+    const squad = [
+      { id: "low", name: "Fan Favourite", position: "ST", attrs: { pace: 1, shooting: 1, passing: 1, defending: 1, physical: 1, technique: 1, mentality: 1 } },
+      { id: "high", name: "Star", position: "ST", attrs: { pace: 9, shooting: 9, passing: 9, defending: 9, physical: 9, technique: 9, mentality: 9 } },
+    ];
+    let counts = {};
+    for (let i = 0; i < 9; i++) counts = getFavouriteStartsIncrement(squad, ["low", "high"], counts); // league
+    expect(counts.low).toBe(9);
+    counts = getFavouriteStartsIncrement(squad, ["low", "high"], counts); // the cup start
+    expect(counts.low).toBe(10);
+    expect(Object.values(counts).some(c => c >= 10)).toBe(true);
+  });
+});

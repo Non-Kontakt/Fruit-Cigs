@@ -5,7 +5,7 @@ import {
   migratePlayerRatingTracker, migrateClubHistoryNames, backfillClubHistory,
   resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
   resolveCupStatsAvailable, migrateSummerPhase, migrateSummerWeeksForAwards, stripCupNamePrefix,
-  migrateStoryArcsCompletion, backfillOvrHistorySnapshot, mergeIdentityCrisisIntoOutOfPos,
+  migrateStoryArcsCompletion, backfillOvrHistorySnapshot, mergeIdentityCrisisIntoOutOfPos, migrateIdentityCrisisUnlockWeek,
 } from "../saveMigrations.js";
 import { initLeagueRosters } from "../league.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
@@ -380,5 +380,24 @@ describe("mergeIdentityCrisisIntoOutOfPos", () => {
   it("handles a missing/undefined set without throwing", () => {
     expect(mergeIdentityCrisisIntoOutOfPos(null)).toBe(null);
     expect(mergeIdentityCrisisIntoOutOfPos(undefined)).toBe(undefined);
+  });
+});
+
+describe("migrateIdentityCrisisUnlockWeek", () => {
+  it("moves the stale key's week to out_of_pos when out_of_pos has none", () => {
+    const result = migrateIdentityCrisisUnlockWeek({ identity_crisis: 42, first_win: 3 });
+    expect(result).toEqual({ out_of_pos: 42, first_win: 3 });
+  });
+
+  it("keeps out_of_pos's own week when both keys exist, dropping the stale one", () => {
+    const result = migrateIdentityCrisisUnlockWeek({ identity_crisis: 42, out_of_pos: 17 });
+    expect(result).toEqual({ out_of_pos: 17 });
+  });
+
+  it("returns the same reference when there is nothing to migrate", () => {
+    const weeks = { first_win: 3 };
+    expect(migrateIdentityCrisisUnlockWeek(weeks)).toBe(weeks);
+    expect(migrateIdentityCrisisUnlockWeek(null)).toBe(null);
+    expect(migrateIdentityCrisisUnlockWeek(undefined)).toBe(undefined);
   });
 });

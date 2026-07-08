@@ -53,7 +53,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival, collectLineupAchievements } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival, collectLineupAchievements, getFavouriteStartsIncrement } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
@@ -5987,6 +5987,15 @@ function FruitCigs() {
                 prevResult: getPriorPlayedResult(calendarResults),
                 unlocked: unlockedAchievements,
               });
+              // The Favourite counts cup starts too — "ten starts in one
+              // season" means competitive starts, not league-only.
+              const cupFavouriteStarts = getFavouriteStartsIncrement(squad, startingXI, useGameStore.getState().favouriteStarts);
+              if (cupFavouriteStarts !== useGameStore.getState().favouriteStarts) {
+                setFavouriteStarts(cupFavouriteStarts);
+                if (!unlockedAchievements.has("the_favourite") && Object.values(cupFavouriteStarts).some(c => c >= 10)) {
+                  cupLineupUnlocks.push("the_favourite");
+                }
+              }
               if (cupLineupUnlocks.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); cupLineupUnlocks.forEach(id => next.add(id)); return next; });
                 setAchievementQueue(prev => { const ex = new Set(prev); const f = cupLineupUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });

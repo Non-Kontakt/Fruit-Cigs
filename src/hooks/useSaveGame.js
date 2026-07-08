@@ -25,7 +25,7 @@ import {
   backfillClubHistory, migratePlayerRatingTracker, stripCupNamePrefix, migrateSummerPhase, migrateSummerWeeksForAwards,
   resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
   resolveCupStatsAvailable, migrateStoryArcsCompletion, backfillOvrHistorySnapshot,
-  mergeIdentityCrisisIntoOutOfPos,
+  mergeIdentityCrisisIntoOutOfPos, migrateIdentityCrisisUnlockWeek,
 } from "../utils/saveMigrations.js";
 
 /**
@@ -264,7 +264,11 @@ export function useSaveGame({
       s.unlockedAchievements = mergeIdentityCrisisIntoOutOfPos(s.unlockedAchievements || new Set());
       store.setUnlockedAchievements(s.unlockedAchievements);
       store.setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
-      if (s.achievementUnlockWeeks) { store.setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
+      if (s.achievementUnlockWeeks) {
+        // Companion migration: keep the merged card's original unlock timing.
+        s.achievementUnlockWeeks = migrateIdentityCrisisUnlockWeek(s.achievementUnlockWeeks);
+        store.setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks;
+      }
       store.setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
       // Saves predating this field never ran the drip — default suppressed,
       // so only a genuinely new career (which sets this false explicitly)
