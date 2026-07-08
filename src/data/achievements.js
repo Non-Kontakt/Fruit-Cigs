@@ -176,7 +176,7 @@ export const ACHIEVEMENTS = [
   { id: "kolo_kolo", name: "Kolo Kolo", desc: "Recruit an ex-trial defender and win the league with them", icon: "🎵" },
   // Name-based achievements
   { id: "first_name_terms", name: "On First Name Terms", desc: "Have 3 players in your squad with the same first name", icon: "👋" },
-  { id: "deja_vu_training", name: "Déjà Vu", desc: "Have 2 players with the same first name appear back to back in a Training Report", icon: "🔄" },
+  { id: "deja_vu_training", name: "Seeing Double", desc: "Have 2 players with the same first name appear back to back in a Training Report", icon: "🔄" },
   { id: "brothers_in_arms", name: "Brothers In Arms", desc: "Have 2 players with the same surname both score for the club", icon: "⚔️" },
   { id: "legendary_dynasty", name: "Legendary Dynasty", desc: "Have 2 players with the same surname in your All-Time XI", icon: "👑" },
   // Player milestone achievements

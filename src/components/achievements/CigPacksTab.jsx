@@ -19,6 +19,26 @@ const hexToRgb = (hex) => {
 const achById = {};
 ACHIEVEMENTS.forEach((a) => { achById[a.id] = a; });
 
+// View-toggle glyphs are built from CSS boxes rather than Unicode characters
+// — Press Start 2P doesn't carry glyphs like "▦" and silently falls back to
+// a generic filled square, which is why the grid/list pair used to read as
+// two identical blobs. Boxes side-step font coverage entirely and center
+// exactly inside the button's flex box with no font-metrics guesswork.
+function GridGlyph({ color }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 6px)", gridTemplateRows: "repeat(2, 6px)", gap: 3 }}>
+      {[0, 1, 2, 3].map((i) => <div key={i} style={{ width: 6, height: 6, background: color }} />)}
+    </div>
+  );
+}
+function ListGlyph({ color }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, width: 16 }}>
+      {[0, 1, 2].map((i) => <div key={i} style={{ width: "100%", height: 3, background: color }} />)}
+    </div>
+  );
+}
+
 // ── keyframe injection (same pattern as AchievementCabinet) ───────
 const STYLE_ID = "cig-packs-styles-" + Math.random().toString(36).slice(2, 8);
 
@@ -116,27 +136,25 @@ export function CigPacksTab({
         aria-label="Pack grid view"
         title="Pack grid view"
         style={{
-          width: 34, height: 34, padding: 0, fontSize: F.sm, lineHeight: 1,
+          width: 34, height: 34, padding: 0, lineHeight: 1,
           display: "flex", alignItems: "center", justifyContent: "center",
           background: view === "packs" ? "rgba(250,204,21,0.1)" : "rgba(15,15,35,0.6)",
           border: view === "packs" ? `1px solid ${C.gold}` : `1px solid ${C.bgCard}`,
-          color: view === "packs" ? C.gold : C.slate,
           cursor: "pointer", fontFamily: FONT, borderRadius: 6,
         }}
-      >▦</button>
+      ><GridGlyph color={view === "packs" ? C.gold : C.slate} /></button>
       <button
         onClick={() => handleViewChange("list")}
         aria-label="Index list view"
         title="Index list view"
         style={{
-          width: 34, height: 34, padding: 0, fontSize: F.sm, lineHeight: 1,
+          width: 34, height: 34, padding: 0, lineHeight: 1,
           display: "flex", alignItems: "center", justifyContent: "center",
           background: view === "list" ? "rgba(250,204,21,0.1)" : "rgba(15,15,35,0.6)",
           border: view === "list" ? `1px solid ${C.gold}` : `1px solid ${C.bgCard}`,
-          color: view === "list" ? C.gold : C.slate,
           cursor: "pointer", fontFamily: FONT, borderRadius: 6,
         }}
-      >☰</button>
+      ><ListGlyph color={view === "list" ? C.gold : C.slate} /></button>
     </div>
   );
 
@@ -397,7 +415,10 @@ function UnlockedCard({ pack, index, mob, onClick }) {
         </div>
       )}
 
-      {/* Fruit icon */}
+      {/* Fruit icon — emoji glyphs carry their ink low in the em box, so
+          without a lift the icon crowds the title below while dead space
+          sits above; the negative top margin recenters the visible glyph
+          and leaves the full column gap between icon and title. */}
       <div style={{
         fontSize: mob ? 36 : 42,
         lineHeight: 1,
@@ -406,7 +427,7 @@ function UnlockedCard({ pack, index, mob, onClick }) {
         animation: hovered ? "cigPackFloat 1.5s ease-in-out infinite" : undefined,
         position: "relative",
         zIndex: 1,
-        marginBottom: -4,
+        marginTop: -8,
       }}>
         {pack.icon}
       </div>
@@ -489,7 +510,6 @@ function UnlockedCard({ pack, index, mob, onClick }) {
 // Sealed-pack stack — a plain CSS mimic of the pitch's .stackcard (lattice
 // pattern only, no roundel) rather than three full CigCard backs; this grid
 // holds up to 32 packs so keeping the sealed state GL-free matters.
-const STACK_STICKER = "#e9e9f2";
 const STACK_CLIP =
   "polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px))";
 const STACK_CARDS = [
@@ -520,6 +540,13 @@ function LockedCard({ pack, mob }) {
     }}>
       {/* Stack of sealed card backs */}
       <div style={{ position: "relative", width: "100%", height: cardH + 14 }}>
+        {/* clip-path clips an element's own box-shadow, so per-card rings
+            and shadows on the clipped div never render and the three cards
+            fuse into one die-cut blob. Instead: an outer div in the pack's
+            dark edge tone with the clip, a 2px-inset inner div repeating the
+            clip for the card face — a hard pixel border along the die-cut —
+            and a zero-blur drop-shadow filter, which applies AFTER clipping
+            and so follows the notched silhouette. */}
         {STACK_CARDS.map((p, i) => (
           <div key={i} style={{
             position: "absolute",
@@ -528,16 +555,21 @@ function LockedCard({ pack, mob }) {
             width: cardW,
             height: cardH,
             transform: `translateX(-50%) rotate(${p.rotate}deg)`,
-            background: `repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
-              repeating-linear-gradient(45deg, color-mix(in srgb, ${pack.color} 78%, black) 0 8px, color-mix(in srgb, ${pack.color} 62%, black) 8px 16px),
-              color-mix(in srgb, ${pack.color} 70%, black)`,
-            // A thin sticker-white ring plus its own drop shadow per card is
-            // what actually separates the stack visually — at this card size
-            // the pitch's 4px ring was wide enough to bridge the gap between
-            // cards and read as a single blob instead of three.
-            boxShadow: `0 0 0 3px ${STACK_STICKER}, 0 3px 8px rgba(0,0,0,0.55)`,
+            background: `color-mix(in srgb, ${pack.colorDark} 55%, black)`,
             clipPath: STACK_CLIP,
-          }} />
+            padding: 2,
+            boxSizing: "border-box",
+            filter: "drop-shadow(2px 2px 0 rgba(0,0,0,0.6))",
+          }}>
+            <div style={{
+              width: "100%",
+              height: "100%",
+              background: `repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
+                repeating-linear-gradient(45deg, color-mix(in srgb, ${pack.color} 78%, black) 0 8px, color-mix(in srgb, ${pack.color} 62%, black) 8px 16px),
+                color-mix(in srgb, ${pack.color} 70%, black)`,
+              clipPath: STACK_CLIP,
+            }} />
+          </div>
         ))}
       </div>
 

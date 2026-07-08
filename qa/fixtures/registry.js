@@ -31,6 +31,7 @@ export const FIXTURES = [
   { id: "ticket-cards", label: "Scratch cards — full description, disabled card hides USE", clickText: "SCRATCH CARDS" },
   { id: "cig-card-states", label: "Cig cards — hidden/uncollected/collected/legendary" },
   { id: "cig-pack-detail", label: "Cig packs — pack detail card grid", clickText: "Cherry Cigs" },
+  { id: "pack-grid-sealed", label: "Cig packs — grid with unsealed packs and sealed stacks" },
   { id: "player-stats", label: "Player panel — STATS tab with OVR weighting" },
   { id: "player-progress", label: "Player panel — progress sparklines with season ticks", clickText: "PROGRESS" },
   { id: "alltime-xi", label: "Club — All-Time XI with long defender names", clickText: "ALL-TIME XI" },
