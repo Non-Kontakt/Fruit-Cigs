@@ -435,6 +435,37 @@ export const ACHIEVEMENTS = [
   { id: "scooty_puff_sr", name: "Scooty Puff Sr.", desc: "Win the Intergalactic Elite during your 2nd season in it", icon: "🛡️" },
   { id: "first_contact", name: "First Contact", desc: "Build a relationship with an Alien team to 100%", icon: "🤝" },
   { id: "phone_home", name: "Phone Home", desc: "Win all home games in a season in the Intergalactic Elite", icon: "🏠" },
+
+  // === BREAKOUT MOMENTS — Gooseberry Cigs ===
+  { id: "scenes", name: "Scenes", desc: "Witness your first breakout moment", icon: "🎆" },
+  { id: "purple_patch", name: "Purple Patch", desc: "One player has two breakout moments in the same season", icon: "🟣" },
+  { id: "made_for_occasion", name: "Made For The Occasion", desc: "A player has a breakout moment in a cup tie", icon: "🎪" },
+  { id: "everyones_invited", name: "Everyone's Invited", desc: "Players in all four position groups have breakout moments in one season", icon: "🎉" },
+  { id: "vintage_performance", name: "Vintage Performance", desc: "A 30+ year old has a breakout moment", icon: "🍷" },
+  { id: "fast_learner", name: "Fast Learner", desc: "A player has a breakout moment within his first five appearances for you", icon: "🚀" },
+  { id: "raising_ceiling", name: "Raising The Ceiling", desc: "A breakout moment pushes a player's potential to the cap", icon: "🏗️" },
+  { id: "wonderwall", name: "Wonderwall", desc: "A goalkeeper has a breakout moment", icon: "🧱" },
+  { id: "production_line", name: "Production Line", desc: "Five breakout moments across the squad in one season", icon: "🏭" },
+  { id: "never_saw_him_coming", name: "Never Saw Him Coming", desc: "A player with single-digit potential has a breakout moment", icon: "👻" },
+
+  // === RIVALRIES — Blood Orange Cigs ===
+  { id: "bragging_rights", name: "Bragging Rights", desc: "Beat one of your rivals", icon: "🗣️" },
+  { id: "no_love_lost", name: "No Love Lost", desc: "Win a derby that produces two or more red cards", icon: "🟥" },
+  { id: "settled_scores", name: "Settled Scores", desc: "Go a whole season unbeaten against your rivals", icon: "🤝" },
+  { id: "twist_the_knife", name: "Twist The Knife", desc: "Score a 90th-minute winner against a rival", icon: "🔪" },
+  { id: "home_and_away", name: "Home And Away", desc: "Beat the same rival home and away in one season", icon: "📺" },
+  { id: "breaking_the_curse", name: "Breaking The Curse", desc: "Beat a rival you'd never beaten in five or more meetings", icon: "⛓️" },
+  { id: "surrounded", name: "Surrounded", desc: "Have three clubs qualify as rivals at the same time", icon: "😤" },
+  { id: "statement_win", name: "Statement Win", desc: "Beat a rival by four or more goals", icon: "📢" },
+  { id: "spoils_of_war", name: "Spoils Of War", desc: "Sign a player from a rival club", icon: "🏴" },
+  { id: "kept_the_receipts", name: "Kept The Receipts", desc: "Reach ten career meetings with a single rival", icon: "🧾" },
+
+  // === TEAM OF THE CUP — Kumquat Cigs ===
+  { id: "cup_runneth_over", name: "Cup Runneth Over", desc: "Get three or more players into the Team of the Cup", icon: "🏆" },
+  { id: "eleven_out_of_eleven", name: "Eleven Out Of Eleven", desc: "Fill more than half the Team of the Cup", icon: "💫" },
+  { id: "cup_keeper", name: "Cup Keeper", desc: "Your goalkeeper makes the Team of the Cup", icon: "🧤" },
+  { id: "beaten_not_forgotten", name: "Beaten But Not Forgotten", desc: "Get a player into the Team of the Cup despite going out before the final", icon: "🥀" },
+  { id: "best_of_both", name: "Best Of Both", desc: "The same player makes TOTS and TOTC in one season", icon: "🎪" },
 ];
 
 

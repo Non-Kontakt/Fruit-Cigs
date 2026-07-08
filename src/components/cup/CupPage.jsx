@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { POSITION_TYPES } from "../../data/positions.js";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { F, C, FONT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
-import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, cupKey as makeCupKey } from "../../utils/competitionStats.js";
+import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, cupKey as makeCupKey, computeTeamOfCup } from "../../utils/competitionStats.js";
 
 export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, league, allLeagueStates, onPlayerClick, onTeamClick, seasonCupStatsByCup = null, allTimeCupStatsByCup = null, seasonCupStatsAvailable = true }) {
   // Stats tab + selectors operate on the current cup's slot.
@@ -161,67 +160,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, league,
   );
 
   // Team of the Cup — best XI based on cup performance (goals + wins + round reached)
-  const teamOfCup = React.useMemo(() => {
-    // TOTC is an end-of-cup award — keep the "in progress" fallback truthful
-    // until there's actually a winner.
-    if (!cup?.winner) return [];
-    if (!cup?.rounds) return [];
-    // Build pool of players from all teams that played
-    const candidates = [];
-    const teamRoundReached = {}; // teamName → furthest round index
-
-    cup.rounds.forEach((round, rIdx) => {
-      (round.matches || []).forEach(match => {
-        if (!match.result || match.result.bye) return;
-        [match.home, match.away].forEach(team => {
-          if (!team) return;
-          if (!teamByName.get(team.name)?.squad) return;
-          const tName = team.name;
-          if (!teamRoundReached[tName] || rIdx > teamRoundReached[tName]) {
-            teamRoundReached[tName] = rIdx;
-          }
-        });
-      });
-    });
-
-    // For each team, score their starters based on: round reached, team goals, and whether they won
-    Object.entries(teamRoundReached).forEach(([tName, maxRound]) => {
-      const teamObj = teamByName.get(tName);
-      if (!teamObj?.squad) return;
-
-      const stats = cupStats.teamGoals[tName] || { scored: 0, wins: 0, played: 0 };
-      const roundBonus = (maxRound + 1) * 3; // further you go, bigger boost
-      const isWinner = cup.winner?.name === tName;
-
-      teamObj.squad.filter(p => !p.isBench).forEach(p => {
-        const posType = POSITION_TYPES[p.position] || "MID";
-        // Score: round progression + team goals weighted by position + winner bonus
-        const goalWeight = posType === "FWD" ? 2 : posType === "MID" ? 1.5 : 0.5;
-        const score = roundBonus + stats.scored * goalWeight + stats.wins * 2 + (isWinner ? 10 : 0);
-        candidates.push({
-          name: p.name, position: p.position, teamName: tName,
-          isPlayerTeam: teamObj.isPlayer, score,
-          roundReached: cup.rounds[maxRound]?.name || "?",
-        });
-      });
-    });
-
-    // Pick best per position in 4-3-3
-    const totcPositions = ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
-    const used = new Set();
-    const xi = [];
-    for (const pos of totcPositions) {
-      const eligible = candidates
-        .filter(c => c.position === pos && !used.has(`${c.name}|${c.teamName}`))
-        .sort((a, b) => b.score - a.score);
-      if (eligible.length > 0) {
-        const pick = eligible[0];
-        used.add(`${pick.name}|${pick.teamName}`);
-        xi.push(pick);
-      }
-    }
-    return xi;
-  }, [cup, cupStats, teamByName]);
+  const teamOfCup = React.useMemo(() => computeTeamOfCup({ cup, teamByName }), [cup, teamByName]);
 
   const cupHistory = (clubHistory?.cupHistory || []);
 
