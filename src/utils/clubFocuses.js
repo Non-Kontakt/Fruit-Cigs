@@ -175,6 +175,16 @@ export function pendingSeasonGrants(clubFocuses, seasonNumber) {
   return out;
 }
 
+/**
+ * The Little Black Book's consumption gate: the one-off is only consumed when
+ * an extra offer actually landed. Null offer → same reference back, ledger
+ * untouched, the perk stays pending for the next window.
+ */
+export function consumeBlackBook(clubFocuses, extraOffer, seasonNumber) {
+  if (!extraOffer) return clubFocuses;
+  return markSeasonGranted(clubFocuses, "little_black_book", seasonNumber);
+}
+
 /** Stamp seasonGrants[nodeId] = seasonNumber. Pure — returns a new object. */
 export function markSeasonGranted(clubFocuses, nodeId, seasonNumber) {
   const cf = clubFocuses || {};

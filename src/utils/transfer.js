@@ -124,42 +124,70 @@ export function generateAITransferOffers(clubRelationships, squad, allLeagueStat
   const usedPlayerIds = new Set();
 
   for (let i = 0; i < offerCount && i < shuffledClubs.length; i++) {
-    const club = shuffledClubs[i];
-
-    // Find AI squad from allLeagueStates
-    const aiTeam = findAITeamInLeagues(club.name, allLeagueStates);
-    if (!aiTeam || !aiTeam.squad || aiTeam.squad.length === 0) continue;
-
-    // AI wants: Random player from user squad (prefer lower OVR, skip already-targeted)
-    const userSquadSorted = [...squad]
-      .filter(p => !usedPlayerIds.has(p.id))
-      .sort((a, b) => getOverall(a) - getOverall(b));
-    if (userSquadSorted.length === 0) continue;
-    const aiWants = [pickRandom(userSquadSorted.slice(0, 5))];
-
-    // AI offers: Random player from their squad (similar value)
-    const targetValue = getPlayerValue(aiWants[0]);
-    const aiSquadFiltered = aiTeam.squad.filter(p => {
-      const val = getPlayerValue(p);
-      return val >= targetValue * 0.8 && val <= targetValue * 1.2;
-    });
-
-    if (aiSquadFiltered.length === 0) continue;
-
-    const aiOffers = [pickRandom(aiSquadFiltered)];
-    usedPlayerIds.add(aiWants[0].id);
-
-    offers.push({
-      aiClubName: club.name,
-      aiClubTier: club.tier,
-      aiWants,
-      aiOffers,
-      relationship: club.pct,
-      expiresWeeks: 3 // Offer expires after 3 weeks
-    });
+    const offer = buildOfferForClub(shuffledClubs[i], squad, allLeagueStates, usedPlayerIds);
+    if (offer) offers.push(offer);
   }
 
   return offers;
+}
+
+/**
+ * Build one valid swap offer from a specific club, or null when the club
+ * can't produce one (no AI squad, every user player already targeted, no
+ * value-matched return player). Adds the wanted player's id to usedPlayerIds
+ * on success so callers keep the no-duplicate-targets rule.
+ */
+function buildOfferForClub(club, squad, allLeagueStates, usedPlayerIds) {
+  const aiTeam = findAITeamInLeagues(club.name, allLeagueStates);
+  if (!aiTeam || !aiTeam.squad || aiTeam.squad.length === 0) return null;
+
+  // AI wants: Random player from user squad (prefer lower OVR, skip already-targeted)
+  const userSquadSorted = [...squad]
+    .filter(p => !usedPlayerIds.has(p.id))
+    .sort((a, b) => getOverall(a) - getOverall(b));
+  if (userSquadSorted.length === 0) return null;
+  const aiWants = [pickRandom(userSquadSorted.slice(0, 5))];
+
+  // AI offers: Random player from their squad (similar value)
+  const targetValue = getPlayerValue(aiWants[0]);
+  const aiSquadFiltered = aiTeam.squad.filter(p => {
+    const val = getPlayerValue(p);
+    return val >= targetValue * 0.8 && val <= targetValue * 1.2;
+  });
+  if (aiSquadFiltered.length === 0) return null;
+
+  const aiOffers = [pickRandom(aiSquadFiltered)];
+  usedPlayerIds.add(aiWants[0].id);
+
+  return {
+    aiClubName: club.name,
+    aiClubTier: club.tier,
+    aiWants,
+    aiOffers,
+    relationship: club.pct,
+    expiresWeeks: 3 // Offer expires after 3 weeks
+  };
+}
+
+/**
+ * The Little Black Book (Club Focus): deterministically try to produce ONE
+ * additional valid offer from the best-relationship eligible club not already
+ * represented in `offers`, respecting the no-duplicate-target rule. Returns
+ * the offer or null — the caller must only consume the one-off when an offer
+ * actually landed.
+ */
+export function generateExtraTransferOffer(clubRelationships, squad, allLeagueStates, offers) {
+  const represented = new Set((offers || []).map(o => o.aiClubName));
+  const usedPlayerIds = new Set((offers || []).flatMap(o => (o.aiWants || []).map(p => p.id)));
+  const candidates = Object.entries(clubRelationships || {})
+    .filter(([name, data]) => data.pct >= 50 && !represented.has(name))
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => (b.pct - a.pct) || a.name.localeCompare(b.name));
+  for (const club of candidates) {
+    const offer = buildOfferForClub(club, squad, allLeagueStates, usedPlayerIds);
+    if (offer) return offer;
+  }
+  return null;
 }
 
 /**

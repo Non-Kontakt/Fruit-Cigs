@@ -10,9 +10,9 @@ import { getOvrCap } from "../utils/player.js";
 import { getBoardExpectation } from "../utils/boardExpectations.js";
 import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative } from "../utils/arcs.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { generateAITransferOffers, countDistinctOfferTargets } from "../utils/transfer.js";
+import { generateAITransferOffers, countDistinctOfferTargets, generateExtraTransferOffer } from "../utils/transfer.js";
 import { isRevealedAtCap } from "../utils/scouting.js";
-import { isDeferredOneOffPending, markSeasonGranted } from "../utils/clubFocuses.js";
+import { isDeferredOneOffPending, consumeBlackBook } from "../utils/clubFocuses.js";
 import { buildSeasonPreviewBody, getTenureBand, getSeasonContext } from "../utils/seasonPreview.js";
 import { computeSeasonAwards, buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody, collectAwardsNightAchievements } from "../utils/seasonAwards.js";
 import { generateAwardsHeadline } from "../utils/headlines.js";
@@ -341,10 +341,12 @@ export function useSeasonFlow({
       {
         const cf = useGameStore.getState().clubFocuses;
         if (isDeferredOneOffPending(cf, "black_book")) {
-          const extra = generateAITransferOffers(clubRelationships, squad, allLeagueStates)
-            .find(o => !offers.some(existing => existing.aiClubName === o.aiClubName));
+          // Deterministic single extra offer from the best eligible club not
+          // already at the table. No offer possible → the one-off stays
+          // pending (consumeBlackBook only stamps when the reward landed).
+          const extra = generateExtraTransferOffer(clubRelationships, squad, allLeagueStates, offers);
           if (extra) offers.push(extra);
-          s.setClubFocuses(prev => markSeasonGranted(prev, "little_black_book", seasonNumber));
+          s.setClubFocuses(prev => consumeBlackBook(prev, extra, seasonNumber));
         }
       }
       s.setTransferOffers(offers);

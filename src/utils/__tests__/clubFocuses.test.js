@@ -2,8 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getFocusNode, isFocusAvailable, getMissingPrereqs, getClubFocusBonuses,
   tickActiveFocus, pendingSeasonGrants, markSeasonGranted, isDeferredOneOffPending,
-  migrateClubFocuses, RECURRING_SEASON_EFFECTS, hasSquadRoom,
-} from "../clubFocuses.js";
+  migrateClubFocuses, RECURRING_SEASON_EFFECTS, hasSquadRoom, consumeBlackBook,} from "../clubFocuses.js";
 import { CLUB_FOCUS_NODES, defaultClubFocuses } from "../../data/clubFocuses.js";
 import { TICKET_DEFS } from "../../data/tickets.js";
 
@@ -188,5 +187,19 @@ describe("hasSquadRoom — the prodigy respects the signing cap", () => {
   it("legends don't count against the cap", () => {
     const squad = [...Array.from({ length: 24 }, (_, i) => player(i)), player(99, true), player(100, true)];
     expect(hasSquadRoom(squad)).toBe(true);
+  });
+});
+
+describe("consumeBlackBook — the one-off only stamps when the offer landed", () => {
+  const cf = () => ({ activeId: null, progressById: {}, completedIds: ["little_black_book"], seasonGrants: {} });
+  it("null offer: same reference back, ledger untouched, perk stays pending", () => {
+    const state = cf();
+    expect(consumeBlackBook(state, null, 3)).toBe(state);
+    expect(isDeferredOneOffPending(state, "black_book")).toBe(true);
+  });
+  it("real offer: stamps exactly once and the perk stops pending", () => {
+    const next = consumeBlackBook(cf(), { aiClubName: "Rovers" }, 3);
+    expect(next.seasonGrants.little_black_book).toBe(3);
+    expect(isDeferredOneOffPending(next, "black_book")).toBe(false);
   });
 });

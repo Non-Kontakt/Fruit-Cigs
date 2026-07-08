@@ -10,6 +10,20 @@ import { rand, getOverall, progressToPips, getTrainingProgress, pickRandom, comp
 import { getOvrCap, generateYouthPlayer, uniqueGenerate } from "../utils/player.js";
 import { getClubFocusBonuses, tickActiveFocus, hasSquadRoom, isDeferredOneOffPending, markSeasonGranted } from "../utils/clubFocuses.js";
 
+import { getArcById, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "../utils/arcs.js";
+import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
+import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
+import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
+import { checkAchievements } from "../utils/achievements.js";
+import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
+import { pushSentimentEntry } from "../utils/sentimentLog.js";
+import { SFX, BGM } from "../utils/sfx.js";
+import { buildAIFiveASide } from "../utils/fiveASide.js";
+import { advanceShortlistScouting, isWastedTrip, countRevealedPlayers } from "../utils/scouting.js";
+import { classifySquadIdentity } from "../utils/squadIdentity.js";
+import { generateIdentityHeadline } from "../utils/headlines.js";
+import { getNextOnboardingDripMessage, hasReceivedAllDripMessages } from "../utils/onboardingDrip.js";
+
 // The Prodigy Pipeline's payoff, shared by the completion grant and the
 // full-squad retry: a 16-year-old, name-unique, potential high but capped.
 function grantProdigy(s, ovrCap, calendarIndex, seasonNumber) {
@@ -29,19 +43,6 @@ function grantProdigy(s, ovrCap, calendarIndex, seasonNumber) {
   )]);
   return wk;
 }
-import { getArcById, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "../utils/arcs.js";
-import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
-import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
-import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
-import { checkAchievements } from "../utils/achievements.js";
-import { createInboxMessage, getUnreadCount } from "../utils/messageUtils.js";
-import { pushSentimentEntry } from "../utils/sentimentLog.js";
-import { SFX, BGM } from "../utils/sfx.js";
-import { buildAIFiveASide } from "../utils/fiveASide.js";
-import { advanceShortlistScouting, isWastedTrip, countRevealedPlayers } from "../utils/scouting.js";
-import { classifySquadIdentity } from "../utils/squadIdentity.js";
-import { generateIdentityHeadline } from "../utils/headlines.js";
-import { getNextOnboardingDripMessage, hasReceivedAllDripMessages } from "../utils/onboardingDrip.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
