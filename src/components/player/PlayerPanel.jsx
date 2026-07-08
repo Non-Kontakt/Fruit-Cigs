@@ -9,7 +9,7 @@ import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
-export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20, isAI = false, scoutedPlayers }) {
+export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20, isAI = false, scoutedPlayers, retrainWeeksDelta = 0 }) {
   const effectiveCap = player.isLegend ? player.legendCap
     : player.isUnlockable && player.legendCap ? player.legendCap
     : player.isUnlockable ? Math.max(ovrCap, ...Object.values(player.attrs))
@@ -342,7 +342,10 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 5 }}>
                   {ALL_POSITIONS.filter(pos => pos !== player.position).map(pos => {
                     const alreadyLearned = player.learnedPositions && player.learnedPositions.includes(pos);
-                    const weeks = getPositionTrainingWeeks(player.position, pos);
+                    const rawWeeks = getPositionTrainingWeeks(player.position, pos);
+                    // Club Focus (The Gym Extension) shortens retraining; mirror
+                    // that here so the estimate matches the committed duration.
+                    const weeks = rawWeeks === 0 ? 0 : Math.max(1, rawWeeks + retrainWeeksDelta);
                     const isInjured = !!player.injury;
                     return (
                       <button

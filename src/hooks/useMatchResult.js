@@ -15,6 +15,7 @@ import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence, ha
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
+import { getClubFocusBonuses } from "../utils/clubFocuses.js";
 import { generateMatchHeadline, generateSeasonHeadline } from "../utils/headlines.js";
 import { isRival } from "../utils/rivalries.js";
 import { BGM } from "../utils/sfx.js";
@@ -491,8 +492,15 @@ export function useMatchResult({
         if (isHome && playerLost) s.setSeasonHomeUnbeaten(false);
         // Fan & Board Sentiment
         const fanMatchMod = getModifier(s.leagueTier);
-        const fanMatchDelta = ((playerWon ? (isHome ? 5 : 6) : isDraw ? -1 : (isHome ? -8 : -5)) +
+        let fanMatchDelta = ((playerWon ? (isHome ? 5 : 6) : isDraw ? -1 : (isHome ? -8 : -5)) +
           (playerGoals >= 3 ? 2 : 0) + (oppGoals === 0 ? 1 : 0)) * (fanMatchMod.fanSentimentMult || 1);
+        // Club Focus (Safe Standing) softens matchday sentiment LOSSES only,
+        // rounding toward less loss. Flows through setFanSentiment below so the
+        // Club Mood ledger records the true, softened value.
+        {
+          const _sentLossMult = getClubFocusBonuses(s.clubFocuses).sentimentLossMult || 1;
+          if (fanMatchDelta < 0 && _sentLossMult !== 1) fanMatchDelta = Math.ceil(fanMatchDelta * _sentLossMult);
+        }
         const _fanBefore = useGameStore.getState().fanSentiment;
         if (!s.unlockedAchievements.has("hostile_crowd") && playerWon && _fanBefore < 10) tryUnlockAchievement("hostile_crowd");
         const _fanAfter = Math.max(0, Math.min(100, _fanBefore + fanMatchDelta));

@@ -12,6 +12,7 @@ import { getArcById, applyFinalReward, processArcCompletion, precomputeArcEffect
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { generateAITransferOffers, countDistinctOfferTargets } from "../utils/transfer.js";
 import { isRevealedAtCap } from "../utils/scouting.js";
+import { isDeferredOneOffPending, markSeasonGranted } from "../utils/clubFocuses.js";
 import { buildSeasonPreviewBody, getTenureBand, getSeasonContext } from "../utils/seasonPreview.js";
 import { computeSeasonAwards, buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody, collectAwardsNightAchievements } from "../utils/seasonAwards.js";
 import { generateAwardsHeadline } from "../utils/headlines.js";
@@ -335,6 +336,17 @@ export function useSeasonFlow({
       s.setTradesMadeInWindow(0); // Reset trade counter for new window
       s.setOffersRejectedThisWindow(0); // Under Siege — reset per window, not per season
       const offers = generateAITransferOffers(clubRelationships, squad, allLeagueStates);
+      // Club Focus (The Little Black Book) one-off: the next window generates
+      // one extra offer. Consumed by stamping seasonGrants[little_black_book].
+      {
+        const cf = useGameStore.getState().clubFocuses;
+        if (isDeferredOneOffPending(cf, "black_book")) {
+          const extra = generateAITransferOffers(clubRelationships, squad, allLeagueStates)
+            .find(o => !offers.some(existing => existing.aiClubName === o.aiClubName));
+          if (extra) offers.push(extra);
+          s.setClubFocuses(prev => markSeasonGranted(prev, "little_black_book", seasonNumber));
+        }
+      }
       s.setTransferOffers(offers);
       // Everyone Has A Price — offers live for 3+ distinct players at once
       if (!s.unlockedAchievements.has("everyone_has_a_price") && countDistinctOfferTargets(offers) >= 3) {

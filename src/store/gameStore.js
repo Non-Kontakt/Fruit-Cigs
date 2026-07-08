@@ -3,6 +3,7 @@ import { getLeagueMatchdaysPlayed } from "../utils/league.js";
 import { DEFAULT_FORMATION } from "../data/formations.js";
 import { initStoryArcs } from "../utils/arcs.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
+import { defaultClubFocuses } from "../data/clubFocuses.js";
 
 /**
  * Core game state store — replaces the useState + useRef mirror pattern.
@@ -380,6 +381,17 @@ export const useGameStore = create((set, get) => ({
   storyArcs: initStoryArcs(),
   arcStepQueue: [],
 
+  // === Club Focus tree ===
+  // One additive, JSON-safe object driving the authored focus graph:
+  //   activeId        — the node currently soaking up weeks, or null
+  //   progressById    — { [nodeId]: weeksElapsed } (partial progress survives
+  //                      a focus switch; the completed node's entry is cleared)
+  //   completedIds    — finished node ids; the sole input to getClubFocusBonuses
+  //   seasonGrants    — { [nodeId]: seasonNumber } idempotency ledger for
+  //                      recurring season grants AND deferred one-off consumption
+  // Derived bonuses are NEVER stored here — see utils/clubFocuses.js.
+  clubFocuses: defaultClubFocuses(),
+
   // === Season/summer state ===
   summerData: null,
   leagueRosters: null,
@@ -577,6 +589,8 @@ export const useGameStore = create((set, get) => ({
 
   setStoryArcs: (val) => set(s => ({ storyArcs: typeof val === "function" ? val(s.storyArcs) : val })),
   setArcStepQueue: (val) => set(s => ({ arcStepQueue: typeof val === "function" ? val(s.arcStepQueue) : val })),
+
+  setClubFocuses: (val) => set(s => ({ clubFocuses: typeof val === "function" ? val(s.clubFocuses) : val })),
 
   setSummerData: (val) => set(s => ({ summerData: typeof val === "function" ? val(s.summerData) : val })),
   setLeagueRosters: (val) => set(s => ({ leagueRosters: typeof val === "function" ? val(s.leagueRosters) : val })),

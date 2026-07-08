@@ -865,6 +865,84 @@ test.describe("full-app flows", () => {
     expect(save.calendarResults).toEqual({});
   });
 
+  test("club focus: start via the tree UI, tick a week, then force-complete for its one-off grant", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Fill an XI so ADVANCE WEEK proceeds past the lineup guard, and take
+    // every player OFF training so a week produces no gains — that keeps the
+    // GainPopup from opening (it auto-closes with nothing to reveal) and the
+    // Home view returns to ADVANCE WEEK cleanly between advances.
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const order = ["GK", "CB", "CB", "LB", "RB", "CM", "CM", "AM", "LW", "RW", "ST"];
+      const used = new Set();
+      const startingXI = [];
+      for (const pos of order) {
+        const p = s.squad.find(pl => pl.position === pos && !used.has(pl.id));
+        if (p) { startingXI.push(p.id); used.add(p.id); }
+      }
+      window.__fc.setState({ startingXI, squad: s.squad.map(p => ({ ...p, training: null })) });
+    });
+
+    // Open the Club page, launch the Club Focus tree, start a root node.
+    await page.getByText("CLUB", { exact: false }).first().click();
+    await page.getByText("CLUB FOCUS", { exact: false }).first().click();
+    await expect(page.getByText("New Bibs", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await page.locator('[data-testid="focus-node-new_bibs"]').click();
+    await page.getByText("START", { exact: true }).click();
+    await page.waitForFunction(() => window.__fc.getState().clubFocuses.activeId === "new_bibs", null, { timeout: 5_000 });
+
+    // Close the overlay, return HOME, advance a week — the focus should tick.
+    await page.getByText("CLOSE", { exact: false }).first().click();
+    await page.getByText("HOME", { exact: false }).first().click();
+    await page.getByText("ADVANCE WEEK", { exact: false }).first().click();
+    await page.waitForFunction(() => (window.__fc.getState().clubFocuses.progressById.new_bibs || 0) === 1, null, { timeout: 10_000 });
+
+    // Wait for the first advance to fully settle (the gains popup auto-closes
+    // with nothing to reveal and processGainsDone queues the next match), then
+    // force the focus to its final week, clear the queued match, and advance
+    // again — completion fires the assistant note and the one-off grant, once.
+    await page.waitForFunction(() => !window.__fc.getState().processing, null, { timeout: 10_000 });
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      window.__fc.setState({
+        matchPending: false,
+        clubFocuses: { ...s.clubFocuses, activeId: "new_bibs", progressById: { new_bibs: 3 } },
+      });
+    });
+    await page.getByText("HOME", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => { const s = window.__fc.getState(); return !s.matchPending && !s.processing && !s.summerPhase; },
+      null, { timeout: 10_000 },
+    );
+    // Baseline the Double Sessions count right before the completing advance
+    // (the game may already hold some) so we assert the grant DELTA, not total.
+    const dsBefore = await page.evaluate(() => window.__fc.getState().tickets.filter(t => t.type === "double_session").length);
+    await expect(page.getByText("ADVANCE WEEK", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await page.getByText("ADVANCE WEEK", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => window.__fc.getState().clubFocuses.completedIds.includes("new_bibs"),
+      null, { timeout: 10_000 },
+    );
+
+    const after = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return {
+        activeId: s.clubFocuses.activeId,
+        completeMsgs: s.inboxMessages.filter(m => m.title === "Club Focus: New Bibs").length,
+        doubleSessionTickets: s.tickets.filter(t => t.type === "double_session").length,
+      };
+    });
+    // Completion clears the active slot, posts exactly one note, and grants
+    // exactly two Double Sessions tickets (delta over the baseline).
+    expect(after.activeId).toBeNull();
+    expect(after.completeMsgs).toBe(1);
+    expect(after.doubleSessionTickets - dsBefore).toBe(2);
+  });
+
   test("prestige: winning the Intergalactic Elite runs the wormhole reset and carries legends", async ({ page }) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });

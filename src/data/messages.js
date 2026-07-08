@@ -366,6 +366,34 @@ const arcComplete = (arcName, body) => ({
 });
 
 // ---------------------------------------------------------------------------
+// CLUB FOCUS
+// ---------------------------------------------------------------------------
+
+const clubFocusComplete = (node, rewardLine) => ({
+  id: `msg_focus_${node.id}_${Date.now()}`,
+  icon: node.artKey || "🧭", // 🧭
+  color: C.gold,
+  title: `Club Focus: ${node.name}`,
+  body: `The diggers are packing up, boss — ${node.name} is done.\n\n${rewardLine}`,
+});
+
+const clubFocusProdigy = (playerName, position) => ({
+  id: `msg_focus_prodigy_${Date.now()}`,
+  icon: "🐣", // 🐣
+  color: C.gold,
+  title: "The Prodigy Pipeline",
+  body: `The academy's been buzzing all week. ${playerName}, a 16-year-old ${position}, has been fast-tracked into the setup — the coaches reckon he's the real thing. He's yours.`,
+});
+
+const clubFocusContinentalTip = (playerName, countryLabel, potential, ovrCap) => ({
+  id: `msg_focus_continental_${Date.now()}`,
+  icon: "🌍", // 🌍
+  color: C.blue,
+  title: "Continental Contacts",
+  body: `Word from abroad, boss. Our man on the continent rates ${playerName} (${countryLabel}) — ceiling of ${potential}/${ovrCap}, already on your shortlist with the report filed. A lead worth chasing, not a done deal.`,
+});
+
+// ---------------------------------------------------------------------------
 // LEAGUE
 // ---------------------------------------------------------------------------
 
@@ -997,6 +1025,10 @@ export const MSG = {
   transferWindowClosed,
   // Arcs
   arcComplete,
+  // Club Focus
+  clubFocusComplete,
+  clubFocusProdigy,
+  clubFocusContinentalTip,
   // League
   leagueModIntro,
   leagueModIntroNewSeason,

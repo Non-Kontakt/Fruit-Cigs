@@ -14,6 +14,7 @@ import { detectFormationName, getEffectiveSlots, getTeamOOPMultiplier } from "./
 import { generateSquad, generateAITeam, checkRetirements, generateTrialPlayer, getOvrCap, displayName } from "./utils/player.js";
 import { resolveSeasonEndArcs } from "./utils/arcs.js";
 import { SCOUT_REVEAL_WEEKS } from "./utils/scouting.js";
+import { getClubFocusBonuses } from "./utils/clubFocuses.js";
 import { decrementOfferExpiry, resolveLoyaltyWatch } from "./utils/transfer.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
@@ -351,6 +352,7 @@ function FruitCigs() {
   const ovrHistory = useGameStore(s => s.ovrHistory);
   const storyArcs = useGameStore(s => s.storyArcs);
   const arcStepQueue = useGameStore(s => s.arcStepQueue); // [{ arcId, stepIdx, type, desc, gains }]
+  const clubFocuses = useGameStore(s => s.clubFocuses);
   const processing = useGameStore(s => s.processing);
   const [weekTransition, setWeekTransition] = useState(false);
   const league = useGameStore(s => s.league);
@@ -1116,7 +1118,10 @@ function FruitCigs() {
         clubTier: player.clubTier,
         addedSeason: seasonNumber,
         addedWeek: calendarIndex,
-        scoutWeeksLeft: SCOUT_REVEAL_WEEKS,
+        // Club Focus (A Man At Every Ground) shaves a week off the passive
+        // reveal timer, applied once at the initial shortlist assignment
+        // (cleaner than touching the weekly countdown), clamped to ≥1.
+        scoutWeeksLeft: Math.max(1, SCOUT_REVEAL_WEEKS + (getClubFocusBonuses(useGameStore.getState().clubFocuses).revealWeeksDelta || 0)),
       }];
     });
   }, [seasonNumber, calendarIndex]);
@@ -1432,10 +1437,14 @@ function FruitCigs() {
   }, []);
 
   const assignPositionTraining = useCallback((playerId, targetPos) => {
+    // Club Focus (The Gym Extension) shortens retraining at this duration
+    // site, clamped to at least one week (0 still means "can't train").
+    const retrainDelta = getClubFocusBonuses(useGameStore.getState().clubFocuses).retrainWeeksDelta || 0;
     setSquad(prev => prev.map(p => {
       if (p.id !== playerId) return p;
-      const weeks = getPositionTrainingWeeks(p.position, targetPos);
-      if (weeks === 0) return p; // Can't train same position
+      const raw = getPositionTrainingWeeks(p.position, targetPos);
+      if (raw === 0) return p; // Can't train same position
+      const weeks = Math.max(1, raw + retrainDelta);
       const learned = p.learnedPositions || [];
       if (learned.includes(targetPos)) return p; // Already learned
       return {
@@ -5083,8 +5092,12 @@ function FruitCigs() {
           }}
           onAssignPositionTraining={(id, targetPos) => {
             assignPositionTraining(id, targetPos);
-            setSelectedPlayer(prev => ({ ...prev, positionTraining: { targetPos, weeksLeft: getPositionTrainingWeeks(prev.position, targetPos), totalWeeks: getPositionTrainingWeeks(prev.position, targetPos) }, training: null }));
+            // Mirror assignPositionTraining's Club Focus retrain shortening in
+            // the optimistic panel update so the two never disagree.
+            const _rw = Math.max(1, getPositionTrainingWeeks(selectedPlayer.position, targetPos) + (getClubFocusBonuses(useGameStore.getState().clubFocuses).retrainWeeksDelta || 0));
+            setSelectedPlayer(prev => ({ ...prev, positionTraining: { targetPos, weeksLeft: _rw, totalWeeks: _rw }, training: null }));
           }}
+          retrainWeeksDelta={getClubFocusBonuses(clubFocuses).retrainWeeksDelta || 0}
           onClose={() => setSelectedPlayer(null)}
           onRelease={(playerId) => {
             setSquad(prev => prev.filter(p => p.id !== playerId));

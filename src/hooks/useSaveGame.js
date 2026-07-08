@@ -17,6 +17,7 @@ import { normalizeRosters, initLeague, initAILeague, buildSeasonCalendar, comput
 import { seedMessageSeq, getMessageSeq } from "../utils/messageUtils.js";
 import { checkAchievements, deriveMissingPlayerUnlocks, checkMuseumAchievements } from "../utils/achievements.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
+import { migrateClubFocuses } from "../utils/clubFocuses.js";
 import { randomAvatar } from "../components/ui/ManagerAvatar.jsx";
 import {
   migrateSquadBackfill, migrateAITeamSquads, backfillAISquadDefaults, backfillRosterPhilosophy,
@@ -118,6 +119,7 @@ export function useSaveGame({
         lopsidedWarned: s.lopsidedWarned,
         ovrHistory: s.ovrHistory,
         storyArcs: s.storyArcs,
+        clubFocuses: s.clubFocuses,
         allTimeLeagueStatsByTier: s.allTimeLeagueStatsByTier,
         seasonLeagueStatsByTier: s.seasonLeagueStatsByTier,
         seasonLeagueStatsAvailable: s.seasonLeagueStatsAvailable,
@@ -385,6 +387,9 @@ export function useSaveGame({
       // Migration v3: reconstruct completed arcs
       const loadedArcs = migrateStoryArcsCompletion(s.storyArcs || initStoryArcs(), s.inboxMessages);
       store.setStoryArcs(loadedArcs);
+      // Club Focus tree — additive, no save-version bump. Saves predating this
+      // field default to an empty tree (migration-by-default).
+      store.setClubFocuses(migrateClubFocuses(s.clubFocuses));
       // All-time league stats are tier-scoped. If the save already has
       // `allTimeLeagueStatsByTier`, use it. Otherwise start empty:
       // pre-tier-scoped saves don't record which tier the goals were

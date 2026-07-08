@@ -7,7 +7,8 @@ import { TICKET_DEFS } from "../data/tickets.js";
 import { MSG } from "../data/messages.js";
 import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall, progressToPips, getTrainingProgress, pickRandom, computeDuoBoost } from "../utils/calc.js";
-import { getOvrCap } from "../utils/player.js";
+import { getOvrCap, generateYouthPlayer, uniqueGenerate } from "../utils/player.js";
+import { getClubFocusBonuses, tickActiveFocus } from "../utils/clubFocuses.js";
 import { getArcById, checkArcCond, applyArcFx, applyFinalReward, processArcCompletion, precomputeArcEffects, getStepNarrative, getFocusNarrative, resolveSeasonEndArcs } from "../utils/arcs.js";
 import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
 import { sortStandings, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
@@ -65,9 +66,10 @@ export function useAdvanceWeek({
       inboxMessages, trainedThisWeek, manualTrainingThisWeek, usedTicketTypes, scoutedPlayers,
       clubRelationships, slotAssignments, formation, formationsWonWith,
       freeAgentSignings, allLeagueStates, leagueRosters, teamName,
-      pendingTicketBoosts, dynastyCupQualifiers, prestigeLevel,
+      pendingTicketBoosts, dynastyCupQualifiers, prestigeLevel, clubFocuses,
     } = s;
     const ovrCap = getOvrCap(prestigeLevel || 0);
+    const focusBonuses = getClubFocusBonuses(clubFocuses);
 
     if (processing || !league) return;
 
@@ -350,6 +352,75 @@ export function useAdvanceWeek({
       return changed ? next : prev;
     });
 
+    // === CLUB FOCUS: weekly tick + completion ===
+    // Runs before the holiday branch returns so a focus still ticks and
+    // completes on holiday. tickActiveFocus is pure; completion fires an
+    // assistant-voice inbox note and applies the node's one-off effects here
+    // (passives are derived at their seams, never applied). Season grants for
+    // recurring nodes live in useSeasonEnd's rollover, not here.
+    {
+      const cf = useGameStore.getState().clubFocuses;
+      if (cf?.activeId) {
+        const { next, completedNode } = tickActiveFocus(cf);
+        s.setClubFocuses(next);
+        if (completedNode) {
+          let rewardLine = completedNode.desc;
+          const eff = completedNode.effectId;
+          if (eff === "grant_double_sessions") {
+            s.setTickets(prev => [...prev,
+              { id: `t_focus_ds_${Date.now()}_a`, type: "double_session" },
+              { id: `t_focus_ds_${Date.now()}_b`, type: "double_session" },
+            ]);
+            rewardLine = "Two Double Sessions tickets are in the cabinet.";
+          } else if (eff === "shop_opening") {
+            const before = useGameStore.getState().fanSentiment;
+            const after = Math.min(100, before + 15);
+            s.setFanSentiment(after);
+            s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(after - before), reason: "New club shop opens", week: calendarIndex + 1, season: seasonNumber }));
+            s.setTickets(prev => [...prev, { id: `t_focus_12_${Date.now()}`, type: "twelfth_man" }]);
+            rewardLine = "Fan sentiment is up and a 12th-Man ticket is yours.";
+          } else if (eff === "prawn_sandwiches") {
+            const before = useGameStore.getState().boardSentiment;
+            const after = Math.min(100, before + 15);
+            s.setBoardSentiment(after);
+            rewardLine = "The board are delighted — board sentiment +15.";
+          } else if (eff === "black_book") {
+            s.setTickets(prev => [...prev,
+              { id: `t_focus_sd_${Date.now()}_a`, type: "scout_dossier" },
+              { id: `t_focus_sd_${Date.now()}_b`, type: "scout_dossier" },
+            ]);
+            rewardLine = "Two Scout Dossiers, and the next window brings an extra offer.";
+          } else if (eff === "war_chest") {
+            const pool = ["double_session", "twelfth_man", "relation_boost", "random_attr"];
+            s.setTickets(prev => [...prev, ...Array.from({ length: 3 }, (_, i) => ({ id: `t_focus_wc_${Date.now()}_${i}`, type: pickRandom(pool) }))]);
+            rewardLine = "Three tickets from the vault now, and one every season hereafter.";
+          } else if (eff === "prodigy") {
+            const usedNames = new Set(useGameStore.getState().squad.map(p => p.name));
+            const positions = ["ST","LW","RW","AM","CM","CB","LB","RB","GK"];
+            const wk = uniqueGenerate(() => generateYouthPlayer(positions[rand(0, positions.length - 1)], ovrCap), usedNames);
+            wk.age = 16;
+            wk.potential = Math.min(ovrCap, Math.max(wk.potential, Math.round(ovrCap * 0.85)));
+            wk.isYouthIntake = true;
+            wk.joinedSeason = seasonNumber;
+            wk.seasonStartOvr = getOverall(wk);
+            wk.seasonStartAttrs = { ...wk.attrs };
+            s.setSquad(prev => [...prev, wk]);
+            s.setInboxMessages(prev => [...prev, createInboxMessage(
+              MSG.clubFocusProdigy(wk.name, wk.position),
+              { calendarIndex, seasonNumber },
+            )]);
+            rewardLine = `${wk.name} (16, ${wk.position}) joins the academy.`;
+          }
+          // continental_tip / seasonal_cream have no completion payload — their
+          // grants fire at the next season rollover (see useSeasonEnd).
+          s.setInboxMessages(prev => [...prev, createInboxMessage(
+            MSG.clubFocusComplete(completedNode, rewardLine),
+            { calendarIndex, seasonNumber },
+          )]);
+        }
+      }
+    }
+
     // Left On Read — 10+ unread inbox messages
     if (!unlockedAchievements.has("left_on_read")) {
       const unreadCount = getUnreadCount(inboxMessages, calendarIndex);
@@ -406,12 +477,15 @@ export function useAdvanceWeek({
         focusGroups[p.training].push(p.id);
       });
 
-      // For each group of 2+, ~15% chance a duo boost fires for a random pair
+      // For each group of 2+, ~15% chance a duo boost fires for a random pair.
+      // Club Focus (All-Weather Pitch) nudges that probability up at the roll
+      // seam — the duo-boost cap invariant in computeDuoBoost is untouched.
       const duoBoostedIds = new Set();
       const duoPairs = [];
+      const duoRollChance = 0.15 + (focusBonuses.duoBoostBonus || 0);
       Object.entries(focusGroups).forEach(([trainingKey, ids]) => {
         if (ids.length < 2) return;
-        if (Math.random() < 0.15) {
+        if (Math.random() < duoRollChance) {
           const shuffled = [...ids].sort(() => Math.random() - 0.5);
           const pair = [shuffled[0], shuffled[1]];
           pair.forEach(id => duoBoostedIds.add(id));
@@ -506,19 +580,24 @@ export function useAdvanceWeek({
             const baseInjuryChance = injuryShield ? 0.02 : 0.04; // halved with shield
             // Altitude Trials: PHY reduces injury susceptibility (PHY 10+ → 30% reduction)
             const phyResist = mod.exhaustionInjury ? Math.min(0.3, (p.attrs.physical || 0) * 0.03) : 0;
-            const injuryChance = baseInjuryChance * (mod.injuryChanceMult || 1) * (1 - phyResist);
+            // Club Focus (Sports Scientist) applies its training-injury
+            // reduction centrally at the single training injury roll.
+            const injuryChance = baseInjuryChance * (mod.injuryChanceMult || 1) * (1 - phyResist) * (focusBonuses.trainingInjuryMult || 1);
             if (!isProdigalBoostWeek && Math.random() < injuryChance) {
               // Altitude Trials: 30% chance the injury is Exhaustion specifically
               const inj = (mod.exhaustionInjury && Math.random() < 0.3)
                 ? { name: "Exhaustion", weeksOut: 2 }
                 : TRAINING_INJURIES[rand(0, TRAINING_INJURIES.length - 1)];
-              newPlayer.injury = { name: inj.name, weeksLeft: inj.weeksOut };
+              // Club Focus (Ice Baths) shortens new injuries at the single
+              // injury-generation site, clamped to at least one week.
+              const injWeeks = Math.max(1, inj.weeksOut + (focusBonuses.injuryHealDelta || 0));
+              newPlayer.injury = { name: inj.name, weeksLeft: injWeeks };
               // Track distinct injury types on player (career-wide, for The Sick Note)
               newPlayer.injuryHistory = { ...(newPlayer.injuryHistory || {}), [inj.name]: true };
               if (Object.keys(newPlayer.injuryHistory).length >= 3 && !unlockedAchievements.has("the_sick_note")) {
                 tryUnlockAchievement("the_sick_note");
               }
-              const injEntry = { playerName: p.name, playerPosition: p.position, injury: inj.name, weeksOut: inj.weeksOut };
+              const injEntry = { playerName: p.name, playerPosition: p.position, injury: inj.name, weeksOut: injWeeks };
               // Tier 11: Concrete Schoolyard — injury may cost -1 to a non-trained ATTR
               if (mod.injuryAttrLossChance && Math.random() < mod.injuryAttrLossChance) {
                 const trainedAttrs = new Set(focus.attrs);
@@ -880,6 +959,12 @@ export function useAdvanceWeek({
       // World XI Invitational: fan sentiment swings amplified
       const fanSentMult = getModifier(leagueTier).fanSentimentMult || 1;
       fanDelta = fanDelta * fanSentMult;
+      // Club Focus: Safe Standing softens weekly fan-sentiment losses (round
+      // toward less loss); Floodlights adds a little positive drift when the
+      // week's trend is already upward. Applied here so the Club Mood ledger
+      // records the true, softened value.
+      if (fanDelta < 0) fanDelta = fanDelta * (focusBonuses.sentimentLossMult || 1);
+      else if (fanDelta > 0) fanDelta += (focusBonuses.floodlightsDriftBonus || 0);
       const newFan = Math.max(0, Math.min(100, curFan + fanDelta));
       // Federation: board scrutiny multiplier on negative deltas
       const weekScrutiny = getModifier(leagueTier).boardScrutinyMult || 1;
@@ -925,7 +1010,9 @@ export function useAdvanceWeek({
           const target = leagueTier <= 3 ? 7 : leagueTier <= 7 ? 6 : 5;
           s.setUltimatumTarget(target);
           s.setUltimatumPtsEarned(0);
-          s.setUltimatumGamesLeft(5);
+          // Club Focus (A Friend On The Board) grants extra games at the
+          // ultimatum's initialization site.
+          s.setUltimatumGamesLeft(5 + (focusBonuses.ultimatumExtraGames || 0));
           s.setUltimatumActive(true);
           s.setInboxMessages(prev => [...prev, createInboxMessage(
             MSG.boardUltimatum(target, useGameStore.getState().managerName),
