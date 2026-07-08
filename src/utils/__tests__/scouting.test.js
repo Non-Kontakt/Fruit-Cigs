@@ -140,4 +140,20 @@ describe("hasUnresolvedDossierBurn — Just Browsing", () => {
     expect(hasUnresolvedDossierBurn({}, 3, [])).toBe(false);
     expect(hasUnresolvedDossierBurn(null, 3, null)).toBe(false);
   });
+
+  it("false when the burned player was signed but moved on again before season end", () => {
+    const dossierBurns = { p1: { season: 3 } };
+    const transferHistory = [
+      { season: 3, received: [{ id: "p1", name: "Signed Then Sold" }], offered: [] },
+    ];
+    expect(hasUnresolvedDossierBurn(dossierBurns, 3, [{ id: "someoneElse" }], transferHistory)).toBe(false);
+  });
+
+  it("a prior-season signing of the same player does not resolve this season's burn", () => {
+    const dossierBurns = { p1: { season: 3 } };
+    const transferHistory = [
+      { season: 2, received: [{ id: "p1" }], offered: [] },
+    ];
+    expect(hasUnresolvedDossierBurn(dossierBurns, 3, [], transferHistory)).toBe(true);
+  });
 });

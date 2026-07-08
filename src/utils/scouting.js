@@ -105,8 +105,15 @@ export function getStaleShortlistEntries(shortlist, seasonNumber) {
  * @param {Array} squad - current squad
  * @returns {boolean}
  */
-export function hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad) {
+export function hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad, transferHistory) {
   const squadIds = new Set((squad || []).map(p => p.id));
+  // A burned player who was signed and then moved on again before season end
+  // is still a signing — the squad alone can't tell; the trade record can.
+  const signedIds = new Set(
+    (transferHistory || [])
+      .filter(t => t.season === seasonNumber)
+      .flatMap(t => (t.received || []).map(p => p.id))
+  );
   return Object.entries(dossierBurns || {}).some(([playerId, burn]) =>
-    burn?.season === seasonNumber && !squadIds.has(playerId));
+    burn?.season === seasonNumber && !squadIds.has(playerId) && !signedIds.has(playerId));
 }

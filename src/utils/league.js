@@ -308,7 +308,7 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   }
 
   // Just Browsing — burned a dossier on a player this season and never signed him.
-  if (!unlockedAchievements.has("just_browsing") && hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad)) {
+  if (!unlockedAchievements.has("just_browsing") && hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad, transferHistory)) {
     achs.push("just_browsing");
   }
 
