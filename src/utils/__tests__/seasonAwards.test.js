@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeGoldenBoot, computeSeasonAwards,
   buildGoldenBootBody, buildYoungPlayerOfSeasonBody, buildPlayerOfSeasonBody,
+  collectAwardsNightAchievements,
   __test,
 } from "../seasonAwards.js";
 import { emptyCompetitionStats, accumulateMatchStats } from "../competitionStats.js";
@@ -235,5 +236,164 @@ describe("computeSeasonAwards — AI assists from canonical stats", () => {
     expect(winner.name).toBe("Sterling");
     expect(winner.assists, "AI winner must carry canonical assists, not 0").toBe(4);
     expect(buildPlayerOfSeasonBody(result.playerOfSeason)).toContain("4 assists");
+  });
+});
+
+describe("collectAwardsNightAchievements — Quince Cigs", () => {
+  const bottomHalfLeague = {
+    table: [
+      { teamIndex: 0, points: 10 }, { teamIndex: 1, points: 40 }, { teamIndex: 2, points: 38 },
+      { teamIndex: 3, points: 36 }, { teamIndex: 4, points: 34 }, { teamIndex: 5, points: 32 },
+    ],
+    teams: [
+      { isPlayer: true, name: "Player FC" },
+      { isPlayer: false, name: "Rivals" }, { isPlayer: false, name: "Third" },
+      { isPlayer: false, name: "Fourth" }, { isPlayer: false, name: "Fifth" }, { isPlayer: false, name: "Sixth" },
+    ],
+  };
+  const topHalfLeague = {
+    table: [
+      { teamIndex: 0, points: 40 }, { teamIndex: 1, points: 10 },
+    ],
+    teams: [{ isPlayer: true, name: "Player FC" }, { isPlayer: false, name: "Rivals" }],
+  };
+  const noAwards = { goldenBoot: null, playerOfSeason: null, youngPlayerOfSeason: null };
+  const baseArgs = (extras = {}) => ({
+    awards: noAwards, squad: [], teamName: "Player FC", playerSeasonStats: {},
+    league: topHalfLeague, unlockedAchievements: new Set(),
+    ...extras,
+  });
+
+  it("returns nothing when no awards were computed", () => {
+    expect(collectAwardsNightAchievements(baseArgs())).toEqual([]);
+  });
+
+  it("top_of_the_bill when your player wins Player of the Season", () => {
+    const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 24 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards }))).toContain("top_of_the_bill");
+  });
+
+  it("does NOT unlock top_of_the_bill for an AI winner", () => {
+    const awards = { ...noAwards, playerOfSeason: { winner: { name: "Rival", teamName: "Rivals", isPlayerTeam: false, age: 24 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards }))).not.toContain("top_of_the_bill");
+  });
+
+  it("no_country_for_old_men when a 33+ winner is yours", () => {
+    const awards = { ...noAwards, playerOfSeason: { winner: { name: "Old Adams", teamName: "Player FC", isPlayerTeam: true, age: 35 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards }))).toContain("no_country_for_old_men");
+  });
+
+  it("defenders_no_respect when the winning squad player is a DEF or GK", () => {
+    const squad = [{ name: "Backline", position: "CB" }];
+    const awards = { ...noAwards, playerOfSeason: { winner: { name: "Backline", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+    const result = collectAwardsNightAchievements(baseArgs({ awards, squad }));
+    expect(result).toContain("defenders_no_respect");
+  });
+
+  it("does NOT unlock defenders_no_respect for a forward", () => {
+    const squad = [{ name: "Striker", position: "ST" }];
+    const awards = { ...noAwards, playerOfSeason: { winner: { name: "Striker", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, squad }))).not.toContain("defenders_no_respect");
+  });
+
+  it("raised_right when a homegrown player wins Young Player of the Season", () => {
+    const squad = [{ name: "Academy Kid", position: "CM", isYouthIntake: true }];
+    const awards = { ...noAwards, youngPlayerOfSeason: { winner: { name: "Academy Kid", teamName: "Player FC", isPlayerTeam: true, age: 19 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, squad }))).toContain("raised_right");
+  });
+
+  it("does NOT unlock raised_right when the young winner wasn't youth intake/coup", () => {
+    const squad = [{ name: "Bought Kid", position: "CM" }];
+    const awards = { ...noAwards, youngPlayerOfSeason: { winner: { name: "Bought Kid", teamName: "Player FC", isPlayerTeam: true, age: 19 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, squad }))).not.toContain("raised_right");
+  });
+
+  it("doing_it_all when the same player wins POTS and YPOTS", () => {
+    const awards = {
+      ...noAwards,
+      playerOfSeason: { winner: { name: "Wonderkid", teamName: "Player FC", isPlayerTeam: true, age: 19 }, nominees: [] },
+      youngPlayerOfSeason: { winner: { name: "Wonderkid", teamName: "Player FC", isPlayerTeam: true, age: 19 }, nominees: [] },
+    };
+    expect(collectAwardsNightAchievements(baseArgs({ awards }))).toContain("doing_it_all");
+  });
+
+  it("clean_sweep when all three awards are yours", () => {
+    const awards = {
+      goldenBoot: { winner: { name: "Striker", teamName: "Player FC", goals: 22 }, nominees: [] },
+      playerOfSeason: { winner: { name: "Playmaker", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] },
+      youngPlayerOfSeason: { winner: { name: "Kid", teamName: "Player FC", isPlayerTeam: true, age: 19 }, nominees: [] },
+    };
+    expect(collectAwardsNightAchievements(baseArgs({ awards }))).toContain("clean_sweep");
+  });
+
+  it("robbed when a squad player hit 20+ goals but someone else won the Golden Boot", () => {
+    const squad = [{ name: "Snubbed", position: "ST" }];
+    const awards = { ...noAwards, goldenBoot: { winner: { name: "Rival Striker", teamName: "Rivals", goals: 25 }, nominees: [] } };
+    const playerSeasonStats = { Snubbed: { goals: 21 } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, squad, playerSeasonStats }))).toContain("robbed");
+  });
+
+  it("does NOT unlock robbed when the 20+ scorer IS the Golden Boot winner", () => {
+    const squad = [{ name: "Striker", position: "ST" }];
+    const awards = { ...noAwards, goldenBoot: { winner: { name: "Striker", teamName: "Player FC", goals: 25 }, nominees: [] } };
+    const playerSeasonStats = { Striker: { goals: 25 } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, squad, playerSeasonStats }))).not.toContain("robbed");
+  });
+
+  it("class_of_their_own when all three awards go to the same rival club", () => {
+    const awards = {
+      goldenBoot: { winner: { name: "A", teamName: "Rivals", goals: 22 }, nominees: [] },
+      playerOfSeason: { winner: { name: "B", teamName: "Rivals", isPlayerTeam: false, age: 26 }, nominees: [] },
+      youngPlayerOfSeason: { winner: { name: "C", teamName: "Rivals", isPlayerTeam: false, age: 19 }, nominees: [] },
+    };
+    expect(collectAwardsNightAchievements(baseArgs({ awards }))).toContain("class_of_their_own");
+  });
+
+  it("carried when your Golden Boot winner finishes in the bottom half", () => {
+    const awards = { ...noAwards, goldenBoot: { winner: { name: "Striker", teamName: "Player FC", goals: 25 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, league: bottomHalfLeague }))).toContain("carried");
+  });
+
+  it("does NOT unlock carried when your Golden Boot winner finishes top half", () => {
+    const awards = { ...noAwards, goldenBoot: { winner: { name: "Striker", teamName: "Player FC", goals: 25 }, nominees: [] } };
+    expect(collectAwardsNightAchievements(baseArgs({ awards, league: topHalfLeague }))).not.toContain("carried");
+  });
+
+  it("respects already-unlocked state", () => {
+    const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 24 }, nominees: [] } };
+    const result = collectAwardsNightAchievements(baseArgs({ awards, unlockedAchievements: new Set(["top_of_the_bill"]) }));
+    expect(result).not.toContain("top_of_the_bill");
+  });
+
+  describe("repeat_offender — same player wins POTS twice", () => {
+    it("unlocks when this season's POTS winner (name + team) matches a prior season's entry", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory }))).toContain("repeat_offender");
+    });
+
+    it("does NOT unlock for a first-time winner with no prior history", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory: [] }))).not.toContain("repeat_offender");
+    });
+
+    it("does NOT unlock when the name matches but the team differs (transfer)", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "New Club", isPlayerTeam: false, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory }))).not.toContain("repeat_offender");
+    });
+
+    it("does NOT unlock when a different player won this season", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Someone Else", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      expect(collectAwardsNightAchievements(baseArgs({ awards, awardsHistory }))).not.toContain("repeat_offender");
+    });
+
+    it("respects already-unlocked state", () => {
+      const awards = { ...noAwards, playerOfSeason: { winner: { name: "Adams", teamName: "Player FC", isPlayerTeam: true, age: 26 }, nominees: [] } };
+      const awardsHistory = [{ season: 1, potsName: "Adams", potsTeam: "Player FC", isPlayerTeam: true, ypotsName: null, goldenBootName: null }];
+      const result = collectAwardsNightAchievements(baseArgs({ awards, awardsHistory, unlockedAchievements: new Set(["repeat_offender"]) }));
+      expect(result).not.toContain("repeat_offender");
+    });
   });
 });

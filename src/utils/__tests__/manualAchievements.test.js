@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkAchievements } from "../achievements.js";
+import { checkAchievements, hasAllBackPages, addHatTrickScorer } from "../achievements.js";
 
 // Tinkerer, The Dugout, and Rotation Policy all previously fired off bulk
 // state that never reflected a deliberate manual action (whole-squad
@@ -138,5 +138,64 @@ describe("Rotation Policy — 4+ changes required", () => {
       lastMatchResult, league, prevStartingXI, startingXI, unlocked: new Set(["rotation"]),
     }));
     expect(result).not.toContain("rotation");
+  });
+});
+
+describe("hasAllBackPages — Framed Above The Desk", () => {
+  it("false with an empty set", () => {
+    expect(hasAllBackPages(new Set())).toBe(false);
+  });
+
+  it("false with only two of the three types", () => {
+    expect(hasAllBackPages(new Set(["title", "promotion"]))).toBe(false);
+  });
+
+  it("true once all three types are present", () => {
+    expect(hasAllBackPages(new Set(["title", "promotion", "cup_final"]))).toBe(true);
+  });
+
+  it("true regardless of insertion order or extra unknown entries", () => {
+    expect(hasAllBackPages(new Set(["cup_final", "unrelated", "promotion", "title"]))).toBe(true);
+  });
+
+  it("handles a null/undefined set without throwing", () => {
+    expect(hasAllBackPages(null)).toBe(false);
+    expect(hasAllBackPages(undefined)).toBe(false);
+  });
+});
+
+describe("addHatTrickScorer — Hat-Trick Headlines", () => {
+  it("appends a new distinct name", () => {
+    const result = addHatTrickScorer(["Adams"], "Baker");
+    expect(result).toEqual(["Adams", "Baker"]);
+  });
+
+  it("dedupes — does not append a name already recorded", () => {
+    const prev = ["Adams", "Baker"];
+    const result = addHatTrickScorer(prev, "Adams");
+    expect(result).toBe(prev); // same reference — caller uses this to skip setState
+    expect(result).toEqual(["Adams", "Baker"]);
+  });
+
+  it("ignores a missing/falsy name", () => {
+    const prev = ["Adams"];
+    expect(addHatTrickScorer(prev, undefined)).toBe(prev);
+    expect(addHatTrickScorer(prev, null)).toBe(prev);
+    expect(addHatTrickScorer(prev, "")).toBe(prev);
+  });
+
+  it("treats a missing prior list as empty", () => {
+    expect(addHatTrickScorer(undefined, "Adams")).toEqual(["Adams"]);
+    expect(addHatTrickScorer(null, "Adams")).toEqual(["Adams"]);
+  });
+
+  it("three distinct scorers reach the unlock threshold", () => {
+    let players = [];
+    players = addHatTrickScorer(players, "Adams");
+    players = addHatTrickScorer(players, "Baker");
+    players = addHatTrickScorer(players, "Adams"); // repeat, not distinct
+    players = addHatTrickScorer(players, "Clarke");
+    expect(players).toEqual(["Adams", "Baker", "Clarke"]);
+    expect(players.length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -329,6 +329,49 @@ export const ACHIEVEMENTS = [
   { id: "jumpers_for_goalposts", name: "Jumpers For Goalposts", desc: "Win a match with no players assigned to a training focus", icon: "🧥" },
   { id: "good_engine", name: "Good Engine", desc: "Have a central midfielder with both Physical and Mental at 15 or above", icon: "🔋" },
 
+  // === AWARDS NIGHT ===
+  { id: "top_of_the_bill", name: "Top Of The Bill", desc: "Your player wins Player of the Season", icon: "🎟️" },
+  { id: "raised_right", name: "Raised Right", desc: "A homegrown player wins Young Player of the Season", icon: "🌱" },
+  { id: "clean_sweep", name: "Clean Sweep", desc: "Your players win all three end-of-season awards", icon: "🧹" },
+  { id: "robbed", name: "Robbed", desc: "Score 20+ league goals with one player and still miss out on the Golden Boot", icon: "😤" },
+  { id: "doing_it_all", name: "Doing It All", desc: "The same player wins Player of the Season and Young Player of the Season in one night", icon: "🎭" },
+  { id: "no_country_for_old_men", name: "No Country For Old Men", desc: "A 33+ year old of yours wins Player of the Season", icon: "👴" },
+  { id: "defenders_no_respect", name: "Defenders Get No Respect", desc: "A defender or goalkeeper of yours wins Player of the Season", icon: "🛡️" },
+  { id: "repeat_offender", name: "Repeat Offender", desc: "The same player wins Player of the Season twice", icon: "🔁" },
+  { id: "class_of_their_own", name: "Class Of Their Own", desc: "All three award winners come from the same club — and it isn't yours", icon: "🎓" },
+  { id: "carried", name: "Carried", desc: "Your player wins the Golden Boot while you finish in the bottom half", icon: "🎒" },
+
+  // === SEASON KNOCKOUTS ===
+  { id: "succession", name: "Succession", desc: "Win the Dynasty Cup", icon: "👑" },
+  { id: "through_side_door", name: "Through The Side Door", desc: "Finish 4th and get promoted anyway via the Dynasty Cup", icon: "🚪" },
+  { id: "five_a_side_story", name: "Five-A-Side Story", desc: "Win the 5v5 Mini-Tournament", icon: "🎭" },
+  { id: "both_barrels", name: "Both Barrels", desc: "Win the league and the Dynasty Cup in the same season", icon: "🔫" },
+  { id: "bottled_it_beautifully", name: "Bottled It Beautifully", desc: "Win the league but lose the Dynasty Cup final", icon: "🍾" },
+  { id: "bronze_age", name: "Bronze Age", desc: "Win the 5v5 third-place playoff", icon: "🥉" },
+  { id: "giant_slaying_mini", name: "Giant Slaying, Miniature Edition", desc: "Win the 5v5 as the 4th seed", icon: "⚔️" },
+  { id: "knockout_artist", name: "Knockout Artist", desc: "Win both knockout competitions in the same career", icon: "🥊" },
+  { id: "undercard", name: "Undercard", desc: "Reach the Dynasty Cup final from 4th place", icon: "🎫" },
+  { id: "kingmaker_denied", name: "Kingmaker Denied", desc: "Beat the league champions in a knockout final", icon: "🚫" },
+
+  // === LEAGUE HISTORY ===
+  { id: "been_everywhere_man", name: "Been Everywhere, Man", desc: "Finish a season in every position from 1st to 10th across your career", icon: "🗺️" },
+  { id: "unfinished_business", name: "Unfinished Business", desc: "Win a division you were once relegated from", icon: "🔙" },
+  { id: "yo_yo_years", name: "The Yo-Yo Years", desc: "Get promoted, relegated, and promoted again in consecutive seasons", icon: "🪀" },
+  { id: "watching_the_throne", name: "Watching The Throne", desc: "Watch the same club win three straight titles in another division", icon: "👀" },
+  { id: "wooden_spoon_collection", name: "Wooden Spoon Collection", desc: "Finish dead last in two different divisions", icon: "🥄" },
+
+  // === THE NEWSPAPER ===
+  { id: "the_blueprint", name: "The Blueprint", desc: "Have the paper name your squad's playing identity", icon: "📰" },
+  { id: "route_one_reputation", name: "Route One Reputation", desc: "Get labelled a counter-attacking side", icon: "🏃" },
+  { id: "nothing_gets_past_us", name: "Nothing Gets Past Us", desc: "Get labelled a defensive wall", icon: "🧤" },
+  { id: "keep_ball_merchants", name: "Keep-Ball Merchants", desc: "Get labelled a possession side", icon: "🔄" },
+  { id: "front_page_news", name: "Front Page News", desc: "Earn a special back page", icon: "🗞️" },
+  { id: "framed_above_desk", name: "Framed Above The Desk", desc: "Collect all three special back pages — title, promotion, and cup final", icon: "🖼️" },
+  { id: "derby_day_ink", name: "Derby Day Ink", desc: "Make the back page with a derby result", icon: "🖋️" },
+  { id: "same_time_next_year", name: "Same Time Next Year", desc: "Finish in the identical league position three seasons running", icon: "📅" },
+  { id: "fixtures_and_fittings", name: "Fixtures And Fittings", desc: "Receive the season preview that says you're part of the furniture", icon: "🛋️" },
+  { id: "hat_trick_headlines", name: "Hat-Trick Headlines", desc: "Hat-trick back pages for three different players in one season", icon: "🎩" },
+
   // === HOLIDAY MODE — power-user feature ===
   { id: "hands_off", name: "Hands Off", desc: "Go on holiday for the first time", icon: "🏖️" },
   { id: "cruise_control", name: "Cruise Control", desc: "Play 10+ consecutive matches on holiday", icon: "🚢" },
@@ -416,6 +459,36 @@ export const ACHIEVEMENTS = [
   { id: "trust_the_process", name: "Trust The Process", desc: "Sign three passively-revealed players in one career", icon: "📋" },
   { id: "eye_for_talent", name: "Eye For Talent", desc: "A player you revealed at max potential wins Young Player of the Season for you", icon: "🦅" },
   { id: "cold_case", name: "Cold Case", desc: "Carry a shortlisted player into a second season without signing him", icon: "🧊" },
+  // === BREAKOUT MOMENTS — Gooseberry Cigs ===
+  { id: "scenes", name: "Scenes", desc: "Witness your first breakout moment", icon: "🎆" },
+  { id: "purple_patch", name: "Purple Patch", desc: "One player has two breakout moments in the same season", icon: "🟣" },
+  { id: "made_for_occasion", name: "Made For The Occasion", desc: "A player has a breakout moment in a cup tie", icon: "🎪" },
+  { id: "everyones_invited", name: "Everyone's Invited", desc: "Players in all four position groups have breakout moments in one season", icon: "🎉" },
+  { id: "vintage_performance", name: "Vintage Performance", desc: "A 30+ year old has a breakout moment", icon: "🍷" },
+  { id: "fast_learner", name: "Fast Learner", desc: "A player has a breakout moment within his first five appearances for you", icon: "🚀" },
+  { id: "raising_ceiling", name: "Raising The Ceiling", desc: "A breakout moment pushes a player's potential to the cap", icon: "🏗️" },
+  { id: "wonderwall", name: "Wonderwall", desc: "A goalkeeper has a breakout moment", icon: "🧱" },
+  { id: "production_line", name: "Production Line", desc: "Five breakout moments across the squad in one season", icon: "🏭" },
+  { id: "never_saw_him_coming", name: "Never Saw Him Coming", desc: "A player with single-digit potential has a breakout moment", icon: "👻" },
+
+  // === RIVALRIES — Blood Orange Cigs ===
+  { id: "bragging_rights", name: "Bragging Rights", desc: "Beat one of your rivals", icon: "🗣️" },
+  { id: "no_love_lost", name: "No Love Lost", desc: "Win a derby that produces two or more red cards", icon: "🟥" },
+  { id: "settled_scores", name: "Settled Scores", desc: "Go a whole season unbeaten against your rivals", icon: "🤝" },
+  { id: "twist_the_knife", name: "Twist The Knife", desc: "Score a 90th-minute winner against a rival", icon: "🔪" },
+  { id: "home_and_away", name: "Home And Away", desc: "Beat the same rival home and away in one season", icon: "📺" },
+  { id: "breaking_the_curse", name: "Breaking The Curse", desc: "Beat a rival you'd never beaten in five or more meetings", icon: "⛓️" },
+  { id: "surrounded", name: "Surrounded", desc: "Have three clubs qualify as rivals at the same time", icon: "😤" },
+  { id: "statement_win", name: "Statement Win", desc: "Beat a rival by four or more goals", icon: "📢" },
+  { id: "spoils_of_war", name: "Spoils Of War", desc: "Sign a player from a rival club", icon: "🏴" },
+  { id: "kept_the_receipts", name: "Kept The Receipts", desc: "Reach ten career meetings with a single rival", icon: "🧾" },
+
+  // === TEAM OF THE CUP — Kumquat Cigs ===
+  { id: "cup_runneth_over", name: "Cup Runneth Over", desc: "Get three or more players into the Team of the Cup", icon: "🏆" },
+  { id: "eleven_out_of_eleven", name: "Eleven Out Of Eleven", desc: "Fill more than half the Team of the Cup", icon: "💫" },
+  { id: "cup_keeper", name: "Cup Keeper", desc: "Your goalkeeper makes the Team of the Cup", icon: "🧤" },
+  { id: "beaten_not_forgotten", name: "Beaten But Not Forgotten", desc: "Get a player into the Team of the Cup despite going out before the final", icon: "🥀" },
+  { id: "best_of_both", name: "Best Of Both", desc: "The same player makes TOTS and TOTC in one season", icon: "🎪" },
 ];
 
 

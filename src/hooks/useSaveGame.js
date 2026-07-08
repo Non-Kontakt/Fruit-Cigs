@@ -163,6 +163,9 @@ export function useSaveGame({
         tradesMadeInWindow: s.tradesMadeInWindow,
         tradedWithClubs: s.tradedWithClubs,
         weeksSinceIdentityHeadline: s.weeksSinceIdentityHeadline,
+        awardsHistory: s.awardsHistory,
+        backPagesReceived: s.backPagesReceived,
+        hatTrickHeadlinePlayers: s.hatTrickHeadlinePlayers,
         fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment,
         sentimentLog: s.sentimentLog,
         gameMode: s.gameMode,
@@ -473,6 +476,9 @@ export function useSaveGame({
       store.setPrevSeasonSquadIds(s.prevSeasonSquadIds || null);
       store.setTradesMadeInWindow(s.tradesMadeInWindow || 0);
       store.setTradedWithClubs(s.tradedWithClubs || new Set());
+      store.setAwardsHistory(s.awardsHistory || []);
+      store.setBackPagesReceived(s.backPagesReceived || new Set());
+      store.setHatTrickHeadlinePlayers(s.hatTrickHeadlinePlayers || []);
       store.setPrestigeLevel(s.prestigeLevel || 0);
       // (No clubHistory → tier-scoped seed. clubHistory.playerCareers spans
       // tiers/clubs/cups by design; attributing those totals to one tier

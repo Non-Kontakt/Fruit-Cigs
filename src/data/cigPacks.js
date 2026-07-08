@@ -1,8 +1,8 @@
 // Cigarette pack collection system for achievements
 // Every pack contains EXACTLY 5 or 10 achievements — this is a hard
-// invariant, not a rough guideline. All 310 achievements distributed
-// across 34 packs (v3.1, recomposed v3.2, re-recomposed v3.3, market-domain
-// additions v3.4 — Papaya Cigs + Ackee Cigs).
+// invariant, not a rough guideline. All 370 achievements distributed
+// across 41 packs (v3.1, recomposed v3.2, re-recomposed v3.3, expanded v3.4
+// with the match-domain wave, v3.5 season-domain, v3.6 market-domain).
 //
 // Curation principle:
 //   - Early packs (starter + first couple of unlocks) should be mostly
@@ -726,6 +726,99 @@ export const CIG_PACKS = [
     ],
   },
 
+  // ── SEASON DOMAIN (Awards Night, knockouts, history, newspaper) ─
+  {
+    id: "quince_cigs",
+    name: "Quince Cigs",
+    icon: "💛",
+    color: "#ca8a04",
+    colorLight: "#fde68a",
+    colorDark: "#854d0e",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 6 },
+    unlockDesc: "Play 6 seasons",
+    achievementIds: [
+      "top_of_the_bill",       // Your player wins Player of the Season
+      "raised_right",          // Homegrown player wins Young Player of the Season
+      "clean_sweep",           // Your players win all three awards
+      "robbed",                // 20+ goals but miss the Golden Boot
+      "doing_it_all",          // Same player wins POTS and YPOTS
+      "no_country_for_old_men", // 33+ year old wins Player of the Season
+      "defenders_no_respect",  // Defender/GK wins Player of the Season
+      "repeat_offender",       // Same player wins POTS twice
+      "class_of_their_own",    // All three awards go to one rival club
+      "carried",               // Golden Boot but bottom-half finish
+    ],
+  },
+  {
+    id: "pineapple_cigs",
+    name: "Pineapple Cigs",
+    icon: "🍍",
+    color: "#fbbf24",
+    colorLight: "#fde68a",
+    colorDark: "#b45309",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "tier_reached", tier: 3 },
+    unlockDesc: "Reach tier 3",
+    achievementIds: [
+      "succession",            // Win the Dynasty Cup
+      "through_side_door",     // 4th place, promoted via the Dynasty Cup
+      "five_a_side_story",     // Win the 5v5 Mini-Tournament
+      "both_barrels",          // League + Dynasty Cup same season
+      "bottled_it_beautifully", // Win league, lose Dynasty Cup final
+      "bronze_age",            // Win the 5v5 third-place playoff
+      "giant_slaying_mini",    // Win the 5v5 as the 4th seed
+      "knockout_artist",       // Win both knockout competitions, career
+      "undercard",             // Reach Dynasty Cup final from 4th
+      "kingmaker_denied",      // Beat the league champions in a final
+    ],
+  },
+  {
+    id: "date_cigs",
+    name: "Date Cigs",
+    icon: "🌰",
+    color: "#78350f",
+    colorLight: "#d6a67a",
+    colorDark: "#451a03",
+    packSize: 5,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 8 },
+    unlockDesc: "Complete 8 seasons",
+    achievementIds: [
+      "been_everywhere_man",   // Finish 1st through 10th across a career
+      "unfinished_business",   // Win a division you were relegated from
+      "yo_yo_years",           // Promoted, relegated, promoted again
+      "watching_the_throne",   // A rival wins 3 straight titles elsewhere
+      "wooden_spoon_collection", // Finish bottom in 2 different divisions
+    ],
+  },
+  {
+    id: "redcurrant_cigs",
+    name: "Redcurrant Cigs",
+    icon: "🍅",
+    color: "#dc2626",
+    colorLight: "#fca5a5",
+    colorDark: "#7f1d1d",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 5 },
+    unlockDesc: "Play 5 seasons",
+    achievementIds: [
+      "the_blueprint",         // Paper names your squad's playing identity
+      "route_one_reputation",  // Labelled a counter-attacking side
+      "nothing_gets_past_us",  // Labelled a defensive wall
+      "keep_ball_merchants",   // Labelled a possession side
+      "front_page_news",       // Earn a special back page
+      "framed_above_desk",     // Collect all three special back pages
+      "derby_day_ink",         // Make the back page with a derby result
+      "same_time_next_year",   // Same league position 3 seasons running
+      "fixtures_and_fittings", // Season preview calls you part of the furniture
+      "hat_trick_headlines",   // Hat-trick back pages for 3 players, 1 season
+    ],
+  },
+
   // ── SPECIALIST 5-PACKS ────────────────────────────────────────
   {
     id: "rambutan_cigs",
@@ -950,6 +1043,74 @@ export const CIG_PACKS = [
       "trust_the_process",   // Sign three passively-revealed players
       "eye_for_talent",      // Max-potential reveal wins Young Player of the Season
       "cold_case",           // Carried a shortlisted player into a second season without signing
+    ],
+  },
+  // ── MATCH DOMAIN — BREAKOUTS, RIVALRIES, TEAM OF THE CUP ────────
+  {
+    id: "gooseberry_cigs",
+    name: "Gooseberry Cigs",
+    icon: "🟢",
+    color: "#5d8f3a",
+    colorLight: "#a8d68a",
+    colorDark: "#33501f",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "packs_complete", count: 3 },
+    unlockDesc: "Complete 3 packs",
+    achievementIds: [
+      "scenes",                  // First breakout moment
+      "purple_patch",            // Same player, two breakouts in a season
+      "made_for_occasion",       // Breakout in a cup tie
+      "everyones_invited",       // All 4 position groups break out in a season
+      "vintage_performance",     // 30+ year old breaks out
+      "fast_learner",            // Breakout within first 5 appearances
+      "raising_ceiling",         // Breakout pushes potential to the cap
+      "wonderwall",              // Goalkeeper breaks out
+      "production_line",         // 5+ breakouts across the squad in a season
+      "never_saw_him_coming",    // Single-digit potential player breaks out
+    ],
+  },
+  {
+    id: "blood_orange_cigs",
+    name: "Blood Orange Cigs",
+    icon: "🟥",
+    color: "#e64a19",
+    colorLight: "#ffab91",
+    colorDark: "#8f2d0c",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 4 },
+    unlockDesc: "Play 4 seasons",
+    achievementIds: [
+      "bragging_rights",     // Beat a rival
+      "no_love_lost",        // Win a derby with 2+ red cards
+      "settled_scores",      // Unbeaten against rivals for a season
+      "twist_the_knife",     // 90th-minute winner vs a rival
+      "home_and_away",       // Beat the same rival home and away in a season
+      "breaking_the_curse",  // Beat a rival you'd never beaten in 5+ meetings
+      "surrounded",          // 3 clubs qualify as rivals at once
+      "statement_win",       // Beat a rival by 4+ goals
+      "spoils_of_war",       // Sign a player from a rival club
+      "kept_the_receipts",   // 10 career meetings with a single rival
+    ],
+  },
+  {
+    id: "kumquat_cigs",
+    name: "Kumquat Cigs",
+    icon: "🧡",
+    color: "#ffa726",
+    colorLight: "#ffe0b2",
+    colorDark: "#e65100",
+    packSize: 5,
+    starter: false,
+    unlockCondition: { type: "cup_won" },
+    unlockDesc: "Win your first cup competition",
+    achievementIds: [
+      "cup_runneth_over",      // 3+ players in the Team of the Cup
+      "eleven_out_of_eleven",  // 6+ players in the Team of the Cup
+      "cup_keeper",            // GK makes the Team of the Cup
+      "beaten_not_forgotten",  // TOTC pick despite exiting before the final
+      "best_of_both",          // Same player makes TOTS and TOTC
     ],
   },
 ];

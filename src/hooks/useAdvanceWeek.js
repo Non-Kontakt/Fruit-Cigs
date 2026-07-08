@@ -940,6 +940,10 @@ export function useAdvanceWeek({
         s.setWeeksSinceIdentityHeadline(0);
         const archetype = classifySquadIdentity(newSquad);
         if (archetype) {
+          tryUnlockAchievement("the_blueprint");
+          if (archetype === "counter-attacking") tryUnlockAchievement("route_one_reputation");
+          if (archetype === "defensive-wall") tryUnlockAchievement("nothing_gets_past_us");
+          if (archetype === "possession") tryUnlockAchievement("keep_ball_merchants");
           const freshState = useGameStore.getState();
           const identityResult = generateIdentityHeadline({
             teamName: freshState.teamName,
