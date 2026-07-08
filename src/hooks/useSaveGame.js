@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
-import { getSaveKey, archiveCareerToMuseum } from "../utils/profile.js";
+import { getSaveKey, archiveCareerToMuseum, readProfile } from "../utils/profile.js";
 import { ATTRIBUTES } from "../data/training.js";
 import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS, AI_BENCH_POSITIONS } from "../data/leagues.js";
@@ -15,7 +15,7 @@ import { initStoryArcs } from "../utils/arcs.js";
 import { simulateMatchweek } from "../utils/match.js";
 import { normalizeRosters, initLeague, initAILeague, buildSeasonCalendar, computeCalendarIndex, initCup } from "../utils/league.js";
 import { seedMessageSeq, getMessageSeq } from "../utils/messageUtils.js";
-import { checkAchievements, deriveMissingPlayerUnlocks } from "../utils/achievements.js";
+import { checkAchievements, deriveMissingPlayerUnlocks, checkMuseumAchievements } from "../utils/achievements.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
 import { randomAvatar } from "../components/ui/ManagerAvatar.jsx";
 import {
@@ -181,6 +181,11 @@ export function useSaveGame({
         dynastyCupBracket: s.dynastyCupBracket,
         miniTournamentBracket: s.miniTournamentBracket,
         fiveASideSquad: s.fiveASideSquad,
+        onboardingSilencedByChoice: s.onboardingSilencedByChoice,
+        compareSignWatch: s.compareSignWatch,
+        fanSentimentSeasonFloor: s.fanSentimentSeasonFloor,
+        ultimatumsSurvived: s.ultimatumsSurvived,
+        legendCarryCounts: s.legendCarryCounts,
       });
       const saveKey = getSaveKey(activeProfileId, activeSaveSlot);
       await window.storage.set(saveKey, JSON.stringify(saveData));
@@ -259,6 +264,7 @@ export function useSaveGame({
       // so only a genuinely new career (which sets this false explicitly)
       // ever sees it.
       store.setOnboardingDripSuppressed(s.onboardingDripSuppressed ?? true);
+      store.setOnboardingSilencedByChoice(s.onboardingSilencedByChoice || false);
       store.setSeasonCards(s.seasonCards || 0);
       store.setSeasonNumber(s.seasonNumber || 1);
       store.setLeagueWins(s.leagueWins || 0);
@@ -281,8 +287,16 @@ export function useSaveGame({
       store.setConsecutiveCleanSheets(s.consecutiveCleanSheets || 0);
       store.setLatestHeadline(s.latestHeadline || null);
       store.setFanSentiment(s.fanSentiment ?? 50);
+      // setFanSentiment above already folds the loaded value into the floor
+      // via Math.min against the store's default (100) — explicitly restore
+      // the persisted floor afterward so it isn't clamped to just the
+      // current sentiment on load.
+      store.setFanSentimentSeasonFloor(s.fanSentimentSeasonFloor ?? 100);
       store.setBoardSentiment(s.boardSentiment ?? 50);
       store.setSentimentLog(s.sentimentLog || []);
+      store.setCompareSignWatch(s.compareSignWatch || null);
+      store.setUltimatumsSurvived(s.ultimatumsSurvived || 0);
+      store.setLegendCarryCounts(s.legendCarryCounts || {});
       store.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);
       store.setDynastyCupBracket(s.dynastyCupBracket || null);
       store.setMiniTournamentBracket(s.miniTournamentBracket || null);
@@ -547,6 +561,7 @@ export function useSaveGame({
           twelfthManActive: false,
           gkCleanSheets: s.gkCleanSheets || {},
           totalShortlisted: s.totalShortlisted || 0,
+          gameMode: s.gameMode || "casual",
         });
         if (catchUp.length > 0) {
           const merged = new Set(loadedUnlocked);
@@ -628,6 +643,24 @@ export function useSaveGame({
           s.unlockedAchievements = merged;
           store.setUnlockedAchievements(merged);
         }
+      }
+
+      // Migration: retroactive Elderberry Cigs (Museum) achievement catch-up
+      // Achievements are per-save state, so a sacking-time unlock dies with
+      // the deleted save — ashes_to_ashes/died_as_they_lived/the_collection/
+      // decade_of_danger are re-derived here from profile.museum, which
+      // outlives any individual save.
+      if (store.activeProfileId) {
+        try {
+          const profile = await readProfile(store.activeProfileId);
+          const museumAchs = checkMuseumAchievements(profile?.museum, s.unlockedAchievements || new Set());
+          if (museumAchs.length > 0) {
+            const merged = new Set(s.unlockedAchievements || new Set());
+            museumAchs.forEach(id => merged.add(id));
+            s.unlockedAchievements = merged;
+            store.setUnlockedAchievements(merged);
+          }
+        } catch (e) { console.warn("Museum achievement catch-up failed:", e); }
       }
 
       // Migration: grant missing player unlocks
@@ -736,6 +769,7 @@ export function useSaveGame({
         teamName: s.teamName, seasonNumber: s.seasonNumber, leagueTier: s.leagueTier,
         totalMatches: s.totalMatches,
         clubHistory: s.clubHistory,
+        gameMode: s.gameMode,
       });
     } catch (e) { console.error("Museum archive failed:", e); }
     const slot = activeSaveSlot;

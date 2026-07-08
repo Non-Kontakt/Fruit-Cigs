@@ -100,7 +100,7 @@ export function AchievementToast({ achievement, onDone, muteSound, sealedPack })
       }}>
         <span style={{ fontSize: mob ? F.lg : F.h3, flexShrink: 0 }}>{ach.icon}</span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: mob ? F.micro : F.xs, color: C.gold, letterSpacing: mob ? 1 : 2, marginBottom: 4 }}>CIG UNLOCKED</div>
+          <div style={{ fontSize: mob ? F.micro : F.xs, color: C.gold, letterSpacing: mob ? 1 : 2, marginBottom: 4 }}>CIG CARD UNLOCKED</div>
           <div style={{ fontSize: mob ? F.sm : F.md, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ach.name}</div>
           <div style={{ fontSize: mob ? F.micro : F.xs, color: C.textMuted, marginTop: 2 }}>{ach.desc}</div>
           {sealedPack && (

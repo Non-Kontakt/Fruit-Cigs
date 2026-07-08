@@ -53,7 +53,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
@@ -285,7 +285,8 @@ function FruitCigs() {
     setSeasonInjuryLog, setCareerMilestones, setBenchStreaks,
     setHighScoringMatches, setTrainedThisWeek, setManualTrainingThisWeek, setLopsidedWarned,
     setUnlockedAchievements, setUnlockedPacks, setAchievementUnlockWeeks, setLastSeenAchievementCount, setInboxMessages,
-    setOnboardingDripSuppressed,
+    setOnboardingDripSuppressed, setOnboardingSilencedByChoice,
+    setCompareSignWatch, setFanSentimentSeasonFloor, setUltimatumsSurvived, setLegendCarryCounts,
     setLatestHeadline,
     setUsedTicketTypes, setFormationsWonWith, setFreeAgentSignings,
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
@@ -340,6 +341,7 @@ function FruitCigs() {
             delta: holidayDelta, reason: "Matches while on holiday",
             week: useGameStore.getState().calendarIndex + 1, season: useGameStore.getState().seasonNumber,
           }));
+          if (!unlockedAchievements.has("riding_the_wave") && holidayDelta >= 20) tryUnlockAchievement("riding_the_wave");
         }
         holidayFanSnapshotRef.current = null;
       }
@@ -805,6 +807,13 @@ function FruitCigs() {
         MSG.boardReprieve(useGameStore.getState().managerName),
         { calendarIndex: _curWeek - 1, seasonNumber: prev[prev.length - 1]?.season || 1 },
       )]);
+      if (!useGameStore.getState().unlockedAchievements.has("tightrope_walker")) tryUnlockAchievement("tightrope_walker");
+      if (newGames >= 1 && !useGameStore.getState().unlockedAchievements.has("stay_of_execution")) tryUnlockAchievement("stay_of_execution");
+      // Cheating Death — career-long, never reset at prestige (the Ironman
+      // career continues through prestige, it doesn't restart).
+      const newUltimatumsSurvivedM = useGameStore.getState().ultimatumsSurvived + 1;
+      setUltimatumsSurvived(newUltimatumsSurvivedM);
+      if (checkCheatingDeath(newUltimatumsSurvivedM, useGameStore.getState().unlockedAchievements)) tryUnlockAchievement("cheating_death");
     } else if (newGames <= 0 || maxPossible < target) {
       // Failed window (or mathematically eliminated)
       setUltimatumActive(false);
@@ -819,7 +828,7 @@ function FruitCigs() {
         triggerSacking();
       }
     }
-  }, [setBoardWarnCount, setInboxMessages, triggerSacking]);
+  }, [setBoardWarnCount, setInboxMessages, triggerSacking, tryUnlockAchievement]);
   updateUltimatumProgressRef.current = updateUltimatumProgress;
 
   // On mount: load profile list. Slot scanning happens after a profile is selected.
@@ -1431,10 +1440,16 @@ function FruitCigs() {
         // drip (utils/onboardingDrip.js). Training itself is left to the
         // player, same as "I'll Set It Up".
         setOnboardingDripSuppressed(true);
+        // onboardingSilencedByChoice is distinct from onboardingDripSuppressed
+        // above: that flag defaults true for old saves that never chose, so
+        // it can't gate the "silence the tips" achievement trio. This one is
+        // only ever set true at an explicit opt-out/drip_stop choice.
+        setOnboardingSilencedByChoice(true);
       }
     }
     if (msg.type === "onboarding_drip" && choice === "drip_stop") {
       setOnboardingDripSuppressed(true);
+      setOnboardingSilencedByChoice(true);
     }
   }, [leagueTier, seasonNumber, unlockedAchievements]); // eslint-disable-line
 
@@ -2946,6 +2961,9 @@ function FruitCigs() {
                         }
                         return p;
                       }));
+                      checkLegendMilestones({
+                        squad: useGameStore.getState().squad, lastMatchResult: result, isPlayerHome, unlocked: unlockedAchievements,
+                      }).forEach(id => tryUnlockAchievement(id));
                     }
                     // Non-participant dynasty entries: don't set matchPending,
                     // advanceWeek will handle AI sim + inbox on next tick
@@ -3058,6 +3076,7 @@ function FruitCigs() {
                         const _fanDelta = (cupWon
                           ? (_isCupFinal ? 15 : _holidayCupRound >= 2 ? 5 : 3)
                           : (_holidayCupRound <= 1 ? -5 : -2)) * _holCupFanMult;
+                        if (!unlockedAchievements.has("hostile_crowd") && cupWon && useGameStore.getState().fanSentiment < 10) tryUnlockAchievement("hostile_crowd");
                         setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment + _fanDelta)));
                         setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (cupWon ? (_isCupFinal ? 10 : 3) : -4))));
                       }
@@ -3083,6 +3102,9 @@ function FruitCigs() {
                         }
                         return p;
                       }));
+                      checkLegendMilestones({
+                        squad: useGameStore.getState().squad, lastMatchResult: result, isPlayerHome, unlocked: unlockedAchievements,
+                      }).forEach(id => tryUnlockAchievement(id));
                       // Update per-player match log (holiday cup match)
                       updateMatchLog(result, isPlayerHome, currentXI, true, null);
 
@@ -3298,6 +3320,7 @@ function FruitCigs() {
                           if (oGoals === 0) setConsecutiveCleanSheets(prev => prev + 1); else setConsecutiveCleanSheets(0);
                           // Fan & Board Sentiment (holiday league match)
                           { const _holFanMult = getModifier(leagueTier).fanSentimentMult || 1;
+                          if (!unlockedAchievements.has("hostile_crowd") && pWon && useGameStore.getState().fanSentiment < 10) tryUnlockAchievement("hostile_crowd");
                           setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment +
                             ((pWon ? (pIsHome ? 5 : 6) : isDraw ? -1 : (pIsHome ? -8 : -5)) +
                             (pGoals >= 3 ? 2 : 0) + (oGoals === 0 ? 1 : 0)) * _holFanMult
@@ -3419,6 +3442,9 @@ function FruitCigs() {
                             }
                             return p;
                           }));
+                          checkLegendMilestones({
+                            squad: useGameStore.getState().squad, lastMatchResult: playerMatch, isPlayerHome: pIsHome, unlocked: unlockedAchievements,
+                          }).forEach(id => tryUnlockAchievement(id));
                         }
                         // Holiday testimonial cleanup after league match
                         const _holTestiLeague = useGameStore.getState().testimonialPlayer;
@@ -3588,6 +3614,7 @@ function FruitCigs() {
           ovrCap={ovrCap}
           unlockedAchievements={unlockedAchievements}
           tryUnlockAchievement={tryUnlockAchievement}
+          setCompareSignWatch={setCompareSignWatch}
           wonderkidTips={wonderkidTips}
           scoutRevealMeta={scoutRevealMeta}
           setOffersRejectedThisWindow={setOffersRejectedThisWindow}
@@ -5758,6 +5785,7 @@ function FruitCigs() {
                 ? (isFinal ? 15 : cupRoundIdx >= 2 ? 5 : 3)
                 : (cupRoundIdx <= 1 ? -5 : -2)) * _cupFanMult;
               const _cupFanBefore = useGameStore.getState().fanSentiment;
+              if (!unlockedAchievements.has("hostile_crowd") && winner.isPlayer && _cupFanBefore < 10) tryUnlockAchievement("hostile_crowd");
               const _cupFanAfter = Math.max(0, Math.min(100, _cupFanBefore + _fanCupDelta));
               setFanSentiment(_cupFanAfter);
               setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (winner.isPlayer ? (isFinal ? 10 : 3) : -4))));
@@ -5765,7 +5793,9 @@ function FruitCigs() {
               const _cupReason = winner.isPlayer
                 ? (isFinal ? "Won the cup" : `Cup win — ${_cupRoundName}`)
                 : `Cup exit — ${_cupRoundName}`;
-              setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_cupFanAfter - _cupFanBefore), reason: _cupReason, week: calendarIndex + 1, season: seasonNumber }));
+              const _cupFanDelta = Math.round(_cupFanAfter - _cupFanBefore);
+              setSentimentLog(prev => pushSentimentEntry(prev, { delta: _cupFanDelta, reason: _cupReason, week: calendarIndex + 1, season: seasonNumber }));
+              if (!unlockedAchievements.has("riding_the_wave") && _cupFanDelta >= 20) tryUnlockAchievement("riding_the_wave");
             }
 
             // Super Sub — works in cup too
@@ -5923,7 +5953,7 @@ function FruitCigs() {
                 seasonNumber, lastSeasonPosition: clubHistory?.seasonArchive?.length > 0 ? clubHistory.seasonArchive[clubHistory.seasonArchive.length - 1].position : null,
                 shortlist, wasAlwaysNormal: !!cupWasAlwaysNormal,
                 fastMatchesThisSeason: fastMatchesThisSeason + (cupWasAlwaysFast ? 1 : 0),
-                twelfthManActive, gkCleanSheets, totalShortlisted,
+                twelfthManActive, gkCleanSheets, totalShortlisted, gameMode,
               });
 
               if (cupNewUnlocks.length > 0) {
@@ -5955,6 +5985,9 @@ function FruitCigs() {
               }
               return p;
             }));
+            checkLegendMilestones({
+              squad: useGameStore.getState().squad, lastMatchResult: cupMatchResult, isPlayerHome: cupMatchResult.isPlayerHome, unlocked: unlockedAchievements,
+            }).forEach(id => tryUnlockAchievement(id));
 
             // Update per-player match log (cup match)
             updateMatchLog(cupMatchResult, cupMatchResult.isPlayerHome, startingXI, true, null);
@@ -6014,9 +6047,18 @@ function FruitCigs() {
                 squad: useGameStore.getState().squad, prevSeasonSquadIds, seasonNumber,
                 dynastyCupBracket: useGameStore.getState().dynastyCupBracket, cup: useGameStore.getState().cup,
                 calendarResults: useGameStore.getState().calendarResults,
+                gameMode,
+                onboardingSilencedByChoice: useGameStore.getState().onboardingSilencedByChoice,
+                compareSignWatch: useGameStore.getState().compareSignWatch,
+                fanSentimentSeasonFloor: useGameStore.getState().fanSentimentSeasonFloor,
+                seasonLeagueStatsAvailable: useGameStore.getState().seasonLeagueStatsAvailable,
                 transferHistory, shortlist, dossierBurns: useGameStore.getState().dossierBurns,
                 leagueHistory, teamName,
               }, BGM.getCurrentTrackId());
+              // See the matching clear in useMatchResult.js — this is the
+              // same season-end boundary, reached via the cup path instead
+              // of a league match.
+              setCompareSignWatch(null);
               if (newSeasonUnlocks2.length > 0) {
                 setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });
                 setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks2.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
@@ -6039,7 +6081,9 @@ function FruitCigs() {
                 const _after = Math.min(100, _before + 20);
                 setFanSentiment(_after);
                 setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25));
-                setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - _before), reason: "Promoted", week: calendarIndex + 1, season: seasonNumber }));
+                const _promDelta = Math.round(_after - _before);
+                setSentimentLog(prev => pushSentimentEntry(prev, { delta: _promDelta, reason: "Promoted", week: calendarIndex + 1, season: seasonNumber }));
+                if (!unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave");
               }
               if (moveType === "relegated") {
                 const _before = useGameStore.getState().fanSentiment;
@@ -6199,6 +6243,12 @@ function FruitCigs() {
                   MSG.cupReprieve(useGameStore.getState().managerName),
                   { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber },
                 )]);
+                if (!unlockedAchievements.has("cup_run_reprieve")) tryUnlockAchievement("cup_run_reprieve");
+                if (!unlockedAchievements.has("tightrope_walker")) tryUnlockAchievement("tightrope_walker");
+                // Cheating Death — career-long, never reset at prestige.
+                const newUltimatumsSurvivedC = useGameStore.getState().ultimatumsSurvived + 1;
+                setUltimatumsSurvived(newUltimatumsSurvivedC);
+                if (checkCheatingDeath(newUltimatumsSurvivedC, useGameStore.getState().unlockedAchievements)) tryUnlockAchievement("cheating_death");
               } else if (playerEliminated2) {
                 // Eliminated from cup — sacked
                 triggerSacking();
@@ -6404,6 +6454,15 @@ function FruitCigs() {
             const newPrestige = prestigeLevel + 1;
             const legCap = getOvrCap(newPrestige);
 
+            // Prestige/Legends meta achievements — evaluated on the
+            // player's own confirmed choice, before any of the reset logic
+            // below touches prestigeLevel/squad.
+            if (!unlockedAchievements.has("new_game_plus") && newPrestige === 1) tryUnlockAchievement("new_game_plus");
+            if (!unlockedAchievements.has("groundhog_season") && newPrestige >= 3) tryUnlockAchievement("groundhog_season");
+            if (!unlockedAchievements.has("chosen_few") && selectedIds.length === 5) tryUnlockAchievement("chosen_few");
+            if (!unlockedAchievements.has("travelling_light") && selectedIds.length === 0) tryUnlockAchievement("travelling_light");
+            if (!unlockedAchievements.has("double_down") && gameMode === "ironman") tryUnlockAchievement("double_down");
+
             // Convert selected players to legends
             const newLegends = squad
               .filter(p => selectedIds.includes(p.id) && !p.isLegend)
@@ -6459,6 +6518,20 @@ function FruitCigs() {
             const existingLegends = squad.filter(p => p.isLegend).map(p => ({
               ...p, legendAppearances: 0, seasonStarts: 0, seasonSubApps: 0,
             }));
+
+            // Museum Piece — bump legendCarryCounts for every player carried
+            // forward as a Legend at this boundary: already-existing Legends
+            // (always retained automatically) plus any newly named this
+            // time. Unlocks once the same player id has been carried across
+            // two separate prestiges.
+            {
+              const carriedLegendIds = [...existingLegends, ...newLegends].map(p => p.id);
+              const { counts: nextLegendCarryCounts, unlocked: museumPieceEarned } = applyLegendCarry(
+                useGameStore.getState().legendCarryCounts, carriedLegendIds,
+              );
+              setLegendCarryCounts(nextLegendCarryCounts);
+              if (museumPieceEarned && !unlockedAchievements.has("museum_piece")) tryUnlockAchievement("museum_piece");
+            }
 
             // Generate fresh squad clustered around old cap so team stays competitive
             const oldCap = getOvrCap(newPrestige - 1);
@@ -6537,7 +6610,13 @@ function FruitCigs() {
             setHatTrickHeadlinePlayers([]);
             useGameStore.getState().setWonLeagueOnHoliday(false);
             // Sentiment partial carry-over on prestige reset
-            setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
+            const newPrestigeFanSentiment = Math.round(useGameStore.getState().fanSentiment * 0.5 + 25);
+            setFanSentiment(newPrestigeFanSentiment);
+            // The People's Champion floor resets to the newly-carried
+            // sentiment for the new era, not 100 — setFanSentiment above
+            // only ever lowers the floor (Math.min), so it must be reset
+            // explicitly here rather than left to that side effect.
+            setFanSentimentSeasonFloor(newPrestigeFanSentiment);
             setBoardSentiment(Math.round(useGameStore.getState().boardSentiment * 0.5 + 25));
             // League modifier intro message for new tier
             const prestigeMod = getModifier(NUM_TIERS);
@@ -7220,7 +7299,12 @@ function FruitCigs() {
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));
               setBeatenTeams(new Set());
               // Sentiment partial carry-over: ×0.5 + 25 (100→75, 50→50, 0→25)
-              setFanSentiment(Math.round(useGameStore.getState().fanSentiment * 0.5 + 25));
+              const newSeasonFanSentiment = Math.round(useGameStore.getState().fanSentiment * 0.5 + 25);
+              setFanSentiment(newSeasonFanSentiment);
+              // The People's Champion floor resets to the newly-carried
+              // sentiment for the new season, not 100 — see the matching
+              // reset at the prestige rollover above.
+              setFanSentimentSeasonFloor(newSeasonFanSentiment);
               setBoardSentiment(Math.round(useGameStore.getState().boardSentiment * 0.5 + 25));
               setHalfwayPosition(null);
               setPreviousLeaguePosition(null);

@@ -11,7 +11,7 @@ import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resol
 import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
-import { checkAchievements, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements } from "../utils/achievements.js";
+import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
@@ -167,9 +167,20 @@ export function useMatchResult({
           // Fresh read: the calendar entry for the match that just completed
           // was written via setCalendarResults above, after `s` was captured.
           calendarResults: useGameStore.getState().calendarResults,
+          gameMode: s.gameMode,
+          onboardingSilencedByChoice: s.onboardingSilencedByChoice,
+          compareSignWatch: s.compareSignWatch,
+          fanSentimentSeasonFloor: s.fanSentimentSeasonFloor,
+          seasonLeagueStatsAvailable: s.seasonLeagueStatsAvailable,
           transferHistory: s.transferHistory, shortlist: s.shortlist, dossierBurns: s.dossierBurns,
           leagueHistory: s.leagueHistory, teamName: s.teamName,
         }, BGM.getCurrentTrackId());
+        // Upgrade Confirmed's watch is single-most-recent and season-scoped —
+        // clear it here regardless of outcome. This also covers the prestige
+        // path: prestige always runs through this same season-end block
+        // first (via summerPhase="summary"), so there's no separate reset
+        // needed at the prestige transition itself.
+        s.setCompareSignWatch(null);
         if (newSeasonUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
           setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
@@ -189,9 +200,11 @@ export function useMatchResult({
         s.setTransferOffers([]);
         if (moveType === "promoted") {
           const _after = Math.min(100, s.fanSentiment + 20);
+          const _promDelta = Math.round(_after - s.fanSentiment);
           s.setFanSentiment(_after);
           s.setBoardSentiment(Math.min(100, s.boardSentiment + 25));
-          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - s.fanSentiment), reason: "Promoted", week: s.calendarIndex + 1, season: s.seasonNumber }));
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: _promDelta, reason: "Promoted", week: s.calendarIndex + 1, season: s.seasonNumber }));
+          if (!s.unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave");
         }
         if (moveType === "relegated") {
           const _after = Math.max(0, s.fanSentiment - 20);
@@ -255,6 +268,14 @@ export function useMatchResult({
         const totalFixtures = currentLeague.fixtures?.length || DEFAULT_FIXTURE_COUNT;
         const halfwayMark = Math.floor(totalFixtures / 2);
         const completedMDs = (matchResult._playedMatchweekIndex ?? (s.matchweekIndex - 1)) + 1;
+        // I Know What I'm Doing — first career league match, won, after
+        // silencing the onboarding tips by explicit choice.
+        if (checkFirstWinAfterSilence({
+          onboardingSilencedByChoice: s.onboardingSilencedByChoice, seasonNumber: s.seasonNumber,
+          completedLeagueMatchdays: completedMDs, playerWon, unlocked: s.unlockedAchievements,
+        })) {
+          tryUnlockAchievement("i_know_what_im_doing");
+        }
         const leagueMod = getModifier(s.leagueTier);
         if (completedMDs === halfwayMark) {
           const sorted = sortStandings(currentLeague.table);
@@ -374,7 +395,7 @@ export function useMatchResult({
             const gk = s.squad?.find(p => s.startingXI.includes(p.id) && p.position === "GK");
             return gk ? { ...s.gkCleanSheets, [gk.name]: (s.gkCleanSheets[gk.name] || 0) + 1 } : s.gkCleanSheets;
           })() : s.gkCleanSheets,
-          totalShortlisted: s.totalShortlisted,
+          totalShortlisted: s.totalShortlisted, gameMode: s.gameMode,
         });
         if (newUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newUnlocks.forEach(id => next.add(id)); return next; });
@@ -452,6 +473,7 @@ export function useMatchResult({
         const fanMatchDelta = ((playerWon ? (isHome ? 5 : 6) : isDraw ? -1 : (isHome ? -8 : -5)) +
           (playerGoals >= 3 ? 2 : 0) + (oppGoals === 0 ? 1 : 0)) * (fanMatchMod.fanSentimentMult || 1);
         const _fanBefore = useGameStore.getState().fanSentiment;
+        if (!s.unlockedAchievements.has("hostile_crowd") && playerWon && _fanBefore < 10) tryUnlockAchievement("hostile_crowd");
         const _fanAfter = Math.max(0, Math.min(100, _fanBefore + fanMatchDelta));
         s.setFanSentiment(_fanAfter);
         const boardDeltaMatch = playerWon ? 3 : isDraw ? 0 : -4;
@@ -461,7 +483,9 @@ export function useMatchResult({
         const _matchReason = playerWon ? `Beat ${oppTeam?.name || "opponent"} ${_matchScore}`
           : isDraw ? `Drew with ${oppTeam?.name || "opponent"} ${_matchScore}`
           : `Lost to ${oppTeam?.name || "opponent"} ${_matchScore}`;
-        s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_fanAfter - _fanBefore), reason: _matchReason, week: s.calendarIndex + 1, season: s.seasonNumber }));
+        const _matchFanDelta = Math.round(_fanAfter - _fanBefore);
+        s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: _matchFanDelta, reason: _matchReason, week: s.calendarIndex + 1, season: s.seasonNumber }));
+        if (!s.unlockedAchievements.has("riding_the_wave") && _matchFanDelta >= 20) tryUnlockAchievement("riding_the_wave");
         // Ultimatum tracking (Ironman)
         if (useGameStore.getState().ultimatumActive) {
           updateUltimatumProgress(playerWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
@@ -678,6 +702,9 @@ export function useMatchResult({
           }
           return p;
         }));
+        checkLegendMilestones({
+          squad: useGameStore.getState().squad, lastMatchResult: matchResult, isPlayerHome: playerIsHome, unlocked: s.unlockedAchievements,
+        }).forEach(id => tryUnlockAchievement(id));
 
         s.setPrevStartingXI([...s.startingXI]);
 

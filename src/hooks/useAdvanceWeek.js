@@ -20,7 +20,7 @@ import { buildAIFiveASide } from "../utils/fiveASide.js";
 import { advanceShortlistScouting, isWastedTrip, countRevealedPlayers } from "../utils/scouting.js";
 import { classifySquadIdentity } from "../utils/squadIdentity.js";
 import { generateIdentityHeadline } from "../utils/headlines.js";
-import { getNextOnboardingDripMessage } from "../utils/onboardingDrip.js";
+import { getNextOnboardingDripMessage, hasReceivedAllDripMessages } from "../utils/onboardingDrip.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
@@ -128,7 +128,9 @@ export function useAdvanceWeek({
           const _after = Math.min(100, _before + 20);
           s.setFanSentiment(_after);
           s.setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25));
-          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: Math.round(_after - _before), reason: "Promoted", week: calendarIndex + 1, season: seasonNumber }));
+          const _promDelta = Math.round(_after - _before);
+          s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: _promDelta, reason: "Promoted", week: calendarIndex + 1, season: seasonNumber }));
+          if (!unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave");
         }
         if (moveType === "relegated") {
           const _before = useGameStore.getState().fanSentiment;
@@ -355,6 +357,15 @@ export function useAdvanceWeek({
         tryUnlockAchievement("left_on_read");
       }
     }
+
+    // Teacher's Pet — every one of the assistant's onboarding drip tips has landed
+    if (!unlockedAchievements.has("teachers_pet") && hasReceivedAllDripMessages(inboxMessages)) {
+      tryUnlockAchievement("teachers_pet");
+    }
+
+    // Ultras / Boardroom Darling / Everybody Loves You — checked once the
+    // weekly sentiment drift below has settled this week's fanSentiment/
+    // boardSentiment (see "SENTIMENT WEEKLY DRIFT" further down).
 
     // Check training focus mass achievements at moment of advance
     const focusUnlocks = checkAchievements({
@@ -876,6 +887,13 @@ export function useAdvanceWeek({
       const newBoard = Math.max(0, Math.min(100, curBoard + boardDelta));
       s.setFanSentiment(newFan);
       s.setBoardSentiment(newBoard);
+      // Ultras / Boardroom Darling / Everybody Loves You — checked here,
+      // right after the week's sentiment settles, so a max reached mid-week
+      // via a match bonus and then held is caught the same as one reached
+      // by this drift itself.
+      if (!unlockedAchievements.has("ultras") && newFan >= 100) tryUnlockAchievement("ultras");
+      if (!unlockedAchievements.has("boardroom_darling") && newBoard >= 100) tryUnlockAchievement("boardroom_darling");
+      if (!unlockedAchievements.has("everybody_loves_you") && newFan >= 100 && newBoard >= 100) tryUnlockAchievement("everybody_loves_you");
       // Log the streak bonus specifically — not the ±0.5 mean-reversion
       // drift baked into the same fanDelta, which is noise, not a reason.
       if (consecutiveWins >= 3) {

@@ -1,8 +1,8 @@
 // Cigarette pack collection system for achievements
 // Every pack contains EXACTLY 5 or 10 achievements — this is a hard
-// invariant, not a rough guideline. All 370 achievements distributed
-// across 41 packs (v3.1, recomposed v3.2, re-recomposed v3.3, expanded v3.4
-// with the match-domain wave, v3.5 season-domain, v3.6 market-domain).
+// invariant, not a rough guideline. All 405 achievements distributed
+// across 45 packs (v3.1, recomposed v3.2, re-recomposed v3.3; expanded
+// v3.4-v3.7 with the match, season, market and meta domain waves).
 //
 // Curation principle:
 //   - Early packs (starter + first couple of unlocks) should be mostly
@@ -114,6 +114,31 @@ export const CIG_PACKS = [
       "cup_winner",         // Win a cup (moved from Lime — was pre-banked by Lime's own unlock condition, see Lime below)
       "asymmetry",          // Win with an asymmetric formation (moved from Persimmon — a one-off tactical choice, pairs with out_of_pos/lazy_sunday)
       "jumpers_for_goalposts", // Win with nobody on a training focus (moved from Persimmon — same trivial-tactical-choice family)
+    ],
+  },
+
+  {
+    id: "raspberry_cigs",
+    name: "Raspberry Cigs",
+    icon: "❤️",
+    color: "#e11d48",
+    colorLight: "#fda4af",
+    colorDark: "#881337",
+    packSize: 10,
+    starter: true,
+    unlockCondition: null,
+    unlockDesc: null,
+    achievementIds: [
+      "teachers_pet",         // Receive every one of the assistant's tips
+      "i_know_what_im_doing", // Silence the tips, win your first match
+      "shouldve_listened",    // Silence the tips, finish dead last in first season
+      "told_you_so",          // Silence the tips, win promotion in first season
+      "no_contest",           // Compare a target who beats your man in every attribute
+      "dodged_a_bullet",      // Compare a target who loses to your man in every attribute
+      "upgrade_confirmed",    // Signed comparison target outscores the man he replaced
+      "reading_the_room",     // Meet the board's stated expectation in first season at a new tier
+      "hostile_crowd",        // Win a match with fan sentiment below 10
+      "riding_the_wave",      // Gain 20+ fan sentiment in one go
     ],
   },
 
@@ -996,6 +1021,74 @@ export const CIG_PACKS = [
     ],
   },
 
+  // ── META: PRESSURE & PRESTIGE ───────────────────────────────────
+  {
+    id: "grapefruit_cigs",
+    name: "Grapefruit Cigs",
+    icon: "🩷",
+    color: "#f43f5e",
+    colorLight: "#fda4af",
+    colorDark: "#9f1239",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "packs_complete", count: 5 },
+    unlockDesc: "Complete 5 cigarette packs",
+    achievementIds: [
+      "ultras",              // Reach 100 fan sentiment
+      "boardroom_darling",   // Reach 100 board sentiment
+      "everybody_loves_you", // Max out fans and board in the same week
+      "cup_run_reprieve",    // Keep your job because of a cup run
+      "stay_of_execution",   // Beat an ultimatum with a match to spare
+      "prove_them_wrong",    // Win the league in a season the board only demanded survival
+      "peoples_champion",    // Season without fan sentiment ever dropping below 50
+      "tightrope_walker",    // Survive a board ultimatum
+      "cheating_death",      // Survive two ultimatums in one career
+      "flying_without_net",  // Reach the top division in Ironman mode
+    ],
+  },
+  {
+    id: "mangosteen_cigs",
+    name: "Mangosteen Cigs",
+    icon: "🟪",
+    color: "#7c3aed",
+    colorLight: "#c4b5fd",
+    colorDark: "#4c1d95",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "pack_complete", packId: "starfruit_cigs" },
+    unlockDesc: "Complete the Starfruit Cigs pack",
+    achievementIds: [
+      "new_game_plus",         // Prestige for the first time
+      "groundhog_season",      // Prestige three times
+      "chosen_few",            // Carry five Legends through a prestige
+      "travelling_light",      // Prestige carrying no Legends at all
+      "worth_the_armband",     // A Legend scores in his final permitted appearance
+      "second_life",           // Win a title with a Legend in the squad
+      "long_goodbye",          // A Legend plays all twelve of his appearances
+      "built_different",       // Push a Legend past the cap he retired under
+      "museum_piece",          // Carry the same player as a Legend through two prestiges
+      "full_reset_same_result", // Win first title within four seasons of a prestige
+    ],
+  },
+  {
+    id: "elderberry_cigs",
+    name: "Elderberry Cigs",
+    icon: "⚫",
+    color: "#3f3f46",
+    colorLight: "#a1a1aa",
+    colorDark: "#18181b",
+    packSize: 5,
+    starter: false,
+    unlockCondition: { type: "packs_complete", count: 12 },
+    unlockDesc: "Complete 12 cigarette packs",
+    achievementIds: [
+      "ashes_to_ashes",     // Have a career immortalised in the Museum
+      "died_as_they_lived", // Get sacked the season after winning a title
+      "the_collection",     // Have three careers archived in the Museum
+      "double_down",        // Burn The Boats — prestige in Ironman mode
+      "decade_of_danger",   // Complete ten seasons in one Ironman career
+    ],
+  },
   // ── MARKET DOMAIN ─────────────────────────────────────────────
   {
     id: "papaya_cigs",
