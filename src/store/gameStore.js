@@ -30,6 +30,7 @@ const SET_FIELDS = [
   "formationsWonWith",
   "tradedWithClubs",
   "manualSlotIndices",
+  "wonderkidTips",
 ];
 
 // Fields that use Map in-memory but must be serialized as plain objects for JSON
@@ -236,6 +237,25 @@ export const useGameStore = create((set, get) => ({
   retiringPlayers: new Set(),
   pendingFreeAgent: null,
   scoutedPlayers: {},
+  // Player ids named in a "Scout Report: Wonderkid" inbox tip — career-long,
+  // checked at signing time for Catch Of The Day.
+  wonderkidTips: new Set(),
+  // Potential-reveal metadata, keyed by player id — { week: calendarIndex,
+  // method: "passive" | "dossier" }. Written at both reveal sites (passive
+  // shortlist timer + Scout Dossier ticket). Drives Strike While It's Hot
+  // (signed same week as reveal) and Trust The Process (passive-reveal
+  // signings counter). Pruned at season rollover + prestige since it's
+  // squad/shortlist scoped.
+  scoutRevealMeta: {},
+  // Scout Dossier burns not yet resolved, keyed by player id — { season }.
+  // Resolved at season end by Just Browsing: a burn recorded in the closing
+  // season on a player who isn't in the squad counts as "never signed him".
+  // Not actively pruned — a burn's season stops matching once the season
+  // moves on, so stale entries just stop being checked.
+  dossierBurns: {},
+  // Sign 3 passively-revealed players across a career — Trust The Process.
+  // Career-long, survives prestige.
+  passiveRevealSignings: 0,
 
   // === Player tracking stats ===
   motmTracker: {},
@@ -302,6 +322,15 @@ export const useGameStore = create((set, get) => ({
   transferHistory: [],
   pendingTradeTarget: null,
   shortlist: [],
+  // Offers rejected since the current transfer window opened — Under Siege
+  // fires at 5. Reset only when a new window opens (there's exactly one
+  // open-site per season); NOT reset at season rollover since the window
+  // itself intentionally carries across that boundary.
+  offersRejectedThisWindow: 0,
+  // The (one) player whose rejected offer we're watching for Loyalty
+  // Repaid — { playerId, playerName } | null. Cleared as soon as that
+  // player appears in his next match, whatever the result.
+  loyaltyWatch: null,
 
   // === Tickets ===
   tickets: [],
@@ -427,6 +456,10 @@ export const useGameStore = create((set, get) => ({
   setRetiringPlayers: (val) => set(s => ({ retiringPlayers: typeof val === "function" ? val(s.retiringPlayers) : val })),
   setPendingFreeAgent: (val) => set(s => ({ pendingFreeAgent: typeof val === "function" ? val(s.pendingFreeAgent) : val })),
   setScoutedPlayers: (val) => set(s => ({ scoutedPlayers: typeof val === "function" ? val(s.scoutedPlayers) : val })),
+  setWonderkidTips: (val) => set(s => ({ wonderkidTips: typeof val === "function" ? val(s.wonderkidTips) : val })),
+  setScoutRevealMeta: (val) => set(s => ({ scoutRevealMeta: typeof val === "function" ? val(s.scoutRevealMeta) : val })),
+  setDossierBurns: (val) => set(s => ({ dossierBurns: typeof val === "function" ? val(s.dossierBurns) : val })),
+  setPassiveRevealSignings: (val) => set(s => ({ passiveRevealSignings: typeof val === "function" ? val(s.passiveRevealSignings) : val })),
 
   setMotmTracker: (val) => set(s => ({ motmTracker: typeof val === "function" ? val(s.motmTracker) : val })),
   setStScoredConsecutive: (val) => set(s => ({ stScoredConsecutive: typeof val === "function" ? val(s.stScoredConsecutive) : val })),
@@ -480,6 +513,8 @@ export const useGameStore = create((set, get) => ({
   setTransferHistory: (val) => set(s => ({ transferHistory: typeof val === "function" ? val(s.transferHistory) : val })),
   setPendingTradeTarget: (val) => set({ pendingTradeTarget: val }),
   setShortlist: (val) => set(s => ({ shortlist: typeof val === "function" ? val(s.shortlist) : val })),
+  setOffersRejectedThisWindow: (val) => set(s => ({ offersRejectedThisWindow: typeof val === "function" ? val(s.offersRejectedThisWindow) : val })),
+  setLoyaltyWatch: (val) => set({ loyaltyWatch: val }),
 
   setTickets: (val) => set(s => ({ tickets: typeof val === "function" ? val(s.tickets) : val })),
   setPendingTicketBoosts: (val) => set(s => ({ pendingTicketBoosts: typeof val === "function" ? val(s.pendingTicketBoosts) : val })),

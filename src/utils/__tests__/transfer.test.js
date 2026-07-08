@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { getOfferValueRatio, countDistinctOfferTargets, decrementOfferExpiry, getPlayersTradedAwayThisSeason } from "../transfer.js";
+import {
+  getOfferValueRatio, countDistinctOfferTargets, decrementOfferExpiry, getPlayersTradedAwayThisSeason,
+  reachedUnderSiegeThreshold, tradedAwayFreeSignedPlayer, signedTippedWonderkid,
+  signedSameWeekAsReveal, countPassiveRevealSignings, resolveLoyaltyWatch,
+} from "../transfer.js";
 
 function makePlayer(id, position, ovr, extra = {}) {
   // Uniform attrs so getOverall() resolves to exactly `ovr` regardless of
@@ -114,5 +118,111 @@ describe("getPlayersTradedAwayThisSeason", () => {
     ];
     const names = getPlayersTradedAwayThisSeason(transferHistory, 1);
     expect([...names].sort()).toEqual(["A", "B", "C"]);
+  });
+});
+
+describe("reachedUnderSiegeThreshold", () => {
+  it("false below 5", () => {
+    expect(reachedUnderSiegeThreshold(4)).toBe(false);
+  });
+  it("true at exactly 5", () => {
+    expect(reachedUnderSiegeThreshold(5)).toBe(true);
+  });
+  it("true above 5", () => {
+    expect(reachedUnderSiegeThreshold(6)).toBe(true);
+  });
+});
+
+describe("tradedAwayFreeSignedPlayer — Pure Profit", () => {
+  it("true when one of the outgoing players has signedOnFree", () => {
+    const outgoing = [makePlayer("a", "ST", 12), makePlayer("b", "ST", 12, { signedOnFree: true })];
+    expect(tradedAwayFreeSignedPlayer(outgoing)).toBe(true);
+  });
+  it("false when nobody outgoing was signed on a free", () => {
+    const outgoing = [makePlayer("a", "ST", 12), makePlayer("b", "ST", 12)];
+    expect(tradedAwayFreeSignedPlayer(outgoing)).toBe(false);
+  });
+  it("handles empty/undefined", () => {
+    expect(tradedAwayFreeSignedPlayer([])).toBe(false);
+    expect(tradedAwayFreeSignedPlayer(undefined)).toBe(false);
+  });
+});
+
+describe("signedTippedWonderkid — Catch Of The Day", () => {
+  it("true when an incoming player's id is in the wonderkid tips set", () => {
+    const incoming = [makePlayer("wk1", "ST", 14)];
+    expect(signedTippedWonderkid(incoming, new Set(["wk1"]))).toBe(true);
+  });
+  it("false when no incoming player was tipped", () => {
+    const incoming = [makePlayer("other", "ST", 14)];
+    expect(signedTippedWonderkid(incoming, new Set(["wk1"]))).toBe(false);
+  });
+  it("false with an empty or missing tips set", () => {
+    const incoming = [makePlayer("wk1", "ST", 14)];
+    expect(signedTippedWonderkid(incoming, new Set())).toBe(false);
+    expect(signedTippedWonderkid(incoming, undefined)).toBe(false);
+  });
+});
+
+describe("signedSameWeekAsReveal — Strike While It's Hot", () => {
+  it("true when an incoming player's reveal week matches the current week", () => {
+    const incoming = [makePlayer("p1", "ST", 14)];
+    const meta = { p1: { week: 10, method: "passive" } };
+    expect(signedSameWeekAsReveal(incoming, meta, 10)).toBe(true);
+  });
+  it("false when the reveal happened a different week", () => {
+    const incoming = [makePlayer("p1", "ST", 14)];
+    const meta = { p1: { week: 8, method: "passive" } };
+    expect(signedSameWeekAsReveal(incoming, meta, 10)).toBe(false);
+  });
+  it("false when the player has no reveal record", () => {
+    const incoming = [makePlayer("p1", "ST", 14)];
+    expect(signedSameWeekAsReveal(incoming, {}, 10)).toBe(false);
+    expect(signedSameWeekAsReveal(incoming, null, 10)).toBe(false);
+  });
+});
+
+describe("resolveLoyaltyWatch — Loyalty Repaid", () => {
+  const watch = { playerId: "p1", playerName: "Watched Guy" };
+
+  it("not resolved when the watched player didn't appear in this match", () => {
+    const result = resolveLoyaltyWatch(watch, new Set(["other"]), "Watched Guy", "Watched Guy");
+    expect(result).toEqual({ appeared: false, scoredWinner: false });
+  });
+
+  it("resolves (clears) but no unlock when he appeared without scoring the winner", () => {
+    const result = resolveLoyaltyWatch(watch, new Set(["p1"]), null, "Watched Guy");
+    expect(result).toEqual({ appeared: true, scoredWinner: false });
+  });
+
+  it("resolves with scoredWinner when he appeared and scored the winning goal", () => {
+    const result = resolveLoyaltyWatch(watch, new Set(["p1"]), "Watched Guy", "Watched Guy");
+    expect(result).toEqual({ appeared: true, scoredWinner: true });
+  });
+
+  it("matches against the player's current match-log name, not the stale watch name (renamed since rejection)", () => {
+    const result = resolveLoyaltyWatch(watch, new Set(["p1"]), "New Name", "New Name");
+    expect(result.scoredWinner).toBe(true);
+  });
+
+  it("no-op with a null watch", () => {
+    expect(resolveLoyaltyWatch(null, new Set(["p1"]), "Watched Guy", "Watched Guy")).toEqual({ appeared: false, scoredWinner: false });
+  });
+});
+
+describe("countPassiveRevealSignings — Trust The Process", () => {
+  it("counts only players revealed via the passive timer", () => {
+    const incoming = [makePlayer("p1", "ST", 14), makePlayer("p2", "CM", 12), makePlayer("p3", "GK", 10)];
+    const meta = {
+      p1: { week: 5, method: "passive" },
+      p2: { week: 6, method: "dossier" },
+      p3: { week: 7, method: "passive" },
+    };
+    expect(countPassiveRevealSignings(incoming, meta)).toBe(2);
+  });
+  it("returns 0 when nobody has reveal metadata", () => {
+    const incoming = [makePlayer("p1", "ST", 14)];
+    expect(countPassiveRevealSignings(incoming, {})).toBe(0);
+    expect(countPassiveRevealSignings(incoming, null)).toBe(0);
   });
 });

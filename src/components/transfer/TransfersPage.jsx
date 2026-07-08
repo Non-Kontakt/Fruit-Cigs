@@ -3,7 +3,11 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, relColor } from "../../utils/calc.js";
-import { generateTradeId, findComparablePlayer, getOfferValueRatio } from "../../utils/transfer.js";
+import {
+  generateTradeId, findComparablePlayer, getOfferValueRatio,
+  reachedUnderSiegeThreshold, tradedAwayFreeSignedPlayer, signedTippedWonderkid,
+  signedSameWeekAsReveal, countPassiveRevealSignings,
+} from "../../utils/transfer.js";
 import { getCareerApps } from "../../utils/careerLedger.js";
 import { isRevealedAtCap } from "../../utils/scouting.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
@@ -56,6 +60,11 @@ export function TransfersPage({
   ovrCap,
   unlockedAchievements,
   tryUnlockAchievement,
+  wonderkidTips,
+  scoutRevealMeta,
+  setOffersRejectedThisWindow,
+  setLoyaltyWatch,
+  setPassiveRevealSignings,
 }) {
   const [activeTab, setActiveTab] = useState("PLAYER SEARCH");
   const [expandedClub, setExpandedClub] = useState(null);
@@ -229,6 +238,31 @@ export function TransfersPage({
     if (tryUnlockAchievement && !unlockedAchievements?.has?.("the_real_deal") && received.some(p => isRevealedAtCap(scoutedPlayers, p.id, ovrCap))) {
       tryUnlockAchievement("the_real_deal");
     }
+    // Pure Profit — traded away a player signed on a free
+    if (tryUnlockAchievement && !unlockedAchievements?.has?.("pure_profit") && tradedAwayFreeSignedPlayer(offered)) {
+      tryUnlockAchievement("pure_profit");
+    }
+    // Catch Of The Day — signed a wonderkid our scouts tipped us off about
+    if (tryUnlockAchievement && !unlockedAchievements?.has?.("catch_of_day") && signedTippedWonderkid(received, wonderkidTips)) {
+      tryUnlockAchievement("catch_of_day");
+    }
+    // Strike While It's Hot — signed a player the same week his potential revealed
+    if (tryUnlockAchievement && !unlockedAchievements?.has?.("strike_while_hot") && signedSameWeekAsReveal(received, scoutRevealMeta, week)) {
+      tryUnlockAchievement("strike_while_hot");
+    }
+    // Trust The Process — sign three passively-revealed players across a career
+    if (setPassiveRevealSignings) {
+      const passiveCount = countPassiveRevealSignings(received, scoutRevealMeta);
+      if (passiveCount > 0) {
+        setPassiveRevealSignings(prev => {
+          const next = prev + passiveCount;
+          if (tryUnlockAchievement && !unlockedAchievements?.has?.("trust_the_process") && next >= 3) {
+            tryUnlockAchievement("trust_the_process");
+          }
+          return next;
+        });
+      }
+    }
 
     // Remove offered players from user squad, add received
     setSquad(prev => {
@@ -320,6 +354,31 @@ export function TransfersPage({
       if (!unlockedAchievements?.has?.("academy_pays") && offer.aiWants.some(p => p.isYouthIntake || p.isYouthCoup)) {
         tryUnlockAchievement("academy_pays");
       }
+      // Pure Profit — traded away a player signed on a free
+      if (!unlockedAchievements?.has?.("pure_profit") && tradedAwayFreeSignedPlayer(offer.aiWants)) {
+        tryUnlockAchievement("pure_profit");
+      }
+      // Catch Of The Day — signed a wonderkid our scouts tipped us off about
+      if (!unlockedAchievements?.has?.("catch_of_day") && signedTippedWonderkid(offer.aiOffers, wonderkidTips)) {
+        tryUnlockAchievement("catch_of_day");
+      }
+      // Strike While It's Hot — signed a player the same week his potential revealed
+      if (!unlockedAchievements?.has?.("strike_while_hot") && signedSameWeekAsReveal(offer.aiOffers, scoutRevealMeta, week)) {
+        tryUnlockAchievement("strike_while_hot");
+      }
+    }
+    // Trust The Process — sign three passively-revealed players across a career
+    if (setPassiveRevealSignings) {
+      const passiveCount = countPassiveRevealSignings(offer.aiOffers, scoutRevealMeta);
+      if (passiveCount > 0) {
+        setPassiveRevealSignings(prev => {
+          const next = prev + passiveCount;
+          if (tryUnlockAchievement && !unlockedAchievements?.has?.("trust_the_process") && next >= 3) {
+            tryUnlockAchievement("trust_the_process");
+          }
+          return next;
+        });
+      }
     }
 
     setSquad(prev => {
@@ -379,6 +438,21 @@ export function TransfersPage({
       if (wanted.some(p => getCareerApps(p, playerSeasonStats, clubHistory?.playerCareers) >= 50)) {
         tryUnlockAchievement("not_for_sale");
       }
+    }
+    // Under Siege — reject 5 offers in a single transfer window
+    if (setOffersRejectedThisWindow) {
+      setOffersRejectedThisWindow(prev => {
+        const next = prev + 1;
+        if (tryUnlockAchievement && !unlockedAchievements?.has?.("under_siege") && reachedUnderSiegeThreshold(next)) {
+          tryUnlockAchievement("under_siege");
+        }
+        return next;
+      });
+    }
+    // Loyalty Repaid — watch the (first) wanted player's next match for the winner
+    if (offer && setLoyaltyWatch) {
+      const watched = (offer.aiWants || [])[0];
+      if (watched) setLoyaltyWatch({ playerId: watched.id, playerName: watched.name });
     }
     if (setTransferOffers) setTransferOffers(prev => prev.filter((_, i) => i !== idx));
   };

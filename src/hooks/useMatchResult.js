@@ -159,7 +159,7 @@ export function useMatchResult({
           // Fresh read: the calendar entry for the match that just completed
           // was written via setCalendarResults above, after `s` was captured.
           calendarResults: useGameStore.getState().calendarResults,
-          transferHistory: s.transferHistory, shortlist: s.shortlist,
+          transferHistory: s.transferHistory, shortlist: s.shortlist, dossierBurns: s.dossierBurns,
         }, BGM.getCurrentTrackId());
         if (newSeasonUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });

@@ -210,6 +210,14 @@ export function useAdvanceWeek({
           }
           return next;
         });
+        // Strike While It's Hot / Trust The Process — remember this was a
+        // passive reveal, and when, so a same-week or passive-origin signing
+        // can be detected later at trade time.
+        s.setScoutRevealMeta(prev => {
+          const next = { ...prev };
+          revealed.forEach(entry => { next[entry.id] = { week: calendarIndex, method: "passive" }; });
+          return next;
+        });
         s.setInboxMessages(prev => [
           ...prev,
           ...revealed.map(entry => createInboxMessage(

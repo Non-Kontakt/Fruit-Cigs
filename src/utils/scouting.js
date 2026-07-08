@@ -92,3 +92,21 @@ export function isRevealedAtCap(scoutedPlayers, playerId, ovrCap) {
 export function getStaleShortlistEntries(shortlist, seasonNumber) {
   return (shortlist || []).filter(e => e.addedSeason < seasonNumber);
 }
+
+/**
+ * Just Browsing — burned a Scout Dossier ticket on a player and never
+ * signed him. Resolved at season end: a burn recorded in the closing
+ * season whose player id isn't in the current squad counts as "never
+ * signed him". Deliberately simple and season-scoped — it doesn't try to
+ * track a burn across a player's entire shortlist lifetime, only whether
+ * that season's burn went unrewarded.
+ * @param {Object} dossierBurns - { [playerId]: { season } }
+ * @param {number} seasonNumber - the season that just ended
+ * @param {Array} squad - current squad
+ * @returns {boolean}
+ */
+export function hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad) {
+  const squadIds = new Set((squad || []).map(p => p.id));
+  return Object.entries(dossierBurns || {}).some(([playerId, burn]) =>
+    burn?.season === seasonNumber && !squadIds.has(playerId));
+}

@@ -949,7 +949,7 @@ export const CIG_PACKS = [
       "just_browsing",       // Burn a Dossier and never sign him
       "trust_the_process",   // Sign three passively-revealed players
       "eye_for_talent",      // Max-potential reveal wins Young Player of the Season
-      "cold_case",           // Shortlisted a full season without signing
+      "cold_case",           // Carried a shortlisted player into a second season without signing
     ],
   },
 ];

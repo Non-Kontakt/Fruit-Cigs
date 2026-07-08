@@ -333,6 +333,7 @@ export function useSeasonFlow({
       const twMod = getModifier(leagueTier);
       s.setTransferWindowWeeksRemaining(twMod.transferWindowWeeks || 6); // Federation: 9 weeks
       s.setTradesMadeInWindow(0); // Reset trade counter for new window
+      s.setOffersRejectedThisWindow(0); // Under Siege — reset per window, not per season
       const offers = generateAITransferOffers(clubRelationships, squad, allLeagueStates);
       s.setTransferOffers(offers);
       // Everyone Has A Price — offers live for 3+ distinct players at once

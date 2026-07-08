@@ -13,6 +13,7 @@ export function useTickets({
   setTickets, setUsedTicketTypes, setInboxMessages, setClubRelationships,
   setDoubleTrainingWeek, setTwelfthManActive, setYouthCoupActive, setClubHistory,
   setTestimonialPlayer, setScoutedPlayers, setPendingFreeAgent, setPendingTicketBoosts,
+  setScoutRevealMeta, setDossierBurns,
   unlockedAchievements, tryUnlockAchievement,
 }) {
 
@@ -164,6 +165,12 @@ export function useTickets({
       }
       return next;
     });
+    // Strike While It's Hot — remember this reveal happened via the dossier
+    // (not the passive timer), and when.
+    const dossierWeek = useGameStore.getState().calendarIndex;
+    setScoutRevealMeta(prev => ({ ...prev, [playerId]: { week: dossierWeek, method: "dossier" } }));
+    // Just Browsing — record the burn, resolved at season end if he's never signed.
+    setDossierBurns(prev => ({ ...prev, [playerId]: { season: seasonNumber } }));
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     setUsedTicketTypes(prev => new Set([...prev, "scout_dossier"]));
 

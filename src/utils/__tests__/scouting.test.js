@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { advanceShortlistScouting, SCOUT_REVEAL_WEEKS, fallbackPotential, isWastedTrip, countRevealedPlayers, isRevealedAtCap, getStaleShortlistEntries } from "../scouting.js";
+import { advanceShortlistScouting, SCOUT_REVEAL_WEEKS, fallbackPotential, isWastedTrip, countRevealedPlayers, isRevealedAtCap, getStaleShortlistEntries, hasUnresolvedDossierBurn } from "../scouting.js";
 
 function entry(overrides = {}) {
   return { id: "p1", name: "Test Player", age: 19, ovr: 12, potential: 16, scoutWeeksLeft: SCOUT_REVEAL_WEEKS, ...overrides };
@@ -117,5 +117,27 @@ describe("getStaleShortlistEntries", () => {
   it("handles an empty/missing shortlist", () => {
     expect(getStaleShortlistEntries([], 3)).toEqual([]);
     expect(getStaleShortlistEntries(undefined, 3)).toEqual([]);
+  });
+});
+
+describe("hasUnresolvedDossierBurn — Just Browsing", () => {
+  it("true when a burn from the closing season is on a player not in the squad", () => {
+    const dossierBurns = { p1: { season: 3 } };
+    expect(hasUnresolvedDossierBurn(dossierBurns, 3, [{ id: "someoneElse" }])).toBe(true);
+  });
+
+  it("false when the burned player was signed (present in the squad)", () => {
+    const dossierBurns = { p1: { season: 3 } };
+    expect(hasUnresolvedDossierBurn(dossierBurns, 3, [{ id: "p1" }])).toBe(false);
+  });
+
+  it("false when the burn was recorded in an earlier season", () => {
+    const dossierBurns = { p1: { season: 2 } };
+    expect(hasUnresolvedDossierBurn(dossierBurns, 3, [])).toBe(false);
+  });
+
+  it("handles empty/missing input", () => {
+    expect(hasUnresolvedDossierBurn({}, 3, [])).toBe(false);
+    expect(hasUnresolvedDossierBurn(null, 3, null)).toBe(false);
   });
 });

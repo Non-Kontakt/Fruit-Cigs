@@ -226,3 +226,37 @@ describe("collectSeasonEndAchievements — Cold Case", () => {
     expect(achs).not.toContain("cold_case");
   });
 });
+
+describe("collectSeasonEndAchievements — Just Browsing", () => {
+  it("unlocks when a dossier burned this season is on a player never signed", () => {
+    const dossierBurns = { p1: { season: 2 } };
+    const achs = collectSeasonEndAchievements(baseInput({ dossierBurns, seasonNumber: 2, squad: [] }));
+    expect(achs).toContain("just_browsing");
+  });
+
+  it("does NOT unlock when the burned player was signed (in the squad)", () => {
+    const dossierBurns = { p1: { season: 2 } };
+    const achs = collectSeasonEndAchievements(baseInput({ dossierBurns, seasonNumber: 2, squad: [{ id: "p1" }] }));
+    expect(achs).not.toContain("just_browsing");
+  });
+
+  it("does NOT unlock for a burn from an earlier season", () => {
+    const dossierBurns = { p1: { season: 1 } };
+    const achs = collectSeasonEndAchievements(baseInput({ dossierBurns, seasonNumber: 2, squad: [] }));
+    expect(achs).not.toContain("just_browsing");
+  });
+
+  it("does NOT unlock with no burns", () => {
+    const achs = collectSeasonEndAchievements(baseInput({ dossierBurns: {}, seasonNumber: 2 }));
+    expect(achs).not.toContain("just_browsing");
+  });
+
+  it("respects already-unlocked state", () => {
+    const dossierBurns = { p1: { season: 2 } };
+    const achs = collectSeasonEndAchievements(baseInput({
+      dossierBurns, seasonNumber: 2, squad: [],
+      unlockedAchievements: new Set(["just_browsing"]),
+    }));
+    expect(achs).not.toContain("just_browsing");
+  });
+});

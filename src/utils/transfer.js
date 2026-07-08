@@ -263,6 +263,84 @@ export function getPlayersTradedAwayThisSeason(transferHistory, seasonNumber) {
 }
 
 /**
+ * Whether a window-scoped rejection count has crossed the Under Siege
+ * threshold — reject 5 offers in a single transfer window.
+ * @param {number} nextCount - the count after incrementing for this rejection
+ * @returns {boolean}
+ */
+export function reachedUnderSiegeThreshold(nextCount) {
+  return nextCount >= 5;
+}
+
+/**
+ * Loyalty Repaid — resolve the watched (rejected-offer) player's appearance
+ * in a just-completed match. The watch is "his next match", not "keep
+ * checking forever", so it resolves — clears — the moment he actually
+ * appears, whatever the result. Compares against the player's current
+ * match-log name (not the name snapshotted at rejection time) so a rename
+ * ticket used in between doesn't break the match.
+ * @param {{ playerId: string, playerName: string } | null} watch
+ * @param {Set<string>} appearedIds - player ids who appeared in this match
+ * @param {string | null} winningGoalScorerName - name of whoever scored the winner, if any
+ * @param {string | undefined} watchedPlayerCurrentName - the watched player's name as of this match
+ * @returns {{ appeared: boolean, scoredWinner: boolean }}
+ */
+export function resolveLoyaltyWatch(watch, appearedIds, winningGoalScorerName, watchedPlayerCurrentName) {
+  if (!watch || !appearedIds?.has(watch.playerId)) return { appeared: false, scoredWinner: false };
+  const scoredWinner = winningGoalScorerName != null && winningGoalScorerName === watchedPlayerCurrentName;
+  return { appeared: true, scoredWinner };
+}
+
+/**
+ * Pure Profit — did any of the outgoing players in a trade get signed on a
+ * free (see `signedOnFree`, set at both Transfer Insider signing paths)?
+ * @param {Array} outgoingPlayers
+ * @returns {boolean}
+ */
+export function tradedAwayFreeSignedPlayer(outgoingPlayers) {
+  return (outgoingPlayers || []).some(p => p?.signedOnFree);
+}
+
+/**
+ * Catch Of The Day — was any of the incoming players in a trade a wonderkid
+ * our scouts previously tipped us off about?
+ * @param {Array} incomingPlayers
+ * @param {Set<string>} wonderkidTips - player ids named in a wonderkid tip
+ * @returns {boolean}
+ */
+export function signedTippedWonderkid(incomingPlayers, wonderkidTips) {
+  if (!wonderkidTips || wonderkidTips.size === 0) return false;
+  return (incomingPlayers || []).some(p => p?.id != null && wonderkidTips.has(p.id));
+}
+
+/**
+ * Strike While It's Hot — was any incoming player's potential revealed the
+ * same week he was signed?
+ * @param {Array} incomingPlayers
+ * @param {Object} scoutRevealMeta - { [playerId]: { week, method } }
+ * @param {number} currentWeek - calendarIndex at signing time
+ * @returns {boolean}
+ */
+export function signedSameWeekAsReveal(incomingPlayers, scoutRevealMeta, currentWeek) {
+  if (!scoutRevealMeta) return false;
+  return (incomingPlayers || []).some(p => p?.id != null && scoutRevealMeta[p.id]?.week === currentWeek);
+}
+
+/**
+ * Trust The Process — how many incoming players in this trade were revealed
+ * via the passive shortlist timer (as opposed to a Scout Dossier ticket)?
+ * Counts every qualifying player in the batch, not just the first, since a
+ * single trade can bring in more than one passively-revealed signing.
+ * @param {Array} incomingPlayers
+ * @param {Object} scoutRevealMeta - { [playerId]: { week, method } }
+ * @returns {number}
+ */
+export function countPassiveRevealSignings(incomingPlayers, scoutRevealMeta) {
+  if (!scoutRevealMeta) return 0;
+  return (incomingPlayers || []).filter(p => p?.id != null && scoutRevealMeta[p.id]?.method === "passive").length;
+}
+
+/**
  * Get relationship tier name for display
  * @param {number} pct - Relationship percentage
  * @returns {string} Tier name

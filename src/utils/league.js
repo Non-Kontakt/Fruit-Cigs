@@ -6,7 +6,7 @@ import { generateFixtures, simulateMatch } from "./match.js";
 import { getModifier } from "../data/leagueModifiers.js";
 import { getTopScorers } from "./competitionStats.js";
 import { getPlayersTradedAwayThisSeason } from "./transfer.js";
-import { getStaleShortlistEntries } from "./scouting.js";
+import { getStaleShortlistEntries, hasUnresolvedDossierBurn } from "./scouting.js";
 
 // The tier defs reuse plausible club names ("Red Lion FC", "Dog & Duck"...),
 // so a player can pick a name that already belongs to an AI team. AI configs
@@ -124,7 +124,7 @@ export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueSt
 
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, transferHistory = [], shortlist = [] }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, transferHistory = [], shortlist = [], dossierBurns = {} }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -302,9 +302,14 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
     }
   }
 
-  // Cold Case — a shortlisted player survived a full season without being signed.
+  // Cold Case — a shortlisted player carried into a second season without being signed.
   if (!unlockedAchievements.has("cold_case") && getStaleShortlistEntries(shortlist, seasonNumber).length > 0) {
     achs.push("cold_case");
+  }
+
+  // Just Browsing — burned a dossier on a player this season and never signed him.
+  if (!unlockedAchievements.has("just_browsing") && hasUnresolvedDossierBurn(dossierBurns, seasonNumber, squad)) {
+    achs.push("just_browsing");
   }
 
   return achs.filter(id => !unlockedAchievements.has(id));

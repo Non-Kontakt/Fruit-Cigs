@@ -415,7 +415,7 @@ export const ACHIEVEMENTS = [
   { id: "just_browsing", name: "Just Browsing", desc: "Burn a Scout Dossier on a player and never sign him", icon: "🪟" },
   { id: "trust_the_process", name: "Trust The Process", desc: "Sign three passively-revealed players in one career", icon: "📋" },
   { id: "eye_for_talent", name: "Eye For Talent", desc: "A player you revealed at max potential wins Young Player of the Season for you", icon: "🦅" },
-  { id: "cold_case", name: "Cold Case", desc: "Keep a player shortlisted for a full season without signing him", icon: "🧊" },
+  { id: "cold_case", name: "Cold Case", desc: "Carry a shortlisted player into a second season without signing him", icon: "🧊" },
 ];
 
 
