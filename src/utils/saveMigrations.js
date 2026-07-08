@@ -439,3 +439,32 @@ export function backfillOvrHistorySnapshot(squad, calendarIndex, seasonNumber) {
   (squad || []).forEach(p => { snap[`${p.name}|${p.position}`] = getOverall(p); });
   return [{ w: (calendarIndex || 0) + 1, s: seasonNumber || 1, p: snap }];
 }
+
+// He Doesn't Even Go Here absorbed the former Identity Crisis card (same id
+// throughout, "out_of_pos") — a save that already had identity_crisis
+// unlocked earned that same holistic check under its old name, so it should
+// come out the other side with out_of_pos unlocked and the stale id gone.
+// Returns the same Set reference when there's nothing to migrate.
+export function mergeIdentityCrisisIntoOutOfPos(unlockedAchievements) {
+  const prev = unlockedAchievements;
+  if (!prev || !(prev instanceof Set) || !prev.has("identity_crisis")) return prev;
+  const next = new Set(prev);
+  next.delete("identity_crisis");
+  next.add("out_of_pos");
+  return next;
+}
+
+// Companion to the Set migration above: the unlock-week metadata keyed under
+// the stale identity_crisis id carries the card's original collection timing
+// (shown on the card face and used for index chronology). Move it to
+// out_of_pos when that key is missing — an existing out_of_pos week wins,
+// since that unlock genuinely happened under the surviving id — and drop the
+// stale key either way. Returns the same reference when there's nothing to do.
+export function migrateIdentityCrisisUnlockWeek(achievementUnlockWeeks) {
+  const prev = achievementUnlockWeeks;
+  if (!prev || typeof prev !== "object" || !("identity_crisis" in prev)) return prev;
+  const next = { ...prev };
+  if (!("out_of_pos" in next)) next.out_of_pos = next.identity_crisis;
+  delete next.identity_crisis;
+  return next;
+}

@@ -8,10 +8,10 @@ import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall } from "../utils/calc.js";
 import { generateFreeAgent, getOvrCap } from "../utils/player.js";
 import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resolveSeasonEndArcs } from "../utils/arcs.js";
-import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
+import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion, getPriorPlayedResult } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
-import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements } from "../utils/achievements.js";
+import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements, collectLineupAchievements, getFavouriteStartsIncrement } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
@@ -355,6 +355,10 @@ export function useMatchResult({
           )]);
         }
 
+        // The Favourite — recompute the squad's current lowest-OVR
+        // outfielder(s) fresh and bump whichever of them started this match.
+        const nextFavouriteStarts = getFavouriteStartsIncrement(s.squad, s.startingXI, s.favouriteStarts);
+
         const newUnlocks = checkAchievements({
           squad: s.squad, unlocked: s.unlockedAchievements,
           lastMatchResult: matchResult, league: currentLeague, weekGains: null,
@@ -396,6 +400,7 @@ export function useMatchResult({
             return gk ? { ...s.gkCleanSheets, [gk.name]: (s.gkCleanSheets[gk.name] || 0) + 1 } : s.gkCleanSheets;
           })() : s.gkCleanSheets,
           totalShortlisted: s.totalShortlisted, gameMode: s.gameMode,
+          favouriteStarts: nextFavouriteStarts,
         });
         if (newUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newUnlocks.forEach(id => next.add(id)); return next; });
@@ -410,6 +415,22 @@ export function useMatchResult({
               }
             }
           }
+        }
+        s.setFavouriteStarts(nextFavouriteStarts);
+
+        // Physalis Cigs — post-match Starting XI/bench composition checks
+        // (league matches). prevResult is the previous *played* match's
+        // result, resolved from calendarResults as it stood before this
+        // match's own entry was written above.
+        const lineupUnlocks = collectLineupAchievements({
+          squad: s.squad, startingXI: s.startingXI, bench: s.bench,
+          prevStartingXI: s.prevStartingXI,
+          prevResult: getPriorPlayedResult(s.calendarResults),
+          unlocked: s.unlockedAchievements,
+        });
+        if (lineupUnlocks.length > 0) {
+          s.setUnlockedAchievements(prev => { const next = new Set(prev); lineupUnlocks.forEach(id => next.add(id)); return next; });
+          setAchievementQueue(prev => { const ex = new Set(prev); const f = lineupUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
         }
         // Latch wonLeagueOnHoliday when title mathematically clinched during holiday
         if (s.isOnHoliday && !s.wonLeagueOnHoliday) {

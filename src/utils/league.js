@@ -417,6 +417,19 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
     achs.push("second_life");
   }
 
+  // Grandfather Clause — the same 33+ year old started every league match
+  // of the season. playerSeasonStats[name].apps only increments for league
+  // starts (see useMatchResult.js) — never for cup appearances — so it's
+  // directly comparable to the season's league fixture count. Falls back to
+  // 18 (a full single round-robin in a 10-team tier) when fixtures aren't
+  // available, matching the fallback used throughout the match-result hooks.
+  if (!unlockedAchievements.has("grandfather_clause") && squad && playerSeasonStats) {
+    const totalLeagueMatches = league?.fixtures?.length || 18;
+    if (squad.some(p => p.age >= 33 && (playerSeasonStats[p.name]?.apps || 0) >= totalLeagueMatches)) {
+      achs.push("grandfather_clause");
+    }
+  }
+
   // Full Reset, Same Result — won a title within 4 seasons of a prestige
   // reset, with no title won in between (the prestige season itself never
   // counts as the title — result is "prestige" there, not a league win).
@@ -529,6 +542,20 @@ export function wonEveryPlayedMatchThisSeason(calendarResults) {
   const playedEntries = Object.values(calendarResults || {}).filter(e => e && !e.spectator && typeof e.won === "boolean");
   if (playedEntries.length === 0) return false;
   return playedEntries.every(e => e.won === true);
+}
+
+// Keep The Faith needs the previous *played* match's result before this
+// match's own entry is written — calendarResults is keyed by calendar slot
+// and also holds non-match placeholders (Dynasty Cup spectator weeks), so
+// scan back from the highest key to the newest entry that actually carries
+// a score. Callers must pass calendarResults as it stood BEFORE the current
+// match's own result was recorded.
+export function getPriorPlayedResult(calendarResults) {
+  const entries = Object.entries(calendarResults || {})
+    .filter(([, e]) => e && !e.spectator && typeof e.won === "boolean")
+    .map(([k, e]) => [Number(k), e])
+    .sort((a, b) => b[0] - a[0]);
+  return entries.length > 0 ? entries[0][1] : null;
 }
 
 export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueStates, playerTeamName = null) {

@@ -5,7 +5,7 @@ import {
   migratePlayerRatingTracker, migrateClubHistoryNames, backfillClubHistory,
   resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
   resolveCupStatsAvailable, migrateSummerPhase, migrateSummerWeeksForAwards, stripCupNamePrefix,
-  migrateStoryArcsCompletion, backfillOvrHistorySnapshot,
+  migrateStoryArcsCompletion, backfillOvrHistorySnapshot, mergeIdentityCrisisIntoOutOfPos, migrateIdentityCrisisUnlockWeek,
 } from "../saveMigrations.js";
 import { initLeagueRosters } from "../league.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
@@ -350,5 +350,54 @@ describe("migrateSummerWeeksForAwards", () => {
     expect(migrateSummerWeeksForAwards(3, "break", { weeksLeft: 3 }).weeksLeft).toBe(3);
     expect(migrateSummerWeeksForAwards(2, null, { weeksLeft: 3 }).weeksLeft).toBe(3);
     expect(migrateSummerWeeksForAwards(2, "break", null)).toBe(null);
+  });
+});
+
+// He Doesn't Even Go Here absorbed the former Identity Crisis card (same id
+// throughout the merge: out_of_pos). A save with identity_crisis already
+// unlocked must come out with out_of_pos unlocked and identity_crisis gone.
+describe("mergeIdentityCrisisIntoOutOfPos", () => {
+  it("remaps identity_crisis to out_of_pos, dropping the stale id", () => {
+    const result = mergeIdentityCrisisIntoOutOfPos(new Set(["first_win", "identity_crisis", "clean_sheet"]));
+    expect(result.has("identity_crisis")).toBe(false);
+    expect(result.has("out_of_pos")).toBe(true);
+    expect(result.has("first_win")).toBe(true);
+    expect(result.has("clean_sheet")).toBe(true);
+  });
+
+  it("is a no-op (same reference) when identity_crisis isn't present", () => {
+    const prev = new Set(["first_win", "out_of_pos"]);
+    const result = mergeIdentityCrisisIntoOutOfPos(prev);
+    expect(result).toBe(prev);
+  });
+
+  it("does not duplicate out_of_pos if both ids were somehow already present", () => {
+    const result = mergeIdentityCrisisIntoOutOfPos(new Set(["identity_crisis", "out_of_pos"]));
+    expect(result.has("identity_crisis")).toBe(false);
+    expect([...result].filter(id => id === "out_of_pos")).toHaveLength(1);
+  });
+
+  it("handles a missing/undefined set without throwing", () => {
+    expect(mergeIdentityCrisisIntoOutOfPos(null)).toBe(null);
+    expect(mergeIdentityCrisisIntoOutOfPos(undefined)).toBe(undefined);
+  });
+});
+
+describe("migrateIdentityCrisisUnlockWeek", () => {
+  it("moves the stale key's week to out_of_pos when out_of_pos has none", () => {
+    const result = migrateIdentityCrisisUnlockWeek({ identity_crisis: 42, first_win: 3 });
+    expect(result).toEqual({ out_of_pos: 42, first_win: 3 });
+  });
+
+  it("keeps out_of_pos's own week when both keys exist, dropping the stale one", () => {
+    const result = migrateIdentityCrisisUnlockWeek({ identity_crisis: 42, out_of_pos: 17 });
+    expect(result).toEqual({ out_of_pos: 17 });
+  });
+
+  it("returns the same reference when there is nothing to migrate", () => {
+    const weeks = { first_win: 3 };
+    expect(migrateIdentityCrisisUnlockWeek(weeks)).toBe(weeks);
+    expect(migrateIdentityCrisisUnlockWeek(null)).toBe(null);
+    expect(migrateIdentityCrisisUnlockWeek(undefined)).toBe(undefined);
   });
 });

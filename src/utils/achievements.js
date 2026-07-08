@@ -78,7 +78,7 @@ export function checkAchievements(state) {
     isOnHoliday, wonLeagueOnHoliday, holidayMatchesThisSeason, doubleTrainingWeek, testimonialPlayer,
     seasonNumber, lastSeasonPosition,
     shortlist, wasAlwaysNormal, fastMatchesThisSeason, twelfthManActive, gkCleanSheets,
-    totalShortlisted, gameMode } = state;
+    totalShortlisted, gameMode, favouriteStarts } = state;
   const newUnlocks = [];
 
   // Training-based
@@ -360,13 +360,36 @@ export function checkAchievements(state) {
       }
     }
 
-    // Out of position
-    if (!unlocked.has("out_of_pos") && startingXI && stateFormation) {
+    // He Doesn't Even Go Here — a player in neither their natural nor any
+    // learned position (merged with the former Identity Crisis, which used
+    // this same holistic learnedPositions-aware check).
+    if (!unlocked.has("out_of_pos") && startingXI && stateFormation && squad) {
       const slotAssign = getEffectiveSlots(startingXI, stateFormation, squad, stateSlotAssignments);
       const formPositions = getFormationPositions(stateFormation);
       for (let i = 0; i < Math.min(slotAssign.length, formPositions.length); i++) {
-        const player = slotAssign[i] != null ? squad.find(p => p.id === slotAssign[i]) : null;
-        if (player && player.position !== formPositions[i]) { newUnlocks.push("out_of_pos"); break; }
+        const pid = slotAssign[i];
+        if (!pid) continue;
+        const player = squad.find(p => p.id === pid);
+        if (!player) continue;
+        const slotPos = formPositions[i];
+        if (slotPos && slotPos !== player.position && !(player.learnedPositions || []).includes(slotPos)) {
+          newUnlocks.push("out_of_pos"); break;
+        }
+      }
+    }
+
+    // Keeper Rush — a player whose NATURAL position is GK occupies a
+    // non-GK formation slot in the XI that played.
+    if (!unlocked.has("keeper_rush") && startingXI && stateFormation && squad) {
+      const slotAssign = getEffectiveSlots(startingXI, stateFormation, squad, stateSlotAssignments);
+      const formPositions = getFormationPositions(stateFormation);
+      for (let i = 0; i < Math.min(slotAssign.length, formPositions.length); i++) {
+        const pid = slotAssign[i];
+        if (!pid) continue;
+        const player = squad.find(p => p.id === pid);
+        if (player && player.position === "GK" && formPositions[i] !== "GK") {
+          newUnlocks.push("keeper_rush"); break;
+        }
       }
     }
 
@@ -1127,27 +1150,18 @@ export function checkAchievements(state) {
     if (Object.values(gkCleanSheets).some(cs => cs >= 8)) newUnlocks.push("cat_like_reflexes");
   }
 
+  // The Favourite — the squad's current lowest-OVR outfielder started 10
+  // times in a season. favouriteStarts is the per-season counter map
+  // (playerId -> count) maintained by the caller via getFavouriteStartsIncrement.
+  if (!unlocked.has("the_favourite") && favouriteStarts) {
+    if (Object.values(favouriteStarts).some(c => c >= 10)) newUnlocks.push("the_favourite");
+  }
+
   // === POSITION LEARNING ===
 
   // Swiss Army Knife — player with 3+ learned positions
   if (!unlocked.has("swiss_army_knife") && squad) {
     if (squad.some(p => p.learnedPositions && p.learnedPositions.length >= 3)) newUnlocks.push("swiss_army_knife");
-  }
-
-  // Identity Crisis — playing in neither natural nor any learned position
-  if (!unlocked.has("identity_crisis") && lastMatchResult && startingXI && stateFormation && squad) {
-    const effectiveSlots = getEffectiveSlots(startingXI, stateFormation, squad, stateSlotAssignments);
-    const formPositions = getFormationPositions(stateFormation);
-    for (let i = 0; i < Math.min(effectiveSlots.length, formPositions.length); i++) {
-      const pid = effectiveSlots[i];
-      if (!pid) continue;
-      const player = squad.find(p => p.id === pid);
-      if (!player) continue;
-      const slotPos = formPositions[i];
-      if (slotPos && slotPos !== player.position && !(player.learnedPositions || []).includes(slotPos)) {
-        newUnlocks.push("identity_crisis"); break;
-      }
-    }
   }
 
   // === SQUAD CONTINUITY ===
@@ -1265,6 +1279,89 @@ export function checkAchievements(state) {
 
   // All earned achievements returned regardless of pack status — banking handled by caller
   return newUnlocks;
+}
+
+// The Favourite's per-season counter (playerId -> starts). Recomputes the
+// squad's current lowest-OVR outfielder(s) fresh at every league match (ties
+// all count), and bumps whichever of them started this match. Returns the
+// same reference when nothing changes so callers can skip a needless
+// setState, matching addHatTrickScorer's convention.
+export function getFavouriteStartsIncrement(squad, startingXI, favouriteStarts) {
+  const prev = favouriteStarts || {};
+  if (!squad || !startingXI) return prev;
+  const outfielders = squad.filter(p => p.position !== "GK");
+  if (outfielders.length === 0) return prev;
+  const minOvr = Math.min(...outfielders.map(p => getOverall(p)));
+  const lowest = outfielders.filter(p => getOverall(p) === minOvr);
+  const xiSet = new Set(startingXI);
+  const startedLowest = lowest.filter(p => xiSet.has(p.id));
+  if (startedLowest.length === 0) return prev;
+  const next = { ...prev };
+  startedLowest.forEach(p => { next[p.id] = (next[p.id] || 0) + 1; });
+  return next;
+}
+
+// Physalis Cigs — post-match Starting XI/bench composition checks. Pure so
+// the two match-resolution call sites (league in useMatchResult.js, cup in
+// App.jsx) share one implementation. prevResult is the caller-resolved prior
+// *played* match result (see getPriorPlayedResult in utils/league.js) —
+// keep_the_faith is the only card here that needs it.
+export function collectLineupAchievements({ squad, startingXI, bench, prevStartingXI, prevResult, unlocked }) {
+  const achs = [];
+  if (!squad || !startingXI) return achs;
+  const xiPlayers = startingXI.map(id => squad.find(p => p.id === id)).filter(Boolean);
+  const fullXI = xiPlayers.length === 11 && startingXI.length === 11;
+
+  // United Nations — 11 different nationalities in the XI
+  if (!unlocked.has("united_nations") && fullXI) {
+    if (new Set(xiPlayers.map(p => p.nationality)).size === 11) achs.push("united_nations");
+  }
+
+  // Foreign Legion — all 11 share one nationality, and it isn't England
+  if (!unlocked.has("foreign_legion") && fullXI) {
+    const nat = xiPlayers[0].nationality;
+    if (nat && nat !== "ENG" && xiPlayers.every(p => p.nationality === nat)) achs.push("foreign_legion");
+  }
+
+  // Class Of '92 — every starter is homegrown
+  if (!unlocked.has("class_of_92") && fullXI) {
+    if (xiPlayers.every(p => p.isYouthIntake || p.isYouthCoup)) achs.push("class_of_92");
+  }
+
+  // Year Group — every starter is the same age
+  if (!unlocked.has("year_group") && fullXI) {
+    if (xiPlayers.every(p => p.age === xiPlayers[0].age)) achs.push("year_group");
+  }
+
+  // Backbone — homegrown players cover all four position-type groups at once
+  if (!unlocked.has("backbone")) {
+    const homegrownGroups = new Set(
+      xiPlayers.filter(p => p.isYouthIntake || p.isYouthCoup).map(p => POSITION_TYPES[p.position])
+    );
+    if (["GK", "DEF", "MID", "FWD"].every(g => homegrownGroups.has(g))) achs.push("backbone");
+  }
+
+  // The Kids Are Alright — a full 5-player bench, every one a teenager.
+  // Requiring the bench at full strength keeps an empty/short bench from
+  // vacuously satisfying an `every()` over nothing.
+  if (!unlocked.has("kids_are_alright") && bench && bench.length === 5) {
+    const benchPlayers = bench.map(id => squad.find(p => p.id === id)).filter(Boolean);
+    if (benchPlayers.length === 5 && benchPlayers.every(p => p.age <= 19)) achs.push("kids_are_alright");
+  }
+
+  // Keep The Faith — same XI (as a set, not slot-for-slot) named right after
+  // losing the previous played match by 5+ goals
+  if (!unlocked.has("keep_the_faith") && prevResult && prevStartingXI && startingXI.length === 11 && prevStartingXI.length === 11) {
+    const lostByFiveOrMore = !prevResult.won && (prevResult.oppGoals - prevResult.playerGoals) >= 5;
+    if (lostByFiveOrMore) {
+      const prevSet = new Set(prevStartingXI);
+      const curSet = new Set(startingXI);
+      const unchanged = prevSet.size === curSet.size && [...prevSet].every(id => curSet.has(id));
+      if (unchanged) achs.push("keep_the_faith");
+    }
+  }
+
+  return achs;
 }
 
 // Compare a transfer target against the current best-fit squad player for
