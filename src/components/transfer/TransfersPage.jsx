@@ -4,6 +4,7 @@ import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, relColor } from "../../utils/calc.js";
 import { generateTradeId, findComparablePlayer } from "../../utils/transfer.js";
+import { checkCompareAchievements } from "../../utils/achievements.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
 import { XpBar } from "../ui/XpBar.jsx";
@@ -52,6 +53,8 @@ export function TransfersPage({
   scoutedPlayers,
   onTradeComplete,
   ovrCap,
+  unlockedAchievements,
+  tryUnlockAchievement,
 }) {
   const [activeTab, setActiveTab] = useState("PLAYER SEARCH");
   const [expandedClub, setExpandedClub] = useState(null);
@@ -196,6 +199,17 @@ export function TransfersPage({
   // --- Open the compare modal for a specific AI transfer target ---
   const handleCompare = (player) => {
     setCompareTarget(player);
+    // No Contest / Dodged A Bullet — strict attribute sweep against whoever
+    // currently mans the target's position (see findComparablePlayer).
+    if (tryUnlockAchievement && unlockedAchievements && player?.attrs) {
+      const comparable = findComparablePlayer(squad, player.position, { startingXI, formation, slotAssignments });
+      if (comparable?.player?.attrs) {
+        const newUnlocks = checkCompareAchievements({
+          targetAttrs: player.attrs, comparableAttrs: comparable.player.attrs, unlocked: unlockedAchievements,
+        });
+        newUnlocks.forEach(id => tryUnlockAchievement(id));
+      }
+    }
   };
 
   // --- Open trade proposal for a specific AI player ---

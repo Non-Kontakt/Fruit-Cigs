@@ -113,3 +113,13 @@ export function getNextOnboardingDripMessage(state) {
   }
   return null;
 }
+
+/**
+ * Teacher's Pet — every one of the assistant's drip tips has landed in the
+ * inbox. Pure — takes the same inboxMessages array getNextOnboardingDripMessage
+ * reads, so it can be checked at the same weekly site without re-deriving state.
+ */
+export function hasReceivedAllDripMessages(inboxMessages) {
+  const sentIds = new Set((inboxMessages || []).map(m => m.id));
+  return STEPS.every(step => sentIds.has(step.id));
+}

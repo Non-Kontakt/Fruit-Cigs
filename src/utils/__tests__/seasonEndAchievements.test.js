@@ -155,3 +155,149 @@ describe("collectSeasonEndAchievements — Tactical Foul via canonical", () => {
     expect(achs).not.toContain("tactical_foul");
   });
 });
+
+describe("collectSeasonEndAchievements — Reading The Room (first season at a new tier)", () => {
+  it("unlocks when a top-3 tier (<=3) finish is top 3, first time at that tier", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 2, position: 3, clubHistory: { seasonArchive: [] },
+    }));
+    expect(achs).toContain("reading_the_room");
+  });
+
+  it("does not unlock a top-3 tier finish outside the top 3", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 2, position: 4, clubHistory: { seasonArchive: [] },
+    }));
+    expect(achs).not.toContain("reading_the_room");
+  });
+
+  it("unlocks a tier 4-5 top-3-and-promoted finish", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 5, position: 2, moveType: "promoted", clubHistory: { seasonArchive: [] },
+    }));
+    expect(achs).toContain("reading_the_room");
+  });
+
+  it("does not unlock tier 4-5 top-3 without promotion", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 5, position: 2, moveType: "stayed", clubHistory: { seasonArchive: [] },
+    }));
+    expect(achs).not.toContain("reading_the_room");
+  });
+
+  it("unlocks a survival-tier (>=8) finish that avoided relegation", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 9, position: 6, moveType: "stayed", clubHistory: { seasonArchive: [] },
+    }));
+    expect(achs).toContain("reading_the_room");
+  });
+
+  it("does NOT unlock when the club has already played a season at this tier before", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 9, position: 6, moveType: "stayed",
+      clubHistory: { seasonArchive: [{ season: 1, tier: 9, position: 5 }] },
+    }));
+    expect(achs).not.toContain("reading_the_room");
+  });
+
+  it("respects already-unlocked state", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 2, position: 1, clubHistory: { seasonArchive: [] },
+      unlockedAchievements: new Set(["reading_the_room"]),
+    }));
+    expect(achs).not.toContain("reading_the_room");
+  });
+});
+
+describe("collectSeasonEndAchievements — Prove Them Wrong (won the league on a survival-only tier)", () => {
+  it("unlocks when the title is won at tier 8 or below the top flight (survival demand)", () => {
+    const achs = collectSeasonEndAchievements(baseInput({ currentTier: 8, position: 1 }));
+    expect(achs).toContain("prove_them_wrong");
+  });
+
+  it("does not unlock a title win at tier 7 (top-half demand, not survival)", () => {
+    const achs = collectSeasonEndAchievements(baseInput({ currentTier: 7, position: 1 }));
+    expect(achs).not.toContain("prove_them_wrong");
+  });
+
+  it("does not unlock a non-title finish even at a survival tier", () => {
+    const achs = collectSeasonEndAchievements(baseInput({ currentTier: 9, position: 2 }));
+    expect(achs).not.toContain("prove_them_wrong");
+  });
+});
+
+describe("collectSeasonEndAchievements — Second Life (title with a Legend in the squad)", () => {
+  it("unlocks when the title is won with an isLegend player in the squad", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      position: 1, squad: [{ id: "p1", isLegend: true }, { id: "p2" }],
+    }));
+    expect(achs).toContain("second_life");
+  });
+
+  it("does not unlock a title win with no Legends in the squad", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      position: 1, squad: [{ id: "p1" }, { id: "p2" }],
+    }));
+    expect(achs).not.toContain("second_life");
+  });
+});
+
+describe("collectSeasonEndAchievements — Full Reset, Same Result (title within 4 seasons of a prestige)", () => {
+  it("unlocks a title won 4 seasons after a prestige with no title in between", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      position: 1, seasonNumber: 5,
+      clubHistory: { seasonArchive: [{ season: 1, tier: 11, result: "prestige", position: 3 }] },
+    }));
+    expect(achs).toContain("full_reset_same_result");
+  });
+
+  it("does not unlock a title won more than 4 seasons after the prestige", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      position: 1, seasonNumber: 6,
+      clubHistory: { seasonArchive: [{ season: 1, tier: 11, result: "prestige", position: 3 }] },
+    }));
+    expect(achs).not.toContain("full_reset_same_result");
+  });
+
+  it("does not unlock when a title was already won since the prestige", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      position: 1, seasonNumber: 5,
+      clubHistory: { seasonArchive: [
+        { season: 1, tier: 11, result: "prestige", position: 3 },
+        { season: 3, tier: 9, position: 1 },
+      ] },
+    }));
+    expect(achs).not.toContain("full_reset_same_result");
+  });
+
+  it("does not unlock without a prior prestige season", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      position: 1, seasonNumber: 5,
+      clubHistory: { seasonArchive: [{ season: 1, tier: 9, position: 3 }] },
+    }));
+    expect(achs).not.toContain("full_reset_same_result");
+  });
+});
+
+describe("collectSeasonEndAchievements — Flying Without A Net (top division in Ironman)", () => {
+  it("unlocks when Ironman promotion lands the club at tier 1", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 2, newTier: 1, moveType: "promoted", gameMode: "ironman",
+    }));
+    expect(achs).toContain("flying_without_net");
+  });
+
+  it("does not unlock in casual mode", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 2, newTier: 1, moveType: "promoted", gameMode: "casual",
+    }));
+    expect(achs).not.toContain("flying_without_net");
+  });
+
+  it("does not unlock an Ironman promotion that doesn't reach tier 1", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      currentTier: 3, newTier: 2, moveType: "promoted", gameMode: "ironman",
+    }));
+    expect(achs).not.toContain("flying_without_net");
+  });
+});

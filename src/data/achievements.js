@@ -392,6 +392,49 @@ export const ACHIEVEMENTS = [
   { id: "scooty_puff_sr", name: "Scooty Puff Sr.", desc: "Win the Intergalactic Elite during your 2nd season in it", icon: "🛡️" },
   { id: "first_contact", name: "First Contact", desc: "Build a relationship with an Alien team to 100%", icon: "🤝" },
   { id: "phone_home", name: "Phone Home", desc: "Win all home games in a season in the Intergalactic Elite", icon: "🏠" },
+
+  // === THE GAFFER — early-career decisions, the assistant's tips, scouting ===
+  { id: "teachers_pet", name: "Teacher's Pet", desc: "Receive every one of the assistant's tips", icon: "🍎" },
+  { id: "i_know_what_im_doing", name: "I Know What I'm Doing", desc: "Silence the tips, then win your first match", icon: "😎" },
+  { id: "shouldve_listened", name: "Should've Listened", desc: "Silence the tips, then finish dead last in your first season", icon: "📉" },
+  { id: "told_you_so", name: "Told You So", desc: "Silence the tips, then win promotion in your first season", icon: "☝️" },
+  { id: "no_contest", name: "No Contest", desc: "Compare a target who beats your man in every attribute", icon: "⚖️" },
+  { id: "dodged_a_bullet", name: "Dodged A Bullet", desc: "Compare a target who loses to your man in every attribute", icon: "🫣" },
+  { id: "upgrade_confirmed", name: "Upgrade Confirmed", desc: "Sign a player after comparing him, and watch him outscore the man he replaced", icon: "✅" },
+  { id: "reading_the_room", name: "Reading The Room", desc: "Meet the board's stated expectation in your first season at a new tier", icon: "📖" },
+  { id: "hostile_crowd", name: "Hostile Crowd", desc: "Win a match with fan sentiment below 10", icon: "🍅" },
+  { id: "riding_the_wave", name: "Riding The Wave", desc: "Gain 20+ fan sentiment in one go", icon: "🌊" },
+
+  // === PRESSURE & SURVIVAL — sentiment extremes, ultimatums, cup-run lifelines ===
+  { id: "ultras", name: "Ultras", desc: "Reach 100 fan sentiment", icon: "📣" },
+  { id: "boardroom_darling", name: "Boardroom Darling", desc: "Reach 100 board sentiment", icon: "🥂" },
+  { id: "everybody_loves_you", name: "Everybody Loves You", desc: "Max out fans and board in the same week", icon: "💯" },
+  { id: "cup_run_reprieve", name: "Cup Run Reprieve", desc: "Keep your job because of a cup run", icon: "🙏" },
+  { id: "stay_of_execution", name: "Stay Of Execution", desc: "Beat an ultimatum with a match to spare", icon: "⏱️" },
+  { id: "prove_them_wrong", name: "Prove Them Wrong", desc: "Win the league in a season the board only demanded survival", icon: "💪" },
+  { id: "peoples_champion", name: "The People's Champion", desc: "Finish a season without fan sentiment ever dropping below 50", icon: "❤️" },
+  { id: "tightrope_walker", name: "Tightrope Walker", desc: "Survive a board ultimatum", icon: "🎪" },
+  { id: "cheating_death", name: "Cheating Death", desc: "Survive two ultimatums in one career", icon: "❤️‍🩹" },
+  { id: "flying_without_net", name: "Flying Without A Net", desc: "Reach the top division in Ironman mode", icon: "🕸️" },
+
+  // === PRESTIGE & LEGENDS ===
+  { id: "new_game_plus", name: "New Game Plus", desc: "Prestige for the first time", icon: "🔄" },
+  { id: "groundhog_season", name: "Groundhog Season", desc: "Prestige three times", icon: "🔁" },
+  { id: "chosen_few", name: "Chosen Few", desc: "Carry five Legends through a prestige", icon: "⭐" },
+  { id: "travelling_light", name: "Travelling Light", desc: "Prestige carrying no Legends at all", icon: "🎒" },
+  { id: "worth_the_armband", name: "Worth The Armband", desc: "A Legend scores in his final permitted appearance", icon: "💪" },
+  { id: "second_life", name: "Second Life", desc: "Win a title with a Legend in the squad", icon: "🌗" },
+  { id: "long_goodbye", name: "The Long Goodbye", desc: "A Legend plays all twelve of his appearances", icon: "👋" },
+  { id: "built_different", name: "Built Different", desc: "Push a Legend past the cap he retired under", icon: "🧬" },
+  { id: "museum_piece", name: "Museum Piece", desc: "Carry the same player as a Legend through two prestiges", icon: "🏺" },
+  { id: "full_reset_same_result", name: "Full Reset, Same Result", desc: "Win your first title within four seasons of a prestige", icon: "🏁" },
+
+  // === MEMENTO MORI — the Museum, Ironman careers that end ===
+  { id: "ashes_to_ashes", name: "Ashes To Ashes", desc: "Have a career immortalised in the Museum", icon: "⚱️" },
+  { id: "died_as_they_lived", name: "Died As They Lived", desc: "Get sacked the season after winning a title", icon: "🪦" },
+  { id: "the_collection", name: "The Collection", desc: "Have three careers archived in the Museum", icon: "🏛️" },
+  { id: "double_down", name: "Burn The Boats", desc: "Prestige in Ironman mode", icon: "🔥" },
+  { id: "decade_of_danger", name: "Decade Of Danger", desc: "Complete ten seasons in one Ironman career", icon: "🗓️" },
 ];
 
 

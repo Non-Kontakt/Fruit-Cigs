@@ -121,7 +121,7 @@ export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueSt
 
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, gameMode }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -275,6 +275,58 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
     const priorTier1Seasons = clubHistory.seasonArchive.filter(s => s.tier === 1).length;
     // priorTier1Seasons doesn't include the current season (archive hasn't been updated yet)
     if (priorTier1Seasons === 1) achs.push("scooty_puff_sr");
+  }
+
+  // === META: THE GAFFER / PRESSURE / PRESTIGE ===
+
+  // Reading The Room — met the board's stated expectation (see
+  // getBoardExpectation) in the first season played at this tier. "First
+  // season at this tier" = no prior seasonArchive entry recorded that tier.
+  // A tier<=3 "title challenge" demand is read generously as a top-3
+  // finish (a genuine title challenge, not necessarily winning it) —
+  // everything else maps directly onto promoted/position/moveType.
+  if (!unlockedAchievements.has("reading_the_room")) {
+    const everPlayedThisTier = (clubHistory?.seasonArchive || []).some(s => s.tier === currentTier);
+    if (!everPlayedThisTier) {
+      let metExpectation;
+      if (currentTier <= 3) metExpectation = position <= 3;
+      else if (currentTier <= 5) metExpectation = position <= 3 && moveType === "promoted";
+      else if (currentTier <= 7) metExpectation = league?.table && position <= Math.ceil(league.table.length / 2);
+      else metExpectation = moveType !== "relegated";
+      if (metExpectation) achs.push("reading_the_room");
+    }
+  }
+
+  // Prove Them Wrong — won the league in a season where the board only
+  // demanded survival (tier 8+ — see getBoardExpectation's "avoid
+  // relegation"/"survive and build" bands).
+  if (!unlockedAchievements.has("prove_them_wrong") && position === 1 && currentTier > 7) {
+    achs.push("prove_them_wrong");
+  }
+
+  // Second Life — won a title with a Legend in the squad.
+  if (!unlockedAchievements.has("second_life") && position === 1 && squad?.some(p => p.isLegend)) {
+    achs.push("second_life");
+  }
+
+  // Full Reset, Same Result — won a title within 4 seasons of a prestige
+  // reset, with no title won in between (the prestige season itself never
+  // counts as the title — result is "prestige" there, not a league win).
+  if (!unlockedAchievements.has("full_reset_same_result") && position === 1 && clubHistory?.seasonArchive) {
+    const archive = clubHistory.seasonArchive;
+    for (let i = archive.length - 1; i >= 0; i--) {
+      const entry = archive[i];
+      if (entry.position === 1) break; // an earlier title breaks the chain
+      if (entry.result === "prestige" && (seasonNumber - entry.season) <= 4) {
+        achs.push("full_reset_same_result");
+        break;
+      }
+    }
+  }
+
+  // Flying Without A Net — reached the top division in Ironman mode.
+  if (!unlockedAchievements.has("flying_without_net") && gameMode === "ironman" && newTier === 1) {
+    achs.push("flying_without_net");
   }
 
   // Mentality Monsters — won every match the player actually played this

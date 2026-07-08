@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
-import { getSaveKey, archiveCareerToMuseum } from "../utils/profile.js";
+import { getSaveKey, archiveCareerToMuseum, readProfile } from "../utils/profile.js";
 import { ATTRIBUTES } from "../data/training.js";
 import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS, AI_BENCH_POSITIONS } from "../data/leagues.js";
@@ -15,7 +15,7 @@ import { initStoryArcs } from "../utils/arcs.js";
 import { simulateMatchweek } from "../utils/match.js";
 import { normalizeRosters, initLeague, initAILeague, buildSeasonCalendar, computeCalendarIndex, initCup } from "../utils/league.js";
 import { seedMessageSeq, getMessageSeq } from "../utils/messageUtils.js";
-import { checkAchievements, deriveMissingPlayerUnlocks } from "../utils/achievements.js";
+import { checkAchievements, deriveMissingPlayerUnlocks, checkMuseumAchievements } from "../utils/achievements.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
 import { randomAvatar } from "../components/ui/ManagerAvatar.jsx";
 import {
@@ -529,6 +529,7 @@ export function useSaveGame({
           twelfthManActive: false,
           gkCleanSheets: s.gkCleanSheets || {},
           totalShortlisted: s.totalShortlisted || 0,
+          gameMode: s.gameMode || "casual",
         });
         if (catchUp.length > 0) {
           const merged = new Set(loadedUnlocked);
@@ -610,6 +611,24 @@ export function useSaveGame({
           s.unlockedAchievements = merged;
           store.setUnlockedAchievements(merged);
         }
+      }
+
+      // Migration: retroactive Elderberry Cigs (Museum) achievement catch-up
+      // Achievements are per-save state, so a sacking-time unlock dies with
+      // the deleted save — ashes_to_ashes/died_as_they_lived/the_collection/
+      // decade_of_danger are re-derived here from profile.museum, which
+      // outlives any individual save.
+      if (store.activeProfileId) {
+        try {
+          const profile = await readProfile(store.activeProfileId);
+          const museumAchs = checkMuseumAchievements(profile?.museum, s.unlockedAchievements || new Set());
+          if (museumAchs.length > 0) {
+            const merged = new Set(s.unlockedAchievements || new Set());
+            museumAchs.forEach(id => merged.add(id));
+            s.unlockedAchievements = merged;
+            store.setUnlockedAchievements(merged);
+          }
+        } catch (e) { console.warn("Museum achievement catch-up failed:", e); }
       }
 
       // Migration: grant missing player unlocks

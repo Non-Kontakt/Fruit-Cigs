@@ -5,7 +5,7 @@ import { ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { getOverall } from "../utils/calc.js";
 import { getFormationPositions, getEffectiveSlots } from "../utils/formation.js";
 import { sortStandings } from "../utils/league.js";
-import { getFirstName, getLastName } from "../utils/player.js";
+import { getFirstName, getLastName, getOvrCap } from "../utils/player.js";
 import { findCareerKey } from "./careerLedger.js";
 
 export function createUnlockablePlayer(unlockDef, joinedSeason, ovrCap = 20) {
@@ -77,7 +77,7 @@ export function checkAchievements(state) {
     isOnHoliday, wonLeagueOnHoliday, holidayMatchesThisSeason, doubleTrainingWeek, testimonialPlayer,
     seasonNumber, lastSeasonPosition,
     shortlist, wasAlwaysNormal, fastMatchesThisSeason, twelfthManActive, gkCleanSheets,
-    totalShortlisted } = state;
+    totalShortlisted, gameMode } = state;
   const newUnlocks = [];
 
   // Training-based
@@ -1240,7 +1240,92 @@ export function checkAchievements(state) {
     }
   }
 
+  // === PRESTIGE & LEGENDS ===
+
+  // Built Different — a Legend's overall now exceeds the OVR cap his own
+  // prestige era retired under (legendPrestige is the prestige level active
+  // when he was made a Legend; his era's cap is one prestige level below).
+  if (!unlocked.has("built_different") && squad) {
+    if (squad.some(p => p.isLegend && p.legendPrestige > 0 && getOverall(p) > getOvrCap(p.legendPrestige - 1))) {
+      newUnlocks.push("built_different");
+    }
+  }
+
+  // === MEMENTO MORI ===
+
+  // Decade Of Danger — 10 seasons completed in a single running Ironman
+  // career. Mirrors the season_10 check above but scoped to Ironman only;
+  // fires live at any weekly/match check once the threshold is crossed.
+  // The Elderberry catch-up pass covers already-ended Ironman careers via
+  // profile.museum (see checkMuseumAchievements).
+  if (!unlocked.has("decade_of_danger") && gameMode === "ironman" && seasonNumber >= 10) {
+    newUnlocks.push("decade_of_danger");
+  }
+
   // All earned achievements returned regardless of pack status — banking handled by caller
+  return newUnlocks;
+}
+
+// Compare a transfer target against the current best-fit squad player for
+// his position (see findComparablePlayer in utils/transfer.js). Pure sweep
+// over ATTRIBUTES — returns the ids of any comparison-triggered achievements
+// newly earned. "Strictly" beats/loses on every attribute — a tie on any
+// single attribute disqualifies both.
+export function checkCompareAchievements({ targetAttrs, comparableAttrs, unlocked }) {
+  const newUnlocks = [];
+  if (!targetAttrs || !comparableAttrs) return newUnlocks;
+  const targetBeatsAll = ATTRIBUTES.every(a => targetAttrs[a.key] > comparableAttrs[a.key]);
+  const targetLosesAll = ATTRIBUTES.every(a => targetAttrs[a.key] < comparableAttrs[a.key]);
+  if (!unlocked.has("no_contest") && targetBeatsAll) newUnlocks.push("no_contest");
+  if (!unlocked.has("dodged_a_bullet") && targetLosesAll) newUnlocks.push("dodged_a_bullet");
+  return newUnlocks;
+}
+
+// Legend-appearance milestones. legendAppearances is capped at 12 and
+// incremented at several call sites across App.jsx/useMatchResult.js (both
+// the interactive and holiday-mode-auto-sim match paths) — rather than
+// duplicating this check at every increment site, callers re-read the squad
+// fresh (Zustand's setSquad commits synchronously) right after each of those
+// updates and pass it in here.
+export function checkLegendMilestones({ squad, lastMatchResult, isPlayerHome, unlocked }) {
+  const newUnlocks = [];
+  if (!squad) return newUnlocks;
+  const cappedLegends = squad.filter(p => p.isLegend && (p.legendAppearances || 0) >= 12);
+  if (cappedLegends.length === 0) return newUnlocks;
+  if (!unlocked.has("long_goodbye")) newUnlocks.push("long_goodbye");
+  if (!unlocked.has("worth_the_armband") && lastMatchResult?.events && isPlayerHome != null) {
+    const side = isPlayerHome ? "home" : "away";
+    const scorerNames = new Set(
+      lastMatchResult.events.filter(e => e.type === "goal" && e.side === side).map(e => e.player)
+    );
+    if (cappedLegends.some(p => scorerNames.has(p.name))) newUnlocks.push("worth_the_armband");
+  }
+  return newUnlocks;
+}
+
+// Elderberry Cigs — retroactive Museum checks. Achievements are per-save
+// state, so a sacking-time unlock would otherwise die with the deleted save;
+// these are re-derived from profile.museum (see utils/profile.js) on every
+// load so a career that's already been archived still earns its cards.
+// Pure — takes the museum array directly so it's testable with synthetic
+// profiles, no storage access.
+export function checkMuseumAchievements(museum, unlocked) {
+  const newUnlocks = [];
+  const entries = museum || [];
+  if (entries.length === 0) return newUnlocks;
+  if (!unlocked.has("ashes_to_ashes")) newUnlocks.push("ashes_to_ashes");
+  if (!unlocked.has("the_collection") && entries.length >= 3) newUnlocks.push("the_collection");
+  if (!unlocked.has("decade_of_danger") && entries.some(e => (e.seasonNumber || 0) >= 10)) {
+    newUnlocks.push("decade_of_danger");
+  }
+  if (!unlocked.has("died_as_they_lived")) {
+    const wonTitleThenSacked = entries.some(e => {
+      const archive = e.clubHistory?.seasonArchive || [];
+      const lastSeason = archive[archive.length - 1];
+      return lastSeason?.position === 1;
+    });
+    if (wonTitleThenSacked) newUnlocks.push("died_as_they_lived");
+  }
   return newUnlocks;
 }
 
