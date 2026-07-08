@@ -3,7 +3,7 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, relColor } from "../../utils/calc.js";
-import { generateTradeId, findComparablePlayer } from "../../utils/transfer.js";
+import { generateTradeId, findComparablePlayer, resolveCompareSignWatch } from "../../utils/transfer.js";
 import { checkCompareAchievements } from "../../utils/achievements.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
@@ -55,6 +55,7 @@ export function TransfersPage({
   ovrCap,
   unlockedAchievements,
   tryUnlockAchievement,
+  setCompareSignWatch,
 }) {
   const [activeTab, setActiveTab] = useState("PLAYER SEARCH");
   const [expandedClub, setExpandedClub] = useState(null);
@@ -63,6 +64,11 @@ export function TransfersPage({
   const [selectedPlayer, setSelectedPlayer] = useState(null); // AI player profile
   const [tradeTarget, setTradeTarget] = useState(null); // { player, club } for TradeProposal
   const [compareTarget, setCompareTarget] = useState(null); // AI player being compared against your squad
+  // Most recent comparison, for Upgrade Confirmed — { targetId, targetName,
+  // starterName } of whoever the compared target was lined up against. Only
+  // persisted to the store (compareSignWatch) if the compared player is
+  // actually signed afterward (handleTradeConfirm / handleAcceptOffer).
+  const [lastCompared, setLastCompared] = useState(null);
   const [relSortCol,  setRelSortCol]  = useState(null); // null | "club" | "league" | "status" | "pct" | "wk"
   const [relSortDir,  setRelSortDir]  = useState("desc");
   const mob = useMobile();
@@ -199,15 +205,20 @@ export function TransfersPage({
   // --- Open the compare modal for a specific AI transfer target ---
   const handleCompare = (player) => {
     setCompareTarget(player);
-    // No Contest / Dodged A Bullet — strict attribute sweep against whoever
-    // currently mans the target's position (see findComparablePlayer).
-    if (tryUnlockAchievement && unlockedAchievements && player?.attrs) {
+    if (player?.attrs) {
       const comparable = findComparablePlayer(squad, player.position, { startingXI, formation, slotAssignments });
-      if (comparable?.player?.attrs) {
+      // No Contest / Dodged A Bullet — strict attribute sweep against whoever
+      // currently mans the target's position (see findComparablePlayer).
+      if (tryUnlockAchievement && unlockedAchievements && comparable?.player?.attrs) {
         const newUnlocks = checkCompareAchievements({
           targetAttrs: player.attrs, comparableAttrs: comparable.player.attrs, unlocked: unlockedAchievements,
         });
         newUnlocks.forEach(id => tryUnlockAchievement(id));
+      }
+      // Upgrade Confirmed watch — remember who this comparison was against,
+      // in case the target gets signed later this season.
+      if (player.id) {
+        setLastCompared({ targetId: player.id, targetName: player.name, starterName: comparable?.player?.name || null });
       }
     }
   };
@@ -298,6 +309,13 @@ export function TransfersPage({
     if (setTransferHistory) setTransferHistory(prev => [...prev, trade]);
     if (onTradeComplete) onTradeComplete(targetClubName);
 
+    // Upgrade Confirmed watch — persist only if the signed player is the one
+    // most recently compared.
+    if (setCompareSignWatch) {
+      const watch = resolveCompareSignWatch(lastCompared, received);
+      if (watch) setCompareSignWatch(watch);
+    }
+
     setTradeTarget(null);
   };
 
@@ -354,6 +372,13 @@ export function TransfersPage({
     if (setTransferHistory) setTransferHistory(prev => [...prev, trade]);
     if (onTradeComplete) onTradeComplete(offer.aiClubName);
     if (setTransferOffers) setTransferOffers(prev => prev.filter((_, i) => i !== idx));
+
+    // Upgrade Confirmed watch — persist only if the signed player is the one
+    // most recently compared.
+    if (setCompareSignWatch) {
+      const watch = resolveCompareSignWatch(lastCompared, offer.aiOffers);
+      if (watch) setCompareSignWatch(watch);
+    }
   };
 
   const handleRejectOffer = (idx) => {

@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { checkAchievements, checkCompareAchievements, checkLegendMilestones, checkMuseumAchievements } from "../achievements.js";
+import {
+  checkAchievements, checkCompareAchievements, checkLegendMilestones, checkMuseumAchievements,
+  checkFirstWinAfterSilence, checkCheatingDeath, applyLegendCarry,
+} from "../achievements.js";
 
 function makePlayer(id, overrides = {}) {
   return {
@@ -221,5 +224,102 @@ describe("checkMuseumAchievements — retroactive Museum (Elderberry Cigs)", () 
     const result = checkMuseumAchievements(museum, new Set(["ashes_to_ashes", "decade_of_danger"]));
     expect(result).not.toContain("ashes_to_ashes");
     expect(result).not.toContain("decade_of_danger");
+  });
+
+  // Robustness fix: decade_of_danger's desc is Ironman-specific
+  // ("...in one Ironman career"), so a museum entry from a non-Ironman
+  // career (once those get archived too) must not count toward it.
+  it("unlocks decade_of_danger for a season-10+ entry explicitly tagged ironman", () => {
+    const museum = [{ teamName: "Rovers", seasonNumber: 11, gameMode: "ironman", clubHistory: {} }];
+    expect(checkMuseumAchievements(museum, new Set())).toContain("decade_of_danger");
+  });
+
+  it("does not unlock decade_of_danger for a season-10+ entry explicitly tagged casual", () => {
+    const museum = [{ teamName: "Rovers", seasonNumber: 11, gameMode: "casual", clubHistory: {} }];
+    expect(checkMuseumAchievements(museum, new Set())).not.toContain("decade_of_danger");
+  });
+
+  it("treats a missing gameMode as ironman (pre-existing snapshots stay valid)", () => {
+    const museum = [{ teamName: "Rovers", seasonNumber: 11, clubHistory: {} }];
+    expect(checkMuseumAchievements(museum, new Set())).toContain("decade_of_danger");
+  });
+});
+
+describe("checkFirstWinAfterSilence — I Know What I'm Doing gate", () => {
+  const base = () => ({
+    onboardingSilencedByChoice: true, seasonNumber: 1, completedLeagueMatchdays: 1,
+    playerWon: true, unlocked: new Set(),
+  });
+
+  it("fires on a first-matchday win in season 1 after silencing the tips by choice", () => {
+    expect(checkFirstWinAfterSilence(base())).toBe(true);
+  });
+
+  it("does not fire when the tips were never explicitly silenced", () => {
+    expect(checkFirstWinAfterSilence({ ...base(), onboardingSilencedByChoice: false })).toBe(false);
+  });
+
+  it("does not fire outside season 1 (e.g. after a prestige, where seasonNumber keeps incrementing)", () => {
+    expect(checkFirstWinAfterSilence({ ...base(), seasonNumber: 6 })).toBe(false);
+  });
+
+  it("does not fire past the first league matchday", () => {
+    expect(checkFirstWinAfterSilence({ ...base(), completedLeagueMatchdays: 2 })).toBe(false);
+  });
+
+  it("does not fire when the first match wasn't a win", () => {
+    expect(checkFirstWinAfterSilence({ ...base(), playerWon: false })).toBe(false);
+  });
+
+  it("respects already-unlocked state", () => {
+    expect(checkFirstWinAfterSilence({ ...base(), unlocked: new Set(["i_know_what_im_doing"]) })).toBe(false);
+  });
+});
+
+describe("checkCheatingDeath — survive two ultimatums in one career", () => {
+  it("does not fire after a single reprieve", () => {
+    expect(checkCheatingDeath(1, new Set())).toBe(false);
+  });
+
+  it("fires once the count reaches 2", () => {
+    expect(checkCheatingDeath(2, new Set())).toBe(true);
+  });
+
+  it("still fires beyond 2 (career-long counter, never reset at prestige)", () => {
+    expect(checkCheatingDeath(3, new Set())).toBe(true);
+  });
+
+  it("respects already-unlocked state", () => {
+    expect(checkCheatingDeath(2, new Set(["cheating_death"]))).toBe(false);
+  });
+});
+
+describe("applyLegendCarry — Museum Piece carry-count tracking", () => {
+  it("starts a fresh count for a player carried for the first time", () => {
+    const { counts, unlocked } = applyLegendCarry({}, ["p1"]);
+    expect(counts).toEqual({ p1: 1 });
+    expect(unlocked).toBe(false);
+  });
+
+  it("unlocks once the same player id is carried a second time", () => {
+    const { counts, unlocked } = applyLegendCarry({ p1: 1 }, ["p1"]);
+    expect(counts).toEqual({ p1: 2 });
+    expect(unlocked).toBe(true);
+  });
+
+  it("tracks multiple players independently in the same prestige boundary", () => {
+    const { counts, unlocked } = applyLegendCarry({ p1: 1 }, ["p1", "p2"]);
+    expect(counts).toEqual({ p1: 2, p2: 1 });
+    expect(unlocked).toBe(true); // p1 crossed the threshold even though p2 didn't
+  });
+
+  it("does not unlock when no carried player has reached 2 yet", () => {
+    const { unlocked } = applyLegendCarry({}, ["p1", "p2"]);
+    expect(unlocked).toBe(false);
+  });
+
+  it("handles a missing/undefined previous counts map", () => {
+    const { counts } = applyLegendCarry(undefined, ["p1"]);
+    expect(counts).toEqual({ p1: 1 });
   });
 });

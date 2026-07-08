@@ -1315,7 +1315,12 @@ export function checkMuseumAchievements(museum, unlocked) {
   if (entries.length === 0) return newUnlocks;
   if (!unlocked.has("ashes_to_ashes")) newUnlocks.push("ashes_to_ashes");
   if (!unlocked.has("the_collection") && entries.length >= 3) newUnlocks.push("the_collection");
-  if (!unlocked.has("decade_of_danger") && entries.some(e => (e.seasonNumber || 0) >= 10)) {
+  // Decade Of Danger's own desc is Ironman-specific ("...in one Ironman
+  // career"), unlike ashes_to_ashes/died_as_they_lived which aren't — so
+  // only this one needs the gameMode guard. `?? "ironman"` keeps snapshots
+  // archived before this field existed valid, since only Ironman careers
+  // are archived today anyway.
+  if (!unlocked.has("decade_of_danger") && entries.some(e => (e.seasonNumber || 0) >= 10 && (e.gameMode ?? "ironman") === "ironman")) {
     newUnlocks.push("decade_of_danger");
   }
   if (!unlocked.has("died_as_they_lived")) {
@@ -1327,6 +1332,39 @@ export function checkMuseumAchievements(museum, unlocked) {
     if (wonTitleThenSacked) newUnlocks.push("died_as_they_lived");
   }
   return newUnlocks;
+}
+
+// I Know What I'm Doing — winning the career's first league match
+// after explicitly silencing the onboarding tips. Checked at the
+// match-result site (useMatchResult.js) rather than through the big
+// checkAchievements sweep since it only needs a few already-fresh values.
+// seasonNumber === 1 alone gates this to a true first career: seasonNumber
+// never resets to 1 across a prestige, it just keeps incrementing.
+export function checkFirstWinAfterSilence({ onboardingSilencedByChoice, seasonNumber, completedLeagueMatchdays, playerWon, unlocked }) {
+  if (unlocked?.has("i_know_what_im_doing")) return false;
+  return !!onboardingSilencedByChoice && seasonNumber === 1 && completedLeagueMatchdays === 1 && !!playerWon;
+}
+
+// Cheating Death — survive two board ultimatums in one career. Called at
+// both reprieve sites (match reprieve and cup reprieve, App.jsx) right after
+// the ultimatumsSurvived counter is incremented.
+export function checkCheatingDeath(ultimatumsSurvived, unlocked) {
+  return (ultimatumsSurvived || 0) >= 2 && !unlocked?.has("cheating_death");
+}
+
+// Museum Piece — carry the same player as a Legend through two prestiges.
+// Bumps legendCarryCounts for every player carried forward as a Legend at
+// this prestige boundary: both newly-named Legends and already-existing
+// ones (which are always retained automatically, never subject to
+// retirement at prestige — see the prestige LegendSelectionScreen onDone in
+// App.jsx). Unlocks once any single player id has been carried across two
+// separate prestige transitions. Pure — returns the next counts map plus
+// whether this carry newly qualifies for the unlock.
+export function applyLegendCarry(prevCounts, carriedIds) {
+  const next = { ...(prevCounts || {}) };
+  (carriedIds || []).forEach(id => { next[id] = (next[id] || 0) + 1; });
+  const unlocked = (carriedIds || []).some(id => next[id] >= 2);
+  return { counts: next, unlocked };
 }
 
 // Achievement toast notification

@@ -172,6 +172,11 @@ export function useSaveGame({
         dynastyCupBracket: s.dynastyCupBracket,
         miniTournamentBracket: s.miniTournamentBracket,
         fiveASideSquad: s.fiveASideSquad,
+        onboardingSilencedByChoice: s.onboardingSilencedByChoice,
+        compareSignWatch: s.compareSignWatch,
+        fanSentimentSeasonFloor: s.fanSentimentSeasonFloor,
+        ultimatumsSurvived: s.ultimatumsSurvived,
+        legendCarryCounts: s.legendCarryCounts,
       });
       const saveKey = getSaveKey(activeProfileId, activeSaveSlot);
       await window.storage.set(saveKey, JSON.stringify(saveData));
@@ -250,6 +255,7 @@ export function useSaveGame({
       // so only a genuinely new career (which sets this false explicitly)
       // ever sees it.
       store.setOnboardingDripSuppressed(s.onboardingDripSuppressed ?? true);
+      store.setOnboardingSilencedByChoice(s.onboardingSilencedByChoice || false);
       store.setSeasonCards(s.seasonCards || 0);
       store.setSeasonNumber(s.seasonNumber || 1);
       store.setLeagueWins(s.leagueWins || 0);
@@ -272,8 +278,16 @@ export function useSaveGame({
       store.setConsecutiveCleanSheets(s.consecutiveCleanSheets || 0);
       store.setLatestHeadline(s.latestHeadline || null);
       store.setFanSentiment(s.fanSentiment ?? 50);
+      // setFanSentiment above already folds the loaded value into the floor
+      // via Math.min against the store's default (100) — explicitly restore
+      // the persisted floor afterward so it isn't clamped to just the
+      // current sentiment on load.
+      store.setFanSentimentSeasonFloor(s.fanSentimentSeasonFloor ?? 100);
       store.setBoardSentiment(s.boardSentiment ?? 50);
       store.setSentimentLog(s.sentimentLog || []);
+      store.setCompareSignWatch(s.compareSignWatch || null);
+      store.setUltimatumsSurvived(s.ultimatumsSurvived || 0);
+      store.setLegendCarryCounts(s.legendCarryCounts || {});
       store.setDynastyCupQualifiers(s.dynastyCupQualifiers || null);
       store.setDynastyCupBracket(s.dynastyCupBracket || null);
       store.setMiniTournamentBracket(s.miniTournamentBracket || null);
@@ -737,6 +751,7 @@ export function useSaveGame({
         teamName: s.teamName, seasonNumber: s.seasonNumber, leagueTier: s.leagueTier,
         totalMatches: s.totalMatches,
         clubHistory: s.clubHistory,
+        gameMode: s.gameMode,
       });
     } catch (e) { console.error("Museum archive failed:", e); }
     const slot = activeSaveSlot;

@@ -11,7 +11,7 @@ import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resol
 import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
-import { checkAchievements, checkLegendMilestones } from "../utils/achievements.js";
+import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence } from "../utils/achievements.js";
 import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
@@ -160,7 +160,17 @@ export function useMatchResult({
           // was written via setCalendarResults above, after `s` was captured.
           calendarResults: useGameStore.getState().calendarResults,
           gameMode: s.gameMode,
+          onboardingSilencedByChoice: s.onboardingSilencedByChoice,
+          compareSignWatch: s.compareSignWatch,
+          fanSentimentSeasonFloor: s.fanSentimentSeasonFloor,
+          seasonLeagueStatsAvailable: s.seasonLeagueStatsAvailable,
         }, BGM.getCurrentTrackId());
+        // Upgrade Confirmed's watch is single-most-recent and season-scoped —
+        // clear it here regardless of outcome. This also covers the prestige
+        // path: prestige always runs through this same season-end block
+        // first (via summerPhase="summary"), so there's no separate reset
+        // needed at the prestige transition itself.
+        s.setCompareSignWatch(null);
         if (newSeasonUnlocks.length > 0) {
           s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
           setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
@@ -248,6 +258,14 @@ export function useMatchResult({
         const totalFixtures = currentLeague.fixtures?.length || DEFAULT_FIXTURE_COUNT;
         const halfwayMark = Math.floor(totalFixtures / 2);
         const completedMDs = (matchResult._playedMatchweekIndex ?? (s.matchweekIndex - 1)) + 1;
+        // I Know What I'm Doing — first career league match, won, after
+        // silencing the onboarding tips by explicit choice.
+        if (checkFirstWinAfterSilence({
+          onboardingSilencedByChoice: s.onboardingSilencedByChoice, seasonNumber: s.seasonNumber,
+          completedLeagueMatchdays: completedMDs, playerWon, unlocked: s.unlockedAchievements,
+        })) {
+          tryUnlockAchievement("i_know_what_im_doing");
+        }
         const leagueMod = getModifier(s.leagueTier);
         if (completedMDs === halfwayMark) {
           const sorted = sortStandings(currentLeague.table);

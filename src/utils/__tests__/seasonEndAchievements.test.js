@@ -279,6 +279,137 @@ describe("collectSeasonEndAchievements — Full Reset, Same Result (title within
   });
 });
 
+describe("collectSeasonEndAchievements — Should've Listened / Told You So (silence-the-tips trio, season 1 only)", () => {
+  it("unlocks shouldve_listened on a season-1 dead-last finish after silencing the tips", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, position: 10, onboardingSilencedByChoice: true,
+    }));
+    expect(achs).toContain("shouldve_listened");
+  });
+
+  it("does not unlock shouldve_listened without having silenced the tips by choice", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, position: 10, onboardingSilencedByChoice: false,
+    }));
+    expect(achs).not.toContain("shouldve_listened");
+  });
+
+  it("does not unlock shouldve_listened outside season 1 (seasonNumber never resets to 1 across a prestige)", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 6, position: 10, onboardingSilencedByChoice: true,
+    }));
+    expect(achs).not.toContain("shouldve_listened");
+  });
+
+  it("does not unlock shouldve_listened when not actually dead last", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, position: 9, onboardingSilencedByChoice: true,
+    }));
+    expect(achs).not.toContain("shouldve_listened");
+  });
+
+  it("unlocks told_you_so on a season-1 promotion after silencing the tips", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, moveType: "promoted", onboardingSilencedByChoice: true,
+    }));
+    expect(achs).toContain("told_you_so");
+  });
+
+  it("does not unlock told_you_so without having silenced the tips by choice", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, moveType: "promoted", onboardingSilencedByChoice: false,
+    }));
+    expect(achs).not.toContain("told_you_so");
+  });
+
+  it("does not unlock told_you_so on a season-1 finish that wasn't a promotion", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, moveType: "stayed", onboardingSilencedByChoice: true,
+    }));
+    expect(achs).not.toContain("told_you_so");
+  });
+
+  it("respects already-unlocked state for both", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      seasonNumber: 1, position: 10, moveType: "promoted", onboardingSilencedByChoice: true,
+      unlockedAchievements: new Set(["shouldve_listened", "told_you_so"]),
+    }));
+    expect(achs).not.toContain("shouldve_listened");
+    expect(achs).not.toContain("told_you_so");
+  });
+});
+
+describe("collectSeasonEndAchievements — Upgrade Confirmed (signed comparison target outscores the man he replaced)", () => {
+  it("unlocks when the signed player out-scored the replaced starter", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      compareSignWatch: { signedId: "s1", signedName: "New Guy", replacedName: "Old Guy" },
+      playerSeasonStats: { "New Guy": { goals: 10 }, "Old Guy": { goals: 3 } },
+    }));
+    expect(achs).toContain("upgrade_confirmed");
+  });
+
+  it("does not unlock when the signed player scored fewer goals", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      compareSignWatch: { signedId: "s1", signedName: "New Guy", replacedName: "Old Guy" },
+      playerSeasonStats: { "New Guy": { goals: 2 }, "Old Guy": { goals: 3 } },
+    }));
+    expect(achs).not.toContain("upgrade_confirmed");
+  });
+
+  it("treats a replaced player missing from playerSeasonStats as 0 goals (departed the squad)", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      compareSignWatch: { signedId: "s1", signedName: "New Guy", replacedName: "Departed Guy" },
+      playerSeasonStats: { "New Guy": { goals: 1 } },
+    }));
+    expect(achs).toContain("upgrade_confirmed");
+  });
+
+  it("does not unlock without a compareSignWatch present", () => {
+    const achs = collectSeasonEndAchievements(baseInput({ compareSignWatch: null }));
+    expect(achs).not.toContain("upgrade_confirmed");
+  });
+
+  it("respects already-unlocked state", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      compareSignWatch: { signedId: "s1", signedName: "New Guy", replacedName: "Old Guy" },
+      playerSeasonStats: { "New Guy": { goals: 10 }, "Old Guy": { goals: 3 } },
+      unlockedAchievements: new Set(["upgrade_confirmed"]),
+    }));
+    expect(achs).not.toContain("upgrade_confirmed");
+  });
+});
+
+describe("collectSeasonEndAchievements — The People's Champion (fan sentiment never below 50 all season)", () => {
+  it("unlocks when the season floor never dropped below 50 and stats were tracked from MW0", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      fanSentimentSeasonFloor: 50, seasonLeagueStatsAvailable: true,
+    }));
+    expect(achs).toContain("peoples_champion");
+  });
+
+  it("does not unlock when the floor dipped below 50", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      fanSentimentSeasonFloor: 49, seasonLeagueStatsAvailable: true,
+    }));
+    expect(achs).not.toContain("peoples_champion");
+  });
+
+  it("does not unlock when canonical stats weren't tracked from the start of the season (mid-season load)", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      fanSentimentSeasonFloor: 100, seasonLeagueStatsAvailable: false,
+    }));
+    expect(achs).not.toContain("peoples_champion");
+  });
+
+  it("respects already-unlocked state", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      fanSentimentSeasonFloor: 80, seasonLeagueStatsAvailable: true,
+      unlockedAchievements: new Set(["peoples_champion"]),
+    }));
+    expect(achs).not.toContain("peoples_champion");
+  });
+});
+
 describe("collectSeasonEndAchievements — Flying Without A Net (top division in Ironman)", () => {
   it("unlocks when Ironman promotion lands the club at tier 1", () => {
     const achs = collectSeasonEndAchievements(baseInput({

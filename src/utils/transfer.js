@@ -292,6 +292,24 @@ export function generateTradeId(season, week) {
 }
 
 /**
+ * Upgrade Confirmed watch resolution — if a just-signed player matches the
+ * most recently compared transfer target (TransfersPage's handleCompare),
+ * remember the comparison so the season-end collector can check whether he
+ * outscored the starter he replaced. Pure: takes the last comparison and the
+ * list of newly-received players from a trade/offer, returns the watch
+ * object to persist or null if this trade wasn't the compared target.
+ * @param {{ targetId: string, targetName: string, starterName: string } | null} lastCompared
+ * @param {Array} receivedPlayers - players just added to the squad
+ * @returns {{ signedId: string, signedName: string, replacedName: string } | null}
+ */
+export function resolveCompareSignWatch(lastCompared, receivedPlayers) {
+  if (!lastCompared || !receivedPlayers?.length) return null;
+  const signed = receivedPlayers.find(p => p.id === lastCompared.targetId);
+  if (!signed) return null;
+  return { signedId: signed.id, signedName: signed.name, replacedName: lastCompared.starterName };
+}
+
+/**
  * Find who to line up against a transfer target for comparison: your CURRENT
  * STARTER for the target's position — the decision the comparison actually
  * informs is "does this target improve my starting XI".

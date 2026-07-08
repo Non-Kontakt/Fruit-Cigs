@@ -270,6 +270,12 @@ export const useGameStore = create((set, get) => ({
   // existing players never see the drip. New careers explicitly set this
   // false at creation (see App.jsx's league-init effect).
   onboardingDripSuppressed: true,
+  // True only when the player explicitly chose to silence the onboarding
+  // drip (the week-1 training intro opt_out, or the later drip_stop choice)
+  // — never defaulted true for old saves the way onboardingDripSuppressed
+  // is. Drives the "silence the tips" achievement trio (see App.jsx's
+  // asst_mgr_training_intro/_nudge and onboarding_drip choice handlers).
+  onboardingSilencedByChoice: false,
   usedTicketTypes: new Set(),
   formationsWonWith: new Set(),
   freeAgentSignings: 0,
@@ -283,6 +289,25 @@ export const useGameStore = create((set, get) => ({
   seasonCards: 0,
   readsThisWeek: 0,
   weeksSinceIdentityHeadline: 0,
+  // === Meta-domain ledger (Cig Cards) ===
+  // Most recent transfer target signed after being explicitly compared
+  // (TransfersPage's handleCompare) — { signedId, signedName, replacedName }
+  // or null. Set only when the compared player is actually signed; cleared
+  // at every season end regardless of outcome (see league.js's
+  // collectSeasonEndAchievements caller in useMatchResult.js).
+  compareSignWatch: null,
+  // Lowest fanSentiment value seen so far this season — tracked centrally
+  // inside setFanSentiment below so every write site is covered without
+  // needing to touch each one individually. Reset to the newly-carried
+  // sentiment (not 100) at every season/prestige rollover.
+  fanSentimentSeasonFloor: 100,
+  // Career-long count of board ultimatums survived (reprieve, not sacking).
+  // Never reset at prestige — the ironman career continues.
+  ultimatumsSurvived: 0,
+  // Career-long map of legend player id -> number of prestige transitions
+  // they've been carried through as a Legend (either newly named or already
+  // carrying over). Never reset at prestige.
+  legendCarryCounts: {},
 
   // === Identity ===
   teamName: null,
@@ -350,7 +375,14 @@ export const useGameStore = create((set, get) => ({
 
   setSummerPhase: (val) => set({ summerPhase: val }),
 
-  setFanSentiment: (val) => set(s => ({ fanSentiment: typeof val === "function" ? val(s.fanSentiment) : val })),
+  // Centralizes fanSentimentSeasonFloor tracking so every writer — weekly
+  // drift, match deltas, ticket/choice effects, sentiment carry-over at
+  // season/prestige rollover — is covered automatically, no matter how many
+  // call sites setFanSentiment picks up in the future.
+  setFanSentiment: (val) => set(s => {
+    const next = typeof val === "function" ? val(s.fanSentiment) : val;
+    return { fanSentiment: next, fanSentimentSeasonFloor: Math.min(s.fanSentimentSeasonFloor, next) };
+  }),
   setBoardSentiment: (val) => set(s => ({ boardSentiment: typeof val === "function" ? val(s.boardSentiment) : val })),
   setSentimentLog: (val) => set(s => ({ sentimentLog: typeof val === "function" ? val(s.sentimentLog) : val })),
 
@@ -463,6 +495,11 @@ export const useGameStore = create((set, get) => ({
   setTradedWithClubs: (val) => set(s => ({ tradedWithClubs: typeof val === "function" ? val(s.tradedWithClubs) : val })),
   setSeasonCards: (val) => set(s => ({ seasonCards: typeof val === "function" ? val(s.seasonCards) : val })),
   setReadsThisWeek: (val) => set(s => ({ readsThisWeek: typeof val === "function" ? val(s.readsThisWeek) : val })),
+  setOnboardingSilencedByChoice: (val) => set({ onboardingSilencedByChoice: val }),
+  setCompareSignWatch: (val) => set({ compareSignWatch: val }),
+  setFanSentimentSeasonFloor: (val) => set(s => ({ fanSentimentSeasonFloor: typeof val === "function" ? val(s.fanSentimentSeasonFloor) : val })),
+  setUltimatumsSurvived: (val) => set(s => ({ ultimatumsSurvived: typeof val === "function" ? val(s.ultimatumsSurvived) : val })),
+  setLegendCarryCounts: (val) => set(s => ({ legendCarryCounts: typeof val === "function" ? val(s.legendCarryCounts) : val })),
 
   setTeamName: (val) => set(s => ({ teamName: typeof val === "function" ? val(s.teamName) : val })),
   setNewspaperName: (val) => set(s => ({ newspaperName: typeof val === "function" ? val(s.newspaperName) : val })),

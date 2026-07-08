@@ -121,7 +121,7 @@ export function buildLeagueHistorySnapshot(playerTier, playerLeague, allLeagueSt
 
 // Shared season-end achievement logic (called from 2 code paths: league-end + cup-end)
 // currentTrackId: optional, replaces BGM.getCurrentTrackId() which is not available outside App.jsx
-export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, gameMode }, currentTrackId = null) {
+export function collectSeasonEndAchievements({ position, currentTier, moveType, newTier, lastSeasonMove, league, leagueResults, playerSeasonStats, seasonLeagueStats, beatenTeams, unlockedAchievements, clubHistory, wonCupThisSeason, squad, prevSeasonSquadIds, seasonNumber, dynastyCupBracket, cup, calendarResults, gameMode, onboardingSilencedByChoice, compareSignWatch, fanSentimentSeasonFloor, seasonLeagueStatsAvailable }, currentTrackId = null) {
   const achs = [];
   if (moveType === "promoted") { achs.push("promoted"); if (lastSeasonMove === "promoted") achs.push("back_to_back"); }
   if (moveType === "relegated") { achs.push("relegated"); if (lastSeasonMove === "promoted") achs.push("yo_yo"); if (lastSeasonMove === "relegated") achs.push("free_fall"); }
@@ -339,6 +339,35 @@ export function collectSeasonEndAchievements({ position, currentTier, moveType, 
   // qualify, already eliminated). Only the former count.
   if (!unlockedAchievements.has("mentality_monsters") && wonEveryPlayedMatchThisSeason(calendarResults)) {
     achs.push("mentality_monsters");
+  }
+
+  // Should've Listened / Told You So — the other two legs of the "silence
+  // the tips" trio (i_know_what_im_doing fires live at the first match win,
+  // see checkFirstWinAfterSilence in utils/achievements.js). Both gated to
+  // the career's actual first season — seasonNumber never resets to 1
+  // across a prestige, so this can't accidentally refire post-prestige.
+  if (onboardingSilencedByChoice && seasonNumber === 1) {
+    if (!unlockedAchievements.has("shouldve_listened") && position === 10) achs.push("shouldve_listened");
+    if (!unlockedAchievements.has("told_you_so") && moveType === "promoted") achs.push("told_you_so");
+  }
+
+  // Upgrade Confirmed — the signed comparison target outscored the starter
+  // he replaced. Missing playerSeasonStats for the replaced name reads as 0
+  // goals, which is correct whether he departed the squad or simply never
+  // played — either way he didn't outscore anyone.
+  if (!unlockedAchievements.has("upgrade_confirmed") && compareSignWatch) {
+    const signedGoals = playerSeasonStats?.[compareSignWatch.signedName]?.goals || 0;
+    const replacedGoals = playerSeasonStats?.[compareSignWatch.replacedName]?.goals || 0;
+    if (signedGoals > replacedGoals) achs.push("upgrade_confirmed");
+  }
+
+  // The People's Champion — fan sentiment never dropped below 50 all
+  // season. Guarded by seasonLeagueStatsAvailable (canonical stats tracked
+  // from MW0) so a save loaded mid-season, whose floor only reflects
+  // sentiment from the load point onward, can't falsely claim a season it
+  // didn't fully live through.
+  if (!unlockedAchievements.has("peoples_champion") && seasonLeagueStatsAvailable && (fanSentimentSeasonFloor ?? 0) >= 50) {
+    achs.push("peoples_champion");
   }
 
   return achs.filter(id => !unlockedAchievements.has(id));
