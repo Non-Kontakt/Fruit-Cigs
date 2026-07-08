@@ -54,7 +54,7 @@ export const ACHIEVEMENTS = [
 
   // === SQUAD TACTICS — lineup and formation decisions ===
   { id: "rotation", name: "Rotation Policy", desc: "Make 4 or more changes to your Starting XI between consecutive matches", icon: "🔄" },
-  { id: "out_of_pos", name: "He Doesn't Even Go Here", desc: "Play a match with a player out of position", icon: "🤷" },
+  { id: "out_of_pos", name: "He Doesn't Even Go Here", desc: "Play a player in neither their natural nor any learned position", icon: "🤷" },
   { id: "bench_best", name: "I'm The Manager", desc: "Bench your highest rated player (not injured) for a match", icon: "😤" },
   { id: "all_or_nothing", name: "All Or Nothing", desc: "Start a match with 0 players on the bench", icon: "🎲" },
   { id: "bench_fwd", name: "Bench Pressed", desc: "Win a match with a bench full of Forwards", icon: "🏋️" },
@@ -406,6 +406,7 @@ export const ACHIEVEMENTS = [
   // === GK-SPECIFIC ===
   { id: "number_one", name: "Number One", desc: "Have the same GK start 15+ matches in a season", icon: "1️⃣" },
   { id: "cat_like_reflexes", name: "Cat-Like Reflexes", desc: "Your GK keeps 8+ clean sheets in a season", icon: "🐱" },
+  { id: "keeper_rush", name: "Keeper Rush", desc: "Start your goalkeeper as an outfielder", icon: "🧤" },
 
   // === SEASON-OVER-SEASON ===
   { id: "steady_climb", name: "Steady Climb", desc: "Finish higher than the previous season 3 times in a row", icon: "📈" },
@@ -413,7 +414,6 @@ export const ACHIEVEMENTS = [
 
   // === REMAINING GAPS ===
   { id: "swiss_army_knife", name: "Swiss Army Knife", desc: "Have a player learn 3+ positions", icon: "🔪" },
-  { id: "identity_crisis", name: "Identity Crisis", desc: "Play a player in neither their natural nor any learned position", icon: "❓" },
   { id: "full_circle", name: "Full Circle", desc: "Win the league with a prodigal player in your squad", icon: "🔄" },
   { id: "save_scummer", name: "Save Scummer", desc: "Load a save for the first time", icon: "💾" },
   { id: "season_10", name: "Season 10", desc: "Complete 10 seasons", icon: "🔟" },
@@ -531,6 +531,18 @@ export const ACHIEVEMENTS = [
   { id: "cup_keeper", name: "Cup Keeper", desc: "Your goalkeeper makes the Team of the Cup", icon: "🧤" },
   { id: "beaten_not_forgotten", name: "Beaten But Not Forgotten", desc: "Get a player into the Team of the Cup despite going out before the final", icon: "🥀" },
   { id: "best_of_both", name: "Best Of Both", desc: "The same player makes TOTS and TOTC in one season", icon: "🎪" },
+
+  // === LINEUP QUIRKS — Physalis Cigs ===
+  { id: "united_nations", name: "United Nations", desc: "Start eleven different nationalities in one XI", icon: "🌍" },
+  { id: "foreign_legion", name: "Foreign Legion", desc: "Start an XI sharing a single nationality — England doesn't count", icon: "🎖️" },
+  { id: "class_of_92", name: "Class Of '92", desc: "Start an XI made entirely of homegrown players", icon: "🎓" },
+  { id: "kids_are_alright", name: "The Kids Are Alright", desc: "Name a bench made up entirely of teenagers", icon: "🧒" },
+  { id: "year_group", name: "Year Group", desc: "Start an XI all the same age", icon: "🎒" },
+  { id: "keep_the_faith", name: "Keep The Faith", desc: "Name an unchanged XI immediately after losing by five or more goals", icon: "🙏" },
+  { id: "grandfather_clause", name: "Grandfather Clause", desc: "Start the same 33+ year old in every league match of a season", icon: "📜" },
+  { id: "the_favourite", name: "The Favourite", desc: "Start your lowest-rated outfielder ten times in one season", icon: "🫶" },
+  { id: "playground_rules", name: "Playground Rules", desc: "Start three teenagers in a cup final", icon: "🛝" },
+  { id: "backbone", name: "Backbone", desc: "Field a homegrown spine: goalkeeper, defender, midfielder and forward at once", icon: "🦴" },
 ];
 
 

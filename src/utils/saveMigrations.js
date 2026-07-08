@@ -439,3 +439,17 @@ export function backfillOvrHistorySnapshot(squad, calendarIndex, seasonNumber) {
   (squad || []).forEach(p => { snap[`${p.name}|${p.position}`] = getOverall(p); });
   return [{ w: (calendarIndex || 0) + 1, s: seasonNumber || 1, p: snap }];
 }
+
+// He Doesn't Even Go Here absorbed the former Identity Crisis card (same id
+// throughout, "out_of_pos") — a save that already had identity_crisis
+// unlocked earned that same holistic check under its old name, so it should
+// come out the other side with out_of_pos unlocked and the stale id gone.
+// Returns the same Set reference when there's nothing to migrate.
+export function mergeIdentityCrisisIntoOutOfPos(unlockedAchievements) {
+  const prev = unlockedAchievements;
+  if (!prev || !(prev instanceof Set) || !prev.has("identity_crisis")) return prev;
+  const next = new Set(prev);
+  next.delete("identity_crisis");
+  next.add("out_of_pos");
+  return next;
+}

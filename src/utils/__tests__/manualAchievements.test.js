@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { checkAchievements, hasAllBackPages, addHatTrickScorer } from "../achievements.js";
+import { STARTING_XI_POSITIONS } from "../../data/positions.js";
 
 // Tinkerer, The Dugout, and Rotation Policy all previously fired off bulk
 // state that never reflected a deliberate manual action (whole-squad
@@ -197,5 +198,116 @@ describe("addHatTrickScorer — Hat-Trick Headlines", () => {
     players = addHatTrickScorer(players, "Clarke");
     expect(players).toEqual(["Adams", "Baker", "Clarke"]);
     expect(players.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// Minimal valid league/lastMatchResult — out_of_pos and keeper_rush live
+// inside checkAchievements' "if (lastMatchResult && league)" block, which
+// indexes league.teams[lastMatchResult.home/away] unconditionally.
+const minimalLeague = {
+  teams: [{ name: "Player FC", isPlayer: true }, { name: "AI United", isPlayer: false }],
+  table: [
+    { teamIndex: 0, points: 10, goalsFor: 10, goalsAgainst: 2 },
+    { teamIndex: 1, points: 5, goalsFor: 5, goalsAgainst: 8 },
+  ],
+};
+const minimalMatchResult = { home: 0, away: 1, homeGoals: 1, awayGoals: 0 };
+
+describe("out_of_pos (He Doesn't Even Go Here) — merged with the former Identity Crisis", () => {
+  // 11-slot formation matching STARTING_XI_POSITIONS order, and a squad
+  // whose natural positions line up 1:1 with that formation by default.
+  // slotAssignments (not formation-auto-assign) pins each squad member to
+  // an exact slot so tests can control the mismatch precisely.
+  const formation = STARTING_XI_POSITIONS.map(pos => ({ pos }));
+  const squad = STARTING_XI_POSITIONS.map((pos, i) => makePlayer(`p${i}`, { position: pos }));
+  const startingXI = squad.map(p => p.id);
+  const slotAssignments = [...startingXI, null, null, null, null, null];
+  const cmSlotIndex = STARTING_XI_POSITIONS.indexOf("CM"); // p5
+
+  it("does NOT unlock when the misplaced player's learned position covers the slot", () => {
+    const misplacedSquad = squad.map((p, i) =>
+      i === cmSlotIndex ? { ...p, position: "ST", learnedPositions: ["CM"] } : p
+    );
+    const result = checkAchievements({
+      squad: misplacedSquad, unlocked: new Set(), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI, bench: [], formation, slotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).not.toContain("out_of_pos");
+  });
+
+  it("unlocks when the misplaced player has neither the natural nor a learned position for the slot", () => {
+    const misplacedSquad = squad.map((p, i) =>
+      i === cmSlotIndex ? { ...p, position: "ST", learnedPositions: [] } : p
+    );
+    const result = checkAchievements({
+      squad: misplacedSquad, unlocked: new Set(), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI, bench: [], formation, slotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).toContain("out_of_pos");
+  });
+
+  it("respects already-unlocked state", () => {
+    const misplacedSquad = squad.map((p, i) => i === cmSlotIndex ? { ...p, position: "ST" } : p);
+    const result = checkAchievements({
+      squad: misplacedSquad, unlocked: new Set(["out_of_pos"]), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI, bench: [], formation, slotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).not.toContain("out_of_pos");
+  });
+});
+
+describe("keeper_rush — GK starts as an outfielder", () => {
+  const formation = STARTING_XI_POSITIONS.map(pos => ({ pos }));
+  const squad = STARTING_XI_POSITIONS.map((pos, i) => makePlayer(`p${i}`, { position: pos }));
+  const startingXI = squad.map(p => p.id);
+  const slotAssignments = [...startingXI, null, null, null, null, null];
+  const gkSlotIndex = STARTING_XI_POSITIONS.indexOf("GK"); // 0
+  const stSlotIndex = STARTING_XI_POSITIONS.indexOf("ST"); // 10
+
+  it("unlocks when the natural GK starts in an outfield slot", () => {
+    // Swap the GK and ST players' positions across slots: p0 (natural GK,
+    // still in the squad) now occupies the ST slot.
+    const swappedSquad = squad.map((p, i) => {
+      if (i === gkSlotIndex) return { ...p, position: "GK" }; // unchanged, still in GK slot originally
+      return p;
+    });
+    const swappedXI = [...startingXI];
+    [swappedXI[gkSlotIndex], swappedXI[stSlotIndex]] = [swappedXI[stSlotIndex], swappedXI[gkSlotIndex]];
+    const swappedSlotAssignments = [...swappedXI, null, null, null, null, null];
+    const result = checkAchievements({
+      squad: swappedSquad, unlocked: new Set(), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI: swappedXI, bench: [], formation, slotAssignments: swappedSlotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).toContain("keeper_rush");
+  });
+
+  it("does NOT unlock when the GK starts in the GK slot", () => {
+    const result = checkAchievements({
+      squad, unlocked: new Set(), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI, bench: [], formation, slotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).not.toContain("keeper_rush");
+  });
+
+  it("does NOT unlock when an outfielder starts in the GK slot (that's emergency_gk's territory)", () => {
+    // No natural GK in this XI at all — the GK slot is filled by a natural
+    // ST player instead.
+    const noGkSquad = squad.map((p, i) => i === gkSlotIndex ? { ...p, position: "ST" } : p);
+    const result = checkAchievements({
+      squad: noGkSquad, unlocked: new Set(), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI, bench: [], formation, slotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).not.toContain("keeper_rush");
+  });
+
+  it("respects already-unlocked state", () => {
+    const swappedXI = [...startingXI];
+    [swappedXI[gkSlotIndex], swappedXI[stSlotIndex]] = [swappedXI[stSlotIndex], swappedXI[gkSlotIndex]];
+    const swappedSlotAssignments = [...swappedXI, null, null, null, null, null];
+    const result = checkAchievements({
+      squad, unlocked: new Set(["keeper_rush"]), lastMatchResult: minimalMatchResult, league: minimalLeague,
+      startingXI: swappedXI, bench: [], formation, slotAssignments: swappedSlotAssignments, manualSlotIndices: new Set(),
+    });
+    expect(result).not.toContain("keeper_rush");
   });
 });

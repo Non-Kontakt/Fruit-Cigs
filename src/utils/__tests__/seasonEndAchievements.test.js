@@ -647,6 +647,64 @@ describe("collectSeasonEndAchievements — season-domain wave, retroactive-safe"
   });
 });
 
+describe("collectSeasonEndAchievements — grandfather_clause (Physalis Cigs)", () => {
+  const veteran = { id: "v1", name: "Old Faithful", age: 33, position: "CB" };
+  const leagueWithFixtures = { ...makeLeague(0), fixtures: Array.from({ length: 20 }, () => ({})) };
+
+  it("unlocks when a 33+ player's apps equal the season's league fixture count", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      squad: [veteran],
+      playerSeasonStats: { "Old Faithful": { apps: 20 } },
+      league: leagueWithFixtures,
+    }));
+    expect(achs).toContain("grandfather_clause");
+  });
+
+  it("does NOT unlock when the veteran missed even one league match", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      squad: [veteran],
+      playerSeasonStats: { "Old Faithful": { apps: 19 } },
+      league: leagueWithFixtures,
+    }));
+    expect(achs).not.toContain("grandfather_clause");
+  });
+
+  it("does NOT unlock when the ever-present player is under 33", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      squad: [{ ...veteran, age: 28 }],
+      playerSeasonStats: { "Old Faithful": { apps: 20 } },
+      league: leagueWithFixtures,
+    }));
+    expect(achs).not.toContain("grandfather_clause");
+  });
+
+  it("falls back to 18 league matches when league.fixtures is unavailable", () => {
+    const achsShort = collectSeasonEndAchievements(baseInput({
+      squad: [veteran],
+      playerSeasonStats: { "Old Faithful": { apps: 17 } },
+      league: makeLeague(0), // no .fixtures
+    }));
+    expect(achsShort).not.toContain("grandfather_clause");
+
+    const achsFull = collectSeasonEndAchievements(baseInput({
+      squad: [veteran],
+      playerSeasonStats: { "Old Faithful": { apps: 18 } },
+      league: makeLeague(0),
+    }));
+    expect(achsFull).toContain("grandfather_clause");
+  });
+
+  it("respects already-unlocked state", () => {
+    const achs = collectSeasonEndAchievements(baseInput({
+      squad: [veteran],
+      playerSeasonStats: { "Old Faithful": { apps: 20 } },
+      league: leagueWithFixtures,
+      unlockedAchievements: new Set(["grandfather_clause"]),
+    }));
+    expect(achs).not.toContain("grandfather_clause");
+  });
+});
+
 function makeKnockoutLeague(playerTeamIdx = 0) {
   return {
     teams: [

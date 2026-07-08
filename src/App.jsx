@@ -18,7 +18,7 @@ import { decrementOfferExpiry, resolveLoyaltyWatch } from "./utils/transfer.js";
 import { pickWonderkidCandidate } from "./utils/wonderkidScout.js";
 import { buildAssistantLineup, buildPresetLineup } from "./utils/lineup.js";
 import { simulateMatch, generatePenaltyShootout, simulateMatchweek } from "./utils/match.js";
-import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion, collectDynastyCupFinalAchievements, collectMiniTournamentThirdPlaceAchievements, collectMiniTournamentFinalAchievements } from "./utils/league.js";
+import { initLeagueRosters, sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeague, initAILeague, buildSeasonCalendar, initCup, advanceCupRound, buildNextCupRound, buildLeagueHistorySnapshot, resolveKnockoutPromotion, collectDynastyCupFinalAchievements, collectMiniTournamentThirdPlaceAchievements, collectMiniTournamentFinalAchievements, getPriorPlayedResult } from "./utils/league.js";
 import { accumulateMatchStats, accumulateCupMatch, makeCupAIMatchHandler, leagueMatchId, emptyCompetitionStats, rollIntoAllTime, getTopScorers, cupKey as makeCupKey, computeTeamOfCup } from "./utils/competitionStats.js";
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "./utils/careerLedger.js";
 import { getRivalryModifierForFixture } from "./utils/rivalries.js";
@@ -53,7 +53,7 @@ import { CHART_COLORS, OvrProgressChart, OvrChart } from "./components/charts/Ov
 import { ClubLegends } from "./components/club/ClubLegends.jsx";
 import { LeaguePage } from "./components/league/LeaguePage.jsx";
 import { AITeamPanel } from "./components/league/AITeamPanel.jsx";
-import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival } from "./utils/achievements.js";
+import { createUnlockablePlayer, checkAchievements, deriveMissingPlayerUnlocks, checkLegendMilestones, checkCheatingDeath, applyLegendCarry, hasAllBackPages, addHatTrickScorer, collectBreakoutAchievements, isSignedFromRival, collectLineupAchievements } from "./utils/achievements.js";
 import { createInboxMessage, seedMessageSeq, getUnreadCount } from "./utils/messageUtils.js";
 import { generateMatchHeadline } from "./utils/headlines.js";
 import { AchievementToast } from "./components/achievements/AchievementToast.jsx";
@@ -292,7 +292,7 @@ function FruitCigs() {
     setHolidayMatchesThisSeason, setFastMatchesThisSeason, setGkCleanSheets,
     setTotalShortlisted, setPrevSeasonSquadIds, setTradesMadeInWindow,
     setTradedWithClubs, setSeasonCards, setReadsThisWeek,
-    setBackPagesReceived, setHatTrickHeadlinePlayers,
+    setBackPagesReceived, setHatTrickHeadlinePlayers, setFavouriteStarts,
     setTeamName, setNewspaperName, setReporterName, setManagerName, setManagerAvatar,
     setClubRelationships, setTransferFocus, setTransferWindowOpen,
     setTransferWindowWeeksRemaining, setTransferOffers, setLoanedOutPlayers,
@@ -5804,6 +5804,14 @@ function FruitCigs() {
             // Wembley Way — play in a cup final
             if (isFinal && !unlockedAchievements.has("wembley")) cupAchs.push("wembley");
 
+            // Playground Rules — three or more teenagers in a cup final XI
+            if (isFinal && !unlockedAchievements.has("playground_rules") && startingXI && squad) {
+              const finalXITeens = startingXI
+                .map(id => squad.find(p => p.id === id))
+                .filter(p => p && p.age <= 19).length;
+              if (finalXITeens >= 3) cupAchs.push("playground_rules");
+            }
+
             if (winner.isPlayer) {
               // Won this cup match
               if (isFinal && !unlockedAchievements.has("cup_winner")) cupAchs.push("cup_winner");
@@ -5967,6 +5975,21 @@ function FruitCigs() {
                     }
                   }
                 }
+              }
+
+              // Physalis Cigs — "Start an XI" lineup cards count any played
+              // match where the XI is known, cup included (calendarResults
+              // here is still pre-match — this match's own entry hasn't been
+              // written yet, see below).
+              const cupLineupUnlocks = collectLineupAchievements({
+                squad, startingXI, bench,
+                prevStartingXI,
+                prevResult: getPriorPlayedResult(calendarResults),
+                unlocked: unlockedAchievements,
+              });
+              if (cupLineupUnlocks.length > 0) {
+                setUnlockedAchievements(prev => { const next = new Set(prev); cupLineupUnlocks.forEach(id => next.add(id)); return next; });
+                setAchievementQueue(prev => { const ex = new Set(prev); const f = cupLineupUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
               }
             } catch(err) {
               console.error("Cup achievement check error:", err, err.stack);
@@ -6608,6 +6631,7 @@ function FruitCigs() {
             setPrevStartingXI(null);
             setMotmTracker({});
             setHatTrickHeadlinePlayers([]);
+            setFavouriteStarts({});
             useGameStore.getState().setWonLeagueOnHoliday(false);
             // Sentiment partial carry-over on prestige reset
             const newPrestigeFanSentiment = Math.round(useGameStore.getState().fanSentiment * 0.5 + 25);
@@ -7295,6 +7319,7 @@ function FruitCigs() {
               setPrevStartingXI(null);
               setPlayerSeasonStats({});
               setHatTrickHeadlinePlayers([]);
+              setFavouriteStarts({});
               // Reset appearance counters for the new season
               setSquad(prev => prev.map(p => ({ ...p, seasonStarts: 0, seasonSubApps: 0, ...(p.isLegend ? { legendAppearances: 0 } : {}) })));
               setBeatenTeams(new Set());

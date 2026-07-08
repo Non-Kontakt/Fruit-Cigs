@@ -1,8 +1,9 @@
 // Cigarette pack collection system for achievements
 // Every pack contains EXACTLY 5 or 10 achievements — this is a hard
-// invariant, not a rough guideline. All 405 achievements distributed
-// across 45 packs (v3.1, recomposed v3.2, re-recomposed v3.3; expanded
-// v3.4-v3.7 with the match, season, market and meta domain waves).
+// invariant, not a rough guideline. All 415 achievements distributed
+// across 46 packs (v3.1, recomposed v3.2, re-recomposed v3.3; expanded
+// v3.4-v3.7 with the match, season, market and meta domain waves; v3.8
+// merged the out-of-position cards and added the Physalis lineup pack).
 //
 // Curation principle:
 //   - Early packs (starter + first couple of unlocks) should be mostly
@@ -156,7 +157,11 @@ export const CIG_PACKS = [
     unlockDesc: "Complete the Cherry Cigs pack",
     // journeyman, stat_15, and galacticos moved out (to Grape) — paired
     // one-for-one with get_it_in_the_mixer/well_seasoned/baby_faced moving
-    // in from Melon, to keep this pack at 10.
+    // in from Melon, to keep this pack at 10. identity_crisis merged into
+    // Apple's out_of_pos (same holistic check, one id) — its freed slot is
+    // filled by keeper_rush (5-a-side energy — the keeper joins the
+    // outfield), a new Physalis Cigs card that fits this pack's lineup-quirk
+    // company.
     achievementIds: [
       "bench_best",         // Bench highest rated player
       "all_or_nothing",     // No bench players
@@ -164,7 +169,7 @@ export const CIG_PACKS = [
       "family",             // 3 starters same surname
       "needs_must",         // 13 or fewer in squad
       "dads_army",          // 10+ year age gap in XI
-      "identity_crisis",    // Player in wrong position entirely
+      "keeper_rush",        // Keeper starts as an outfielder
       "get_it_in_the_mixer", // 4+ forwards in XI (moved from Melon — squad-composition oddity, pairs with bench_fwd)
       "well_seasoned",      // Starting XI avg age 30+ (moved from Melon — pairs with dads_army)
       "baby_faced",         // Starting XI avg age under 20 (moved from Melon — same age-extreme family as well_seasoned/dads_army)
@@ -1204,6 +1209,32 @@ export const CIG_PACKS = [
       "cup_keeper",            // GK makes the Team of the Cup
       "beaten_not_forgotten",  // TOTC pick despite exiting before the final
       "best_of_both",          // Same player makes TOTS and TOTC
+    ],
+  },
+
+  // ── LINEUP QUIRKS ────────────────────────────────────────────
+  {
+    id: "physalis_cigs",
+    name: "Physalis Cigs",
+    icon: "🏮",
+    color: "#e08e2b",
+    colorLight: "#f6c667",
+    colorDark: "#8f5a0f",
+    packSize: 10,
+    starter: false,
+    unlockCondition: { type: "seasons_played", count: 2 },
+    unlockDesc: "Play 2 seasons",
+    achievementIds: [
+      "united_nations",     // 11 different nationalities in the XI
+      "foreign_legion",     // XI shares one nationality, not England
+      "class_of_92",        // Entire XI homegrown
+      "kids_are_alright",   // Full bench, all teenagers
+      "year_group",         // Entire XI the same age
+      "keep_the_faith",     // Unchanged XI right after a 5+ goal defeat
+      "grandfather_clause", // Same 33+ year old starts every league match of a season
+      "the_favourite",      // Lowest-rated outfielder starts 10 times in a season
+      "playground_rules",   // Three teenagers in a cup final
+      "backbone",           // Homegrown GK, DEF, MID, and FWD at once
     ],
   },
 ];

@@ -339,6 +339,10 @@ export const useGameStore = create((set, get) => ({
   // Per-season list of distinct players who earned a hat-trick back page.
   // Reset at season rollover and prestige. Drives Hat-Trick Headlines.
   hatTrickHeadlinePlayers: [],
+  // Per-season map of playerId -> number of league starts made while that
+  // player was the squad's current lowest-OVR outfielder. Reset at season
+  // rollover and prestige. Drives The Favourite.
+  favouriteStarts: {},
 
   // === Identity ===
   teamName: null,
@@ -547,6 +551,7 @@ export const useGameStore = create((set, get) => ({
   setAwardsHistory: (val) => set(s => ({ awardsHistory: typeof val === "function" ? val(s.awardsHistory) : val })),
   setBackPagesReceived: (val) => set(s => ({ backPagesReceived: typeof val === "function" ? val(s.backPagesReceived) : val })),
   setHatTrickHeadlinePlayers: (val) => set(s => ({ hatTrickHeadlinePlayers: typeof val === "function" ? val(s.hatTrickHeadlinePlayers) : val })),
+  setFavouriteStarts: (val) => set(s => ({ favouriteStarts: typeof val === "function" ? val(s.favouriteStarts) : val })),
 
   setTeamName: (val) => set(s => ({ teamName: typeof val === "function" ? val(s.teamName) : val })),
   setNewspaperName: (val) => set(s => ({ newspaperName: typeof val === "function" ? val(s.newspaperName) : val })),

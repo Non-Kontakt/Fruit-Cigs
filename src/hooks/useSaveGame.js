@@ -25,6 +25,7 @@ import {
   backfillClubHistory, migratePlayerRatingTracker, stripCupNamePrefix, migrateSummerPhase, migrateSummerWeeksForAwards,
   resolveSeasonCalendar, migrateSeasonLeagueStatsByTier, resolveSeasonLeagueStatsAvailable,
   resolveCupStatsAvailable, migrateStoryArcsCompletion, backfillOvrHistorySnapshot,
+  mergeIdentityCrisisIntoOutOfPos,
 } from "../utils/saveMigrations.js";
 
 /**
@@ -166,6 +167,7 @@ export function useSaveGame({
         awardsHistory: s.awardsHistory,
         backPagesReceived: s.backPagesReceived,
         hatTrickHeadlinePlayers: s.hatTrickHeadlinePlayers,
+        favouriteStarts: s.favouriteStarts,
         fanSentiment: s.fanSentiment, boardSentiment: s.boardSentiment,
         sentimentLog: s.sentimentLog,
         gameMode: s.gameMode,
@@ -256,7 +258,11 @@ export function useSaveGame({
       store.setLeague(s.league);
       store.setStartingXI(s.startingXI);
       store.setBench(s.bench);
-      store.setUnlockedAchievements(s.unlockedAchievements || new Set());
+      // Migration: He Doesn't Even Go Here absorbed Identity Crisis — remap
+      // the stale id before anything downstream (catch-up, history
+      // reconstruction) reads unlockedAchievements.
+      s.unlockedAchievements = mergeIdentityCrisisIntoOutOfPos(s.unlockedAchievements || new Set());
+      store.setUnlockedAchievements(s.unlockedAchievements);
       store.setUnlockedPacks(s.unlockedPacks instanceof Set && s.unlockedPacks.size > 0 ? s.unlockedPacks : new Set(STARTER_PACKS));
       if (s.achievementUnlockWeeks) { store.setAchievementUnlockWeeks(s.achievementUnlockWeeks); achievementUnlockWeeksRef.current = s.achievementUnlockWeeks; }
       store.setLastSeenAchievementCount(s.lastSeenAchievementCount ?? (s.unlockedAchievements?.size ?? 0));
@@ -493,6 +499,7 @@ export function useSaveGame({
       store.setAwardsHistory(s.awardsHistory || []);
       store.setBackPagesReceived(s.backPagesReceived || new Set());
       store.setHatTrickHeadlinePlayers(s.hatTrickHeadlinePlayers || []);
+      store.setFavouriteStarts(s.favouriteStarts || {});
       store.setPrestigeLevel(s.prestigeLevel || 0);
       // (No clubHistory → tier-scoped seed. clubHistory.playerCareers spans
       // tiers/clubs/cups by design; attributing those totals to one tier
@@ -562,6 +569,7 @@ export function useSaveGame({
           gkCleanSheets: s.gkCleanSheets || {},
           totalShortlisted: s.totalShortlisted || 0,
           gameMode: s.gameMode || "casual",
+          favouriteStarts: s.favouriteStarts || {},
         });
         if (catchUp.length > 0) {
           const merged = new Set(loadedUnlocked);
