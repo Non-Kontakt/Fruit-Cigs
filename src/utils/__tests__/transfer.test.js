@@ -2,8 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getOfferValueRatio, countDistinctOfferTargets, decrementOfferExpiry, getPlayersTradedAwayThisSeason,
   reachedUnderSiegeThreshold, tradedAwayFreeSignedPlayer, signedTippedWonderkid,
-  signedSameWeekAsReveal, countPassiveRevealSignings, resolveLoyaltyWatch,
-} from "../transfer.js";
+  signedSameWeekAsReveal, countPassiveRevealSignings, resolveLoyaltyWatch, generateExtraTransferOffer,} from "../transfer.js";
 
 function makePlayer(id, position, ovr, extra = {}) {
   // Uniform attrs so getOverall() resolves to exactly `ovr` regardless of
@@ -224,5 +223,36 @@ describe("countPassiveRevealSignings — Trust The Process", () => {
     const incoming = [makePlayer("p1", "ST", 14)];
     expect(countPassiveRevealSignings(incoming, {})).toBe(0);
     expect(countPassiveRevealSignings(incoming, null)).toBe(0);
+  });
+});
+
+describe("generateExtraTransferOffer — The Little Black Book's deterministic extra offer", () => {
+  const attrs = { pace: 5, shooting: 5, passing: 5, defending: 5, physical: 5, technique: 5, mentality: 5 };
+  const squad = [
+    { id: "u1", name: "Cheap Lad", position: "CB", age: 24, attrs },
+    { id: "u2", name: "Second Lad", position: "CM", age: 25, attrs },
+  ];
+  // Value-identical to the wanted player so the ±20% value band always matches.
+  const aiSquad = [{ id: "ai1", name: "Return Piece", position: "CM", age: 25, attrs }];
+  const leagues = { 5: { teams: [{ name: "Rovers", squad: aiSquad }, { name: "United", squad: aiSquad }] } };
+
+  it("produces one offer from the best eligible club not already at the table, respecting target dedup", () => {
+    const rel = { Rovers: { pct: 90, tier: 5 }, United: { pct: 70, tier: 5 } };
+    const existing = [{ aiClubName: "Rovers", aiWants: [{ id: "u1" }], aiOffers: [aiSquad[0]] }];
+    const extra = generateExtraTransferOffer(rel, squad, leagues, existing);
+    expect(extra).not.toBeNull();
+    expect(extra.aiClubName).toBe("United"); // Rovers already represented
+    expect(extra.aiWants[0].id).toBe("u2"); // u1 already targeted
+  });
+
+  it("null when every eligible club is already represented", () => {
+    const rel = { Rovers: { pct: 90, tier: 5 } };
+    const existing = [{ aiClubName: "Rovers", aiWants: [{ id: "u1" }], aiOffers: [aiSquad[0]] }];
+    expect(generateExtraTransferOffer(rel, squad, leagues, existing)).toBe(null);
+  });
+
+  it("null when no club clears the relationship bar", () => {
+    const rel = { Rovers: { pct: 30, tier: 5 } };
+    expect(generateExtraTransferOffer(rel, squad, leagues, [])).toBe(null);
   });
 });

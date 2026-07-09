@@ -37,6 +37,7 @@ export const FIXTURES = [
   { id: "alltime-xi", label: "Club — All-Time XI with long defender names", clickText: "ALL-TIME XI" },
   { id: "youth-intake", label: "Youth intake — prospects with potential" },
   { id: "player-compare", label: "Transfer target compare — two players side by side" },
+  { id: "club-focus-tree", label: "Club Focus — tree with mixed node states" },
 ];
 
 export const FIXTURE_IDS = FIXTURES.map(f => f.id);

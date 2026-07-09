@@ -6,9 +6,16 @@ import { OvrProgressChart } from "../charts/OvrCharts.jsx";
 import { F, C, FONT, TEXT } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { findCareerKey } from "../../utils/careerLedger.js";
+import { useGameStore } from "../../store/gameStore.js";
+import { ClubFocusTree } from "./ClubFocusTree.jsx";
 
 export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRatingTracker, league, seasonNumber, leagueTier, squad, ovrHistory, ovrCap = 20 }) {
   const [tab, setTab] = useState("records");
+  const [showFocus, setShowFocus] = useState(false);
+  const clubFocuses = useGameStore(s => s.clubFocuses);
+  const setClubFocuses = useGameStore(s => s.setClubFocuses);
+  // Switching focus keeps partial progress — only activeId changes here.
+  const startFocus = (nodeId) => setClubFocuses(prev => ({ ...prev, activeId: nodeId }));
   const h = clubHistory || {};
   const careers = h.playerCareers || {};
   const archivedXI = h.allTimeXI || {};
@@ -272,7 +279,18 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
               borderRadius: 20, flex: mob ? "1 1 auto" : undefined, textAlign: "center",
             }}>{t.label}</button>
           ))}
+          {/* Launches the full-screen Club Focus tree overlay. */}
+          <button onClick={() => setShowFocus(true)} style={{
+            padding: mob ? "10px 13px" : "10px 18px", fontSize: mob ? F.xs : F.sm, letterSpacing: 1,
+            fontFamily: FONT, cursor: "pointer",
+            background: "rgba(250,204,21,0.1)", border: `1px solid ${C.gold}`, color: C.gold,
+            borderRadius: 20, flex: mob ? "1 1 auto" : undefined, textAlign: "center",
+          }}>🧭 CLUB FOCUS</button>
         </div>
+
+        {showFocus && (
+          <ClubFocusTree clubFocuses={clubFocuses} onStart={startFocus} onClose={() => setShowFocus(false)} />
+        )}
 
       <div style={{ background: C.bg, border: `1px solid ${C.bgCard}` }}>
         {/* RECORDS TAB */}

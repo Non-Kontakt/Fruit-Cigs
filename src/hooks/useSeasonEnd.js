@@ -13,7 +13,10 @@ import { emptyCompetitionStats, rollIntoAllTime, getTopScorers, computeTeamOfCup
 import { archivePlayerSeason, deriveCupLabels, findCareerKey } from "../utils/careerLedger.js";
 import { applyLegendCarry } from "../utils/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
-import { pickWonderkidCandidate } from "../utils/wonderkidScout.js";
+import { pickWonderkidCandidate, pickContinentalCandidate } from "../utils/wonderkidScout.js";
+import { getClubFocusBonuses, pendingSeasonGrants, markSeasonGranted, isDeferredOneOffPending } from "../utils/clubFocuses.js";
+import { defaultClubFocuses } from "../data/clubFocuses.js";
+import { getNatFlag } from "../utils/player.js";
 
 const DEFAULT_FIXTURE_COUNT = 18;
 
@@ -83,9 +86,9 @@ export function useSeasonEnd({
   const onSeasonEndRevealDone = useCallback(() => {
     const s = useGameStore.getState();
     const {
-      calendarIndex, clubHistory, league, playerSeasonStats, prestigeLevel, retiringPlayers,
+      calendarIndex, clubHistory, clubFocuses, league, playerSeasonStats, prestigeLevel, retiringPlayers,
       seasonNumber, squad, storyArcs, summerData, trialHistory, unlockedAchievements,
-      setBench, setClubHistory, setInboxMessages, setRetiringPlayers, setSquad, setStartingXI,
+      setBench, setClubFocuses, setClubHistory, setInboxMessages, setRetiringPlayers, setSquad, setStartingXI,
       setSummerData, setSummerPhase, setYouthCoupActive,
     } = s;
     const ovrCap = getOvrCap(prestigeLevel);
@@ -164,6 +167,9 @@ export function useSeasonEnd({
           season: seasonNumber, tier: currentTierVal, leagueName: summerData.leagueName,
           position, points, topScorer: topScorer ? `${topScorer} (${topGoals})` : "N/A",
           result: "prestige", prestigeLevel: prestigeLevel || 0,
+          // Snapshot how many Club Focuses were completed before the wormhole
+          // reset wipes the tree (the reset itself lands in legend selection).
+          clubFocusesCompleted: (clubFocuses?.completedIds || []).length,
         });
         return h;
       });
@@ -179,12 +185,27 @@ export function useSeasonEnd({
 
     const candidates = generateYouthIntake(retiringPlayers, squad, useGameStore.getState().youthCoupActive, ovrCap);
     if (useGameStore.getState().youthCoupActive) setYouthCoupActive(false);
-    // Story arc: youth stat boost
-    const youthBoost = storyArcs?.bonuses?.youthStatBoost || 0;
+    // Story arc youth stat boost + Club Focus (Proper Coaching Badges) intake
+    // floor pull the same lever — combine them into one boost applied here.
+    const focusFloor = getClubFocusBonuses(clubFocuses).intakeFloorBonus || 0;
+    const youthBoost = (storyArcs?.bonuses?.youthStatBoost || 0) + focusFloor;
     if (youthBoost > 0) {
       candidates.forEach(c => {
         ATTRIBUTES.forEach(({ key }) => { c.attrs[key] = Math.min(14, (c.attrs[key]||0) + youthBoost); });
       });
+    }
+    // Club Focus (Under-9s Bake Sale) one-off: the next intake turns up one
+    // extra candidate. Consumed by stamping seasonGrants[bake_sale] so it
+    // never fires again (reusing the ledger keeps the persisted shape).
+    if (isDeferredOneOffPending(clubFocuses, "extra_intake_candidate")) {
+      // Generate one more prospect, name-unique against the squad + this
+      // intake, and apply the same combined youth boost the others got.
+      const extra = generateYouthIntake(new Set(), [...squad, ...candidates], false, ovrCap)[0];
+      if (extra) {
+        if (youthBoost > 0) ATTRIBUTES.forEach(({ key }) => { extra.attrs[key] = Math.min(14, (extra.attrs[key]||0) + youthBoost); });
+        candidates.push(extra);
+      }
+      setClubFocuses(prev => markSeasonGranted(prev, "bake_sale", seasonNumber));
     }
     // If a trial player impressed this season, add them to intake with boosted stats
     const impressedTrials = trialHistory.filter(t => t.impressed && t.season === seasonNumber);
@@ -228,7 +249,7 @@ export function useSeasonEnd({
       unlockedAchievements,
       setAllLeagueStates, setAllTimeCupStatsByCup, setAllTimeLeagueStatsByTier, setBench,
       setBoardSentiment, setBreakoutsThisSeason, setCalendarIndex, setCalendarResults,
-      setClubHistory, setCup, setDossierBurns, setDynastyCupBracket, setDynastyCupQualifiers,
+      setClubFocuses, setClubHistory, setCup, setDossierBurns, setDynastyCupBracket, setDynastyCupQualifiers,
       setFanSentiment, setFanSentimentSeasonFloor, setFavouriteStarts, setFiveASideSquad,
       setHatTrickHeadlinePlayers, setInboxMessages, setLeague, setLeagueHistory, setLeagueResults,
       setLeagueRosters, setLeagueTier, setLegendCarryCounts, setLoyaltyWatch, setManualSlotIndices,
@@ -433,6 +454,9 @@ export function useSeasonEnd({
     // and survive.
     setScoutRevealMeta({});
     setDossierBurns({});
+    // Club Focus tree resets with the wormhole — a fresh era starts an empty
+    // tree, so post-prestige season grants are naturally none.
+    setClubFocuses(defaultClubFocuses());
     // setShowFiveASidePicker removed
 
     // Generate prestige-scaled trial player for new season
@@ -449,10 +473,10 @@ export function useSeasonEnd({
   const onYouthIntakeDone = useCallback((chosen) => {
     const s = useGameStore.getState();
     const {
-      allLeagueStates, clubHistory, cup, league, leagueResults, leagueRosters, leagueTier,
+      allLeagueStates, clubFocuses, clubHistory, cup, league, leagueResults, leagueRosters, leagueTier,
       playerRatingNames, playerRatingTracker, playerSeasonStats, prestigeLevel, prodigalSon,
       seasonCupStatsByCup, seasonLeagueStatsByTier, seasonNumber, squad, storyArcs, summerData,
-      teamName, trialHistory, unlockedAchievements,
+      teamName, trialHistory, unlockedAchievements, setClubFocuses, setScoutedPlayers, setShortlist,
       setAllLeagueStates, setAllTimeCupStatsByCup, setAllTimeLeagueStatsByTier, setBeatenTeams,
       setBenchStreaks, setBoardSentiment, setBreakoutsThisSeason, setCalendarIndex,
       setCalendarResults, setClubHistory, setCup, setDynastyCupBracket, setDynastyCupQualifiers,
@@ -969,6 +993,11 @@ export function useSeasonEnd({
         }
       }
 
+      // Hoisted for the Club Focus season grants below — evolvedSquads goes
+      // out of scope before the grant block runs, so the Continental Contacts
+      // candidate (a REAL player from next season's AI squads, id-stable) is
+      // picked here and consumed there.
+      let continentalTipCandidate = null;
       const evolvedSquads = new Map();
       const aiEvents = [];
       for (let t = 1; t <= NUM_TIERS; t++) {
@@ -1003,6 +1032,14 @@ export function useSeasonEnd({
       // trimming). Rarity check first \u2014 this is meant to read as an
       // occasional standout headline, not a weekly occurrence \u2014 then
       // skip silently if nobody currently qualifies.
+      // Continental Contacts (Club Focus): pick the tip from the squads the
+      // new season will actually field, while they're in scope. Only when the
+      // focus is complete — the grant block below decides whether it's due.
+      if ((useGameStore.getState().clubFocuses?.completedIds || []).includes("continental_contacts")) {
+        const tipTeamNames = (rosters[newTier] || []).map(cfg => cfg.name);
+        continentalTipCandidate = pickContinentalCandidate(evolvedSquads, tipTeamNames);
+      }
+
       if (Math.random() < 0.15) {
         const newTierTeamNames = (rosters[newTier] || []).map(cfg => cfg.name);
         const wonderkid = pickWonderkidCandidate(evolvedSquads, newTierTeamNames);
@@ -1274,6 +1311,50 @@ export function useSeasonEnd({
         return updated;
       });
     }
+    // === CLUB FOCUS: season-start grants ===
+    // Recurring focus rewards (Continental Contacts, Miracle Worker, War
+    // Chest's recurring half) fire once per season. pendingSeasonGrants is
+    // idempotent against the seasonGrants ledger, so a reload can't double up.
+    {
+      const nextSeasonCF = (seasonNumber || 1) + 1;
+      const cf = useGameStore.getState().clubFocuses;
+      const due = pendingSeasonGrants(cf, nextSeasonCF);
+      if (due.length > 0) {
+        const wcPool = ["double_session", "twelfth_man", "relation_boost", "random_attr"];
+        due.forEach(({ nodeId, effectId }) => {
+          if (effectId === "seasonal_cream") {
+            setTickets(prev => [...prev, { id: `t_focus_mc_${Date.now()}_${nodeId}`, type: "miracle_cream" }]);
+          } else if (effectId === "war_chest") {
+            setTickets(prev => [...prev, { id: `t_focus_wcs_${Date.now()}`, type: pickRandom(wcPool) }]);
+          } else if (effectId === "continental_tip") {
+            // A lead, not a signing — and crucially an ACTIONABLE one: the tip
+            // is a real player in a real AI squad (picked from evolvedSquads
+            // above, so his id survives into the new season's leagues and the
+            // normal shortlist→trade path works). No candidate this season
+            // (all-English tier)? Skip WITHOUT stamping — it retries next year.
+            const tip = continentalTipCandidate;
+            if (!tip) return;
+            const { player: tipP, teamName: tipTeam } = tip;
+            const tipPot = tipP.potential ?? getOverall(tipP);
+            const flag = getNatFlag ? getNatFlag(tipP.nationality) : "";
+            const countryLabel = `${flag} ${tipP.nationality}`.trim();
+            setShortlist(prev => prev.some(e => e.id === tipP.id) ? prev : ([...prev, {
+              id: tipP.id, name: tipP.name, position: tipP.position, ovr: getOverall(tipP),
+              age: tipP.age, attrs: { ...tipP.attrs }, potential: tipPot, nationality: tipP.nationality,
+              clubName: tipTeam, clubTier: newTier,
+              addedSeason: nextSeasonCF, addedWeek: 0, scoutWeeksLeft: 0,
+            }]));
+            setScoutedPlayers(prev => ({ ...prev, [tipP.id]: tipPot }));
+            setInboxMessages(prev => [...prev, createInboxMessage(
+              MSG.clubFocusContinentalTip(tipP.name, countryLabel, tipPot, ovrCap),
+              { calendarIndex: 0, seasonNumber: nextSeasonCF },
+            )]);
+          }
+          setClubFocuses(prev => markSeasonGranted(prev, nodeId, nextSeasonCF));
+        });
+      }
+    }
+
     // After intake, one more summer week remains (Well Rested + Preview combined)
     setSummerPhase("break");
     setSummerData(prev => ({...(prev || {}), weeksLeft: 1}));

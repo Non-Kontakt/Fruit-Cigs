@@ -12,6 +12,7 @@ import { AchievementCabinet } from "../../src/components/achievements/Achievemen
 import { CigPacksTab } from "../../src/components/achievements/CigPacksTab.jsx";
 import { CIG_PACKS } from "../../src/data/cigPacks.js";
 import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
+import { ClubFocusTree } from "../../src/components/club/ClubFocusTree.jsx";
 import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { PlayerCompareModal } from "../../src/components/transfer/PlayerCompareModal.jsx";
 import { findComparablePlayer } from "../../src/utils/transfer.js";
@@ -738,6 +739,21 @@ const RENDERERS = {
       targetPlayer={compareTargetPlayer}
       ovrCap={20}
       scoutedPlayers={{}}
+      onClose={noop}
+    />
+  ),
+
+  // Mixed states: two complete roots, one active mid-progress mid, the rest
+  // available/locked — freezes the full state palette + edge styling.
+  "club-focus-tree": () => (
+    <ClubFocusTree
+      clubFocuses={{
+        activeId: "all_weather_pitch",
+        progressById: { all_weather_pitch: 3 },
+        completedIds: ["new_bibs", "man_at_every_ground"],
+        seasonGrants: {},
+      }}
+      onStart={noop}
       onClose={noop}
     />
   ),

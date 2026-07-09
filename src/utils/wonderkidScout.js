@@ -35,3 +35,26 @@ export function pickWonderkidCandidate(squadsByTeam, teamNames) {
   if (candidates.length === 0) return null;
   return candidates[rand(0, candidates.length - 1)];
 }
+
+/**
+ * Continental Contacts (Club Focus) — pick a real foreign prospect from the
+ * AI squads the upcoming season will actually field, so the tip is a player
+ * the transfer market can genuinely trade for (id continuity guaranteed: the
+ * same squad objects seed next season's leagues). Highest-potential non-ENG
+ * player aged 23 or under; null when no squad has one (caller skips the grant
+ * without stamping, so it retries next season).
+ */
+export function pickContinentalCandidate(squadsByTeam, teamNames) {
+  let best = null;
+  for (const teamName of teamNames || []) {
+    const squad = squadsByTeam?.get?.(teamName);
+    if (!squad) continue;
+    for (const player of squad) {
+      if (!player.nationality || player.nationality === "ENG") continue;
+      if ((player.age || 99) > 23) continue;
+      const potential = player.potential ?? getOverall(player);
+      if (!best || potential > best.potential) best = { player, teamName, potential };
+    }
+  }
+  return best ? { player: best.player, teamName: best.teamName } : null;
+}

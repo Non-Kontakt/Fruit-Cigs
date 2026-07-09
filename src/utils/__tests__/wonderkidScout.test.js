@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickWonderkidCandidate } from "../wonderkidScout.js";
+import { pickWonderkidCandidate, pickContinentalCandidate } from "../wonderkidScout.js";
 
 function makePlayer({ name, age, position = "ST", attrs, potential }) {
   return { id: name, name, age, position, attrs, potential };
@@ -62,5 +62,24 @@ describe("pickWonderkidCandidate", () => {
     const result = pickWonderkidCandidate(squads, ["Rovers"]);
     const squad = squads.get(result.teamName);
     expect(squad.some(p => p.name === result.player.name)).toBe(true);
+  });
+});
+
+
+describe("pickContinentalCandidate — Continental Contacts picks a real, actionable prospect", () => {
+  const mk = (id, nat, age, potential) => ({ id, name: `N ${id}`, position: "ST", nationality: nat, age, potential, attrs: { pace: 5, shooting: 5, passing: 5, defending: 5, physical: 5, technique: 5, mentality: 5 } });
+  const squads = new Map([
+    ["Rovers", [mk("a", "ENG", 19, 18), mk("b", "FRA", 21, 14)]],
+    ["United", [mk("c", "BRA", 22, 16), mk("d", "ESP", 27, 19)]],
+  ]);
+  it("picks the highest-potential non-ENG player aged 23 or under", () => {
+    const tip = pickContinentalCandidate(squads, ["Rovers", "United"]);
+    expect(tip.player.id).toBe("c"); // BRA 22yo pot 16 beats FRA pot 14; ENG and 27yo excluded
+    expect(tip.teamName).toBe("United");
+  });
+  it("null when no team fields a qualifying foreigner", () => {
+    const allEng = new Map([["Rovers", [mk("a", "ENG", 19, 18)]]]);
+    expect(pickContinentalCandidate(allEng, ["Rovers"])).toBe(null);
+    expect(pickContinentalCandidate(squads, ["Nobody FC"])).toBe(null);
   });
 });

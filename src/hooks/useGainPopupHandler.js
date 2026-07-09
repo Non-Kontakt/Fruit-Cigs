@@ -10,6 +10,7 @@ import { sortStandings, advanceCupRound, buildNextCupRound } from "../utils/leag
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { simulateMatch, generatePenaltyShootout } from "../utils/match.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
+import { getFocusNode } from "../utils/clubFocuses.js";
 
 /**
  * Extracts the GainPopup onDone callback from App.jsx.
@@ -155,6 +156,17 @@ export function useGainPopupHandler({
         if (inj.length > 0) parts.push(`🏥 ${inj.length} injur${inj.length > 1 ? "ies" : "y"}: ${inj.map(i => `${i.playerName} (${i.weeksOut}w)`).join(", ")}`);
         if (rec.length > 0) parts.push(`💚 ${rec.length} recover${rec.length > 1 ? "ies" : "y"}: ${rec.join(", ")}`);
         if (prog.length > 0) parts.push(`🔄 Progress: ${prog.slice(0, 2).map(p => `${p.playerName} ${p.attr} ${Math.round(p.newProgress * 100)}%`).join(", ")}`);
+        // Club Focus: a one-line progress note when a focus is being worked
+        // (state already ticked this week in advanceWeek, so this reflects the
+        // weeks remaining after tonight's dig).
+        {
+          const cf = s.clubFocuses;
+          const node = cf?.activeId ? getFocusNode(cf.activeId) : null;
+          if (node) {
+            const left = Math.max(0, node.weeks - (cf.progressById?.[node.id] || 0));
+            if (left > 0) parts.push(`🧭 Club Focus: ${node.name} — the diggers are in, ${left} week${left !== 1 ? "s" : ""} left.`);
+          }
+        }
         if (parts.length === 0) parts.push("A quiet week on the training pitch. No breakthroughs to report.");
         s.setInboxMessages(prev => [...prev, createInboxMessage(
           MSG.trainingReport(s.calendarIndex + 1, parts.join("\n")),
