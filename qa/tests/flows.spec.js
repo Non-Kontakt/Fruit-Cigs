@@ -1063,4 +1063,141 @@ test.describe("full-app flows", () => {
     expect(save.fanSentiment).toBe(65);
     expect(save.boardSentiment).toBe(55);
   });
+
+  // === Unlock-week stamping: the canonical path records the EVENT's week ===
+  // Week stamps are written inside tryUnlockAchievement at the moment of the
+  // unlock, with the event's own calendar context. These three flows pin the
+  // cases the old observer effect got wrong (or could regress): pre-advance
+  // unlocks, match-time unlocks (the calendar advances before the UI
+  // settles), and same-week chronology.
+
+  test("a card earned before the first week advance stamps S1 W1", async ({ page }) => {
+    // Impatient unlocks from a settings effect the moment both speed
+    // settings are maxed — a real pre-advance unlock with zero calendar
+    // movement. Seed the maxed settings the way a returning player would
+    // have them persisted.
+    await page.addInitScript(() => {
+      localStorage.setItem("jfg-settings", JSON.stringify({
+        trainingCardSpeed: "summary", matchDetail: "highlights",
+        soundEnabled: false, musicEnabled: false,
+      }));
+    });
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    await page.waitForFunction(
+      () => !!window.__fc.getState().achievementUnlockWeeks?.impatient,
+      null, { timeout: 10_000 },
+    );
+    const res = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return { calendarIndex: s.calendarIndex, stamp: s.achievementUnlockWeeks.impatient };
+    });
+    expect(res.calendarIndex, "no week has been advanced").toBe(0);
+    // 1-based display week: week 1, never the raw 0-based calendarIndex.
+    expect(res.stamp).toMatchObject({ season: 1, week: 1 });
+  });
+
+  test("a card earned during the first match stamps S1 W1 despite the post-match advance", async ({ page }) => {
+    // Year Group (all 11 starters the same age) is a deterministic lineup
+    // card banked in useMatchResult AFTER the calendar has already advanced
+    // past the match — the exact case the observer effect stamped as W2.
+    await page.addInitScript(() => {
+      localStorage.setItem("jfg-settings", JSON.stringify({
+        instantMatch: true, soundEnabled: false, musicEnabled: false,
+      }));
+    });
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const startingXI = s.squad.slice(0, 11).map(p => p.id);
+      const squad = s.squad.map(p => (startingXI.includes(p.id) ? { ...p, age: 24 } : p));
+      // Calendar entry 0 is always a league matchday — queue it directly.
+      window.__fc.setState({ squad, startingXI, matchPending: true });
+    });
+
+    await page.getByText("PLAY MATCH", { exact: false }).first().click();
+    // instantMatch resolves the sim immediately; CONTINUE hands the result
+    // to processMatchDone, which advances the calendar and banks unlocks.
+    await expect(page.getByText("CONTINUE", { exact: false }).first()).toBeVisible({ timeout: 15_000 });
+    await page.getByText("CONTINUE", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => !!window.__fc.getState().achievementUnlockWeeks?.year_group,
+      null, { timeout: 10_000 },
+    );
+
+    const res = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return { calendarIndex: s.calendarIndex, stamp: s.achievementUnlockWeeks.year_group };
+    });
+    expect(res.calendarIndex, "the calendar advanced past the match").toBeGreaterThanOrEqual(1);
+    // The stamp is the match's week, not the already-advanced calendar's.
+    expect(res.stamp).toMatchObject({ season: 1, week: 1 });
+  });
+
+  test("two cards earned in the same week keep their unlock chronology", async ({ page }) => {
+    // Year Group and The Kids Are Alright both bank from the same lineup
+    // sweep in one match — same week stamp, chronology carried by insertion
+    // order (the recency sort's tiebreaker, see CigIndex).
+    await page.addInitScript(() => {
+      localStorage.setItem("jfg-settings", JSON.stringify({
+        instantMatch: true, soundEnabled: false, musicEnabled: false,
+      }));
+    });
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const startingXI = s.squad.slice(0, 11).map(p => p.id);
+      const bench = s.squad.slice(11, 16).map(p => p.id);
+      const squad = s.squad.map(p => {
+        if (startingXI.includes(p.id)) return { ...p, age: 24 };  // Year Group
+        if (bench.includes(p.id)) return { ...p, age: 17 };       // Kids Are Alright
+        return p;
+      });
+      window.__fc.setState({ squad, startingXI, bench, matchPending: true });
+    });
+
+    await page.getByText("PLAY MATCH", { exact: false }).first().click();
+    await expect(page.getByText("CONTINUE", { exact: false }).first()).toBeVisible({ timeout: 15_000 });
+    await page.getByText("CONTINUE", { exact: false }).first().click();
+    await page.waitForFunction(
+      () => {
+        const w = window.__fc.getState().achievementUnlockWeeks || {};
+        return !!w.year_group && !!w.kids_are_alright;
+      },
+      null, { timeout: 10_000 },
+    );
+
+    const res = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      return {
+        unlockedOrder: [...s.unlockedAchievements],
+        stampOrder: Object.keys(s.achievementUnlockWeeks),
+        yearGroup: s.achievementUnlockWeeks.year_group,
+        kids: s.achievementUnlockWeeks.kids_are_alright,
+      };
+    });
+    // Same week, both stamped at the match's own week.
+    expect(res.yearGroup).toMatchObject({ season: 1, week: 1 });
+    expect(res.kids).toMatchObject({ season: 1, week: 1 });
+    // The lineup sweep banks year_group first — both the unlocked Set (the
+    // index's recency tiebreaker) and the stamp map preserve that order.
+    const setIdxYG = res.unlockedOrder.indexOf("year_group");
+    const setIdxKids = res.unlockedOrder.indexOf("kids_are_alright");
+    expect(setIdxYG).toBeGreaterThanOrEqual(0);
+    expect(setIdxYG, "unlocked Set keeps insertion chronology").toBeLessThan(setIdxKids);
+    const stampIdxYG = res.stampOrder.indexOf("year_group");
+    const stampIdxKids = res.stampOrder.indexOf("kids_are_alright");
+    expect(stampIdxYG, "unlock-week map keeps insertion chronology").toBeLessThan(stampIdxKids);
+  });
 });

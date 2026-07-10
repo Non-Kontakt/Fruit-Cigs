@@ -57,7 +57,6 @@ export function useAdvanceWeek({
   // useState setters (not in Zustand)
   setGains,
   setWeekTransition,
-  setAchievementQueue,
   setRecentOvrLevelUps,
   setShowAchievements,
   setShowTable,
@@ -478,14 +477,10 @@ export function useAdvanceWeek({
     // Filter to only training-focus achievements (others checked elsewhere)
     const trainingFocusIds = ["only_fans", "npc", "finish_food", "gym_rats", "speed_freaks", "tinkerer", "double_pivot"];
     const focusOnly = focusUnlocks.filter(id => trainingFocusIds.includes(id));
-    if (focusOnly.length > 0) {
-      s.setUnlockedAchievements(prev => {
-        const next = new Set(prev);
-        focusOnly.forEach(id => next.add(id));
-        return next;
-      });
-      setAchievementQueue(prev => { const ex = new Set(prev); const f = focusOnly.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-    }
+    // Routed through the canonical helper so the unlock week is stamped now,
+    // while the calendar still points at the week being processed — the
+    // rest-week advance further down commits before any later observation.
+    focusOnly.forEach(id => tryUnlockAchievement(id));
 
     const weekGains = [];
     const weekInjuries = [];
