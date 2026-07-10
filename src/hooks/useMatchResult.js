@@ -633,7 +633,7 @@ export function useMatchResult({
           // fresh season one game in must never headline a streak carried
           // over from last season (calendarResults is reset at season
           // start, so this can't accidentally reach past the boundary).
-          const seasonUnbeatenRun = getSeasonUnbeatenRun(useGameStore.getState().calendarResults);
+          const seasonUnbeatenRun = getSeasonUnbeatenRun(useGameStore.getState().calendarResults, useGameStore.getState().seasonCalendar);
           const headlineResult = generateMatchHeadline({
             teamName: s.teamName,
             opponentName: oppTeam?.name,

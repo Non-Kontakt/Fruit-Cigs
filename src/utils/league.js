@@ -560,7 +560,14 @@ export function getPriorPlayedResult(calendarResults) {
 
 // Season-scoped unbeaten run for the Gazette's "record" match headline —
 // counts consecutive non-losses (win or draw) walking backward from the
-// most recently played calendar slot, stopping at the first loss.
+// most recently played LEAGUE calendar slot, stopping at the first loss.
+// calendarResults is keyed by calendar slot index and holds every played
+// competition (league, cup, Dynasty Cup, 5v5 Mini-Tournament), but the
+// record it feeds (clubHistory.bestUnbeatenRun, via consecutiveUnbeaten)
+// is maintained by the league flow only — so seasonCalendar is required to
+// resolve each key's slot `type` and skip anything that isn't "league".
+// Without that filter, a cup non-loss would inflate the league run and a
+// cup loss would falsely break an active one.
 // calendarResults is reset to {} at the start of each season (see
 // useSeasonEnd.js's setCalendarResults({})), so there is no prior-season
 // data to walk into by construction — running out of entries before
@@ -569,9 +576,10 @@ export function getPriorPlayedResult(calendarResults) {
 // stays career-long and keeps powering the unbeaten_10 achievement and the
 // Dashboard/ticker copy) so this headline never cites a streak number the
 // season's own W/D/L subline can't back up.
-export function getSeasonUnbeatenRun(calendarResults) {
+export function getSeasonUnbeatenRun(calendarResults, seasonCalendar) {
+  const calendar = seasonCalendar || [];
   const entries = Object.entries(calendarResults || {})
-    .filter(([, e]) => e && !e.spectator && typeof e.won === "boolean")
+    .filter(([k, e]) => e && !e.spectator && typeof e.won === "boolean" && calendar[Number(k)]?.type === "league")
     .map(([k, e]) => [Number(k), e])
     .sort((a, b) => b[0] - a[0]);
   let run = 0;

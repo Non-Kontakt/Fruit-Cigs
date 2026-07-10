@@ -244,6 +244,21 @@ describe("copy builders", () => {
     expect(ypotsBody).toContain("B. Hill (7.4 avg, 12g)");
     expect(ypotsBody).toContain("T. Hill (7.0 avg, 8g)");
   });
+
+  it("disambiguates two nominees with an IDENTICAL full name from different clubs — names are only unique per squad, not league-wide", () => {
+    const pots = {
+      winner: { name: "Ben Hill", teamName: "Rovers", age: 27, avgRating: 8.1, goals: 12, assists: 4 },
+      nominees: [
+        { name: "Ben Hill", teamName: "Rovers", age: 27, avgRating: 8.1, goals: 12, assists: 4 },
+        { name: "Ben Hill", teamName: "United", age: 24, avgRating: 7.6, goals: 9, assists: 2 },
+      ],
+    };
+    const body = buildPlayerOfSeasonBody(pots);
+    // Both nominees must render distinguishably — neither line should be
+    // silently overwritten by the other because they share a full name.
+    expect(body).toContain("B. Hill (Rovers) (8.1 avg, 12g)");
+    expect(body).toContain("B. Hill (United) (7.6 avg, 9g)");
+  });
 });
 
 // AI candidates must carry their canonical assists — a winning AI Player of

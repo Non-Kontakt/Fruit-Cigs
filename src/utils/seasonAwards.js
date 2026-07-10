@@ -210,13 +210,19 @@ function fmtRating(avgRating) {
 }
 
 /**
- * Build a { fullName: displayName } map for a nominee list, disambiguating
- * surname collisions with a first-initial prefix ("B. Hill" / "T. Hill").
- * Non-colliding names stay surname-only. Mirrors the tier-2 collision rule
- * from matchEvents.js's buildScorerDisplayMap (reusing its getSurname/
- * getInitial helpers) rather than inventing new name-splitting logic —
- * award nominee lists are capped at NOMINEE_COUNT, so matchEvents' further
- * tier-3 "still collides, add position" fallback isn't needed here.
+ * Build a display-name array aligned index-for-index with a nominee list,
+ * disambiguating surname collisions with a first-initial prefix
+ * ("B. Hill" / "T. Hill"). Non-colliding names stay surname-only. Mirrors
+ * the tier-2 collision rule from matchEvents.js's buildScorerDisplayMap
+ * (reusing its getSurname/getInitial helpers) rather than inventing new
+ * name-splitting logic.
+ *
+ * Deliberately keyed by array position, not by n.name: player names are
+ * only guaranteed unique within a squad, so two different clubs can each
+ * nominate a "Ben Hill" — a name-keyed map would collapse them into one
+ * shared entry and both would render "B. Hill". When first-initial +
+ * surname still collides (identical full names from different clubs), the
+ * nominee's teamName is appended: "B. Hill (Rovers)" vs "B. Hill (United)".
  */
 function buildNomineeDisplayNames(nominees) {
   const bySurname = {};
@@ -224,24 +230,29 @@ function buildNomineeDisplayNames(nominees) {
     const sn = getSurname(n.name) || shortName(n.name) || n.name;
     (bySurname[sn] || (bySurname[sn] = [])).push(n);
   });
-  const out = {};
+  const byInitialSurname = {};
   nominees.forEach(n => {
     const sn = getSurname(n.name) || shortName(n.name) || n.name;
-    if (bySurname[sn].length <= 1) {
-      out[n.name] = shortName(n.name) || n.name;
-      return;
-    }
+    if (bySurname[sn].length <= 1) return;
     const initial = getInitial(n.name);
-    out[n.name] = initial ? `${initial}. ${sn}` : (shortName(n.name) || n.name);
+    const key = initial ? `${initial}. ${sn}` : (shortName(n.name) || n.name);
+    (byInitialSurname[key] || (byInitialSurname[key] = [])).push(n);
   });
-  return out;
+  return nominees.map(n => {
+    const sn = getSurname(n.name) || shortName(n.name) || n.name;
+    if (bySurname[sn].length <= 1) return shortName(n.name) || n.name;
+    const initial = getInitial(n.name);
+    const initialSurname = initial ? `${initial}. ${sn}` : (shortName(n.name) || n.name);
+    if (byInitialSurname[initialSurname].length <= 1) return initialSurname;
+    return n.teamName ? `${initialSurname} (${n.teamName})` : initialSurname;
+  });
 }
 
 export function buildGoldenBootBody(goldenBoot) {
   if (!goldenBoot) return null;
   const { winner, nominees } = goldenBoot;
   const displayNames = buildNomineeDisplayNames(nominees);
-  const list = nominees.map(n => `${displayNames[n.name]} (${n.goals})`).join(", ");
+  const list = nominees.map((n, i) => `${displayNames[i]} (${n.goals})`).join(", ");
   return `THE GOLDEN BOOT — nominees: ${list}. Winner: ${winner.name.toUpperCase()} — ${winner.goals} league goal${winner.goals !== 1 ? "s" : ""}.`;
 }
 
@@ -249,7 +260,7 @@ export function buildYoungPlayerOfSeasonBody(youngPlayerOfSeason) {
   if (!youngPlayerOfSeason) return null;
   const { winner, nominees } = youngPlayerOfSeason;
   const displayNames = buildNomineeDisplayNames(nominees);
-  const list = nominees.map(n => `${displayNames[n.name]} (${fmtRating(n.avgRating)} avg, ${n.goals}g)`).join(", ");
+  const list = nominees.map((n, i) => `${displayNames[i]} (${fmtRating(n.avgRating)} avg, ${n.goals}g)`).join(", ");
   const ageStr = winner.age != null ? ` (age ${winner.age})` : "";
   return `YOUNG PLAYER OF THE SEASON — nominees: ${list}. Winner: ${winner.name.toUpperCase()}${ageStr} — ${fmtRating(winner.avgRating)} avg rating, ${winner.goals} goal${winner.goals !== 1 ? "s" : ""}.`;
 }
@@ -258,7 +269,7 @@ export function buildPlayerOfSeasonBody(playerOfSeason) {
   if (!playerOfSeason) return null;
   const { winner, nominees } = playerOfSeason;
   const displayNames = buildNomineeDisplayNames(nominees);
-  const list = nominees.map(n => `${displayNames[n.name]} (${fmtRating(n.avgRating)} avg, ${n.goals}g)`).join(", ");
+  const list = nominees.map((n, i) => `${displayNames[i]} (${fmtRating(n.avgRating)} avg, ${n.goals}g)`).join(", ");
   return `PLAYER OF THE SEASON — nominees: ${list}. Winner: ${winner.name.toUpperCase()} — ${fmtRating(winner.avgRating)} avg rating, ${winner.goals} goal${winner.goals !== 1 ? "s" : ""}, ${winner.assists || 0} assist${winner.assists === 1 ? "" : "s"}.`;
 }
 
