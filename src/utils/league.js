@@ -558,6 +558,51 @@ export function getPriorPlayedResult(calendarResults) {
   return entries.length > 0 ? entries[0][1] : null;
 }
 
+// Season-scoped unbeaten run for the Gazette's "record" match headline —
+// counts consecutive non-losses (win or draw) walking backward from the
+// most recently played LEAGUE calendar slot, stopping at the first loss.
+// calendarResults is keyed by calendar slot index and holds every played
+// competition (league, cup, Dynasty Cup, 5v5 Mini-Tournament), but the
+// record it feeds (clubHistory.bestUnbeatenRun, via consecutiveUnbeaten)
+// is maintained by the league flow only — so seasonCalendar is required to
+// resolve each key's slot `type` and skip anything that isn't "league".
+// Without that filter, a cup non-loss would inflate the league run and a
+// cup loss would falsely break an active one.
+// calendarResults is reset to {} at the start of each season (see
+// useSeasonEnd.js's setCalendarResults({})), so there is no prior-season
+// data to walk into by construction — running out of entries before
+// hitting a loss IS the season boundary, not a fallback to a career total.
+// Deliberately decoupled from the `consecutiveUnbeaten` store field (which
+// stays career-long and keeps powering the unbeaten_10 achievement and the
+// Dashboard/ticker copy) so this headline never cites a streak number the
+// season's own W/D/L subline can't back up.
+export function getSeasonUnbeatenRun(calendarResults, seasonCalendar) {
+  const calendar = seasonCalendar || [];
+  const entries = Object.entries(calendarResults || {})
+    .filter(([k, e]) => e && !e.spectator && typeof e.won === "boolean" && calendar[Number(k)]?.type === "league")
+    .map(([k, e]) => [Number(k), e])
+    .sort((a, b) => b[0] - a[0]);
+  let run = 0;
+  for (const [, e] of entries) {
+    if (e.won || e.draw) run++;
+    else break;
+  }
+  return run;
+}
+
+// Minimum season-scoped unbeaten run before the "record" headline fires —
+// the copy pool ("X NOT OUT", "X AND STILL GOING") reads as a genuinely
+// long run, not an early-season blip.
+export const RECORD_UNBEATEN_THRESHOLD = 8;
+
+// Pure predicate for the headline ctx's recordUnbeatenRun flag: the
+// season-scoped run must clear RECORD_UNBEATEN_THRESHOLD AND exceed the
+// club's all-time best (clubHistory.bestUnbeatenRun, itself still tracked
+// from the career consecutiveUnbeaten counter — untouched by this function).
+export function isSeasonUnbeatenRecord(seasonUnbeatenRun, bestUnbeatenRun) {
+  return seasonUnbeatenRun >= RECORD_UNBEATEN_THRESHOLD && seasonUnbeatenRun > (bestUnbeatenRun || 0);
+}
+
 export function processSeasonSwaps(rosters, playerLeague, playerTier, allLeagueStates, playerTeamName = null) {
   const standings = {};
 

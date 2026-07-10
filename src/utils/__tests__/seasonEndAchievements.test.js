@@ -4,6 +4,7 @@ import {
   checkBeenEverywhereMan, checkUnfinishedBusiness, checkYoYoYears, checkWatchingTheThrone,
   checkWoodenSpoonCollection, checkSameTimeNextYear,
   collectDynastyCupFinalAchievements, collectMiniTournamentThirdPlaceAchievements, collectMiniTournamentFinalAchievements,
+  getSeasonUnbeatenRun, isSeasonUnbeatenRecord, RECORD_UNBEATEN_THRESHOLD,
 } from "../league.js";
 
 // Bag Man (top scorer plays for the player's team) and Tactical Foul (most
@@ -106,6 +107,106 @@ describe("wonEveryPlayedMatchThisSeason — pure calendarResults check", () => {
       1: { playerGoals: 0, oppGoals: 1, won: false, draw: false }, // lost the dynasty final
     };
     expect(wonEveryPlayedMatchThisSeason(calendarResults)).toBe(false);
+  });
+});
+
+describe("getSeasonUnbeatenRun — season-scoped streak for the Gazette's record headline", () => {
+  const leagueCalendar = (n) => Array.from({ length: n }, () => ({ type: "league" }));
+
+  it("counts consecutive non-losses back from the most recent played slot, treating a draw as a non-loss", () => {
+    const calendarResults = {
+      0: { won: true, draw: false },
+      1: { won: false, draw: true }, // draw — continues the run
+      2: { won: true, draw: false },
+      3: { won: true, draw: false },
+    };
+    expect(getSeasonUnbeatenRun(calendarResults, leagueCalendar(4))).toBe(4);
+  });
+
+  it("stops walking backward at the first loss", () => {
+    const calendarResults = {
+      0: { won: true, draw: false },
+      1: { won: false, draw: false }, // loss — the run started after this
+      2: { won: true, draw: false },
+    };
+    expect(getSeasonUnbeatenRun(calendarResults, leagueCalendar(3))).toBe(1);
+  });
+
+  it("ignores spectator entries", () => {
+    const calendarResults = {
+      0: { won: true, draw: false },
+      1: { spectator: true, label: "Dynasty Cup Semi-Finals" },
+      2: { won: true, draw: false },
+    };
+    const seasonCalendar = [{ type: "league" }, { type: "dynasty", round: "sf" }, { type: "league" }];
+    expect(getSeasonUnbeatenRun(calendarResults, seasonCalendar)).toBe(2);
+  });
+
+  it("the season boundary is a hard start: calendarResults is reset to {} at season start, so a fresh season one game in reads exactly 1, never a leftover career number", () => {
+    const calendarResults = { 0: { won: true, draw: false } };
+    expect(getSeasonUnbeatenRun(calendarResults, leagueCalendar(1))).toBe(1);
+  });
+
+  it("reads 0 for empty/null calendarResults", () => {
+    expect(getSeasonUnbeatenRun({}, [])).toBe(0);
+    expect(getSeasonUnbeatenRun(null, [])).toBe(0);
+  });
+
+  it("cup non-losses between league matches do NOT inflate the league run", () => {
+    // League: W, W. Cup: D wedged in between. If cup slots leaked into the
+    // league-only run, this would read 3 instead of 2.
+    const seasonCalendar = [
+      { type: "league", leagueMD: 0 },
+      { type: "cup", cupRound: 0 },
+      { type: "league", leagueMD: 1 },
+    ];
+    const calendarResults = {
+      0: { won: true, draw: false },   // league win
+      1: { won: false, draw: true },   // cup draw — must be ignored
+      2: { won: true, draw: false },   // league win
+    };
+    expect(getSeasonUnbeatenRun(calendarResults, seasonCalendar)).toBe(2);
+  });
+
+  it("a cup LOSS between league non-losses does NOT break the league run", () => {
+    // League: D, W. Cup: L wedged in between. If cup slots counted toward
+    // the league-only run, the cup loss would wrongly reset it to 0.
+    const seasonCalendar = [
+      { type: "league", leagueMD: 0 },
+      { type: "cup", cupRound: 0 },
+      { type: "league", leagueMD: 1 },
+    ];
+    const calendarResults = {
+      0: { won: false, draw: true },   // league draw
+      1: { won: false, draw: false },  // cup loss — must be ignored
+      2: { won: true, draw: false },   // league win
+    };
+    expect(getSeasonUnbeatenRun(calendarResults, seasonCalendar)).toBe(2);
+  });
+});
+
+describe("isSeasonUnbeatenRecord — pinned threshold for the record headline trigger", () => {
+  it("RECORD_UNBEATEN_THRESHOLD is 8", () => {
+    expect(RECORD_UNBEATEN_THRESHOLD).toBe(8);
+  });
+
+  it("does not fire one game into a new season even against a prior-season 8+ career best — the reported bug this fix decouples from", () => {
+    // bestUnbeatenRun (8) is the club's real all-time best, carried over
+    // from last season; the season-scoped run is just the 1 game played so
+    // far this season (W1 D0 L0). The headline must NOT claim a record.
+    expect(isSeasonUnbeatenRecord(1, 8)).toBe(false);
+  });
+
+  it("fires once the season-scoped run clears the threshold and beats the club's best", () => {
+    expect(isSeasonUnbeatenRecord(9, 8)).toBe(true);
+  });
+
+  it("does not fire at exactly the prior best — must exceed it, not match it", () => {
+    expect(isSeasonUnbeatenRecord(8, 8)).toBe(false);
+  });
+
+  it("does not fire below the threshold even with no prior best on record", () => {
+    expect(isSeasonUnbeatenRecord(5, 0)).toBe(false);
   });
 });
 

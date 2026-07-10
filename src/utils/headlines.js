@@ -153,7 +153,12 @@ const TEMPLATES = {
   record: (ctx, d) => {
     const { tn, on } = names(ctx);
     if (ctx.recordUnbeatenRun) {
-      const run = ctx.unbeatenRun ?? "record";
+      // Season-scoped run when the caller provides it (see
+      // getSeasonUnbeatenRun in utils/league.js) — falls back to the
+      // (career) unbeatenRun field for callers/tests that don't set it, so
+      // this headline never claims a streak that reaches back past this
+      // season's own results.
+      const run = ctx.seasonUnbeatenRun ?? ctx.unbeatenRun ?? "record";
       return pickRandom([
         () => `${run} NOT OUT! ${tn} STRETCH UNBEATEN RUN PAST ${on}`,
         () => `HISTORY IN THE MAKING — ${tn} NOW ${run} MATCHES WITHOUT DEFEAT`,
@@ -372,7 +377,7 @@ export function generateSeasonHeadline({ type, teamName, leagueName }) {
 // ---------------------------------------------------------------------------
 const AWARDS_TEMPLATES = [
   (ctx) => `${(ctx.winnerName || ctx.teamName || "OUR PLAYER").toUpperCase()} NAMED PLAYER OF THE SEASON AT ${(ctx.teamName || "THE CLUB").toUpperCase()}`,
-  (ctx) => `${(ctx.newspaperName || "THE GAZETTE").toUpperCase()} NAMES ${(ctx.winnerName || "").toUpperCase()} THEIR PLAYER OF THE SEASON`,
+  (ctx) => `${(ctx.newspaperName || "THE GAZETTE").toUpperCase()} NAMES ${(ctx.winnerName || "").toUpperCase()} THE LEAGUE'S PLAYER OF THE SEASON`,
   (ctx) => `AWARDS NIGHT GLORY — ${(ctx.winnerName || "").toUpperCase()} TAKES TOP HONOUR AT ${(ctx.teamName || "THE CLUB").toUpperCase()}`,
 ];
 
