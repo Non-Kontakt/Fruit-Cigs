@@ -17,9 +17,11 @@ const TEAR_AT_MS = 2100;
 const DEAL_AT_MS = 2500;
 const DEAL_STAGGER_MS = 280;
 
-// Stepped zigzag tear line (pixel-art serration, not a smooth wave).
+// Stepped zigzag tear line (pixel-art serration, not a smooth wave). Teeth
+// are narrow and shallow so the edge reads as a paper tear rather than a
+// castle-wall crenellation at mobile card scale.
 const TEAR_CLIP =
-  "polygon(0% 100%, 0% 55%, 8% 55%, 8% 100%, 16% 100%, 16% 55%, 24% 55%, 24% 100%, 32% 100%, 32% 55%, 40% 55%, 40% 100%, 48% 100%, 48% 55%, 56% 55%, 56% 100%, 64% 100%, 64% 55%, 72% 55%, 72% 100%, 80% 100%, 80% 55%, 88% 55%, 88% 100%, 96% 100%, 96% 55%, 100% 55%, 100% 100%)";
+  "polygon(0% 100%, 0% 75%, 2% 75%, 2% 100%, 5% 100%, 5% 75%, 7% 75%, 7% 100%, 10% 100%, 10% 75%, 12% 75%, 12% 100%, 15% 100%, 15% 75%, 17% 75%, 17% 100%, 20% 100%, 20% 75%, 22% 75%, 22% 100%, 25% 100%, 25% 75%, 27% 75%, 27% 100%, 30% 100%, 30% 75%, 32% 75%, 32% 100%, 35% 100%, 35% 75%, 37% 75%, 37% 100%, 40% 100%, 40% 75%, 42% 75%, 42% 100%, 45% 100%, 45% 75%, 47% 75%, 47% 100%, 50% 100%, 50% 75%, 52% 75%, 52% 100%, 55% 100%, 55% 75%, 57% 75%, 57% 100%, 60% 100%, 60% 75%, 62% 75%, 62% 100%, 65% 100%, 65% 75%, 67% 75%, 67% 100%, 70% 100%, 70% 75%, 72% 75%, 72% 100%, 75% 100%, 75% 75%, 77% 75%, 77% 100%, 80% 100%, 80% 75%, 82% 75%, 82% 100%, 85% 100%, 85% 75%, 87% 75%, 87% 100%, 90% 100%, 90% 75%, 92% 75%, 92% 100%, 95% 100%, 95% 75%, 97% 75%, 97% 100%, 100% 100%)";
 
 export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, muteSound = false }) {
   // enter → locked → reveal → torn → dealing → shown → exit
@@ -204,9 +206,14 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         justifyContent: "center",
         gap: 12,
         padding: mob ? "24px 16px" : "32px 24px",
-        // Locked state: dark silhouette; Revealed: pack colors
+        // Locked state: dark silhouette; Revealed: same solid-fill +
+        // diagonal-pattern treatment as the Corner Shop's sealed packs, so
+        // the pack reads as the same physical object being torn open here
+        // as it does sealed on the shelf (not a different, airier object).
         background: isRevealed
-          ? `linear-gradient(160deg, rgba(${rgbDark}, 0.25) 0%, rgba(${rgb}, 0.08) 100%)`
+          ? `repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
+             repeating-linear-gradient(45deg, color-mix(in srgb, ${pack.color} 78%, black) 0 8px, color-mix(in srgb, ${pack.color} 62%, black) 8px 16px),
+             color-mix(in srgb, ${pack.color} 70%, black)`
           : "rgba(15,15,35,0.9)",
         // Sides set individually (no shorthand): once torn, the top edge is
         // the serrated tear line, not the lid's rounded corners.
@@ -254,23 +261,6 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
           }} />
         )}
 
-        {/* Background texture — diagonal lines (only when revealed) */}
-        {isRevealed && (
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.04,
-            backgroundImage: `repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 8px,
-              rgba(${rgb}, 1) 8px,
-              rgba(${rgb}, 1) 9px
-            )`,
-            pointerEvents: "none",
-          }} />
-        )}
-
         {/* Shimmer sweep when revealed */}
         {isRevealed && (
           <div style={{
@@ -302,10 +292,12 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
           }} />
         )}
 
-        {/* Icon: lock when locked, fruit emoji when revealed */}
+        {/* Icon: lock when locked, fruit emoji when revealed. lineHeight
+            1.3 (not 1) gives the emoji's taller vertical metrics room —
+            at 1 the glyph clips against the pack card's own edge. */}
         <div style={{
           fontSize: mob ? 48 : 56,
-          lineHeight: 1,
+          lineHeight: 1.3,
           position: "relative",
           zIndex: 1,
           opacity: isRevealed ? 1 : 0.5,

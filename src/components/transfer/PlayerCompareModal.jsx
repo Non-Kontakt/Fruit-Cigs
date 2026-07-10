@@ -22,12 +22,18 @@ function PlayerColumn({ player, potentialKnown, ovrCap, better, mob }) {
   const displayedPotential = potentialKnown ? (player.potential ?? "???") : "???";
 
   return (
-    <div style={{ minWidth: 0 }}>
+    // A flat card background here (rather than letting the modal's own
+    // diagonal gradient show through) keeps both columns reading identically
+    // regardless of where they land in that gradient — on the stacked mobile
+    // layout the two columns sit at different heights, so without their own
+    // background they picked up visibly different shades and one player
+    // looked highlighted over the other.
+    <div style={{ minWidth: 0, background: C.bgCard, border: `1px solid ${C.bgInput}`, borderRadius: 6, padding: mob ? "12px 10px" : "14px 16px" }}>
       {/* Sticky name header — on mobile (stacked columns, one shared scroll
           container) this keeps whose stats you're reading visible as you
           scroll past a long attribute list into the next player's block. */}
       <div style={{
-        position: "sticky", top: 0, zIndex: 2, background: C.bg,
+        position: "sticky", top: 0, zIndex: 2, background: C.bgCard,
         paddingBottom: 10, marginBottom: 12,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
@@ -112,7 +118,13 @@ export function PlayerCompareModal({ yourPlayer, targetPlayer, ovrCap = 20, scou
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <span style={{ fontSize: mob ? F.lg : F.h3, color: C.text, letterSpacing: 1 }}>⚖ COMPARE</span>
+          {/* Press Start 2P has no ⚖ glyph, so it fell back to a hairline
+              system-font scale that read as microscopic next to the pixel
+              headline. A "VS" chip in the same pixel font stays legible at
+              any size and fits the head-to-head framing of this screen. */}
+          <span style={{ fontSize: mob ? F.lg : F.h3, color: C.text, letterSpacing: 1 }}>
+            <span style={{ color: C.gold }}>VS</span> COMPARE
+          </span>
           <button onClick={onClose} style={{
             background: "none", border: `1px solid ${C.bgInput}`, color: C.textDim,
             padding: "8px 17px", cursor: "pointer", fontSize: F.xl, fontFamily: FONT,
