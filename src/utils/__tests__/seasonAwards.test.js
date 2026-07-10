@@ -203,6 +203,47 @@ describe("copy builders", () => {
     expect(body).toContain("ROSSI —");
     expect(body).toContain("8 assists");
   });
+
+  it("disambiguates a same-surname nominee collision with first-initial prefixes, leaving non-colliding names surname-only", () => {
+    const pots = {
+      winner: { name: "Ben Hill", teamName: "City", age: 27, avgRating: 8.1, goals: 12, assists: 4 },
+      nominees: [
+        { name: "Ben Hill", teamName: "City", age: 27, avgRating: 8.1, goals: 12, assists: 4 },
+        { name: "Tomas Hill", teamName: "Rovers", age: 24, avgRating: 7.6, goals: 9, assists: 2 },
+        { name: "Kwame Frimpong", teamName: "United", age: 25, avgRating: 7.2, goals: 8, assists: 3 },
+      ],
+    };
+    const body = buildPlayerOfSeasonBody(pots);
+    expect(body).toContain("B. Hill (8.1 avg, 12g)");
+    expect(body).toContain("T. Hill (7.6 avg, 9g)");
+    expect(body).toContain("Frimpong (7.2 avg, 8g)");
+    // Winner line stays a full name regardless of the nominee-list collision.
+    expect(body).toContain("Winner: BEN HILL —");
+  });
+
+  it("disambiguates Golden Boot and Young Player of the Season nominee collisions the same way", () => {
+    const goldenBoot = {
+      winner: { name: "Ben Hill", teamName: "City", goals: 24 },
+      nominees: [
+        { name: "Ben Hill", teamName: "City", goals: 24 },
+        { name: "Tomas Hill", teamName: "Rovers", goals: 21 },
+      ],
+    };
+    const gbBody = buildGoldenBootBody(goldenBoot);
+    expect(gbBody).toContain("B. Hill (24)");
+    expect(gbBody).toContain("T. Hill (21)");
+
+    const ypots = {
+      winner: { name: "Ben Hill", teamName: "City", age: 20, avgRating: 7.4, goals: 12, assists: 3 },
+      nominees: [
+        { name: "Ben Hill", teamName: "City", age: 20, avgRating: 7.4, goals: 12, assists: 3 },
+        { name: "Tomas Hill", teamName: "Rovers", age: 19, avgRating: 7.0, goals: 8, assists: 1 },
+      ],
+    };
+    const ypotsBody = buildYoungPlayerOfSeasonBody(ypots);
+    expect(ypotsBody).toContain("B. Hill (7.4 avg, 12g)");
+    expect(ypotsBody).toContain("T. Hill (7.0 avg, 8g)");
+  });
 });
 
 // AI candidates must carry their canonical assists — a winning AI Player of

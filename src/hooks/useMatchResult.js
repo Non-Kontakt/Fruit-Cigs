@@ -8,7 +8,7 @@ import { getModifier } from "../data/leagueModifiers.js";
 import { rand, getOverall } from "../utils/calc.js";
 import { generateFreeAgent, getOvrCap } from "../utils/player.js";
 import { getArcById, checkArcCond, getStepNarrative, processArcCompletion, resolveSeasonEndArcs } from "../utils/arcs.js";
-import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion, getPriorPlayedResult } from "../utils/league.js";
+import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLeagueRosters, advanceCupRound, buildNextCupRound, resolveKnockoutPromotion, getPriorPlayedResult, getSeasonUnbeatenRun, isSeasonUnbeatenRecord } from "../utils/league.js";
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
 import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements, collectLineupAchievements, getFavouriteStartsIncrement } from "../utils/achievements.js";
@@ -629,6 +629,11 @@ export function useMatchResult({
           const postPos = postTable.findIndex(r => currentLeague.teams[r.teamIndex]?.isPlayer) + 1;
           const prePos = useGameStore.getState().previousLeaguePosition;
           const rivalEntry = useGameStore.getState().clubHistory?.rivalryLedger?.[oppTeam?.name];
+          // Season-scoped, not the career consecutiveUnbeaten counter — a
+          // fresh season one game in must never headline a streak carried
+          // over from last season (calendarResults is reset at season
+          // start, so this can't accidentally reach past the boundary).
+          const seasonUnbeatenRun = getSeasonUnbeatenRun(useGameStore.getState().calendarResults);
           const headlineResult = generateMatchHeadline({
             teamName: s.teamName,
             opponentName: oppTeam?.name,
@@ -640,10 +645,11 @@ export function useMatchResult({
             cleanSheet: oppGoals === 0,
             cleanSheetStreak: oppGoals === 0 ? s.consecutiveCleanSheets + 1 : 0,
             winStreak: newConsWins, lossStreak: newConsLosses, unbeatenRun: newConsUnbeaten,
+            seasonUnbeatenRun,
             wentTop: postPos === 1 && (prePos == null || prePos > 1),
             position: postPos, prevPosition: prePos,
             boardSentiment: s.boardSentiment,
-            recordUnbeatenRun: !playerLost && newConsUnbeaten >= 8 && newConsUnbeaten > (s.clubHistory?.bestUnbeatenRun || 0),
+            recordUnbeatenRun: !playerLost && isSeasonUnbeatenRecord(seasonUnbeatenRun, s.clubHistory?.bestUnbeatenRun),
             seasonBiggestWin: playerWon && goalDiff >= 4 && goalDiff > (s.clubHistory?.biggestWin?.diff || 0),
             isDerby: isRival(rivalEntry),
           });
