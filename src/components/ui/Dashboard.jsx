@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { F, C, FONT, Z, MODAL } from "../../data/tokens";
+import { F, C, FONT, Z, MODAL, TEXT } from "../../data/tokens";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getModifier } from "../../data/leagueModifiers.js";
@@ -391,7 +391,7 @@ export function Dashboard({
           {(newspaperName || `The ${teamName || "City"} Gazette`).toUpperCase()}
         </div>
         <div style={{
-          fontSize: F.xs,
+          ...TEXT.xsMultiline,
           color: HEADER_COLOR,
           marginTop: 6,
           letterSpacing: 1,
@@ -416,7 +416,7 @@ export function Dashboard({
         </div>
         {headline.byline && (
           <div style={{
-            fontSize: F.xs,
+            ...TEXT.xsMultiline,
             color: C.textDim,
             fontStyle: "italic",
             marginTop: 5,
@@ -427,7 +427,7 @@ export function Dashboard({
         )}
         {headline.sub && (
           <div style={{
-            fontSize: F.xs,
+            ...TEXT.xsMultiline,
             color: HEADER_COLOR,
             marginTop: 6,
             letterSpacing: 1,
@@ -512,7 +512,7 @@ export function Dashboard({
                   const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
                   const { color, icon, text } = getChoiceResult(msg, chosen);
                   return (
-                    <div style={{ fontSize: F.xs, color, marginTop: 4, fontStyle: "italic" }}>
+                    <div style={{ ...TEXT.xsMultiline, color, marginTop: 4, fontStyle: "italic" }}>
                       {icon ? `${icon} ${text}` : text}
                     </div>
                   );
@@ -585,7 +585,7 @@ export function Dashboard({
                     </div>
                   )}
                   {label === "BOARD" && (
-                    <div style={{ fontSize: F.xs, color: C.textDim, marginTop: 4 }}>
+                    <div style={{ ...TEXT.xsMultiline, color: C.textDim, marginTop: 4 }}>
                       expects {getBoardExpectation(leagueTier).demand}
                     </div>
                   )}
@@ -1067,8 +1067,16 @@ export function Dashboard({
         {latestResults.length === 0 && tickerBeats.length === 0 ? (
           // Form Guide above already says "No results yet" — echoing it here
           // reads as a bug, not confirmation. Context-appropriate copy instead.
-          <div style={{ width: "100%", textAlign: "center", fontSize: mob ? F.xs : F.sm, color: C.bgInput }}>
-            The ticker starts once your first match is played.
+          // Bar is a fixed 34px strip with overflow hidden — mobile gets a
+          // shorter one-line string rather than letting this wrap to two
+          // lines and clip.
+          <div style={{
+            width: "100%", textAlign: "center",
+            fontSize: mob ? F.xs : F.sm,
+            lineHeight: mob ? TEXT.xsMultiline.lineHeight : TEXT.smMultiline.lineHeight,
+            color: C.bgInput,
+          }}>
+            {mob ? "Ticker starts after your first match." : "The ticker starts once your first match is played."}
           </div>
         ) : (
           <div style={{

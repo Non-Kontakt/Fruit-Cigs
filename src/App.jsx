@@ -2604,44 +2604,112 @@ function FruitCigs() {
       {(() => {
         const clearAll = clearAllTabs;
         const isHome = !showSquad && !showTable && !showCalendar && !showCup && !showTransfers && !showLegends && !showAchievements;
-        const navBtn = (active, color, label, onClick) => ({
+        const navBtn = (active, color) => ({
           background: active ? `${color}22` : "rgba(30, 41, 59, 0.5)",
           border: active ? `1px solid ${color}` : `1px solid ${C.bgInput}`,
           color: color,
-          padding: isMobile ? "10px 8px" : "12px 20px",
           cursor: "pointer",
           fontFamily: FONT,
-          fontSize: isMobile ? F.xs : F.md,
-          minHeight: isMobile ? 40 : undefined,
+          position: "relative",
+          ...(isMobile
+            ? {
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 4, height: 54, padding: "5px 4px",
+                fontSize: F.xs,
+              }
+            : {
+                padding: "12px 20px",
+                fontSize: F.md,
+              }),
         });
-        // Mobile: a strict 4-column grid keeps every row full (8 items = two
-        // even rows of 4) instead of flex-wrap's content-width wrapping,
-        // which left CORNER SHOP alone on a banner-width third row.
+        // Mobile: icon-above-label, both centered, in a fixed-height cell —
+        // every button gets the same internal shape regardless of label
+        // length or whether it carries a badge (badges move to an
+        // absolutely-positioned corner overlay so they never join the text
+        // flow and force a wrap). Desktop keeps the inline "icon label"
+        // row with badges inline, unchanged.
+        const navIcon = (icon) => isMobile ? <span style={{ fontSize: F.sm, lineHeight: 1.2 }}>{icon}</span> : null;
+        const navLabel = (label) => isMobile
+          ? <span style={{ fontSize: F.xs, lineHeight: 1.25, textAlign: "center", overflowWrap: "break-word", maxWidth: "100%" }}>{label}</span>
+          : `${label}`;
+        const navBadgeOverlay = (badges) => isMobile && badges
+          ? <span style={{ position: "absolute", top: 2, right: 2, display: "flex", gap: 2 }}>{badges}</span>
+          : null;
+        // A strict 4-column grid keeps every row full (8 items = two even
+        // rows of 4) instead of flex-wrap's content-width wrapping, which
+        // left CORNER SHOP alone on a banner-width third row.
         return (
           <div style={isMobile
             ? { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }
             : { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }
           }>
-            <button onClick={() => clearAll()} style={navBtn(isHome, C.green)}>🏠 HOME</button>
-            <button onClick={() => { clearAll(); setShowSquad(true); }} style={navBtn(showSquad, C.blue)}>📋 SQUAD</button>
+            <button onClick={() => clearAll()} style={navBtn(isHome, C.green)}>
+              {isMobile ? <>{navIcon("🏠")}{navLabel("HOME")}</> : "🏠 HOME"}
+            </button>
+            <button onClick={() => { clearAll(); setShowSquad(true); }} style={navBtn(showSquad, C.blue)}>
+              {isMobile ? <>{navIcon("📋")}{navLabel("SQUAD")}</> : "📋 SQUAD"}
+            </button>
             <button onClick={() => { if (showCalendar) setBootRoomKey(k => k + 1); clearAll(); setInitialBootRoomTab("inbox"); setShowCalendar(true); }} style={navBtn(showCalendar, C.blue)}>
-              🥾 BOOT ROOM
               {(() => {
                 const unread = getUnreadCount(inboxMessages, calendarIndex);
                 const arcPending = ["player","club","legacy"].filter(cat => { const cs = storyArcs?.[cat]; if (!cs || cs.completed) return false; const arc = STORY_ARCS.find(a => a.id === cs.arcId); if (!arc) return false; const step = arc.steps[cs.step]; return step?.t === "focus" && !cs.focus; }).length;
-                return (
+                const badges = (
                   <>
-                    {unread > 0 && <span style={{ background: C.red, color: "#fff", fontSize: F.xs, padding: "3px 7px", borderRadius: 8, marginLeft: 8, fontFamily: FONT, minWidth: 20, textAlign: "center", display: "inline-block", lineHeight: "14px", verticalAlign: "middle" }}>{unread}</span>}
-                    {arcPending > 0 && <span style={{ background: C.amber, color: "#000", fontSize: F.xs, padding: "3px 7px", borderRadius: 8, marginLeft: 4, fontFamily: FONT, minWidth: 20, textAlign: "center", display: "inline-block", lineHeight: "14px", verticalAlign: "middle" }}>{arcPending}</span>}
+                    {unread > 0 && <span style={{ background: C.red, color: "#fff", fontSize: F.xs, padding: "3px 7px", borderRadius: 8, marginLeft: isMobile ? 0 : 8, fontFamily: FONT, minWidth: 20, textAlign: "center", display: "inline-block", lineHeight: "14px", verticalAlign: "middle" }}>{unread}</span>}
+                    {arcPending > 0 && <span style={{ background: C.amber, color: "#000", fontSize: F.xs, padding: "3px 7px", borderRadius: 8, marginLeft: isMobile ? 0 : 4, fontFamily: FONT, minWidth: 20, textAlign: "center", display: "inline-block", lineHeight: "14px", verticalAlign: "middle" }}>{arcPending}</span>}
                   </>
+                );
+                return isMobile ? (
+                  <>
+                    {navIcon("🥾")}{navLabel("BOOT ROOM")}
+                    {navBadgeOverlay((unread > 0 || arcPending > 0) ? badges : null)}
+                  </>
+                ) : (
+                  <>🥾 BOOT ROOM{badges}</>
                 );
               })()}
             </button>
-            <button onClick={() => { if (showTable) setLeagueKey(k => k + 1); clearAll(); setShowTable(true); }} style={navBtn(showTable, C.gold)}>📊 LEAGUE</button>
-            {cup && <button onClick={() => { if (showCup) setCupKey(k => k + 1); clearAll(); setShowCup(true); }} style={navBtn(showCup, cup.playerEliminated ? C.slate : C.gold)}>🏆 CUP{cup.playerEliminated ? " (OUT)" : ""}</button>}
-            <button onClick={() => { if (showTransfers) setTransfersKey(k => k + 1); clearAll(); setShowTransfers(true); }} style={navBtn(showTransfers, C.green)}>🤝 TRANSFERS{transferOffers && transferOffers.length > 0 && !showTransfers ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.red, marginLeft: 6, verticalAlign: "middle", boxShadow: "0 0 6px rgba(248,113,113,0.6)" }} /> : null}</button>
-            <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>📜 CLUB</button>
-            <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); setLastSeenAchievementCount(unlockedAchievements.size); }} style={navBtn(showAchievements, C.gold)}>🏪 CORNER SHOP{unlockedAchievements.size > lastSeenAchievementCount ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.gold, marginLeft: 6, verticalAlign: "middle", boxShadow: "0 0 6px rgba(250,204,21,0.6)" }} /> : null}</button>
+            <button onClick={() => { if (showTable) setLeagueKey(k => k + 1); clearAll(); setShowTable(true); }} style={navBtn(showTable, C.gold)}>
+              {isMobile ? <>{navIcon("📊")}{navLabel("LEAGUE")}</> : "📊 LEAGUE"}
+            </button>
+            {cup && (
+              <button onClick={() => { if (showCup) setCupKey(k => k + 1); clearAll(); setShowCup(true); }} style={navBtn(showCup, cup.playerEliminated ? C.slate : C.gold)}>
+                {isMobile
+                  ? <>{navIcon("🏆")}{navLabel(`CUP${cup.playerEliminated ? " (OUT)" : ""}`)}</>
+                  : `🏆 CUP${cup.playerEliminated ? " (OUT)" : ""}`}
+              </button>
+            )}
+            <button onClick={() => { if (showTransfers) setTransfersKey(k => k + 1); clearAll(); setShowTransfers(true); }} style={navBtn(showTransfers, C.green)}>
+              {(() => {
+                const hasBadge = transferOffers && transferOffers.length > 0 && !showTransfers;
+                const badge = hasBadge ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.red, boxShadow: "0 0 6px rgba(248,113,113,0.6)", ...(isMobile ? {} : { marginLeft: 6, verticalAlign: "middle" }) }} /> : null;
+                return isMobile ? (
+                  <>
+                    {navIcon("🤝")}{navLabel("TRANSFERS")}
+                    {navBadgeOverlay(badge)}
+                  </>
+                ) : (
+                  <>🤝 TRANSFERS{badge}</>
+                );
+              })()}
+            </button>
+            <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>
+              {isMobile ? <>{navIcon("📜")}{navLabel("CLUB")}</> : "📜 CLUB"}
+            </button>
+            <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); setLastSeenAchievementCount(unlockedAchievements.size); }} style={navBtn(showAchievements, C.gold)}>
+              {(() => {
+                const hasBadge = unlockedAchievements.size > lastSeenAchievementCount;
+                const badge = hasBadge ? <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.gold, boxShadow: "0 0 6px rgba(250,204,21,0.6)", ...(isMobile ? {} : { marginLeft: 6, verticalAlign: "middle" }) }} /> : null;
+                return isMobile ? (
+                  <>
+                    {navIcon("🏪")}{navLabel("CORNER SHOP")}
+                    {navBadgeOverlay(badge)}
+                  </>
+                ) : (
+                  <>🏪 CORNER SHOP{badge}</>
+                );
+              })()}
+            </button>
           </div>
         );
       })()}

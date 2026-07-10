@@ -40,7 +40,7 @@ test.describe("full-app flows", () => {
     await shot(page, testInfo.project.name, "flow-fresh-newgame");
   });
 
-  test("dashboard doesn't double up \"No results yet\" between form guide and ticker", async ({ page }) => {
+  test("dashboard doesn't double up \"No results yet\" between form guide and ticker", async ({ page }, testInfo) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
     await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
@@ -50,8 +50,12 @@ test.describe("full-app flows", () => {
     // Form Guide keeps its own "No results yet" — exactly one instance.
     await expect(page.getByText("No results yet", { exact: true })).toHaveCount(1);
     // The fixed-bottom ticker gets its own, context-appropriate copy instead
-    // of echoing the same line.
-    await expect(page.getByText("The ticker starts once your first match is played.", { exact: true })).toBeVisible();
+    // of echoing the same line. Mobile gets a shorter one-liner so it fits
+    // the fixed 34px bar without wrapping — see Dashboard.jsx.
+    const tickerCopy = testInfo.project.name === "mobile"
+      ? "Ticker starts after your first match."
+      : "The ticker starts once your first match is played.";
+    await expect(page.getByText(tickerCopy, { exact: true })).toBeVisible();
   });
 
   test("squad page renders the full player list", async ({ page }, testInfo) => {
