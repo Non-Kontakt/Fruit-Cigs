@@ -357,12 +357,9 @@ describe("migrateSummerWeeksForAwards", () => {
 // throughout the merge: out_of_pos). A save with identity_crisis already
 // unlocked must come out with out_of_pos unlocked and identity_crisis gone.
 describe("mergeIdentityCrisisIntoOutOfPos", () => {
-  it("remaps identity_crisis to out_of_pos, dropping the stale id", () => {
+  it("replaces identity_crisis IN PLACE — insertion order is the RECENT chronology", () => {
     const result = mergeIdentityCrisisIntoOutOfPos(new Set(["first_win", "identity_crisis", "clean_sheet"]));
-    expect(result.has("identity_crisis")).toBe(false);
-    expect(result.has("out_of_pos")).toBe(true);
-    expect(result.has("first_win")).toBe(true);
-    expect(result.has("clean_sheet")).toBe(true);
+    expect([...result]).toEqual(["first_win", "out_of_pos", "clean_sheet"]);
   });
 
   it("is a no-op (same reference) when identity_crisis isn't present", () => {
@@ -371,10 +368,9 @@ describe("mergeIdentityCrisisIntoOutOfPos", () => {
     expect(result).toBe(prev);
   });
 
-  it("does not duplicate out_of_pos if both ids were somehow already present", () => {
-    const result = mergeIdentityCrisisIntoOutOfPos(new Set(["identity_crisis", "out_of_pos"]));
-    expect(result.has("identity_crisis")).toBe(false);
-    expect([...result].filter(id => id === "out_of_pos")).toHaveLength(1);
+  it("keeps an existing out_of_pos in ITS OWN slot and only drops the stale id", () => {
+    const result = mergeIdentityCrisisIntoOutOfPos(new Set(["identity_crisis", "first_win", "out_of_pos", "clean_sheet"]));
+    expect([...result]).toEqual(["first_win", "out_of_pos", "clean_sheet"]);
   });
 
   it("handles a missing/undefined set without throwing", () => {

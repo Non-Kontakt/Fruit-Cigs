@@ -444,19 +444,31 @@ export function backfillOvrHistorySnapshot(squad, calendarIndex, seasonNumber) {
 // throughout, "out_of_pos") — a save that already had identity_crisis
 // unlocked earned that same holistic check under its old name, so it should
 // come out the other side with out_of_pos unlocked and the stale id gone.
+// The Set's insertion order is the authoritative unlock chronology (RECENT
+// sorts by it), so the surviving id must take the REPLACED card's position —
+// delete-then-append would present a years-old card as the newest unlock.
+// When out_of_pos already exists, it keeps its own (earlier or later) slot
+// and identity_crisis is simply dropped.
 // Returns the same Set reference when there's nothing to migrate.
 export function mergeIdentityCrisisIntoOutOfPos(unlockedAchievements) {
   const prev = unlockedAchievements;
   if (!prev || !(prev instanceof Set) || !prev.has("identity_crisis")) return prev;
-  const next = new Set(prev);
-  next.delete("identity_crisis");
-  next.add("out_of_pos");
+  const hasSurvivor = prev.has("out_of_pos");
+  const next = new Set();
+  for (const id of prev) {
+    if (id === "identity_crisis") {
+      if (!hasSurvivor) next.add("out_of_pos"); // replace in place
+      continue; // drop the stale id either way
+    }
+    next.add(id);
+  }
   return next;
 }
 
 // Companion to the Set migration above: the unlock-week metadata keyed under
 // the stale identity_crisis id carries the card's original collection timing
-// (shown on the card face and used for index chronology). Move it to
+// (shown on the card face; RECENT ordering follows the Set's insertion
+// order, not this metadata). Move it to
 // out_of_pos when that key is missing — an existing out_of_pos week wins,
 // since that unlock genuinely happened under the surviving id — and drop the
 // stale key either way. Returns the same reference when there's nothing to do.
