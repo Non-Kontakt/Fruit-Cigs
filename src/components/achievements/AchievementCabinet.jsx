@@ -17,7 +17,7 @@ const hexToRgb = (hex) => {
   return `${r},${g},${b}`;
 };
 
-export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockWeeks = {}, calendarIndex = 0, seasonNumber = 1, seasonLength = 48, squad, clubHistory, currentTier, ovrCap = 20,
+export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockWeeks = {}, calendarIndex = 0, seasonNumber = 1, squad, clubHistory, currentTier, ovrCap = 20,
   tickets, retiringPlayers, transferFocus, doubleTrainingWeek,
   twelfthManActive, youthCoupActive, pendingFreeAgent, shortlist, scoutedPlayers, testimonialPlayer,
   rewindableMatches,
@@ -113,7 +113,6 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
           achievementUnlockWeeks={achievementUnlockWeeks}
           calendarIndex={calendarIndex}
           seasonNumber={seasonNumber}
-          seasonLength={seasonLength}
         />
       )}
 

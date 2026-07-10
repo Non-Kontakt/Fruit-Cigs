@@ -12,7 +12,6 @@ import { sortStandings, collectSeasonEndAchievements, processSeasonSwaps, initLe
 import { makeCupAIMatchHandler } from "../utils/competitionStats.js";
 import { findCareerKey } from "../utils/careerLedger.js";
 import { checkAchievements, checkLegendMilestones, checkFirstWinAfterSilence, hasAllBackPages, addHatTrickScorer, collectRivalryMatchAchievements, collectLineupAchievements, getFavouriteStartsIncrement } from "../utils/achievements.js";
-import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../data/achievements.js";
 import { createInboxMessage } from "../utils/messageUtils.js";
 import { pushSentimentEntry } from "../utils/sentimentLog.js";
 import { getClubFocusBonuses } from "../utils/clubFocuses.js";
@@ -31,14 +30,12 @@ const DEFAULT_FIXTURE_COUNT = 18;
  */
 export function useMatchResult({
   setMatchResult,
-  setAchievementQueue,
   tryUnlockAchievement,
   updateUltimatumProgress,
   updateMatchLog,
   pendingLeagueRef,
   cardedPlayerIdsRef,
   weekRecoveriesRef,
-  setPendingPlayerUnlock,
 }) {
   const processMatchDone = useCallback((matchResult, wasAlwaysFast, wasAlwaysNormal) => {
     const s = useGameStore.getState();
@@ -84,6 +81,10 @@ export function useMatchResult({
 
       // Store result in calendar and advance index
       const calIdx = matchResult._calendarIndex != null ? matchResult._calendarIndex : s.calendarIndex;
+      // Every unlock banked in this callback happens AFTER the calendar
+      // advance just below — pass the match's own week so stamps record
+      // when the event happened, not the already-advanced live calendar.
+      const matchWeek = { week: calIdx + 1 };
       s.setCalendarResults(prev => ({
         ...prev,
         [calIdx]: { playerGoals, oppGoals, won: playerWon, draw: isDraw }
@@ -149,12 +150,12 @@ export function useMatchResult({
               body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${backPage}"\n— ${s.newspaperName || "the local paper"}`,
             }, { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber })]);
             if (backPageType === "champions" || backPageType === "promoted") {
-              tryUnlockAchievement("front_page_news");
+              tryUnlockAchievement("front_page_news", matchWeek);
               const framedType = backPageType === "champions" ? "title" : "promotion";
               const nextBackPages = new Set(s.backPagesReceived);
               nextBackPages.add(framedType);
               s.setBackPagesReceived(nextBackPages);
-              if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk");
+              if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk", matchWeek);
             }
           }
         }
@@ -182,19 +183,7 @@ export function useMatchResult({
         // first (via summerPhase="summary"), so there's no separate reset
         // needed at the prestige transition itself.
         s.setCompareSignWatch(null);
-        if (newSeasonUnlocks.length > 0) {
-          s.setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks.forEach(id => next.add(id)); return next; });
-          setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-          for (const id of newSeasonUnlocks) {
-            if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
-              const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
-              const sq = useGameStore.getState().squad;
-              if (unlock?.attrs && !sq.some(p => p.id === `unlockable_${unlock.id}`)) {
-                setPendingPlayerUnlock(prev => prev ? [].concat(prev).concat([unlock]) : [unlock]);
-              }
-            }
-          }
-        }
+        newSeasonUnlocks.forEach(id => tryUnlockAchievement(id, matchWeek));
         s.setLastSeasonMove(moveType);
         s.setTransferWindowOpen(false);
         s.setTransferWindowWeeksRemaining(0);
@@ -205,7 +194,7 @@ export function useMatchResult({
           s.setFanSentiment(_after);
           s.setBoardSentiment(Math.min(100, s.boardSentiment + 25));
           s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: _promDelta, reason: "Promoted", week: s.calendarIndex + 1, season: s.seasonNumber }));
-          if (!s.unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave");
+          if (!s.unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave", matchWeek);
         }
         if (moveType === "relegated") {
           const _after = Math.max(0, s.fanSentiment - 20);
@@ -275,7 +264,7 @@ export function useMatchResult({
           onboardingSilencedByChoice: s.onboardingSilencedByChoice, seasonNumber: s.seasonNumber,
           completedLeagueMatchdays: completedMDs, playerWon, unlocked: s.unlockedAchievements,
         })) {
-          tryUnlockAchievement("i_know_what_im_doing");
+          tryUnlockAchievement("i_know_what_im_doing", matchWeek);
         }
         const leagueMod = getModifier(s.leagueTier);
         if (completedMDs === halfwayMark) {
@@ -403,20 +392,7 @@ export function useMatchResult({
           totalShortlisted: s.totalShortlisted, gameMode: s.gameMode,
           favouriteStarts: nextFavouriteStarts,
         });
-        if (newUnlocks.length > 0) {
-          s.setUnlockedAchievements(prev => { const next = new Set(prev); newUnlocks.forEach(id => next.add(id)); return next; });
-          setAchievementQueue(prev => { const ex = new Set(prev); const f = newUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-          // Player unlocks fire immediately regardless of pack
-          for (const id of newUnlocks) {
-            if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
-              const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
-              const sq = useGameStore.getState().squad;
-              if (unlock?.attrs && !sq.some(p => p.id === `unlockable_${unlock.id}`)) {
-                setPendingPlayerUnlock(prev => prev ? [].concat(prev).concat([unlock]) : [unlock]);
-              }
-            }
-          }
-        }
+        newUnlocks.forEach(id => tryUnlockAchievement(id, matchWeek));
         s.setFavouriteStarts(nextFavouriteStarts);
 
         // Physalis Cigs — post-match Starting XI/bench composition checks
@@ -429,10 +405,7 @@ export function useMatchResult({
           prevResult: getPriorPlayedResult(s.calendarResults),
           unlocked: s.unlockedAchievements,
         });
-        if (lineupUnlocks.length > 0) {
-          s.setUnlockedAchievements(prev => { const next = new Set(prev); lineupUnlocks.forEach(id => next.add(id)); return next; });
-          setAchievementQueue(prev => { const ex = new Set(prev); const f = lineupUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-        }
+        lineupUnlocks.forEach(id => tryUnlockAchievement(id, matchWeek));
         // Latch wonLeagueOnHoliday when title mathematically clinched during holiday
         if (s.isOnHoliday && !s.wonLeagueOnHoliday) {
           const sorted = sortStandings(currentLeague.table);
@@ -502,7 +475,7 @@ export function useMatchResult({
           if (fanMatchDelta < 0 && _sentLossMult !== 1) fanMatchDelta = Math.ceil(fanMatchDelta * _sentLossMult);
         }
         const _fanBefore = useGameStore.getState().fanSentiment;
-        if (!s.unlockedAchievements.has("hostile_crowd") && playerWon && _fanBefore < 10) tryUnlockAchievement("hostile_crowd");
+        if (!s.unlockedAchievements.has("hostile_crowd") && playerWon && _fanBefore < 10) tryUnlockAchievement("hostile_crowd", matchWeek);
         const _fanAfter = Math.max(0, Math.min(100, _fanBefore + fanMatchDelta));
         s.setFanSentiment(_fanAfter);
         const boardDeltaMatch = playerWon ? 3 : isDraw ? 0 : -4;
@@ -514,7 +487,7 @@ export function useMatchResult({
           : `Lost to ${oppTeam?.name || "opponent"} ${_matchScore}`;
         const _matchFanDelta = Math.round(_fanAfter - _fanBefore);
         s.setSentimentLog(prev => pushSentimentEntry(prev, { delta: _matchFanDelta, reason: _matchReason, week: s.calendarIndex + 1, season: s.seasonNumber }));
-        if (!s.unlockedAchievements.has("riding_the_wave") && _matchFanDelta >= 20) tryUnlockAchievement("riding_the_wave");
+        if (!s.unlockedAchievements.has("riding_the_wave") && _matchFanDelta >= 20) tryUnlockAchievement("riding_the_wave", matchWeek);
         // Ultimatum tracking (Ironman)
         if (useGameStore.getState().ultimatumActive) {
           updateUltimatumProgress(playerWon, isDraw, useGameStore.getState().cup?.playerEliminated ?? true);
@@ -604,10 +577,7 @@ export function useMatchResult({
               matchResult, playerGoals, oppGoals,
               unlocked: freshRivalryState.unlockedAchievements,
             });
-            if (rivalryUnlocks.length > 0) {
-              s.setUnlockedAchievements(prev => { const next = new Set(prev); rivalryUnlocks.forEach(id => next.add(id)); return next; });
-              setAchievementQueue(prev => { const ex = new Set(prev); const f = rivalryUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-            }
+            rivalryUnlocks.forEach(id => tryUnlockAchievement(id, matchWeek));
           } catch (err) {
             console.error("Rivalry achievement check error:", err);
           }
@@ -659,14 +629,14 @@ export function useMatchResult({
             calendarIndex: calIdx,
           });
           if (headlineResult.category === "derby_win" || headlineResult.category === "derby_loss") {
-            tryUnlockAchievement("derby_day_ink");
+            tryUnlockAchievement("derby_day_ink", matchWeek);
           }
           if (headlineResult.category === "hattrick") {
             const scorer = headlineScorers.find(sc => sc.goals >= 3);
             const nextPlayers = addHatTrickScorer(s.hatTrickHeadlinePlayers, scorer?.name);
             if (nextPlayers !== s.hatTrickHeadlinePlayers) {
               s.setHatTrickHeadlinePlayers(nextPlayers);
-              if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines");
+              if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines", matchWeek);
             }
           }
         }
@@ -685,7 +655,7 @@ export function useMatchResult({
         }
 
         // Update per-player match log for breakout/form tracking
-        updateMatchLog(matchResult, playerIsHome, s.startingXI, false, currentLeague);
+        updateMatchLog(matchResult, playerIsHome, s.startingXI, false, currentLeague, calIdx);
 
         s.setPlayerSeasonStats(prev => {
           const next = { ...prev };
@@ -739,7 +709,7 @@ export function useMatchResult({
         }));
         checkLegendMilestones({
           squad: useGameStore.getState().squad, lastMatchResult: matchResult, isPlayerHome: playerIsHome, unlocked: s.unlockedAchievements,
-        }).forEach(id => tryUnlockAchievement(id));
+        }).forEach(id => tryUnlockAchievement(id, matchWeek));
 
         s.setPrevStartingXI([...s.startingXI]);
 
@@ -780,7 +750,7 @@ export function useMatchResult({
               if (total >= ms.threshold) {
                 s.setCareerMilestones(prev => ({ ...prev, [ms.id]: p.name }));
                 if (ms.check(p)) {
-                  tryUnlockAchievement(ms.id);
+                  tryUnlockAchievement(ms.id, matchWeek);
                 }
                 break;
               }
@@ -883,7 +853,7 @@ export function useMatchResult({
                 next.completed = result.completed;
                 next[cat] = {...next[cat], completed: true};
                 if (result.achievements.length > 0) {
-                  result.achievements.forEach(a => tryUnlockAchievement(a));
+                  result.achievements.forEach(a => tryUnlockAchievement(a, matchWeek));
                 }
                 s.setInboxMessages(pm => [...pm, createInboxMessage(
                   MSG.arcComplete(arc.name, arc.rewardDesc),
@@ -973,7 +943,7 @@ export function useMatchResult({
             ps.phase = "redeemed";
             ps.pendingBoost = true;
             msgs.push(createInboxMessage(MSG.prodigalRedeemed(ps.playerName), { calendarIndex: s.calendarIndex, seasonNumber: s.seasonNumber }));
-            tryUnlockAchievement("prodigal_son");
+            tryUnlockAchievement("prodigal_son", matchWeek);
           }
 
           if (msgs.length > 0) s.setInboxMessages(prev => [...prev, ...msgs]);
@@ -1054,7 +1024,7 @@ export function useMatchResult({
       setMatchResult(null);
       s.setProcessing(false);
     }
-  }, [setMatchResult, setAchievementQueue, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef]);
+  }, [setMatchResult, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef]);
 
   return { processMatchDone };
 }

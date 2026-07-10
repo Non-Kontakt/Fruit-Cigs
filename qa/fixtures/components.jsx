@@ -399,6 +399,17 @@ const cherryUnlockWeeks = Object.fromEntries(
   cherryPack.achievementIds.slice(0, 5).map((id, i) => [id, { season: 1, week: 4 + i * 3 }])
 );
 
+// Physalis Cigs is the very last pack authored in cigPacks.js. Fully
+// unlocking it exercises the display-only grid grouping (sortPacksForDisplay
+// in src/utils/packUnlocks.js): a completed pack authored dead last must
+// still render above every sealed pack, not sink to the bottom of the grid
+// in raw file order.
+const physalisPack = CIG_PACKS.find((p) => p.id === "physalis_cigs");
+const physalisUnlocked = new Set(physalisPack.achievementIds);
+const physalisUnlockWeeks = Object.fromEntries(
+  physalisPack.achievementIds.map((id, i) => [id, { season: 2, week: 1 + i }])
+);
+
 // --- Player panel ------------------------------------------------------
 
 // ST has weights >=0.15 on shooting/pace/physical — enough to exercise both
@@ -689,13 +700,16 @@ const RENDERERS = {
   // Stays on the top-level packs grid (no clickText): a few unsealed packs —
   // one part-collected so the mini progress bar shows — with the rest sealed,
   // so the sealed three-card stacks and the unsealed emoji/title spacing can
-  // both be eyeballed in one shot.
+  // both be eyeballed in one shot. Physalis (last-authored pack, fully
+  // collected) proves the display grouping: it must render in the completed
+  // group near the top, not at the bottom where its file position would
+  // otherwise place it among/after the sealed stacks.
   "pack-grid-sealed": () => (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
       <CigPacksTab
-        unlockedPacks={new Set(["cherry_cigs", "banana_cigs", "apple_cigs"])}
-        unlocked={cherryUnlocked}
-        achievementUnlockWeeks={cherryUnlockWeeks}
+        unlockedPacks={new Set(["cherry_cigs", "banana_cigs", "apple_cigs", "physalis_cigs"])}
+        unlocked={new Set([...cherryUnlocked, ...physalisUnlocked])}
+        achievementUnlockWeeks={{ ...cherryUnlockWeeks, ...physalisUnlockWeeks }}
         calendarIndex={16}
         seasonNumber={1}
         seasonLength={48}

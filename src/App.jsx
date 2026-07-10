@@ -423,9 +423,35 @@ function FruitCigs() {
   const achievementUnlockWeeks = useGameStore(s => s.achievementUnlockWeeks);
   const lastSeenAchievementCount = useGameStore(s => s.lastSeenAchievementCount);
   const achievementUnlockWeeksRef = useRef(achievementUnlockWeeks);
-  // Always record achievement and toast it. Player unlock fires immediately.
-  const tryUnlockAchievement = useCallback((id) => {
+  // Always record achievement (with its unlock week) and toast it. Player
+  // unlock fires immediately. This is the ONE canonical unlock path: the
+  // week stamp is written here, at the unlock event itself. Flows that
+  // advance the calendar before or during unlock banking (match/cup
+  // completion) pass the event's own calendar context via `week`; everyone
+  // else defaults to the live calendar. `week` is the 1-based display week,
+  // matching every other calendarIndex consumer in this file (the
+  // "SEASON n · WEEK n" header, inbox timestamps) — calendarIndex itself is
+  // 0-based and is never stored raw here.
+  // NOTE: achievementUnlockWeeksRef is synced here at the set-site (not via
+  // a useLatestRef-style effect) deliberately — the save path (useSaveGame)
+  // reads achievementUnlockWeeksRef.current synchronously, and a save can
+  // be triggered before the state update would otherwise flush, so the
+  // fresh value must be visible immediately, not on the next render.
+  const tryUnlockAchievement = useCallback((id, { week } = {}) => {
     setUnlockedAchievements(prev => { if (prev.has(id)) return prev; const n = new Set(prev); n.add(id); return n; });
+    const prevWeeks = achievementUnlockWeeksRef.current;
+    if (!(id in prevWeeks)) {
+      const s = useGameStore.getState();
+      const seasonLen = s.seasonCalendar?.length || DEFAULT_SEASON_LENGTH;
+      // Central invariant: recorded weeks are always 1..seasonLen. Callers on
+      // exhausted calendars (season-end recovery paths read a live index past
+      // the last slot) would otherwise record seasonLen + 1.
+      const rawWeek = week ?? s.calendarIndex + 1;
+      const clampedWeek = Math.min(seasonLen, Math.max(1, rawWeek));
+      const updated = { ...prevWeeks, [id]: { season: s.seasonNumber, week: clampedWeek, seasonLen } };
+      achievementUnlockWeeksRef.current = updated;
+      setAchievementUnlockWeeks(updated);
+    }
     setAchievementQueue(prev => prev.includes(id) ? prev : [...prev, id]);
     if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
       const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
@@ -470,18 +496,27 @@ function FruitCigs() {
   const [clubKey, setClubKey] = useState(0);
   const [cabinetKey, setCabinetKey] = useState(0);
   const calendarIndex = useGameStore(s => s.calendarIndex);
-  // Track when achievements were unlocked for "Recent" filter (season + week for cross-season math)
-  // NOTE: achievementUnlockWeeksRef is synced here at the set-site (not via a
-  // useLatestRef-style effect) deliberately — the save path (useSaveGame)
-  // reads achievementUnlockWeeksRef.current synchronously, and a save can be
-  // triggered before this effect's own state update would otherwise flush,
-  // so the fresh value must be visible immediately, not on the next render.
+  // BACKFILL ONLY: unlock weeks are stamped at the event inside
+  // tryUnlockAchievement — this effect exists solely for ids that arrive in
+  // unlockedAchievements without a stamp (bulk merges that bypass the
+  // helper: old saves' load-time catch-up/retroactive unlocks in
+  // useSaveGame). Those are "caught up now" events, so the CURRENT week is
+  // the honest stamp — no calendar advance intervenes between the merge and
+  // this observation. It must never become the primary write path again:
+  // it observes after the fact and cannot reconstruct when an in-play
+  // event actually happened.
   useEffect(() => {
     const prev = achievementUnlockWeeksRef.current;
     const updated = { ...prev };
     let changed = false;
     for (const id of unlockedAchievements) {
-      if (!(id in updated)) { updated[id] = { season: seasonNumber, week: calendarIndex, seasonLen: seasonCalendar?.length || DEFAULT_SEASON_LENGTH }; changed = true; }
+      if (!(id in updated)) {
+        const seasonLen = seasonCalendar?.length || DEFAULT_SEASON_LENGTH;
+        // Same 1..seasonLen invariant as the canonical helper — a backfill
+        // observed on an exhausted calendar must not record seasonLen + 1.
+        updated[id] = { season: seasonNumber, week: Math.min(seasonLen, Math.max(1, calendarIndex + 1)), seasonLen };
+        changed = true;
+      }
     }
     if (changed) { achievementUnlockWeeksRef.current = updated; setAchievementUnlockWeeks(updated); }
   }, [unlockedAchievements, calendarIndex, seasonNumber]);
@@ -1456,7 +1491,7 @@ function FruitCigs() {
   }, []);
 
   const { advanceWeek } = useAdvanceWeek({
-    setGains, setWeekTransition, setAchievementQueue, setRecentOvrLevelUps,
+    setGains, setWeekTransition, setRecentOvrLevelUps,
     setShowAchievements, setShowTable, setShowCalendar, setShowCup,
     setShowTransfers, setShowLegends, setShowSquad,
     tryUnlockAchievement,
@@ -1485,7 +1520,11 @@ function FruitCigs() {
   }, []);
 
   // Shared helper: update playerMatchLog after any match (league, cup, or holiday)
-  const updateMatchLog = (matchResult, isPlayerHome, xiIds, isCup, leagueRef) => {
+  // matchCalIdx is the calendar index the match was played at — callers run
+  // this after advancing the calendar, so the unlocks banked below can't
+  // read the live index for their week stamps.
+  const updateMatchLog = (matchResult, isPlayerHome, xiIds, isCup, leagueRef, matchCalIdx = null) => {
+    const eventWeek = matchCalIdx != null ? { week: matchCalIdx + 1 } : {};
     const side = isPlayerHome ? "home" : "away";
     const oppGoals = isPlayerHome ? matchResult.awayGoals : matchResult.homeGoals;
     const playerGoals = isPlayerHome ? matchResult.homeGoals : matchResult.awayGoals;
@@ -1542,7 +1581,9 @@ function FruitCigs() {
           vsLeader,
           teamWon,
           season: useGameStore.getState().seasonNumber,
-          calendarIndex: useGameStore.getState().calendarIndex,
+          // The log row keeps the MATCH's own slot, not the already-advanced
+          // live index — same chronology contract as the unlock stamps.
+          calendarIndex: matchCalIdx ?? useGameStore.getState().calendarIndex,
         };
         if (!next[pid]) next[pid] = [];
         next[pid] = [...next[pid], entry].slice(-20);
@@ -1559,7 +1600,7 @@ function FruitCigs() {
       const { appeared: watchResolved, scoredWinner } = resolveLoyaltyWatch(watch, appeared, winningGoalScorer, watchedEntry?.name);
       if (watchResolved) {
         if (scoredWinner && tryUnlockAchievement && !useGameStore.getState().unlockedAchievements.has("loyalty_repaid")) {
-          tryUnlockAchievement("loyalty_repaid");
+          tryUnlockAchievement("loyalty_repaid", eventWeek);
         }
         setLoyaltyWatch(null);
       }
@@ -1631,7 +1672,7 @@ function FruitCigs() {
           breakoutResults, squad: freshSquad, breakoutsThisSeason: freshBreakouts,
           playerMatchLog: freshLog, ovrCap: _bOvrCap, isCup, unlocked: freshUnlocked,
         });
-        breakoutCardUnlocks.forEach(id => tryUnlockAchievement(id));
+        breakoutCardUnlocks.forEach(id => tryUnlockAchievement(id, eventWeek));
       }
 
       for (const bo of breakoutResults) {
@@ -1726,11 +1767,11 @@ function FruitCigs() {
         title: `FWD: ${result.headline}`,
         body: `Boss — tomorrow's back page, hot off the press. Thought you'd want it for the office wall.\n\n"${result.headline}"\n— ${newspaperName || "the local paper"}`,
       }, { calendarIndex, seasonNumber })]);
-      tryUnlockAchievement("front_page_news");
+      tryUnlockAchievement("front_page_news", { week: calendarIndex + 1 });
       const nextBackPages = new Set(useGameStore.getState().backPagesReceived);
       nextBackPages.add("cup_final");
       setBackPagesReceived(nextBackPages);
-      if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk");
+      if (hasAllBackPages(nextBackPages)) tryUnlockAchievement("framed_above_desk", { week: calendarIndex + 1 });
     }
 
     // Hat-Trick Headlines: a hat-trick back page (league OR cup, but not a
@@ -1743,16 +1784,15 @@ function FruitCigs() {
       const nextPlayers = addHatTrickScorer(prevPlayers, scorer?.name);
       if (nextPlayers !== prevPlayers) {
         setHatTrickHeadlinePlayers(nextPlayers);
-        if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines");
+        if (nextPlayers.length >= 3) tryUnlockAchievement("hat_trick_headlines", { week: calendarIndex + 1 });
       }
     }
   };
 
   const { processMatchDone } = useMatchResult({
-    setMatchResult, setAchievementQueue,
+    setMatchResult,
     tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
     pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef,
-    setPendingPlayerUnlock,
   });
 
   const { processGainsDone } = useGainPopupHandler({
@@ -2716,7 +2756,7 @@ function FruitCigs() {
 
       {/* Page content */}
       {showAchievements ? (
-        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} seasonLength={seasonCalendar?.length || DEFAULT_SEASON_LENGTH} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode}
+        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode}
           tickets={tickets} retiringPlayers={retiringPlayers} transferFocus={transferFocus}
           doubleTrainingWeek={doubleTrainingWeek} twelfthManActive={twelfthManActive}
           youthCoupActive={youthCoupActive} pendingFreeAgent={pendingFreeAgent}
@@ -2963,8 +3003,12 @@ function FruitCigs() {
                         }
                       }
 
+                      // Captured before the advance below — unlocks banked
+                      // after it stamp the week this match was played in.
+                      const dynEventIdx = useGameStore.getState().calendarIndex;
+
                       // Update per-player match log (holiday dynasty match)
-                      updateMatchLog(result, isPlayerHome, currentXI, true, null);
+                      updateMatchLog(result, isPlayerHome, currentXI, true, null, dynEventIdx);
 
                       // Calendar result + advance
                       const pGoals = isPlayerHome ? hg : ag;
@@ -3013,7 +3057,7 @@ function FruitCigs() {
                       }));
                       checkLegendMilestones({
                         squad: useGameStore.getState().squad, lastMatchResult: result, isPlayerHome, unlocked: unlockedAchievements,
-                      }).forEach(id => tryUnlockAchievement(id));
+                      }).forEach(id => tryUnlockAchievement(id, { week: dynEventIdx + 1 }));
                     }
                     // Non-participant dynasty entries: don't set matchPending,
                     // advanceWeek will handle AI sim + inbox on next tick
@@ -3101,18 +3145,22 @@ function FruitCigs() {
                         ? (penResult.winner === "home" ? isPlayerHome : !isPlayerHome)
                         : cupPGoals > cupOGoals;
 
+                      // Captured before the advance below — unlocks banked
+                      // after it stamp the week this match was played in.
+                      const holCupEventIdx = useGameStore.getState().calendarIndex;
+
                       // Back page: same bylined cup headline as the interactive path.
                       settleCupHeadline({
                         playerGoals: cupPGoals, oppGoals: cupOGoals,
                         isPlayerHome, opponentName: oppTeam?.name,
                         matchResult: result,
                         cupRoundName: _holidayCupRoundName,
-                        calendarIndex: useGameStore.getState().calendarIndex,
+                        calendarIndex: holCupEventIdx,
                       });
 
                       setCalendarResults(prev => ({
                         ...prev,
-                        [useGameStore.getState().calendarIndex]: { playerGoals: cupPGoals, oppGoals: cupOGoals, won: cupWon, draw: false }
+                        [holCupEventIdx]: { playerGoals: cupPGoals, oppGoals: cupOGoals, won: cupWon, draw: false }
                       }));
                       setCalendarIndex(prev => prev + 1);
 
@@ -3126,7 +3174,7 @@ function FruitCigs() {
                         const _fanDelta = (cupWon
                           ? (_isCupFinal ? 15 : _holidayCupRound >= 2 ? 5 : 3)
                           : (_holidayCupRound <= 1 ? -5 : -2)) * _holCupFanMult;
-                        if (!unlockedAchievements.has("hostile_crowd") && cupWon && useGameStore.getState().fanSentiment < 10) tryUnlockAchievement("hostile_crowd");
+                        if (!unlockedAchievements.has("hostile_crowd") && cupWon && useGameStore.getState().fanSentiment < 10) tryUnlockAchievement("hostile_crowd", { week: holCupEventIdx + 1 });
                         setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment + _fanDelta)));
                         setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (cupWon ? (_isCupFinal ? 10 : 3) : -4))));
                       }
@@ -3154,9 +3202,9 @@ function FruitCigs() {
                       }));
                       checkLegendMilestones({
                         squad: useGameStore.getState().squad, lastMatchResult: result, isPlayerHome, unlocked: unlockedAchievements,
-                      }).forEach(id => tryUnlockAchievement(id));
+                      }).forEach(id => tryUnlockAchievement(id, { week: holCupEventIdx + 1 }));
                       // Update per-player match log (holiday cup match)
-                      updateMatchLog(result, isPlayerHome, currentXI, true, null);
+                      updateMatchLog(result, isPlayerHome, currentXI, true, null, holCupEventIdx);
 
                       // Holiday testimonial cleanup after cup match
                       const _holTestiCup = useGameStore.getState().testimonialPlayer;
@@ -3319,12 +3367,17 @@ function FruitCigs() {
                           const isDraw = pGoals === oGoals;
                           const pLost = oGoals > pGoals;
 
+                          // Captured before the advance below — unlocks
+                          // banked after it stamp the week this match was
+                          // played in.
+                          const holLeagueEventIdx = useGameStore.getState().calendarIndex;
+
                           // Calendar result + advance index
                           setCalendarResults(prev => ({
                             ...prev,
-                            [useGameStore.getState().calendarIndex]: { playerGoals: pGoals, oppGoals: oGoals, won: pWon, draw: isDraw }
+                            [holLeagueEventIdx]: { playerGoals: pGoals, oppGoals: oGoals, won: pWon, draw: isDraw }
                           }));
-                          let newCI = useGameStore.getState().calendarIndex + 1;
+                          let newCI = holLeagueEventIdx + 1;
                           const cal = useGameStore.getState().seasonCalendar || [];
                           while (newCI < cal.length && cal[newCI]?.type === "cup" && useGameStore.getState().cup?.playerEliminated) {
                             if (useGameStore.getState().cup && useGameStore.getState().cup.currentRound < useGameStore.getState().cup.rounds.length) {
@@ -3370,7 +3423,7 @@ function FruitCigs() {
                           if (oGoals === 0) setConsecutiveCleanSheets(prev => prev + 1); else setConsecutiveCleanSheets(0);
                           // Fan & Board Sentiment (holiday league match)
                           { const _holFanMult = getModifier(leagueTier).fanSentimentMult || 1;
-                          if (!unlockedAchievements.has("hostile_crowd") && pWon && useGameStore.getState().fanSentiment < 10) tryUnlockAchievement("hostile_crowd");
+                          if (!unlockedAchievements.has("hostile_crowd") && pWon && useGameStore.getState().fanSentiment < 10) tryUnlockAchievement("hostile_crowd", { week: holLeagueEventIdx + 1 });
                           setFanSentiment(Math.max(0, Math.min(100, useGameStore.getState().fanSentiment +
                             ((pWon ? (pIsHome ? 5 : 6) : isDraw ? -1 : (pIsHome ? -8 : -5)) +
                             (pGoals >= 3 ? 2 : 0) + (oGoals === 0 ? 1 : 0)) * _holFanMult
@@ -3477,7 +3530,7 @@ function FruitCigs() {
                           }
 
                           // Update per-player match log (holiday league match)
-                          updateMatchLog(playerMatch, pIsHome, currentXI, false, updatedLeague);
+                          updateMatchLog(playerMatch, pIsHome, currentXI, false, updatedLeague, holLeagueEventIdx);
 
                           // Squad appearance tracking (seasonStarts / seasonSubApps)
                           setSquad(prev => prev.map(p => {
@@ -3494,7 +3547,7 @@ function FruitCigs() {
                           }));
                           checkLegendMilestones({
                             squad: useGameStore.getState().squad, lastMatchResult: playerMatch, isPlayerHome: pIsHome, unlocked: unlockedAchievements,
-                          }).forEach(id => tryUnlockAchievement(id));
+                          }).forEach(id => tryUnlockAchievement(id, { week: holLeagueEventIdx + 1 }));
                         }
                         // Holiday testimonial cleanup after league match
                         const _holTestiLeague = useGameStore.getState().testimonialPlayer;
@@ -5459,6 +5512,12 @@ function FruitCigs() {
           slotAssignments={slotAssignments}
           startingXI={startingXI}
           onDone={(cupWasAlwaysFast, cupWasAlwaysNormal) => {
+            // The calendar index this match was played at, captured before
+            // any advance below — every unlock banked in this handler passes
+            // it so week stamps record when the event happened, not the
+            // already-advanced live calendar.
+            const cupEventIdx = cupMatchResult._calendarIndex ?? useGameStore.getState().calendarIndex;
+            const cupEventWeek = { week: cupEventIdx + 1 };
             // === DYNASTY CUP MATCH RESULT ===
             if (cupMatchResult.isDynasty) {
               const round = cupMatchResult.dynastyRound;
@@ -5519,9 +5578,9 @@ function FruitCigs() {
                     playerWon, dynastyCupQualifiers, league, opponentName: dynastyOpponentName,
                     unlockedAchievements: freshUnlocked,
                   });
-                  dcAchs.forEach(id => tryUnlockAchievement(id));
+                  dcAchs.forEach(id => tryUnlockAchievement(id, cupEventWeek));
                   if ((dcAchs.includes("succession") || freshUnlocked.has("succession")) && freshUnlocked.has("five_a_side_story")) {
-                    tryUnlockAchievement("knockout_artist");
+                    tryUnlockAchievement("knockout_artist", cupEventWeek);
                   }
                 }
                 // MotM +1 stat boost if player won the Dynasty Cup
@@ -5662,7 +5721,7 @@ function FruitCigs() {
                 // Pineapple Cigs — Bronze Age
                 collectMiniTournamentThirdPlaceAchievements({
                   playerWon3rd, unlockedAchievements: useGameStore.getState().unlockedAchievements,
-                }).forEach(id => tryUnlockAchievement(id));
+                }).forEach(id => tryUnlockAchievement(id, cupEventWeek));
                 // Sim the final if player is NOT in the final (AI vs AI)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (!bracket.playerInFinal && bracket.final?.home && bracket.final?.away) {
@@ -5712,9 +5771,9 @@ function FruitCigs() {
                     playerWonFinal, playerLeaguePosition: miniPlayerPos || null, league, opponentName: finalLoser?.name || null,
                     unlockedAchievements: freshUnlocked,
                   });
-                  miniAchs.forEach(id => tryUnlockAchievement(id));
+                  miniAchs.forEach(id => tryUnlockAchievement(id, cupEventWeek));
                   if ((miniAchs.includes("five_a_side_story") || freshUnlocked.has("five_a_side_story")) && freshUnlocked.has("succession")) {
-                    tryUnlockAchievement("knockout_artist");
+                    tryUnlockAchievement("knockout_artist", cupEventWeek);
                   }
                 }
                 // Sim 3rd-place playoff if player was in the final (AI vs AI 3rd place)
@@ -5839,7 +5898,7 @@ function FruitCigs() {
                 ? (isFinal ? 15 : cupRoundIdx >= 2 ? 5 : 3)
                 : (cupRoundIdx <= 1 ? -5 : -2)) * _cupFanMult;
               const _cupFanBefore = useGameStore.getState().fanSentiment;
-              if (!unlockedAchievements.has("hostile_crowd") && winner.isPlayer && _cupFanBefore < 10) tryUnlockAchievement("hostile_crowd");
+              if (!unlockedAchievements.has("hostile_crowd") && winner.isPlayer && _cupFanBefore < 10) tryUnlockAchievement("hostile_crowd", cupEventWeek);
               const _cupFanAfter = Math.max(0, Math.min(100, _cupFanBefore + _fanCupDelta));
               setFanSentiment(_cupFanAfter);
               setBoardSentiment(Math.max(0, Math.min(100, useGameStore.getState().boardSentiment + (winner.isPlayer ? (isFinal ? 10 : 3) : -4))));
@@ -5849,7 +5908,7 @@ function FruitCigs() {
                 : `Cup exit — ${_cupRoundName}`;
               const _cupFanDelta = Math.round(_cupFanAfter - _cupFanBefore);
               setSentimentLog(prev => pushSentimentEntry(prev, { delta: _cupFanDelta, reason: _cupReason, week: calendarIndex + 1, season: seasonNumber }));
-              if (!unlockedAchievements.has("riding_the_wave") && _cupFanDelta >= 20) tryUnlockAchievement("riding_the_wave");
+              if (!unlockedAchievements.has("riding_the_wave") && _cupFanDelta >= 20) tryUnlockAchievement("riding_the_wave", cupEventWeek);
             }
 
             // Super Sub — works in cup too
@@ -5959,7 +6018,7 @@ function FruitCigs() {
             }
 
             if (cupAchs.length > 0) {
-              cupAchs.forEach(id => tryUnlockAchievement(id));
+              cupAchs.forEach(id => tryUnlockAchievement(id, cupEventWeek));
             }
 
             // Joga Bonito — Brazilian player scores in a cup match
@@ -5971,7 +6030,7 @@ function FruitCigs() {
                   e.type === "goal" && e.side === playerSide && e.player && brazilians.includes(e.player)
                 );
                 if (brazilianGoal) {
-                  tryUnlockAchievement("joga_bonito");
+                  tryUnlockAchievement("joga_bonito", cupEventWeek);
                   // Player unlocks now triggered by pack completion (useEffect above)
                 }
               }
@@ -6018,18 +6077,7 @@ function FruitCigs() {
                 twelfthManActive, gkCleanSheets, totalShortlisted, gameMode,
               });
 
-              if (cupNewUnlocks.length > 0) {
-                setUnlockedAchievements(prev => { const next = new Set(prev); cupNewUnlocks.forEach(id => next.add(id)); return next; });
-                setAchievementQueue(prev => { const ex = new Set(prev); const f = cupNewUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-                for (const id of cupNewUnlocks) {
-                  if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
-                    const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
-                    if (unlock?.attrs && !squad.some(p => p.id === `unlockable_${unlock.id}`)) {
-                      setPendingPlayerUnlock(prev => prev ? [].concat(prev).concat([unlock]) : [unlock]);
-                    }
-                  }
-                }
-              }
+              cupNewUnlocks.forEach(id => tryUnlockAchievement(id, cupEventWeek));
 
               // Physalis Cigs — "Start an XI" lineup cards count any played
               // match where the XI is known, cup included (calendarResults
@@ -6050,10 +6098,7 @@ function FruitCigs() {
                   cupLineupUnlocks.push("the_favourite");
                 }
               }
-              if (cupLineupUnlocks.length > 0) {
-                setUnlockedAchievements(prev => { const next = new Set(prev); cupLineupUnlocks.forEach(id => next.add(id)); return next; });
-                setAchievementQueue(prev => { const ex = new Set(prev); const f = cupLineupUnlocks.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-              }
+              cupLineupUnlocks.forEach(id => tryUnlockAchievement(id, cupEventWeek));
             } catch(err) {
               console.error("Cup achievement check error:", err, err.stack);
             }
@@ -6073,10 +6118,10 @@ function FruitCigs() {
             }));
             checkLegendMilestones({
               squad: useGameStore.getState().squad, lastMatchResult: cupMatchResult, isPlayerHome: cupMatchResult.isPlayerHome, unlocked: unlockedAchievements,
-            }).forEach(id => tryUnlockAchievement(id));
+            }).forEach(id => tryUnlockAchievement(id, cupEventWeek));
 
             // Update per-player match log (cup match)
-            updateMatchLog(cupMatchResult, cupMatchResult.isPlayerHome, startingXI, true, null);
+            updateMatchLog(cupMatchResult, cupMatchResult.isPlayerHome, startingXI, true, null, cupEventIdx);
 
             // Track formations won with for Formation Roulette achievement
             if (winner.isPlayer && formation) {
@@ -6085,7 +6130,7 @@ function FruitCigs() {
             }
 
             // Store cup result in calendar results
-            const cupCalIdx = cupMatchResult._calendarIndex != null ? cupMatchResult._calendarIndex : useGameStore.getState().calendarIndex;
+            const cupCalIdx = cupEventIdx;
             const pGoals = cupMatchResult.isPlayerHome ? hg : ag;
             const oGoals = cupMatchResult.isPlayerHome ? ag : hg;
             setCalendarResults(prev => ({
@@ -6145,18 +6190,7 @@ function FruitCigs() {
               // same season-end boundary, reached via the cup path instead
               // of a league match.
               setCompareSignWatch(null);
-              if (newSeasonUnlocks2.length > 0) {
-                setUnlockedAchievements(prev => { const next = new Set(prev); newSeasonUnlocks2.forEach(id => next.add(id)); return next; });
-                setAchievementQueue(prev => { const ex = new Set(prev); const f = newSeasonUnlocks2.filter(id => !ex.has(id)); return f.length > 0 ? [...prev, ...f] : prev; });
-                for (const id of newSeasonUnlocks2) {
-                  if (PLAYER_UNLOCK_ACHIEVEMENTS.has(id)) {
-                    const unlock = UNLOCKABLE_PLAYERS.find(u => u.achievementId === id);
-                    if (unlock?.attrs && !squad.some(p => p.id === `unlockable_${unlock.id}`)) {
-                      setPendingPlayerUnlock(prev => prev ? [].concat(prev).concat([unlock]) : [unlock]);
-                    }
-                  }
-                }
-              }
+              newSeasonUnlocks2.forEach(id => tryUnlockAchievement(id, cupEventWeek));
               setLastSeasonMove(moveType);
               setTransferWindowOpen(false);
               setTransferWindowWeeksRemaining(0);
@@ -6169,7 +6203,7 @@ function FruitCigs() {
                 setBoardSentiment(Math.min(100, useGameStore.getState().boardSentiment + 25));
                 const _promDelta = Math.round(_after - _before);
                 setSentimentLog(prev => pushSentimentEntry(prev, { delta: _promDelta, reason: "Promoted", week: calendarIndex + 1, season: seasonNumber }));
-                if (!unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave");
+                if (!unlockedAchievements.has("riding_the_wave") && _promDelta >= 20) tryUnlockAchievement("riding_the_wave", cupEventWeek);
               }
               if (moveType === "relegated") {
                 const _before = useGameStore.getState().fanSentiment;
@@ -6297,7 +6331,7 @@ function FruitCigs() {
                               MSG.prodigalRedeemed(ps.playerName),
                               { calendarIndex, seasonNumber },
                             ));
-                  tryUnlockAchievement("prodigal_son");
+                  tryUnlockAchievement("prodigal_son", cupEventWeek);
                 }
                 if (msgs.length > 0) setInboxMessages(prev => [...prev, ...msgs]);
                 setProdigalSon(ps);
@@ -6329,12 +6363,12 @@ function FruitCigs() {
                   MSG.cupReprieve(useGameStore.getState().managerName),
                   { calendarIndex: useGameStore.getState().calendarIndex, seasonNumber },
                 )]);
-                if (!unlockedAchievements.has("cup_run_reprieve")) tryUnlockAchievement("cup_run_reprieve");
-                if (!unlockedAchievements.has("tightrope_walker")) tryUnlockAchievement("tightrope_walker");
+                if (!unlockedAchievements.has("cup_run_reprieve")) tryUnlockAchievement("cup_run_reprieve", cupEventWeek);
+                if (!unlockedAchievements.has("tightrope_walker")) tryUnlockAchievement("tightrope_walker", cupEventWeek);
                 // Cheating Death — career-long, never reset at prestige.
                 const newUltimatumsSurvivedC = useGameStore.getState().ultimatumsSurvived + 1;
                 setUltimatumsSurvived(newUltimatumsSurvivedC);
-                if (checkCheatingDeath(newUltimatumsSurvivedC, useGameStore.getState().unlockedAchievements)) tryUnlockAchievement("cheating_death");
+                if (checkCheatingDeath(newUltimatumsSurvivedC, useGameStore.getState().unlockedAchievements)) tryUnlockAchievement("cheating_death", cupEventWeek);
               } else if (playerEliminated2) {
                 // Eliminated from cup — sacked
                 triggerSacking();
