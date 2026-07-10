@@ -3,6 +3,7 @@ import { F, C, FONT, MODAL, Z, TEXT } from "../../data/tokens";
 import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { getAchievementProgress } from "../../data/achievementProgress.js";
+import { sortPacksForDisplay } from "../../utils/packUnlocks.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { useGameStore } from "../../store/gameStore.js";
 import { CigCard } from "./CigCard.jsx";
@@ -108,6 +109,16 @@ export function CigPacksTab({
       return { ...pack, collected, total: pack.achievementIds.length };
     });
   }, [unlocked]);
+
+  // Grid render order only — CIG_PACKS/packData themselves stay in authored
+  // (data-file) order. New packs are appended to the file, so without this
+  // an unsealed pack authored late (e.g. Physalis) would sit below dozens
+  // of sealed packs instead of surfacing near the top with the other
+  // unsealed ones.
+  const gridPackOrder = useMemo(
+    () => sortPacksForDisplay(packData, unlockedPacks),
+    [packData, unlockedPacks]
+  );
 
   // Card state for the ledger's click-through modal: collected cards always
   // show their real face; uncollected cards show progress if their pack is
@@ -328,7 +339,7 @@ export function CigPacksTab({
           : "repeat(auto-fill, minmax(180px, 1fr))",
         gap: 12,
       }}>
-        {packData.map((pack, i) => {
+        {gridPackOrder.map((pack, i) => {
           const isUnlocked = unlockedPacks.has(pack.id);
           return isUnlocked
             ? <UnlockedCard key={pack.id} pack={pack} index={i} mob={mob} onClick={() => setSelectedPack(pack.id)} />

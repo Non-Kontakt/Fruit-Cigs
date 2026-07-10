@@ -3,6 +3,7 @@ import { F, C, FONT } from "../../data/tokens";
 import { ACHIEVEMENTS } from "../../data/achievements.js";
 import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { formatUnlockWeek } from "../../utils/unlockWeeks.js";
+import { sortPacksForDisplay } from "../../utils/packUnlocks.js";
 import { useMobile } from "../../hooks/useMobile.js";
 
 const hexToRgb = (hex) => {
@@ -52,9 +53,17 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
   // sealed-unearned rows group and sort exactly like the rest.
   const items = [];
   if (indexSort === "pack") {
-    CIG_PACKS.forEach(pack => {
-      const rows = indexRows
-        .filter(r => r.pack?.id === pack.id)
+    // Every pack always renders a section here (sealed packs show their
+    // cards with a "— sealed —" tease rather than being hidden outright),
+    // so this reuses the same status grouping as the packs-grid tab for
+    // consistency, computing collected/total per pack from indexRows.
+    const packsWithProgress = CIG_PACKS.map(pack => {
+      const rows = indexRows.filter(r => r.pack?.id === pack.id);
+      return { ...pack, collected: rows.filter(r => r.collected).length, total: pack.achievementIds.length, _rows: rows };
+    });
+    sortPacksForDisplay(packsWithProgress, unlockedPacks).forEach(pack => {
+      const rows = pack._rows
+        .slice()
         .sort((a, b) => pack.achievementIds.indexOf(a.ach.id) - pack.achievementIds.indexOf(b.ach.id));
       if (!rows.length) return;
       items.push({ header: pack.name, color: pack.color, icon: pack.icon });

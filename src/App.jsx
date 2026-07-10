@@ -481,7 +481,12 @@ function FruitCigs() {
     const updated = { ...prev };
     let changed = false;
     for (const id of unlockedAchievements) {
-      if (!(id in updated)) { updated[id] = { season: seasonNumber, week: calendarIndex, seasonLen: seasonCalendar?.length || DEFAULT_SEASON_LENGTH }; changed = true; }
+      // week is the 1-based display week, matching every other calendarIndex
+      // consumer in this file (e.g. the "SEASON n · WEEK n" header, inbox
+      // timestamps) — calendarIndex itself is 0-based, so it's never stored
+      // raw here. Cards unlocked before the first week-advance land on W1,
+      // not W0.
+      if (!(id in updated)) { updated[id] = { season: seasonNumber, week: calendarIndex + 1, seasonLen: seasonCalendar?.length || DEFAULT_SEASON_LENGTH }; changed = true; }
     }
     if (changed) { achievementUnlockWeeksRef.current = updated; setAchievementUnlockWeeks(updated); }
   }, [unlockedAchievements, calendarIndex, seasonNumber]);
