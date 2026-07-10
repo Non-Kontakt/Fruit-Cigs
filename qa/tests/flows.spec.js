@@ -1201,3 +1201,54 @@ test.describe("full-app flows", () => {
     expect(stampIdxYG, "unlock-week map keeps insertion chronology").toBeLessThan(stampIdxKids);
   });
 });
+
+  test("RECENT sorts by insertion order across seasons with different calendar lengths", async ({ page }) => {
+    // The absolute-week derivation ((season-1)*seasonLen + week) inverts
+    // when past seasons had different lengths: S1 W26/len26 computes 26,
+    // S2 W1/len22 computes 23 — the newer card would sort BELOW the older.
+    // RECENT must follow the unlocked Set's insertion order alone.
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+    await page.evaluate(() => {
+      window.__fc.setState({
+        unlockedAchievements: new Set(["bore_draw", "first_win"]), // first_win inserted LAST = most recent
+        achievementUnlockWeeks: {
+          bore_draw: { season: 1, week: 26, seasonLen: 26 }, // old long season
+          first_win: { season: 2, week: 1, seasonLen: 22 },  // new short season
+        },
+      });
+    });
+    await page.getByText("CORNER SHOP", { exact: false }).first().click();
+    await page.getByLabel("Index list view").click();
+    await page.getByText("RECENT", { exact: true }).click();
+    const rows = page.locator('[data-testid="cig-index-row-name"]');
+    const first = (await rows.first().textContent()) || "";
+    expect(first.toUpperCase(), "the season-2 card must sort above the older season-1 card").toContain("OFF THE MARK");
+  });
+
+  test("an unlock recorded on an exhausted calendar clamps to the season's final week", async ({ page }) => {
+    // Season-end recovery paths read a live calendarIndex past the last
+    // slot; both week writers (the canonical helper and the backfill
+    // effect) must normalise into 1..seasonLen rather than record
+    // seasonLen + 1. Drive the deterministic path: exhaust the calendar,
+    // then merge an unstamped id into the Set — the backfill stamps it.
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+    const seasonLen = await page.evaluate(() => {
+      const s = window.__fc.getState();
+      const len = s.seasonCalendar.length;
+      window.__fc.setState({ calendarIndex: len + 3 }); // exhausted, like season-end recovery
+      window.__fc.setState({ unlockedAchievements: new Set([...s.unlockedAchievements, "bore_draw"]) });
+      return len;
+    });
+    await page.waitForFunction(
+      () => !!window.__fc.getState().achievementUnlockWeeks?.bore_draw,
+      null, { timeout: 10_000 },
+    );
+    const stamp = await page.evaluate(() => window.__fc.getState().achievementUnlockWeeks.bore_draw);
+    expect(stamp.week, "recorded week must clamp to the final week, not overflow").toBe(seasonLen);
+  });

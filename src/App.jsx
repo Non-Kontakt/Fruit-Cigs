@@ -442,7 +442,13 @@ function FruitCigs() {
     const prevWeeks = achievementUnlockWeeksRef.current;
     if (!(id in prevWeeks)) {
       const s = useGameStore.getState();
-      const updated = { ...prevWeeks, [id]: { season: s.seasonNumber, week: week ?? s.calendarIndex + 1, seasonLen: s.seasonCalendar?.length || DEFAULT_SEASON_LENGTH } };
+      const seasonLen = s.seasonCalendar?.length || DEFAULT_SEASON_LENGTH;
+      // Central invariant: recorded weeks are always 1..seasonLen. Callers on
+      // exhausted calendars (season-end recovery paths read a live index past
+      // the last slot) would otherwise record seasonLen + 1.
+      const rawWeek = week ?? s.calendarIndex + 1;
+      const clampedWeek = Math.min(seasonLen, Math.max(1, rawWeek));
+      const updated = { ...prevWeeks, [id]: { season: s.seasonNumber, week: clampedWeek, seasonLen } };
       achievementUnlockWeeksRef.current = updated;
       setAchievementUnlockWeeks(updated);
     }
@@ -504,7 +510,13 @@ function FruitCigs() {
     const updated = { ...prev };
     let changed = false;
     for (const id of unlockedAchievements) {
-      if (!(id in updated)) { updated[id] = { season: seasonNumber, week: calendarIndex + 1, seasonLen: seasonCalendar?.length || DEFAULT_SEASON_LENGTH }; changed = true; }
+      if (!(id in updated)) {
+        const seasonLen = seasonCalendar?.length || DEFAULT_SEASON_LENGTH;
+        // Same 1..seasonLen invariant as the canonical helper — a backfill
+        // observed on an exhausted calendar must not record seasonLen + 1.
+        updated[id] = { season: seasonNumber, week: Math.min(seasonLen, Math.max(1, calendarIndex + 1)), seasonLen };
+        changed = true;
+      }
     }
     if (changed) { achievementUnlockWeeksRef.current = updated; setAchievementUnlockWeeks(updated); }
   }, [unlockedAchievements, calendarIndex, seasonNumber]);
@@ -1569,7 +1581,9 @@ function FruitCigs() {
           vsLeader,
           teamWon,
           season: useGameStore.getState().seasonNumber,
-          calendarIndex: useGameStore.getState().calendarIndex,
+          // The log row keeps the MATCH's own slot, not the already-advanced
+          // live index — same chronology contract as the unlock stamps.
+          calendarIndex: matchCalIdx ?? useGameStore.getState().calendarIndex,
         };
         if (!next[pid]) next[pid] = [];
         next[pid] = [...next[pid], entry].slice(-20);
@@ -2674,7 +2688,7 @@ function FruitCigs() {
 
       {/* Page content */}
       {showAchievements ? (
-        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} seasonLength={seasonCalendar?.length || DEFAULT_SEASON_LENGTH} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode}
+        <AchievementCabinet key={cabinetKey} unlocked={unlockedAchievements} unlockedPacks={unlockedPacks} achievementUnlockWeeks={achievementUnlockWeeks} calendarIndex={calendarIndex} seasonNumber={seasonNumber} squad={squad} clubHistory={clubHistory} currentTier={leagueTier} ovrCap={ovrCap} gameMode={gameMode}
           tickets={tickets} retiringPlayers={retiringPlayers} transferFocus={transferFocus}
           doubleTrainingWeek={doubleTrainingWeek} twelfthManActive={twelfthManActive}
           youthCoupActive={youthCoupActive} pendingFreeAgent={pendingFreeAgent}

@@ -17,15 +17,10 @@ const hexToRgb = (hex) => {
 // longer hide WHICH cards they contain, only HOW to earn them: an uncollected
 // card behind a sealed pack still shows its real name and pack, just with the
 // description swapped for a "— sealed —" tease and the icon masked as "?".
-export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {}, seasonLength = 48, onCardOpen }) {
+export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {}, onCardOpen }) {
   const mob = useMobile();
   const [indexSort, setIndexSort] = useState("recent");
 
-  const getAbsWeek = (u) => {
-    if (!u) return -1;
-    if (typeof u === "number") return u; // migration: old format was bare absolute week
-    return (u.season - 1) * (u.seasonLen || seasonLength) + u.week;
-  };
 
   const collectedCount = unlocked.size;
 
@@ -43,7 +38,6 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
       // "sealed" here means "unearned, and the tease is all you get" — a
       // collected card is always shown in full, sealed pack or not.
       kind: collected ? "collected" : packSealed ? "sealed" : "uncollected",
-      abs: getAbsWeek(achievementUnlockWeeks[ach.id]),
       order: unlockOrder.get(ach.id) ?? -1,
     };
   });
@@ -75,7 +69,11 @@ export function CigIndex({ unlocked, unlockedPacks, achievementUnlockWeeks = {},
       .sort((a, b) => a.ach.name.localeCompare(b.ach.name))
       .forEach(row => items.push({ row }));
   } else { // recent (default)
-    const collectedRows = indexRows.filter(r => r.collected).sort((a, b) => b.abs - a.abs || b.order - a.order);
+    // RECENT = descending insertion order. The unlocked Set's insertion order
+    // is the one authoritative chronology — deriving an absolute week from
+    // (season - 1) * seasonLen + week breaks whenever past seasons had a
+    // different calendar length (Dynasty/Mini seasons do).
+    const collectedRows = indexRows.filter(r => r.collected).sort((a, b) => b.order - a.order);
     const uncollectedRows = indexRows.filter(r => !r.collected).sort((a, b) => a.ach.name.localeCompare(b.ach.name));
     [...collectedRows, ...uncollectedRows].forEach(row => items.push({ row }));
   }

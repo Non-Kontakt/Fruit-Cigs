@@ -79,7 +79,6 @@ export function CigPacksTab({
   achievementUnlockWeeks = {},
   calendarIndex = 0,
   seasonNumber = 1,
-  seasonLength = 48,
 }) {
   const mob = useMobile();
   const [selectedPack, setSelectedPack] = useState(null);
@@ -213,7 +212,6 @@ export function CigPacksTab({
           unlocked={unlocked}
           unlockedPacks={unlockedPacks}
           achievementUnlockWeeks={achievementUnlockWeeks}
-          seasonLength={seasonLength}
           onCardOpen={setOpenCardId}
         />
         {cardModal}
