@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { F, C, FONT, Z, TEXT } from "../../data/tokens";
 import { SFX } from "../../utils/sfx.js";
 import { useMobile } from "../../hooks/useMobile.js";
+import { getPackSurfaceBackground, makeTearClipPath } from "../../utils/packCeremony.js";
 import { CigCard } from "./CigCard.jsx";
 
 const hexToRgb = (hex) => {
@@ -17,9 +18,10 @@ const TEAR_AT_MS = 2100;
 const DEAL_AT_MS = 2500;
 const DEAL_STAGGER_MS = 280;
 
-// Stepped zigzag tear line (pixel-art serration, not a smooth wave).
-const TEAR_CLIP =
-  "polygon(0% 100%, 0% 55%, 8% 55%, 8% 100%, 16% 100%, 16% 55%, 24% 55%, 24% 100%, 32% 100%, 32% 55%, 40% 55%, 40% 100%, 48% 100%, 48% 55%, 56% 55%, 56% 100%, 64% 100%, 64% 55%, 72% 55%, 72% 100%, 80% 100%, 80% 55%, 88% 55%, 88% 100%, 96% 100%, 96% 55%, 100% 55%, 100% 100%)";
+// Stepped zigzag tear line (pixel-art serration, not a smooth wave). Teeth
+// are narrow and shallow so the edge reads as a paper tear rather than a
+// castle-wall crenellation at mobile card scale.
+const TEAR_CLIP = makeTearClipPath(2, 25);
 
 export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, muteSound = false }) {
   // enter → locked → reveal → torn → dealing → shown → exit
@@ -107,6 +109,13 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
 
   const rgb = hexToRgb(pack.color);
   const rgbDark = hexToRgb(pack.colorDark);
+  // The pack surface behind the internal printed name is built from
+  // darkened versions of pack.color, so pack.color-on-pack.color reads as
+  // barely-there at mobile scale. colorLight gives real contrast against
+  // that surface; every pack in cigPacks.js carries one, but fall back to
+  // pack.color for safety if a pack ever doesn't.
+  const nameColor = pack.colorLight || pack.color;
+  const rgbLight = hexToRgb(nameColor);
   const isRevealed = phase !== "enter" && phase !== "locked" && phase !== "exit";
   const isOpen = phase === "torn" || phase === "dealing" || phase === "shown";
   const overlayVisible = phase !== "enter" && phase !== "exit";
@@ -204,9 +213,12 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         justifyContent: "center",
         gap: 12,
         padding: mob ? "24px 16px" : "32px 24px",
-        // Locked state: dark silhouette; Revealed: pack colors
+        // Locked state: dark silhouette; Revealed: same solid-fill +
+        // diagonal-pattern treatment as the Corner Shop's sealed packs, so
+        // the pack reads as the same physical object being torn open here
+        // as it does sealed on the shelf (not a different, airier object).
         background: isRevealed
-          ? `linear-gradient(160deg, rgba(${rgbDark}, 0.25) 0%, rgba(${rgb}, 0.08) 100%)`
+          ? getPackSurfaceBackground(pack.color)
           : "rgba(15,15,35,0.9)",
         // Sides set individually (no shorthand): once torn, the top edge is
         // the serrated tear line, not the lid's rounded corners.
@@ -244,29 +256,15 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
             right: -2,
             height: lidH,
             borderRadius: "12px 12px 0 0",
-            background: `linear-gradient(160deg, rgba(${rgbDark}, 0.9) 0%, rgba(${rgb}, 0.45) 100%)`,
+            // Same recipe as the pack body below (and the Corner Shop's
+            // sealed stack) — the lid is part of the same physical pack,
+            // not a different, airier material, before it tears off.
+            background: getPackSurfaceBackground(pack.color),
             border: `2px solid rgba(${rgb}, 0.5)`,
             borderBottom: "none",
             clipPath: TEAR_CLIP,
             zIndex: 2,
             animation: isOpen ? "lidTear 0.6s ease-in forwards" : undefined,
-            pointerEvents: "none",
-          }} />
-        )}
-
-        {/* Background texture — diagonal lines (only when revealed) */}
-        {isRevealed && (
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.04,
-            backgroundImage: `repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 8px,
-              rgba(${rgb}, 1) 8px,
-              rgba(${rgb}, 1) 9px
-            )`,
             pointerEvents: "none",
           }} />
         )}
@@ -302,10 +300,12 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
           }} />
         )}
 
-        {/* Icon: lock when locked, fruit emoji when revealed */}
+        {/* Icon: lock when locked, fruit emoji when revealed. lineHeight
+            1.3 (not 1) gives the emoji's taller vertical metrics room —
+            at 1 the glyph clips against the pack card's own edge. */}
         <div style={{
           fontSize: mob ? 48 : 56,
-          lineHeight: 1,
+          lineHeight: 1.3,
           position: "relative",
           zIndex: 1,
           opacity: isRevealed ? 1 : 0.5,
@@ -318,17 +318,19 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
           {isRevealed ? pack.icon : "🔒"}
         </div>
 
-        {/* Pack name or ??? */}
+        {/* Pack name or ??? — printed on the pack surface itself, so it
+            needs colorLight (not pack.color) for real contrast against a
+            background built from darkened pack.color. */}
         <div style={{
           fontFamily: FONT,
           fontSize: mob ? F.sm : F.md,
-          color: isRevealed ? pack.color : C.textDim,
+          color: isRevealed ? nameColor : C.textDim,
           letterSpacing: 1,
           textAlign: "center",
           position: "relative",
           zIndex: 1,
           textShadow: isRevealed
-            ? `0 0 12px rgba(${rgb}, 0.5)`
+            ? `0 0 12px rgba(${rgbLight}, 0.5)`
             : "none",
           animation: phase === "shown" ? "stampReveal 0.5s ease-out" : undefined,
           transition: "color 0.4s ease",

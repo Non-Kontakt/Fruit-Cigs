@@ -527,7 +527,7 @@ export const CIG_PACKS = [
     packSize: 10,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 10 },
-    unlockDesc: "Complete 10 cigarette packs",
+    unlockDesc: "Complete 10 cig packs",
     achievementIds: [
       "invincibles",        // Win league unbeaten
       "centurions",         // Win every league match
@@ -741,7 +741,7 @@ export const CIG_PACKS = [
     packSize: 10,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 5 },
-    unlockDesc: "Complete 5 cigarette packs",
+    unlockDesc: "Complete 5 cig packs",
     achievementIds: [
       "cruise_control",     // 10+ matches on holiday
       "speed_demon",        // 10 fastest speed matches
@@ -864,7 +864,7 @@ export const CIG_PACKS = [
     // surfacing to a player 3 packs in, long before they've plausibly
     // heard most of these tracks play out under the right conditions.
     unlockCondition: { type: "packs_complete", count: 12 },
-    unlockDesc: "Complete 12 cigarette packs",
+    unlockDesc: "Complete 12 cig packs",
     achievementIds: [
       "forgot_kit",         // Injury while Forgot Kit plays
       "soundtrack",         // Win shootout while Shootout plays
@@ -887,7 +887,7 @@ export const CIG_PACKS = [
     // names, minute-equals-age, repeat scorelines) that shouldn't be the
     // 4th pack a new player sees.
     unlockCondition: { type: "packs_complete", count: 14 },
-    unlockDesc: "Complete 14 cigarette packs",
+    unlockDesc: "Complete 14 cig packs",
     achievementIds: [
       "enzo_drive",         // Enzo scores late winner
       "nomin_determ",       // Baker/Cook/King hat-trick
@@ -932,7 +932,7 @@ export const CIG_PACKS = [
     packSize: 5,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 10 },
-    unlockDesc: "Complete 10 cigarette packs",
+    unlockDesc: "Complete 10 cig packs",
     achievementIds: [
       "odds_are_even",      // All 7 attrs same value
       "binary",             // All attributes at 10
@@ -951,7 +951,7 @@ export const CIG_PACKS = [
     packSize: 5,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 10 },
-    unlockDesc: "Complete 10 cigarette packs",
+    unlockDesc: "Complete 10 cig packs",
     achievementIds: [
       "stat_20",            // Train attribute to 20
       "peak_perf",          // Starting XI all 15+
@@ -972,7 +972,7 @@ export const CIG_PACKS = [
     packSize: 10,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 15 },
-    unlockDesc: "Complete 15 cigarette packs",
+    unlockDesc: "Complete 15 cig packs",
     // cult_hero and worth_the_wait moved out (to Lime — see above): neither
     // is a "win a tier's title" card like the rest of this pack, and Kiwi's
     // win_global/win_ultimate moving in (see below) needed the room.
@@ -1037,7 +1037,7 @@ export const CIG_PACKS = [
     packSize: 10,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 5 },
-    unlockDesc: "Complete 5 cigarette packs",
+    unlockDesc: "Complete 5 cig packs",
     achievementIds: [
       "ultras",              // Reach 100 fan sentiment
       "boardroom_darling",   // Reach 100 board sentiment
@@ -1085,7 +1085,7 @@ export const CIG_PACKS = [
     packSize: 5,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 12 },
-    unlockDesc: "Complete 12 cigarette packs",
+    unlockDesc: "Complete 12 cig packs",
     achievementIds: [
       "ashes_to_ashes",     // Have a career immortalised in the Museum
       "died_as_they_lived", // Get sacked the season after winning a title
@@ -1129,7 +1129,7 @@ export const CIG_PACKS = [
     packSize: 10,
     starter: false,
     unlockCondition: { type: "packs_complete", count: 6 },
-    unlockDesc: "Complete 6 cigarette packs",
+    unlockDesc: "Complete 6 cig packs",
     achievementIds: [
       "patience_pays",       // Shortlisted player's potential reveals passively
       "catch_of_day",        // Sign a scouted wonderkid

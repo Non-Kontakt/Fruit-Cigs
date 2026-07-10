@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { selectHeadlineCategory, generateMatchHeadline, generateIdentityHeadline } from "../headlines.js";
+import { selectHeadlineCategory, generateMatchHeadline, generateIdentityHeadline, generateAwardsHeadline } from "../headlines.js";
 
 const BASE = {
   teamName: "City",
@@ -319,6 +319,50 @@ describe("generateMatchHeadline", () => {
       expect(result.headline.length).toBeGreaterThan(0);
       expect(result.byline).toBe("");
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// record category — seasonUnbeatenRun interpolation
+// ---------------------------------------------------------------------------
+describe("record headline — seasonUnbeatenRun interpolation", () => {
+  it("interpolates the season-scoped run as a real digit, preferring it over a stale career unbeatenRun", () => {
+    const ctx = win({ recordUnbeatenRun: true, seasonUnbeatenRun: 8, unbeatenRun: 23 });
+    for (let i = 0; i < 20; i++) {
+      const result = generateMatchHeadline(ctx);
+      expect(result.category).toBe("record");
+      expect(result.headline).toContain("8");
+      expect(result.headline).not.toContain("23");
+      expect(result.headline).not.toContain("undefined");
+      expect(result.headline).not.toContain("NaN");
+    }
+  });
+
+  it("falls back to the career unbeatenRun field when seasonUnbeatenRun isn't provided (back-compat for callers that don't set it)", () => {
+    const ctx = win({ recordUnbeatenRun: true, unbeatenRun: 20 });
+    const result = generateMatchHeadline(ctx);
+    expect(result.category).toBe("record");
+    expect(result.headline).toContain("20");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateAwardsHeadline
+// ---------------------------------------------------------------------------
+describe("generateAwardsHeadline", () => {
+  it("frames the paper's award as the league's honour, not the paper's own opinion", () => {
+    let sawGazetteTemplate = false;
+    for (let i = 0; i < 30; i++) {
+      const result = generateAwardsHeadline({
+        teamName: "City", winnerName: "Rossi", newspaperName: "The Gazette", reporterName: "Sid Marsh",
+      });
+      expect(result.headline).not.toContain("THEIR PLAYER OF THE SEASON");
+      if (result.headline.includes("THE GAZETTE NAMES ROSSI")) {
+        sawGazetteTemplate = true;
+        expect(result.headline).toBe("THE GAZETTE NAMES ROSSI THE LEAGUE'S PLAYER OF THE SEASON");
+      }
+    }
+    expect(sawGazetteTemplate).toBe(true);
   });
 });
 

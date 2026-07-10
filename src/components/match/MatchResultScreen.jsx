@@ -3,6 +3,7 @@ import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { SFX, BGM } from "../../utils/sfx.js";
 import { hasLateEqualiser } from "../../utils/bgmMoments.js";
+import { getMatchFeedPlaceholder } from "../../utils/matchFeedPlaceholder.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { POSITION_ORDER } from "../../data/positions.js";
 import { F, C, FONT, Z } from "../../data/tokens";
@@ -253,7 +254,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               "⚽ FULL TIME (PENS)"
             ) : finished ? "⚽ FULL TIME" : (
               <span style={{ animation: "pulse 1s ease infinite" }}>
-                ⏱ {minute}'
+                <span style={{ lineHeight: 1.4, display: "inline-block" }}>⏱</span> {minute}'
               </span>
             )}
           </div>
@@ -470,7 +471,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             ))}
             {displayEvents.length === 0 && (
               <div style={{ padding: 16, textAlign: "center", color: C.bgInput, fontSize: F.xs }}>
-                Waiting for kick off...
+                {getMatchFeedPlaceholder(minute)}
               </div>
             )}
             {/* Penalty kicks in the ticker */}

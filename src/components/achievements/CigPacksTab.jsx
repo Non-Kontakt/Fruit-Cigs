@@ -4,6 +4,7 @@ import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { getAchievementProgress } from "../../data/achievementProgress.js";
 import { sortPacksForDisplay } from "../../utils/packUnlocks.js";
+import { getPackSurfaceBackground } from "../../utils/packCeremony.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { useGameStore } from "../../store/gameStore.js";
 import { CigCard } from "./CigCard.jsx";
@@ -573,9 +574,7 @@ function LockedCard({ pack, mob }) {
             <div style={{
               width: "100%",
               height: "100%",
-              background: `repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 10px 10px,
-                repeating-linear-gradient(45deg, color-mix(in srgb, ${pack.color} 78%, black) 0 8px, color-mix(in srgb, ${pack.color} 62%, black) 8px 16px),
-                color-mix(in srgb, ${pack.color} 70%, black)`,
+              background: getPackSurfaceBackground(pack.color),
               clipPath: STACK_CLIP,
             }} />
           </div>
