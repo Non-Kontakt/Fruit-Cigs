@@ -253,7 +253,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               "⚽ FULL TIME (PENS)"
             ) : finished ? "⚽ FULL TIME" : (
               <span style={{ animation: "pulse 1s ease infinite" }}>
-                ⏱ {minute}'
+                <span style={{ lineHeight: 1.4, display: "inline-block" }}>⏱</span> {minute}'
               </span>
             )}
           </div>
