@@ -274,8 +274,14 @@ test.describe("full-app flows", () => {
     // is also the regression for the old fire-on-every-load bug.
     await page.locator("text=Red Lion FC").nth(0).click();
     await page.waitForFunction(() => window.__fc.getState().teamName === "Red Lion FC", null, { timeout: 10_000 });
-    await page.waitForTimeout(1500);
-    await expect(page.getByText("Save Scummer", { exact: false })).toHaveCount(0);
+    // Never-appears assertion: wait FOR the toast and require the wait to
+    // fail. (An auto-retrying toHaveCount(0) would happily wait out a toast
+    // that showed and auto-dismissed — a false pass.)
+    let appeared = true;
+    try {
+      await page.getByText("Save Scummer", { exact: false }).first().waitFor({ state: "visible", timeout: 2500 });
+    } catch { appeared = false; }
+    expect(appeared, "Save Scummer toast must never appear on a plain resume").toBe(false);
   });
 
   test("save scummer: an older copy that already earned it stays silent on re-load", async ({ page }) => {
@@ -313,8 +319,11 @@ test.describe("full-app flows", () => {
 
     await page.locator("text=Red Lion FC").nth(1).click();
     await page.waitForFunction(() => window.__fc.getState().teamName === "Red Lion FC", null, { timeout: 10_000 });
-    await page.waitForTimeout(1500);
-    await expect(page.getByText("Save Scummer", { exact: false })).toHaveCount(0);
+    let appeared = true;
+    try {
+      await page.getByText("Save Scummer", { exact: false }).first().waitFor({ state: "visible", timeout: 2500 });
+    } catch { appeared = false; }
+    expect(appeared, "an already-earned Save Scummer must not re-toast").toBe(false);
   });
 
   test("a corrupt slot is occupied-broken, not an empty slot inviting overwrite", async ({ page }) => {
