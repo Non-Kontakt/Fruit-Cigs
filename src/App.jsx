@@ -760,9 +760,9 @@ function FruitCigs() {
     activeSaveSlot,
     setSaveStatus, setActiveSaveSlot, setSaveSlotSummaries, setImportStatus, setPendingPlayerUnlock,
     loadSettings, generateNewspaperName, generateReporterName,
-    // Save Scummer: fires only on a genuine time-travel load. Delayed so the
-    // unlock's week-recording reads the freshly hydrated store.
-    onTimeTravelLoad: () => setTimeout(() => tryUnlockAchievement("save_scummer"), 500),
+    // Save Scummer: invoked by loadGame only after the whole load has
+    // succeeded, so the unlock's week-recording reads the hydrated store.
+    onTimeTravelLoad: () => tryUnlockAchievement("save_scummer"),
     achievementUnlockWeeksRef,
   });
 

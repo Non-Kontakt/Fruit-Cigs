@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { storage } from "../../persistence/storage.js";
 import { SAVE_SCHEMA_VERSION } from "../../persistence/db.js";
 import { SaveVersionError } from "../../persistence/storage.js";
-import { scanProfileSlots, getSaveKey, findNewerSaveOfCareer, careerProgress } from "../profile.js";
+import { scanProfileSlots, getSaveKey, findNewerSaveOfCareer, compareCareerStates } from "../profile.js";
 
 // Integration regression for the slot-picker boundary: the adapter can
 // protect a save all it likes — if the scan reports the slot as empty, the
@@ -70,11 +70,15 @@ describe("save scummer — time-travel detection fuel", () => {
   const career = (careerId, seasonNumber, calendarIndex) =>
     JSON.stringify({ teamName: "Red Lion FC", careerId, seasonNumber, calendarIndex });
 
-  it("orders career states season-first, then week", () => {
-    expect(careerProgress({ seasonNumber: 2, calendarIndex: 0 }))
-      .toBeGreaterThan(careerProgress({ seasonNumber: 1, calendarIndex: 30 }));
-    expect(careerProgress({ seasonNumber: 1, calendarIndex: 5 }))
-      .toBeGreaterThan(careerProgress({ seasonNumber: 1, calendarIndex: 4 }));
+  it("orders career states season-first, week-second, matches as tie-break", () => {
+    expect(compareCareerStates({ seasonNumber: 2, calendarIndex: 0 }, { seasonNumber: 1, calendarIndex: 30 })).toBeGreaterThan(0);
+    expect(compareCareerStates({ seasonNumber: 1, calendarIndex: 5 }, { seasonNumber: 1, calendarIndex: 4 })).toBeGreaterThan(0);
+    // Same calendar slot: the state that has played a match is ahead.
+    expect(compareCareerStates(
+      { seasonNumber: 1, calendarIndex: 4, totalMatches: 5 },
+      { seasonNumber: 1, calendarIndex: 4, totalMatches: 4 },
+    )).toBeGreaterThan(0);
+    expect(compareCareerStates({ seasonNumber: 1, calendarIndex: 4 }, { seasonNumber: 1, calendarIndex: 4 })).toBe(0);
   });
 
   it("finds the same career saved further ahead in another slot", async () => {

@@ -104,10 +104,17 @@ export async function deleteMuseumEntry(profileId, archivedAt) {
   } catch { /* non-critical */ }
 }
 
-// One career's position on its own timeline. Season is primary, week
-// within the season secondary — enough to order any two states of the
-// same career.
-export const careerProgress = (s) => (s?.seasonNumber || 1) * 100000 + (s?.calendarIndex ?? Math.max(0, (s?.week || 1) - 1));
+// Orders two states of one career: season first, calendar position second,
+// total matches as the tie-breaker so two states on the same calendar slot
+// can still be ordered after a match. Positive when a is ahead of b.
+export function compareCareerStates(a, b) {
+  const season = (a?.seasonNumber || 1) - (b?.seasonNumber || 1);
+  if (season) return season;
+  const pos = (s) => s?.calendarIndex ?? Math.max(0, (s?.week || 1) - 1);
+  const week = pos(a) - pos(b);
+  if (week) return week;
+  return (a?.totalMatches || 0) - (b?.totalMatches || 0);
+}
 
 // Does any OTHER slot of this profile hold the SAME career further ahead?
 // Fuel for the Save Scummer time-travel check: loading the older of two
@@ -120,7 +127,7 @@ export async function findNewerSaveOfCareer(profileId, loaded, excludeSlot) {
       const result = await storage.getSave(getSaveKey(profileId, i), { validate: isLoadableSave });
       if (!result) continue;
       const other = JSON.parse(result.value);
-      if (other?.careerId === loaded.careerId && careerProgress(other) > careerProgress(loaded)) {
+      if (other?.careerId === loaded.careerId && compareCareerStates(other, loaded) > 0) {
         return { slot: i, seasonNumber: other.seasonNumber, calendarIndex: other.calendarIndex };
       }
     } catch { /* unavailable slots can't testify */ }

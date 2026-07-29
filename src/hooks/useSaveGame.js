@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
-import { getSaveKey, archiveCareerToMuseum, readProfile, isLoadableSave, findNewerSaveOfCareer, careerProgress } from "../utils/profile.js";
+import { getSaveKey, archiveCareerToMuseum, readProfile, isLoadableSave, findNewerSaveOfCareer } from "../utils/profile.js";
 import { storage } from "../persistence/storage.js";
 import { ATTRIBUTES } from "../data/training.js";
 import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
@@ -233,15 +233,13 @@ export function useSaveGame({
       const s = hydrateState(JSON.parse(result.value));
       if (!s || !s.teamName) return false;
 
-      // Save Scummer — time travel, not participation. Fires only when a
-      // NEWER state of this same career exists: the live session being
-      // abandoned (play, lose, reload), or another slot saved further ahead
-      // (loading the older of two copies of one career).
-      const live = store;
-      const abandoningNewer = !!(s.careerId && live.careerId === s.careerId &&
-        careerProgress(live) > careerProgress(s));
-      const newerSibling = abandoningNewer ? null : await findNewerSaveOfCareer(store.activeProfileId, s, slot);
-      if ((abandoningNewer || newerSibling) && onTimeTravelLoad) onTimeTravelLoad();
+      // Save Scummer — time travel, not participation: this load is picking
+      // the older of two copies of one career while a sibling slot holds
+      // its future. Decided here, before hydration mutates anything, but
+      // fired only once the whole load has succeeded (bottom of this
+      // function) — a load that fails halfway must not celebrate.
+      const shouldUnlockSaveScummer =
+        (await findNewerSaveOfCareer(store.activeProfileId, s, slot)) != null;
 
       setActiveSaveSlot(slot);
       store.setCareerId(s.careerId || null);
@@ -719,6 +717,12 @@ export function useSaveGame({
         if (missingUnlocks.length > 0) {
           setPendingPlayerUnlock(missingUnlocks);
         }
+      }
+      // The loaded save keeps its own achievement history: an older copy
+      // that already earned Save Scummer stays earned — no repeat toast.
+      if (shouldUnlockSaveScummer && onTimeTravelLoad &&
+          !useGameStore.getState().unlockedAchievements.has("save_scummer")) {
+        onTimeTravelLoad();
       }
       return true;
     } catch (e) {

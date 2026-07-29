@@ -278,6 +278,45 @@ test.describe("full-app flows", () => {
     await expect(page.getByText("Save Scummer", { exact: false })).toHaveCount(0);
   });
 
+  test("save scummer: an older copy that already earned it stays silent on re-load", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Same shape as the firing scenario — but the older copy has already
+    // earned Save Scummer, so loading it again must not re-toast (the
+    // refire-on-every-qualifying-load regression).
+    await page.evaluate(async () => {
+      const base = window.__fc.dumpSave();
+      const id = "qa-tt3";
+      const now = new Date(0).toISOString();
+      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+        id, name: "QA", createdAt: now, schemaVersion: 1,
+        unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
+        ironmanBest: null, lastIronmanVersion: 0, museum: [],
+      }));
+      const future = { ...base, careerId: "career-qa3", seasonNumber: 1, calendarIndex: 19 };
+      const past = {
+        ...base, careerId: "career-qa3", seasonNumber: 1, calendarIndex: 11,
+        unlockedAchievements: [...(base.unlockedAchievements || []), "save_scummer"],
+      };
+      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+    });
+
+    await page.reload();
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.getByText("QA", { exact: true }).first().click();
+    await expect(page.getByText("Red Lion FC", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+
+    await page.locator("text=Red Lion FC").nth(1).click();
+    await page.waitForFunction(() => window.__fc.getState().teamName === "Red Lion FC", null, { timeout: 10_000 });
+    await page.waitForTimeout(1500);
+    await expect(page.getByText("Save Scummer", { exact: false })).toHaveCount(0);
+  });
+
   test("a corrupt slot is occupied-broken, not an empty slot inviting overwrite", async ({ page }) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
