@@ -44,6 +44,35 @@ without clicking through the new-game UI, and to dump/inject saves.
 `window.__fc` is gated on `import.meta.env.DEV`, so it's stripped from the
 production Pages build — real players never see it.
 
+### 3. Visual regression (`qa/tests/visual.spec.js`)
+Committed-baseline screenshot assertions over the views where layout
+regressions have repeatedly reached review — matchday (live + full-time,
+feed + ratings), the dashboard, Corner Shop packs, league/cup stats, player
+compare, and the mobile nav/header. Small and high-value by design; it is
+not a screenshot of every screen.
+
+```bash
+npm run test:visual          # compare against committed baselines
+npm run test:visual:update   # re-record baselines (explicit, reviewed act)
+```
+
+- Baselines live in `qa/baselines/<project>-<platform>/` and are
+  **committed**. The platform suffix exists because font rasterization
+  differs between macOS and Linux; each platform owns its own baselines.
+- Comparison is strict: `maxDiffPixels: 0`, animations disabled, caret
+  hidden. A failing visual test is a question to answer, never a prompt to
+  regenerate. Never update baselines just because a test went red — look at
+  the diff in the HTML report first, and treat baseline changes in a PR as
+  reviewable images.
+- Determinism: Playwright's fake clock parks live-match states at an exact
+  minute; full-app boots run under a seeded `Math.random` so generated
+  squads/leagues are identical every run. Re-running the suite with no code
+  changes must always pass.
+- Deploy-gate wiring (per #452) is deliberately deferred until Linux
+  baselines are generated from a CI run — committing macOS baselines and
+  letting Ubuntu compare against them would only fail or force fat
+  thresholds.
+
 ## How we use it in the review loop
 
 1. Make a UI change.

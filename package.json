@@ -12,7 +12,9 @@
     "qa": "playwright test",
     "qa:desktop": "playwright test --project=desktop",
     "qa:mobile": "playwright test --project=mobile",
-    "qa:report": "playwright show-report qa/.artifacts/report"
+    "qa:report": "playwright show-report qa/.artifacts/report",
+    "test:visual": "playwright test qa/tests/visual.spec.js",
+    "test:visual:update": "playwright test qa/tests/visual.spec.js --update-snapshots"
   },
   "dependencies": {
     "@paper-design/shaders": "^0.0.77",
