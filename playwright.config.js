@@ -16,12 +16,27 @@ export default defineConfig({
     ["list"],
     ["html", { outputFolder: "qa/.artifacts/report", open: "never" }],
   ],
+  // Visual regression baselines are committed, one per project per platform.
+  // The platform suffix is load-bearing: font rasterization differs between
+  // macOS and Linux, so each platform owns its own baseline set rather than
+  // sharing one and hiding the difference behind a fat diff threshold.
+  snapshotPathTemplate: "qa/baselines/{projectName}-{platform}/{arg}{ext}",
+  expect: {
+    toHaveScreenshot: {
+      // Strict by design: zero differing pixels allowed. Animations are
+      // frozen and the caret hidden at capture time so stillness is real,
+      // not tolerated.
+      maxDiffPixels: 0,
+      animations: "disabled",
+      caret: "hide",
+    },
+  },
   use: {
     baseURL: BASE,
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "desktop", use: { viewport: { width: 1280, height: 800 } } },
+    { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },
     { name: "mobile", use: { viewport: { width: 390, height: 844 } } },
   ],
   webServer: {

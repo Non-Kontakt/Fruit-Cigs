@@ -599,6 +599,24 @@ const RENDERERS = {
       scorers: [{ name: "Sonny Reid", side: "home" }],
     }), { matchDetail: "highlights" })} />
   ),
+  // Live match, ticking in real time from kick-off (1s per minute at speed 1).
+  // The visual spec installs Playwright's fake clock and fast-forwards to an
+  // exact minute, freezing a mid-match LIVE state deterministically. Browsed
+  // by hand it simply plays out.
+  "matchday-live": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [
+        beat(14, "Robinson breaks through on goal... but fires over!"),
+        goal("home", "Nathan Robinson", "Alfie Wilson", 28, "#4ade80"),
+        goal("home", "Nathan Robinson", null, 31, "#4ade80"),
+        goal("away", "Max Doherty", "Reece Palmer", 67, "#38bdf8"),
+      ],
+      scorers: [
+        { name: "Nathan Robinson", side: "home" }, { name: "Nathan Robinson", side: "home" },
+        { name: "Max Doherty", side: "away" },
+      ],
+    }), { instantMatch: false, initialSpeed: 1 })} />
+  ),
   "inbox-asst-training": () => <InboxHarness messages={[asstTrainingMsg(false)]} />,
   "inbox-asst-training-resolved": () => <InboxHarness messages={[asstTrainingMsg(true)]} />,
   "inbox-trial": () => <InboxHarness messages={[trialMsg()]} />,
