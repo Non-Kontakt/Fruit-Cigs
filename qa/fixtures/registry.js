@@ -15,6 +15,7 @@ export const FIXTURES = [
   { id: "match-none", label: "Match — goalless" },
   { id: "match-dupe-surnames", label: "Match — duplicate surnames" },
   { id: "match-highlights", label: "Match — highlights mode" },
+  { id: "matchday-combox", label: "Matchday commentary box — possession states + both flicker phases (#460)" },
   { id: "matchday-live", label: "Match — live, ticking from kick-off (visual spec parks it at 45')" },
   { id: "inbox-asst-training", label: "Inbox — asst. manager training (unresolved)" },
   { id: "inbox-asst-training-resolved", label: "Inbox — asst. manager training (resolved)" },
