@@ -207,6 +207,125 @@ test.describe("full-app flows", () => {
     expect(resumed, "league should hydrate from the injected save").toBe(true);
   });
 
+  test("save scummer: loading the older of two copies of a career fires; the newest doesn't", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // One career, two slots: slot 1 is the future (season 1 week 20),
+    // slot 2 the past (week 12). Same careerId marks them as one timeline.
+    await page.evaluate(async () => {
+      const base = window.__fc.dumpSave();
+      const id = "qa-tt";
+      const now = new Date(0).toISOString();
+      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+        id, name: "QA", createdAt: now, schemaVersion: 1,
+        unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
+        ironmanBest: null, lastIronmanVersion: 0, museum: [],
+      }));
+      const future = { ...base, careerId: "career-qa", seasonNumber: 1, calendarIndex: 19 };
+      const past = { ...base, careerId: "career-qa", seasonNumber: 1, calendarIndex: 11 };
+      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+    });
+
+    await page.reload();
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.getByText("QA", { exact: true }).first().click();
+    await expect(page.getByText("Red Lion FC", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+
+    // Load the OLDER copy (slot 2) — time travel, the toast fires.
+    const slots = page.locator("text=Red Lion FC");
+    await slots.nth(1).click();
+    await page.waitForFunction(() => window.__fc.getState().teamName === "Red Lion FC", null, { timeout: 10_000 });
+    await expect(page.getByText("Save Scummer", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("save scummer: resuming the newest copy of a career stays silent", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    await page.evaluate(async () => {
+      const base = window.__fc.dumpSave();
+      const id = "qa-tt2";
+      const now = new Date(0).toISOString();
+      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+        id, name: "QA", createdAt: now, schemaVersion: 1,
+        unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
+        ironmanBest: null, lastIronmanVersion: 0, museum: [],
+      }));
+      const future = { ...base, careerId: "career-qa2", seasonNumber: 1, calendarIndex: 19 };
+      const past = { ...base, careerId: "career-qa2", seasonNumber: 1, calendarIndex: 11 };
+      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+    });
+
+    await page.reload();
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.getByText("QA", { exact: true }).first().click();
+    await expect(page.getByText("Red Lion FC", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+
+    // Load the NEWEST copy (slot 1) — just resuming; no achievement, which
+    // is also the regression for the old fire-on-every-load bug.
+    await page.locator("text=Red Lion FC").nth(0).click();
+    await page.waitForFunction(() => window.__fc.getState().teamName === "Red Lion FC", null, { timeout: 10_000 });
+    // Never-appears assertion: wait FOR the toast and require the wait to
+    // fail. (An auto-retrying toHaveCount(0) would happily wait out a toast
+    // that showed and auto-dismissed — a false pass.)
+    let appeared = true;
+    try {
+      await page.getByText("Save Scummer", { exact: false }).first().waitFor({ state: "visible", timeout: 2500 });
+    } catch { appeared = false; }
+    expect(appeared, "Save Scummer toast must never appear on a plain resume").toBe(false);
+  });
+
+  test("save scummer: an older copy that already earned it stays silent on re-load", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
+    await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
+
+    // Same shape as the firing scenario — but the older copy has already
+    // earned Save Scummer, so loading it again must not re-toast (the
+    // refire-on-every-qualifying-load regression).
+    await page.evaluate(async () => {
+      const base = window.__fc.dumpSave();
+      const id = "qa-tt3";
+      const now = new Date(0).toISOString();
+      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+        id, name: "QA", createdAt: now, schemaVersion: 1,
+        unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
+        ironmanBest: null, lastIronmanVersion: 0, museum: [],
+      }));
+      const future = { ...base, careerId: "career-qa3", seasonNumber: 1, calendarIndex: 19 };
+      const past = {
+        ...base, careerId: "career-qa3", seasonNumber: 1, calendarIndex: 11,
+        unlockedAchievements: [...(base.unlockedAchievements || []), "save_scummer"],
+      };
+      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+    });
+
+    await page.reload();
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.getByText("QA", { exact: true }).first().click();
+    await expect(page.getByText("Red Lion FC", { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+
+    await page.locator("text=Red Lion FC").nth(1).click();
+    await page.waitForFunction(() => window.__fc.getState().teamName === "Red Lion FC", null, { timeout: 10_000 });
+    let appeared = true;
+    try {
+      await page.getByText("Save Scummer", { exact: false }).first().waitFor({ state: "visible", timeout: 2500 });
+    } catch { appeared = false; }
+    expect(appeared, "an already-earned Save Scummer must not re-toast").toBe(false);
+  });
+
   test("a corrupt slot is occupied-broken, not an empty slot inviting overwrite", async ({ page }) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });

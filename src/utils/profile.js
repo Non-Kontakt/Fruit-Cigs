@@ -104,6 +104,37 @@ export async function deleteMuseumEntry(profileId, archivedAt) {
   } catch { /* non-critical */ }
 }
 
+// Orders two states of one career: season first, calendar position second,
+// total matches as the tie-breaker so two states on the same calendar slot
+// can still be ordered after a match. Positive when a is ahead of b.
+export function compareCareerStates(a, b) {
+  const season = (a?.seasonNumber || 1) - (b?.seasonNumber || 1);
+  if (season) return season;
+  const pos = (s) => s?.calendarIndex ?? Math.max(0, (s?.week || 1) - 1);
+  const week = pos(a) - pos(b);
+  if (week) return week;
+  return (a?.totalMatches || 0) - (b?.totalMatches || 0);
+}
+
+// Does any OTHER slot of this profile hold the SAME career further ahead?
+// Fuel for the Save Scummer time-travel check: loading the older of two
+// copies of one career is deliberate time travel, not resuming.
+export async function findNewerSaveOfCareer(profileId, loaded, excludeSlot) {
+  if (!loaded?.careerId) return null;
+  for (let i = 1; i <= 3; i++) {
+    if (i === excludeSlot) continue;
+    try {
+      const result = await storage.getSave(getSaveKey(profileId, i), { validate: isLoadableSave });
+      if (!result) continue;
+      const other = JSON.parse(result.value);
+      if (other?.careerId === loaded.careerId && compareCareerStates(other, loaded) > 0) {
+        return { slot: i, seasonNumber: other.seasonNumber, calendarIndex: other.calendarIndex };
+      }
+    } catch { /* unavailable slots can't testify */ }
+  }
+  return null;
+}
+
 // Slot scan results are explicitly tri-state, and the distinction is
 // load-bearing for the slot picker:
 // - { status: "ok", ...summary }  — a loadable career
