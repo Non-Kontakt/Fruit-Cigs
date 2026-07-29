@@ -104,6 +104,30 @@ export async function deleteMuseumEntry(profileId, archivedAt) {
   } catch { /* non-critical */ }
 }
 
+// One career's position on its own timeline. Season is primary, week
+// within the season secondary — enough to order any two states of the
+// same career.
+export const careerProgress = (s) => (s?.seasonNumber || 1) * 100000 + (s?.calendarIndex ?? Math.max(0, (s?.week || 1) - 1));
+
+// Does any OTHER slot of this profile hold the SAME career further ahead?
+// Fuel for the Save Scummer time-travel check: loading the older of two
+// copies of one career is deliberate time travel, not resuming.
+export async function findNewerSaveOfCareer(profileId, loaded, excludeSlot) {
+  if (!loaded?.careerId) return null;
+  for (let i = 1; i <= 3; i++) {
+    if (i === excludeSlot) continue;
+    try {
+      const result = await storage.getSave(getSaveKey(profileId, i), { validate: isLoadableSave });
+      if (!result) continue;
+      const other = JSON.parse(result.value);
+      if (other?.careerId === loaded.careerId && careerProgress(other) > careerProgress(loaded)) {
+        return { slot: i, seasonNumber: other.seasonNumber, calendarIndex: other.calendarIndex };
+      }
+    } catch { /* unavailable slots can't testify */ }
+  }
+  return null;
+}
+
 // Slot scan results are explicitly tri-state, and the distinction is
 // load-bearing for the slot picker:
 // - { status: "ok", ...summary }  — a loadable career

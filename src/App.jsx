@@ -760,6 +760,9 @@ function FruitCigs() {
     activeSaveSlot,
     setSaveStatus, setActiveSaveSlot, setSaveSlotSummaries, setImportStatus, setPendingPlayerUnlock,
     loadSettings, generateNewspaperName, generateReporterName,
+    // Save Scummer: fires only on a genuine time-travel load. Delayed so the
+    // unlock's week-recording reads the freshly hydrated store.
+    onTimeTravelLoad: () => setTimeout(() => tryUnlockAchievement("save_scummer"), 500),
     achievementUnlockWeeksRef,
   });
 
@@ -1902,10 +1905,8 @@ function FruitCigs() {
                       setActiveSaveSlot(slot);
                       const loaded = await loadGame(slot);
                       if (loaded) {
-                        // Achievement: Save Scummer — load a save (delayed check after state is restored)
-                        setTimeout(() => {
-                          tryUnlockAchievement("save_scummer");
-                        }, 500);
+                        // Save Scummer moved into loadGame's time-travel
+                        // check — resuming a career is not an achievement.
                       } else {
                         // A summary that looked fine but failed to load is an
                         // occupied-broken slot now, not an empty one.
@@ -1913,7 +1914,10 @@ function FruitCigs() {
                         setActiveSaveSlot(null);
                       }
                     } else {
-                      // Empty slot: select it and show mode picker for new career
+                      // Empty slot: select it and show mode picker for new
+                      // career — which must not inherit the previous
+                      // career's identity from this session.
+                      useGameStore.getState().setCareerId(null);
                       setActiveSaveSlot(slot);
                       setShowModeSelect(true);
                     }
@@ -3604,6 +3608,7 @@ function FruitCigs() {
           } }}
           onExitToMenu={async () => {
             await saveGame();
+            useGameStore.getState().setCareerId(null);
             setTeamName("");
             setNewspaperName(null);
             setReporterName(null);

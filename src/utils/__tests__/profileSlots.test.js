@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { storage } from "../../persistence/storage.js";
 import { SAVE_SCHEMA_VERSION } from "../../persistence/db.js";
 import { SaveVersionError } from "../../persistence/storage.js";
-import { scanProfileSlots, getSaveKey } from "../profile.js";
+import { scanProfileSlots, getSaveKey, findNewerSaveOfCareer, careerProgress } from "../profile.js";
 
 // Integration regression for the slot-picker boundary: the adapter can
 // protect a save all it likes — if the scan reports the slot as empty, the
@@ -63,5 +63,41 @@ describe("scanProfileSlots — tri-state boundary", () => {
     // refuses — the last line of defence behind the UI.
     await expect(storage.setSave(key, save("Usurper FC"))).rejects.toThrow(SaveVersionError);
     expect((await storage._db.kv.get(key)).value).toBe(save("Future FC"));
+  });
+});
+
+describe("save scummer — time-travel detection fuel", () => {
+  const career = (careerId, seasonNumber, calendarIndex) =>
+    JSON.stringify({ teamName: "Red Lion FC", careerId, seasonNumber, calendarIndex });
+
+  it("orders career states season-first, then week", () => {
+    expect(careerProgress({ seasonNumber: 2, calendarIndex: 0 }))
+      .toBeGreaterThan(careerProgress({ seasonNumber: 1, calendarIndex: 30 }));
+    expect(careerProgress({ seasonNumber: 1, calendarIndex: 5 }))
+      .toBeGreaterThan(careerProgress({ seasonNumber: 1, calendarIndex: 4 }));
+  });
+
+  it("finds the same career saved further ahead in another slot", async () => {
+    const pid = "p-timetravel";
+    await storage.setSave(getSaveKey(pid, 1), career("c-1", 1, 20));
+    await storage.setSave(getSaveKey(pid, 2), career("c-1", 1, 12));
+    // Loading the older slot 2: slot 1 is the future.
+    const newer = await findNewerSaveOfCareer(pid, JSON.parse(career("c-1", 1, 12)), 2);
+    expect(newer).toMatchObject({ slot: 1 });
+    // Loading the newest slot 1: nothing is ahead of it.
+    expect(await findNewerSaveOfCareer(pid, JSON.parse(career("c-1", 1, 20)), 1)).toBeNull();
+  });
+
+  it("a different career further ahead is not time travel", async () => {
+    const pid = "p-other-career";
+    await storage.setSave(getSaveKey(pid, 1), career("c-a", 5, 10));
+    await storage.setSave(getSaveKey(pid, 2), career("c-b", 1, 3));
+    expect(await findNewerSaveOfCareer(pid, JSON.parse(career("c-b", 1, 3)), 2)).toBeNull();
+  });
+
+  it("saves without a career identity never match", async () => {
+    const pid = "p-no-id";
+    await storage.setSave(getSaveKey(pid, 1), JSON.stringify({ teamName: "A", seasonNumber: 9, calendarIndex: 9 }));
+    expect(await findNewerSaveOfCareer(pid, { teamName: "B", seasonNumber: 1, calendarIndex: 0 }, 2)).toBeNull();
   });
 });

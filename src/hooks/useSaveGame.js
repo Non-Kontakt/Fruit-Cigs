@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
-import { getSaveKey, archiveCareerToMuseum, readProfile, isLoadableSave } from "../utils/profile.js";
+import { getSaveKey, archiveCareerToMuseum, readProfile, isLoadableSave, findNewerSaveOfCareer, careerProgress } from "../utils/profile.js";
 import { storage } from "../persistence/storage.js";
 import { ATTRIBUTES } from "../data/training.js";
 import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
@@ -49,6 +49,7 @@ export function useSaveGame({
   loadSettings,
   generateNewspaperName,
   generateReporterName,
+  onTimeTravelLoad,
   // Refs
   achievementUnlockWeeksRef,
 }) {
@@ -60,8 +61,15 @@ export function useSaveGame({
     if (!teamName || !league || !activeSaveSlot || !activeProfileId) return;
     setSaveStatus("saving");
     try {
+      // A career gets its stable identity the first time it touches disk.
+      let careerId = s.careerId;
+      if (!careerId) {
+        careerId = `career-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        s.setCareerId(careerId);
+      }
       const saveData = serializeState({
         version: 3,
+        careerId,
         teamName, newspaperName: s.newspaperName, reporterName: s.reporterName,
         managerName: s.managerName, managerAvatar: s.managerAvatar,
         squad: s.squad, league, matchweekIndex: s.matchweekIndex,
@@ -224,7 +232,19 @@ export function useSaveGame({
       }
       const s = hydrateState(JSON.parse(result.value));
       if (!s || !s.teamName) return false;
+
+      // Save Scummer — time travel, not participation. Fires only when a
+      // NEWER state of this same career exists: the live session being
+      // abandoned (play, lose, reload), or another slot saved further ahead
+      // (loading the older of two copies of one career).
+      const live = store;
+      const abandoningNewer = !!(s.careerId && live.careerId === s.careerId &&
+        careerProgress(live) > careerProgress(s));
+      const newerSibling = abandoningNewer ? null : await findNewerSaveOfCareer(store.activeProfileId, s, slot);
+      if ((abandoningNewer || newerSibling) && onTimeTravelLoad) onTimeTravelLoad();
+
       setActiveSaveSlot(slot);
+      store.setCareerId(s.careerId || null);
       store.setTeamName(s.teamName);
       store.setNewspaperName(s.newspaperName || generateNewspaperName(s.teamName));
       store.setReporterName(s.reporterName || generateReporterName());

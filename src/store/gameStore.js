@@ -346,6 +346,10 @@ export const useGameStore = create((set, get) => ({
   favouriteStarts: {},
 
   // === Identity ===
+  // Stable id for one career across its whole life — stamped on first save,
+  // survives export/import, and is how "two slots holding the same career"
+  // is detected (the Save Scummer time-travel check).
+  careerId: null,
   teamName: null,
   newspaperName: null,
   reporterName: null,
@@ -566,6 +570,7 @@ export const useGameStore = create((set, get) => ({
   setFavouriteStarts: (val) => set(s => ({ favouriteStarts: typeof val === "function" ? val(s.favouriteStarts) : val })),
 
   setTeamName: (val) => set(s => ({ teamName: typeof val === "function" ? val(s.teamName) : val })),
+  setCareerId: (val) => set(s => ({ careerId: typeof val === "function" ? val(s.careerId) : val })),
   setNewspaperName: (val) => set(s => ({ newspaperName: typeof val === "function" ? val(s.newspaperName) : val })),
   setReporterName: (val) => set(s => ({ reporterName: typeof val === "function" ? val(s.reporterName) : val })),
   setManagerName: (val) => set(s => ({ managerName: typeof val === "function" ? val(s.managerName) : val })),
