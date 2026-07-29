@@ -48,6 +48,23 @@ test.describe("matchday commentary box (#460)", () => {
     await expect(page.getByText("RATINGS", { exact: true })).toBeVisible();
   });
 
+  test("match settings gear houses the speed controls", async ({ page }) => {
+    await mountMatch(page, "matchday-live");
+    await page.clock.runFor(5_000);
+    // No inline speed row any more; the gear opens the popover.
+    await expect(page.getByText("▶ SLOW", { exact: true })).toHaveCount(0);
+    await page.getByLabel("Match settings").click();
+    await expect(page.getByText("▶ SLOW", { exact: true })).toBeVisible();
+    await page.getByText("▶▶ FAST", { exact: true }).click();
+    // Fast speed: minutes now tick at 400ms — 4s of clock ≈ +10 minutes.
+    await page.clock.runFor(4_000);
+    const minute = await page.evaluate(() => {
+      const m = document.body.innerText.match(/(\d+)'/);
+      return m ? Number(m[1]) : 0;
+    });
+    expect(minute).toBeGreaterThan(12);
+  });
+
   test("full time: durable queue drains before CONTINUE appears", async ({ page }) => {
     await mountMatch(page, "matchday-live");
     // To 90' — the fulltime event enters the durable queue at the whistle.

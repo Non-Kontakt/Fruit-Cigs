@@ -44,6 +44,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const tickerRef = React.useRef(null);
   const mob = useMobile();
   const [viewingTeam, setViewingTeam] = useState(null); // { team, tableRow, matchGoals }
+  const [showMatchSettings, setShowMatchSettings] = useState(false);
 
   // Reduced motion is a presentation-logic decision (#460): the goal lock
   // holds steady colours instead of flickering. Read once per mount.
@@ -249,7 +250,50 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         transform: visible ? "scale(1)" : "scale(0.8)",
         transition: "transform 0.4s ease, border-color 0.5s ease",
         overflow: "hidden",
+        position: "relative",
       }}>
+        {/* Match settings — a gear in the corner instead of an inline
+            control row (owner ruling: the modal was bloated). Houses speed
+            now; the home for any future mid-match settings. */}
+        {!finished && !isHighlights && (
+          <div style={{ position: "absolute", top: 8, right: 8, zIndex: 2 }}>
+            <button
+              aria-label="Match settings"
+              onClick={() => setShowMatchSettings(v => !v)}
+              style={{
+                background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.6)",
+                border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
+                color: showMatchSettings ? C.green : C.textMuted,
+                fontFamily: FONT, fontSize: F.md, cursor: "pointer",
+                padding: "6px 9px", lineHeight: 1,
+              }}
+            >⚙</button>
+            {showMatchSettings && (
+              <div style={{
+                position: "absolute", top: "110%", right: 0,
+                background: "#0d0d1f", border: `1px solid ${C.bgInput}`,
+                padding: 10, display: "flex", flexDirection: "column", gap: 8,
+                minWidth: 132, boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+              }}>
+                <div style={{ fontSize: F.micro, color: C.textDim, letterSpacing: 2 }}>SPEED</div>
+                <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 1 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 1 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 1 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶ SLOW</button>
+                <button onClick={() => { setSpeed(2); onSpeedChange?.(2); wasAlwaysNormal.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 2 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 2 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 2 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶▶ FAST</button>
+              </div>
+            )}
+          </div>
+        )}
         {/* Scoreboard — fixed height */}
         <div style={{ textAlign: "center", marginBottom: 4, flexShrink: 0 }}>
           {/* Competition label */}
@@ -365,37 +409,6 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           )}
         </div>
 
-        {/* Scorer/assister strip — persistent under scoreline, all modes */}
-        <ScorerStrip
-          events={shownEvents}
-          homeSquad={homeTeam?.squad}
-          awaySquad={awayTeam?.squad}
-          isMobile={mob}
-        />
-
-        {/* Speed controls — fixed slot while live; collapses in highlights
-            mode and at full time so the ratings get the space instead. */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 9, marginBottom: isHighlights || finished ? 0 : 14, minHeight: isHighlights || finished ? 0 : 32, flexShrink: 0 }}>
-          {!finished && !isHighlights && (
-            <>
-              <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
-                padding: "8px 18px", fontSize: F.sm,
-                background: speed === 1 ? "rgba(74,222,128,0.15)" : "transparent",
-                border: speed === 1 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
-                color: speed === 1 ? C.green : C.slate,
-                fontFamily: FONT, cursor: "pointer",
-              }}>▶ SLOW</button>
-              <button onClick={() => { setSpeed(2); onSpeedChange?.(2); wasAlwaysNormal.current = false; }} style={{
-                padding: "8px 18px", fontSize: F.sm,
-                background: speed === 2 ? "rgba(74,222,128,0.15)" : "transparent",
-                border: speed === 2 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
-                color: speed === 2 ? C.green : C.slate,
-                fontFamily: FONT, cursor: "pointer",
-              }}>▶▶ FAST</button>
-            </>
-          )}
-        </div>
-
         {/* The commentary box (#460): one line, featured side's colours,
             goal flash handled inside the component. Fixed footprint. */}
         <div style={{ marginBottom: 10, flexShrink: 0 }}>
@@ -409,6 +422,15 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             mob={mob}
           />
         </div>
+
+        {/* Scorers/assisters with timestamps — beneath the box (owner
+            hierarchy ruling), above ratings */}
+        <ScorerStrip
+          events={shownEvents}
+          homeSquad={homeTeam?.squad}
+          awaySquad={awayTeam?.squad}
+          isMobile={mob}
+        />
 
         {/* Ratings — the permanent section beneath the box */}
         <div style={{ color: C.textDim, fontSize: F.micro, letterSpacing: 2, marginBottom: 4, flexShrink: 0 }}>RATINGS</div>
