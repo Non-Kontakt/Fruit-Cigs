@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { SFX, BGM } from "../utils/sfx.js";
+import { SETTINGS_KEY } from "../persistence/keys.js";
 
 /**
  * Manages all user-configurable settings and keeps external audio systems
  * (SFX, BGM) in sync. Also provides a single `loadSettings(saveData)` helper
  * so the load-game path only needs one call instead of eight individual setters.
  */
-import { SETTINGS_KEY } from "../persistence/keys.js";
 
 function loadStoredSettings() {
   try {
