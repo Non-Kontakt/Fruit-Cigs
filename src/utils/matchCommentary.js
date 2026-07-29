@@ -30,12 +30,24 @@ export function goalCopy(teamName) {
   return `GOAL FOR ${String(teamName || "").toUpperCase()}!`;
 }
 
-// Concise scorer line from structured fields — never the raw feed text.
-// Mobile omits the assist (agreed mobile matchday economy; the scorer strip
-// keeps the record).
-export function scorerLine(evt, { mob = false } = {}) {
-  const assist = !mob && evt.assister ? ` (${evt.assister})` : "";
-  return `⚽ ${evt.player} ${evt.minute}'${assist}`;
+// The box is purely for text (owner ruling): raw engine strings carry emoji
+// and score-report syntax that belong to other surfaces.
+export function stripPresentation(text) {
+  return String(text || "")
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2B00}-\u{2BFF}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const surname = (name) => String(name || "").trim().split(" ").pop();
+
+// Conversational prose after the flash — no timestamp, no score-report
+// syntax; the scorer ledger below the box owns names, assists and minutes.
+// Mobile drops the assist sentence (mobile matchday economy).
+export function goalProse(evt, { mob = false } = {}) {
+  const finish = `${surname(evt.player)} makes no mistake.`;
+  const assist = !mob && evt.assister ? ` ${surname(evt.assister)} created the opening.` : "";
+  return finish + assist;
 }
 
 // Adapt one raw match event into zero or one commentary item.
@@ -47,12 +59,12 @@ export function itemForEvent(evt, ctx) {
     const teamName = evt.side === "home" ? ctx.homeName : ctx.awayName;
     return {
       id, kind: "durable", side,
-      goal: { lockCopy: goalCopy(teamName), followUp: scorerLine(evt, ctx) },
-      copy: scorerLine(evt, ctx),
+      goal: { lockCopy: goalCopy(teamName), followUp: goalProse(evt, ctx) },
+      copy: goalProse(evt, ctx),
     };
   }
   const durable = ctx.detail === "highlights" || DURABLE_TYPES.has(evt.type);
-  return { id, kind: durable ? "durable" : "line", side, copy: evt.text };
+  return { id, kind: durable ? "durable" : "line", side, copy: stripPresentation(evt.text) };
 }
 
 // Penalty kicks: explicit copy; only a SCORED kick gets the goal treatment.
@@ -62,11 +74,11 @@ export function itemForPenaltyKick(kick, ctx) {
   if (kick.scored) {
     return {
       id, kind: "durable", side: kick.side,
-      goal: { lockCopy: goalCopy(teamName), followUp: `⚽ ${kick.player} scores the penalty!` },
-      copy: `⚽ ${kick.player} scores the penalty!`,
+      goal: { lockCopy: goalCopy(teamName), followUp: `${surname(kick.player)} scores from the spot.` },
+      copy: `${surname(kick.player)} scores from the spot.`,
     };
   }
-  return { id, kind: "durable", side: kick.side, copy: `✕ ${kick.player} misses the penalty!` };
+  return { id, kind: "durable", side: kick.side, copy: `${surname(kick.player)} misses from the spot.` };
 }
 
 // --- the machine -----------------------------------------------------------

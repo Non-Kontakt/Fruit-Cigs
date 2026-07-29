@@ -47,18 +47,18 @@ export function ScorerStrip({
       const mins = minutesStr(entry);
       return (
         <div key={key} style={{
-          fontSize: F.xs, lineHeight: 1.6, color: C.text,
+          fontSize: F.xs, lineHeight: 1.6, color: C.textMuted,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           textAlign: alignRight ? "right" : "left",
         }}>
           {alignRight ? (
             <>
               <span>{name}</span>
-              {mins && <span style={{ color: C.textMuted, marginLeft: 4 }}>{mins}</span>}
+              {mins && <span style={{ color: C.textDim, marginLeft: 4 }}>{mins}</span>}
             </>
           ) : (
             <>
-              {mins && <span style={{ color: C.textMuted, marginRight: 4 }}>{mins}</span>}
+              {mins && <span style={{ color: C.textDim, marginRight: 4 }}>{mins}</span>}
               <span>{name}</span>
             </>
           )}
@@ -68,11 +68,8 @@ export function ScorerStrip({
     return (
       <div style={{
         display: "flex", gap: 10,
-        marginTop: 4, marginBottom: 6,
-        padding: "5px 8px",
-        background: "rgba(15,23,42,0.5)",
-        borderTop: `1px solid ${C.bgCard}`,
-        borderBottom: `1px solid ${C.bgCard}`,
+        marginTop: 10, marginBottom: 12,
+        padding: "0 4px",
         flexShrink: 0,
         fontFamily: FONT,
       }}>
@@ -110,14 +107,14 @@ export function ScorerStrip({
     }
     return (
       <div key={key} style={{
-        fontSize: F.sm, lineHeight: 1.5, color: C.text,
+        fontSize: F.sm, lineHeight: 1.5, color: C.textMuted,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         textAlign: alignRight ? "right" : "left",
       }}>
         <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           <span>{formatScorerName(entry.player)}</span>
           {minuteParts.length > 0 && (
-            <span style={{ color: C.textMuted, marginLeft: 4 }}>{minuteParts.join(", ")}</span>
+            <span style={{ color: C.textDim, marginLeft: 4 }}>{minuteParts.join(", ")}</span>
           )}
         </div>
         {assistLine && (
@@ -135,11 +132,8 @@ export function ScorerStrip({
   return (
     <div style={{
       display: "flex", gap: 16,
-      marginTop: 8, marginBottom: 10,
-      padding: "8px 14px",
-      background: "rgba(15,23,42,0.5)",
-      borderTop: `1px solid ${C.bgCard}`,
-      borderBottom: `1px solid ${C.bgCard}`,
+      marginTop: 14, marginBottom: 16,
+      padding: "0 6px",
       flexShrink: 0,
       fontFamily: FONT,
     }}>

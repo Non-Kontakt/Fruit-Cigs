@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   initialCommentaryState, enqueue, advance, holdFor, durableOutstanding,
-  itemForEvent, itemForPenaltyKick, terminalState, goalCopy, scorerLine,
+  itemForEvent, itemForPenaltyKick, terminalState, goalCopy, goalProse, stripPresentation,
 } from "../matchCommentary.js";
 
 const ctx = (over = {}) => {
@@ -13,15 +13,22 @@ const goalEvt = (side = "home", minute = 23) =>
   ({ type: "goal", side, minute, player: "Robinson", assister: "Wilson", text: "raw feed text" });
 
 describe("item adaptation — honest featured side", () => {
-  it("goals become durable lock+followup items with structured copy", () => {
+  it("goals become durable lock+followup items with conversational prose", () => {
     const item = itemForEvent(goalEvt(), ctx());
     expect(item.kind).toBe("durable");
     expect(item.goal.lockCopy).toBe("GOAL FOR RED LION FC!");
-    expect(item.goal.followUp).toBe("⚽ Robinson 23' (Wilson)");
+    // No emoji, no timestamp, no score-report syntax — the ledger owns those.
+    expect(item.goal.followUp).toBe("Robinson makes no mistake. Wilson created the opening.");
   });
 
-  it("mobile scorer line omits the assist", () => {
-    expect(scorerLine(goalEvt(), { mob: true })).toBe("⚽ Robinson 23'");
+  it("mobile goal prose drops the assist sentence", () => {
+    expect(goalProse(goalEvt(), { mob: true })).toBe("Robinson makes no mistake.");
+  });
+
+  it("the box is purely for text: raw engine strings lose their emoji", () => {
+    expect(stripPresentation("⚽ GOAL! Reid scores! 🎯")).toBe("GOAL! Reid scores!");
+    const item = itemForEvent({ type: "chance", side: "home", text: "🔥 Adams shoots — saved!" }, ctx());
+    expect(item.copy).toBe("Adams shoots — saved!");
   });
 
   it("sideless events (halftime/fulltime/motm) map to neutral", () => {
@@ -37,12 +44,13 @@ describe("item adaptation — honest featured side", () => {
     expect(itemForEvent({ type: "chance", side: "home", text: "x" }, ctx({ detail: "highlights" })).kind).toBe("durable");
   });
 
-  it("only scored penalties get the goal treatment", () => {
-    const scored = itemForPenaltyKick({ side: "away", player: "Doherty", scored: true }, ctx());
-    const missed = itemForPenaltyKick({ side: "away", player: "Doherty", scored: false }, ctx());
+  it("only scored penalties get the goal treatment, all copy emoji-free", () => {
+    const scored = itemForPenaltyKick({ side: "away", player: "Max Doherty", scored: true }, ctx());
+    const missed = itemForPenaltyKick({ side: "away", player: "Max Doherty", scored: false }, ctx());
     expect(scored.goal.lockCopy).toBe("GOAL FOR YERALDEN!");
+    expect(scored.goal.followUp).toBe("Doherty scores from the spot.");
     expect(missed.goal).toBeUndefined();
-    expect(missed.copy).toContain("misses");
+    expect(missed.copy).toBe("Doherty misses from the spot.");
     expect(missed.kind).toBe("durable");
   });
 });
@@ -66,7 +74,7 @@ describe("machine sequencing", () => {
     expect(holdFor(s)).toBeGreaterThan(0);
     s = advance(s);
     expect(s.phase).toBe("followup");
-    expect(s.copy).toBe("⚽ Robinson 23' (Wilson)");
+    expect(s.copy).toBe("Robinson makes no mistake. Wilson created the opening.");
     s = advance(s);
     expect(s.phase).toBe("line");
     expect(durableOutstanding(s)).toBe(false);
@@ -89,7 +97,7 @@ describe("machine sequencing", () => {
     expect(s.copy).toBe("GOAL FOR RED LION FC!");
     expect(s.queue).toHaveLength(1);
     s = advance(s);            // → followup of first
-    expect(s.copy).toContain("44'");
+    expect(s.copy).toContain("makes no mistake");
     s = advance(s);            // → second goal's lock
     expect(s.phase).toBe("lock");
     expect(s.copy).toBe("GOAL FOR YERALDEN!");
@@ -110,7 +118,7 @@ describe("machine sequencing", () => {
     }
     expect(seen).toEqual([
       "GOAL FOR RED LION FC!",
-      "⚽ Robinson 90' (Wilson)",
+      "Robinson makes no mistake. Wilson created the opening.",
       "Full time!",
       "MOTM: Robinson",
     ]);
@@ -132,7 +140,7 @@ describe("machine sequencing", () => {
       s = advance(s);
     }
     expect(seen.filter(t => t.includes("GOAL FOR"))).toHaveLength(2);
-    expect(seen.some(t => t.includes("B misses"))).toBe(true);
+    expect(seen.some(t => t.includes("B misses from the spot"))).toBe(true);
   });
 
   it("instant matches get a settled terminal state, no queue", () => {

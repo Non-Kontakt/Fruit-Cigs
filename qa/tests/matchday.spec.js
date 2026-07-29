@@ -23,9 +23,9 @@ async function mountMatch(page, fixtureId) {
   await settleFonts(page);
 }
 
-// Mobile omits the assist from the scorer line by design.
-const scorerLineFor = (project) =>
-  project === "mobile" ? "⚽ Nathan Robinson 28'" : "⚽ Nathan Robinson 28' (Alfie Wilson)";
+// Mobile drops the assist sentence from the goal prose by design.
+const goalProseFor = (project) =>
+  project === "mobile" ? "Robinson makes no mistake." : "Robinson makes no mistake. Wilson created the opening.";
 
 test.describe("matchday commentary box (#460)", () => {
   test("live match: box narrates, goal locks then shows the scorer line, no feed anywhere", async ({ page }, testInfo) => {
@@ -40,12 +40,14 @@ test.describe("matchday commentary box (#460)", () => {
     await page.clock.runFor(28_300);
     await expect(page.getByText("GOAL FOR RED LION FC!", { exact: true })).toBeVisible();
 
-    // The lock resolves into the structured scorer line, not the feed text.
+    // The lock resolves into conversational prose — no emoji, no timestamp.
     await page.clock.runFor(1_500);
-    await expect(page.getByText(scorerLineFor(testInfo.project.name), { exact: true })).toBeVisible();
+    await expect(page.getByText(goalProseFor(testInfo.project.name), { exact: true })).toBeVisible();
 
-    // Ratings are permanently on screen while the match runs.
-    await expect(page.getByText("RATINGS", { exact: true })).toBeVisible();
+    // MATCH is the default view; RATINGS is one discreet switch away.
+    await page.getByText("RATINGS", { exact: true }).click();
+    await expect(page.getByText("Vaughan", { exact: false }).first()).toBeVisible();
+    await page.getByText("MATCH", { exact: true }).click();
   });
 
   test("match settings gear houses the speed controls", async ({ page }) => {
@@ -82,8 +84,10 @@ test.describe("matchday commentary box (#460)", () => {
     await page.clock.fastForward(2_000);
     await expect(page.getByText("Full time.", { exact: true })).toBeVisible();
     await expect(page.getByText("CONTINUE ▶", { exact: true })).toBeVisible();
-    await expect(page.getByText("RATINGS", { exact: true })).toBeVisible();
     await expect(page.getByText("FEED", { exact: true })).toHaveCount(0);
+    // MATCH stays the default at full time; ratings are the secondary view.
+    await page.getByText("RATINGS", { exact: true }).click();
+    await expect(page.getByText("Vaughan", { exact: false }).first()).toBeVisible();
   });
 
   test("reduced motion: the goal lock still shows its copy (steady, no strobe)", async ({ page }, testInfo) => {
@@ -92,6 +96,6 @@ test.describe("matchday commentary box (#460)", () => {
     await page.clock.runFor(28_300);
     await expect(page.getByText("GOAL FOR RED LION FC!", { exact: true })).toBeVisible();
     await page.clock.runFor(1_500);
-    await expect(page.getByText(scorerLineFor(testInfo.project.name), { exact: true })).toBeVisible();
+    await expect(page.getByText(goalProseFor(testInfo.project.name), { exact: true })).toBeVisible();
   });
 });

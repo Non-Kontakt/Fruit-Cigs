@@ -45,6 +45,25 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const mob = useMobile();
   const [viewingTeam, setViewingTeam] = useState(null); // { team, tableRow, matchGoals }
   const [showMatchSettings, setShowMatchSettings] = useState(false);
+  const matchSettingsRef = useRef(null);
+  const [view, setView] = useState("match"); // "match" | "ratings" — MATCH is the default, live and at full time
+
+  // The settings popover closes cleanly: outside click or Escape.
+  useEffect(() => {
+    if (!showMatchSettings) return;
+    const onDown = (e) => {
+      if (matchSettingsRef.current && !matchSettingsRef.current.contains(e.target)) setShowMatchSettings(false);
+    };
+    const onKey = (e) => { if (e.key === "Escape") setShowMatchSettings(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showMatchSettings]);
 
   // Reduced motion is a presentation-logic decision (#460): the goal lock
   // holds steady colours instead of flickering. Read once per mount.
@@ -255,17 +274,19 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         {/* Match settings — a gear in the corner instead of an inline
             control row (owner ruling: the modal was bloated). Houses speed
             now; the home for any future mid-match settings. */}
-        {!finished && !isHighlights && (
-          <div style={{ position: "absolute", top: 8, right: 8, zIndex: 2 }}>
+        {!finished && !isHighlights && !instantMatch && (
+          <div ref={matchSettingsRef} style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}>
             <button
               aria-label="Match settings"
               onClick={() => setShowMatchSettings(v => !v)}
               style={{
-                background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.6)",
+                width: 42, height: 42,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
                 border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
-                color: showMatchSettings ? C.green : C.textMuted,
-                fontFamily: FONT, fontSize: F.md, cursor: "pointer",
-                padding: "6px 9px", lineHeight: 1,
+                color: showMatchSettings ? C.green : C.text,
+                fontFamily: FONT, fontSize: F.xl, cursor: "pointer",
+                lineHeight: 1, padding: 0,
               }}
             >⚙</button>
             {showMatchSettings && (
@@ -298,7 +319,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         <div style={{ textAlign: "center", marginBottom: 4, flexShrink: 0 }}>
           {/* Competition label */}
           {competitionLabel && (
-            <div style={{ fontSize: F.sm, color: C.gold, letterSpacing: 2, marginBottom: 9 }}>
+            <div style={{ fontSize: F.sm, color: C.gold, letterSpacing: 2, marginBottom: 9, padding: mob ? "0 48px" : 0 }}>
               🏆 {competitionLabel}
             </div>
           )}
@@ -409,9 +430,24 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           )}
         </div>
 
-        {/* The commentary box (#460): one line, featured side's colours,
-            goal flash handled inside the component. Fixed footprint. */}
-        <div style={{ marginBottom: 10, flexShrink: 0 }}>
+        {/* MATCH | RATINGS — discreet switch; the header above stays put,
+            only the lower content changes. MATCH is the default view. */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 18, margin: "2px 0 10px", flexShrink: 0 }}>
+          {["match", "ratings"].map((v) => (
+            <button key={v} onClick={() => setView(v)} style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: FONT, fontSize: F.xs, letterSpacing: 2,
+              color: view === v ? C.green : C.slate,
+              borderBottom: view === v ? `2px solid ${C.green}` : "2px solid transparent",
+              padding: "4px 2px",
+            }}>{v.toUpperCase()}</button>
+          ))}
+        </div>
+
+        {view === "match" && (<>
+        <div style={{ flex: 0.45, minHeight: 8 }} />
+        {/* The commentary box (#460): the hero of the matchday. */}
+        <div style={{ marginTop: 4, marginBottom: 4, flexShrink: 0 }}>
           <MatchCommentaryBox
             copy={commentary.copy}
             kit={commentary.side === "home" ? deriveKit(homeTeam.color)
@@ -423,18 +459,18 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           />
         </div>
 
-        {/* Scorers/assisters with timestamps — beneath the box (owner
-            hierarchy ruling), above ratings */}
+        {/* Scorers/assisters with timestamps — unboxed ledger, spacing and
+            muted typography instead of another panel */}
         <ScorerStrip
           events={shownEvents}
           homeSquad={homeTeam?.squad}
           awaySquad={awayTeam?.squad}
           isMobile={mob}
         />
+        <div style={{ flex: 1, minHeight: 0 }} />
+        </>)}
 
-        {/* Ratings — the permanent section beneath the box */}
-        <div style={{ color: C.textDim, fontSize: F.micro, letterSpacing: 2, marginBottom: 4, flexShrink: 0 }}>RATINGS</div>
-        {result.playerRatings && (() => {
+        {view === "ratings" && result.playerRatings && (() => {
           const playerSide = result.isPlayerHome ? "home" : "away";
 
           // Aggregate events per player from the live feed so far
@@ -536,13 +572,13 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             return (
               <div key={i} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "7px 13px",
+                padding: "10px 14px",
                 opacity: dimmed ? 0.5 : 1,
-                background: isLeader ? "rgba(250,204,21,0.07)" : displayRating >= 8 ? "rgba(74,222,128,0.05)" : "transparent",
+                background: isLeader ? "rgba(250,204,21,0.07)" : "transparent",
                 borderLeft: isLeader ? `2px solid rgba(250,204,21,0.5)` : "2px solid transparent",
               }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
+                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "3px 6px", lineHeight: 1.4, fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
                   <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: dimmed ? C.textMuted : pr.isSub ? C.textMuted : C.text, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
                   {subOff != null && <span style={{ color: C.red, fontSize: F.micro }}>↓{subOff}'</span>}
                   {subOn != null && <span style={{ color: C.green, fontSize: F.micro }}>↑{subOn}'</span>}
@@ -583,7 +619,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           );
         })()}
 
-        {!result.playerRatings && (
+        {view === "ratings" && !result.playerRatings && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: F.xs, marginBottom: 8 }}>
             Ratings available after kick off
           </div>

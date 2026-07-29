@@ -50,18 +50,19 @@ function relativeLuminance(hex) {
 // Style for one box state. Exported so harness fixtures can freeze exact
 // frames (either flicker phase) without reaching into timing.
 export function comboxStyle([bg, fg], { inverted = false, mob = false } = {}) {
+  // Hero scale: the box is the matchday experience, not an accessory.
   return {
-    height: mob ? 58 : 64,
+    height: mob ? 74 : 92,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
-    padding: "6px 14px",
+    padding: mob ? "8px 14px" : "10px 22px",
     background: inverted ? fg : bg,
     color: inverted ? bg : fg,
     fontFamily: FONT,
-    fontSize: mob ? F.xs : F.sm,
-    lineHeight: 1.5,
+    fontSize: mob ? F.sm : F.md,
+    lineHeight: 1.6,
     overflow: "hidden",
   };
 }
