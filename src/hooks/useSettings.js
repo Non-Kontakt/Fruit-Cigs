@@ -6,7 +6,7 @@ import { SFX, BGM } from "../utils/sfx.js";
  * (SFX, BGM) in sync. Also provides a single `loadSettings(saveData)` helper
  * so the load-game path only needs one call instead of eight individual setters.
  */
-const SETTINGS_KEY = "jfg-settings";
+import { SETTINGS_KEY } from "../persistence/keys.js";
 
 function loadStoredSettings() {
   try {
