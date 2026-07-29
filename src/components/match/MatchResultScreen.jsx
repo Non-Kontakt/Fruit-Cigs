@@ -251,31 +251,29 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: Z.panel,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(0,0,0,0.85)",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      background: "#0d0d1f",
       opacity: visible ? 1 : 0,
       pointerEvents: visible ? "auto" : "none",
-      transition: "opacity 0.4s ease",
+      transition: "opacity 0.35s ease",
       fontFamily: FONT,
+      overflowY: "auto",
     }}>
       <div style={{
-        background: "linear-gradient(170deg, #1a1a2e 0%, #0d0d1f 60%, #1a1a2e 100%)",
-        border: `3px solid ${resultColor}`,
-        padding: mob ? "18px 14px" : "28px 32px",
-        maxWidth: 621, width: mob ? "96%" : "92%",
-        height: mob ? "70vh" : "72vh",
+        width: mob ? "94%" : "min(720px, 92%)",
+        padding: mob ? "26px 0 20px" : "44px 0 28px",
         display: "flex", flexDirection: "column",
-        boxShadow: `0 0 50px ${resultColor}33, inset 0 0 80px rgba(0,0,0,0.6)`,
-        transform: visible ? "scale(1)" : "scale(0.8)",
-        transition: "transform 0.4s ease, border-color 0.5s ease",
-        overflow: "hidden",
+        minHeight: 0, flex: 1,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(14px)",
+        transition: "opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s",
         position: "relative",
       }}>
         {/* Match settings — a gear in the corner instead of an inline
             control row (owner ruling: the modal was bloated). Houses speed
             now; the home for any future mid-match settings. */}
         {!finished && !isHighlights && !instantMatch && (
-          <div ref={matchSettingsRef} style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}>
+          <div ref={matchSettingsRef} style={{ position: "fixed", top: 14, right: 14, zIndex: 2 }}>
             <button
               aria-label="Match settings"
               onClick={() => setShowMatchSettings(v => !v)}
@@ -319,7 +317,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         <div style={{ textAlign: "center", marginBottom: 4, flexShrink: 0 }}>
           {/* Competition label */}
           {competitionLabel && (
-            <div style={{ fontSize: F.sm, color: C.gold, letterSpacing: 2, marginBottom: 9, padding: mob ? "0 48px" : 0 }}>
+            <div style={{ fontSize: F.sm, color: C.gold, letterSpacing: 2, marginBottom: 9 }}>
               🏆 {competitionLabel}
             </div>
           )}
@@ -445,7 +443,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         </div>
 
         {view === "match" && (<>
-        <div style={{ flex: 0.45, minHeight: 8 }} />
+        <div style={{ height: mob ? 10 : 22, flexShrink: 0 }} />
         {/* The commentary box (#460): the hero of the matchday. */}
         <div style={{ marginTop: 4, marginBottom: 4, flexShrink: 0 }}>
           <MatchCommentaryBox
@@ -605,7 +603,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           };
 
           return (
-            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, marginBottom: 8, border: `1px solid ${C.bgCard}`, background: "rgba(15,15,35,0.6)" }}>
+            <div style={{ overflowY: "auto", maxHeight: "60vh", minHeight: 0, marginBottom: 8, border: `1px solid ${C.bgCard}`, background: "rgba(15,15,35,0.6)" }}>
               {starters.map((pr, i) => renderRow(pr, i))}
               {subs.length > 0 && (
                 <>
