@@ -11,19 +11,19 @@ let n = 0;
 const fresh = () =>
   createStorage({ name: `fc-test-${++n}`, indexedDB, IDBKeyRange });
 
-const KEY = "jfg-save-p1-1";
+const KEY = "test-save-1";
 
 describe("storage adapter — plain key/value", () => {
   it("round-trips values and lists by prefix", async () => {
     const s = fresh();
-    await s.set("jfg-profiles", "[]");
-    await s.set("jfg-profile-a", "{}");
-    expect((await s.get("jfg-profiles")).value).toBe("[]");
+    await s.set("test-rows", "[]");
+    await s.set("test-row-a", "{}");
+    expect((await s.get("test-rows")).value).toBe("[]");
     expect(await s.get("missing")).toBeNull();
-    const { keys } = await s.list("jfg-profile");
-    expect(keys.sort()).toEqual(["jfg-profile-a", "jfg-profiles"]);
-    await s.delete("jfg-profiles");
-    expect(await s.get("jfg-profiles")).toBeNull();
+    const { keys } = await s.list("test-row");
+    expect(keys.sort()).toEqual(["test-row-a", "test-rows"]);
+    await s.delete("test-rows");
+    expect(await s.get("test-rows")).toBeNull();
   });
 });
 
@@ -221,10 +221,10 @@ describe("storage adapter — saves and backups", () => {
     const name = `fc-reload-${Date.now()}`;
     const a = createStorage({ name, indexedDB, IDBKeyRange });
     await a.setSave(KEY, "persisted");
-    await a.set("jfg-profiles", "[1]");
+    await a.set("test-rows", "[1]");
     a._db.close();
     const b = createStorage({ name, indexedDB, IDBKeyRange });
     expect((await b.getSave(KEY)).value).toBe("persisted");
-    expect((await b.get("jfg-profiles")).value).toBe("[1]");
+    expect((await b.get("test-rows")).value).toBe("[1]");
   });
 });

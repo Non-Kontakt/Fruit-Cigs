@@ -1,10 +1,10 @@
 // Profile system utilities — per-user local accounts with isolated save slots, achievements, museum
 
 import { storage } from "../persistence/storage.js";
+import { PROFILES_KEY, profileKey, getSaveKey } from "../persistence/keys.js";
 
-const PROFILES_KEY = "jfg-profiles";
-const profileKey = (id) => `jfg-profile-${id}`;
-export const getSaveKey = (profileId, slot) => `jfg-save-${profileId}-${slot}`;
+// Re-exported so save/load call sites keep one import point for save keys.
+export { getSaveKey };
 
 const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 

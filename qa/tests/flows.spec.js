@@ -179,13 +179,13 @@ test.describe("full-app flows", () => {
       const save = window.__fc.dumpSave();
       const id = "qa-profile";
       const now = new Date(0).toISOString();
-      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
-      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+      await window.__fc.storage.set("fc-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`fc-profile-${id}`, JSON.stringify({
         id, name: "QA", createdAt: now, schemaVersion: 1,
         unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
         ironmanBest: null, lastIronmanVersion: 0, museum: [],
       }));
-      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(save), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-1`, JSON.stringify(save), "save");
     });
 
     // Reload into a cold app that must rediscover the seeded save.
@@ -216,13 +216,13 @@ test.describe("full-app flows", () => {
     await page.evaluate(async () => {
       const id = "qa-corrupt";
       const now = new Date(0).toISOString();
-      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
-      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+      await window.__fc.storage.set("fc-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`fc-profile-${id}`, JSON.stringify({
         id, name: "QA", createdAt: now, schemaVersion: 1,
         unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
         ironmanBest: null, lastIronmanVersion: 0, museum: [],
       }));
-      await window.__fc.storage.setSave(`jfg-save-${id}-1`, "{torn-write-not-json", "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-1`, "{torn-write-not-json", "save");
     });
 
     await page.reload();
@@ -1113,7 +1113,7 @@ test.describe("full-app flows", () => {
     // movement. Seed the maxed settings the way a returning player would
     // have them persisted.
     await page.addInitScript(() => {
-      localStorage.setItem("jfg-settings", JSON.stringify({
+      localStorage.setItem("fc-settings", JSON.stringify({
         trainingCardSpeed: "summary", matchDetail: "highlights",
         soundEnabled: false, musicEnabled: false,
       }));
@@ -1141,7 +1141,7 @@ test.describe("full-app flows", () => {
     // card banked in useMatchResult AFTER the calendar has already advanced
     // past the match — the exact case the observer effect stamped as W2.
     await page.addInitScript(() => {
-      localStorage.setItem("jfg-settings", JSON.stringify({
+      localStorage.setItem("fc-settings", JSON.stringify({
         instantMatch: true, soundEnabled: false, musicEnabled: false,
       }));
     });
@@ -1182,7 +1182,7 @@ test.describe("full-app flows", () => {
     // sweep in one match — same week stamp, chronology carried by insertion
     // order (the recency sort's tiebreaker, see CigIndex).
     await page.addInitScript(() => {
-      localStorage.setItem("jfg-settings", JSON.stringify({
+      localStorage.setItem("fc-settings", JSON.stringify({
         instantMatch: true, soundEnabled: false, musicEnabled: false,
       }));
     });
