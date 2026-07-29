@@ -1,4 +1,5 @@
 import { useGameStore, serializeState } from "./store/gameStore.js";
+import { storage } from "./persistence/storage.js";
 
 // Dev/test-only global hooks for the Playwright QA harness.
 //
@@ -29,7 +30,12 @@ export function installDevHooks() {
 
     // Serialize the live store the same way saveGame does (Sets → arrays),
     // producing a blob that loadGame can hydrate. Used to capture save
-    // fixtures and to round-trip a save through localStorage.
+    // fixtures and to round-trip a save through persistence.
     dumpSave: () => serializeState(useGameStore.getState()),
+
+    // The real storage adapter, so QA flows can seed profiles/saves through
+    // the same code path the game uses (IndexedDB — localStorage injection
+    // stopped working when game data moved off it).
+    storage,
   };
 }

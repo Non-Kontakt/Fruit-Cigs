@@ -77,31 +77,6 @@ import { buildAIFiveASide, FIVE_SLOTS } from "./utils/fiveASide.js";
 import { listProfiles, createProfile, readProfile, scanProfileSlots, deleteMuseumEntry } from "./utils/profile.js";
 import { useGameStore } from "./store/gameStore.js";
 
-// Storage polyfill: use window.storage (Claude artifacts) or fall back to localStorage
-if (!window.storage) {
-  window.storage = {
-    async get(key) {
-      const val = localStorage.getItem(key);
-      return val !== null ? { key, value: val } : null;
-    },
-    async set(key, value) {
-      localStorage.setItem(key, value);
-      return { key, value };
-    },
-    async delete(key) {
-      localStorage.removeItem(key);
-      return { key, deleted: true };
-    },
-    async list(prefix) {
-      const keys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!prefix || k.startsWith(prefix)) keys.push(k);
-      }
-      return { keys };
-    },
-  };
-}
 
 // SFX + BGM → src/utils/sfx.js
 // ==================== MATCH RESULT SCREEN ====================
@@ -1901,19 +1876,28 @@ function FruitCigs() {
 
             {[1, 2, 3].map(slot => {
               const summary = saveSlotSummaries[slot - 1];
-              const occupied = !!summary;
+              // Tri-state: a loadable career, a genuinely empty slot, or a
+              // slot whose data exists but cannot be started (corrupt, or
+              // written by a newer build). Unavailable slots must never be
+              // presented as empty — an "empty" slot invites the overwrite
+              // the adapter is refusing.
+              const unavailable = summary?.status === "unavailable";
+              const occupied = !!summary && !unavailable;
               return (
                 <div key={slot} style={{
                   position: "relative",
                   marginBottom: 10,
-                  border: occupied ? `2px solid ${TIER_COLORS[summary.leagueTier] || C.bgInput}` : `2px solid ${C.bgCard}`,
-                  background: occupied ? "rgba(15,23,42,0.8)" : "rgba(10,10,26,0.5)",
+                  border: occupied ? `2px solid ${TIER_COLORS[summary.leagueTier] || C.bgInput}`
+                    : unavailable ? `2px solid ${C.amber}66`
+                    : `2px solid ${C.bgCard}`,
+                  background: occupied || unavailable ? "rgba(15,23,42,0.8)" : "rgba(10,10,26,0.5)",
                   borderRadius: 4,
                   overflow: "hidden",
-                  cursor: "pointer",
+                  cursor: unavailable ? "default" : "pointer",
                   transition: "border-color 0.2s, background 0.2s",
                 }}
                   onClick={async () => {
+                    if (unavailable) return;
                     if (occupied) {
                       setActiveSaveSlot(slot);
                       const loaded = await loadGame(slot);
@@ -1923,7 +1907,9 @@ function FruitCigs() {
                           tryUnlockAchievement("save_scummer");
                         }, 500);
                       } else {
-                        setSaveSlotSummaries(prev => { const n = [...prev]; n[slot - 1] = null; return n; });
+                        // A summary that looked fine but failed to load is an
+                        // occupied-broken slot now, not an empty one.
+                        setSaveSlotSummaries(prev => { const n = [...prev]; n[slot - 1] = { status: "unavailable", reason: "corrupt" }; return n; });
                         setActiveSaveSlot(null);
                       }
                     } else {
@@ -1932,8 +1918,8 @@ function FruitCigs() {
                       setShowModeSelect(true);
                     }
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = occupied ? "rgba(30,41,59,0.6)" : "rgba(30,41,59,0.3)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = occupied ? "rgba(15,23,42,0.8)" : "rgba(10,10,26,0.5)"; }}
+                  onMouseEnter={e => { if (!unavailable) e.currentTarget.style.background = occupied ? "rgba(30,41,59,0.6)" : "rgba(30,41,59,0.3)"; }}
+                  onMouseLeave={e => { if (!unavailable) e.currentTarget.style.background = occupied ? "rgba(15,23,42,0.8)" : "rgba(10,10,26,0.5)"; }}
                 >
                   <div style={{ display: "flex", alignItems: "center", padding: "14px 16px" }}>
                     <div style={{
@@ -1956,21 +1942,28 @@ function FruitCigs() {
                             {TIER_NAMES[summary.leagueTier] || "Sunday League"} · Season {summary.seasonNumber} · Wk {summary.week}
                           </div>
                         </>
+                      ) : unavailable ? (
+                        <div style={{ fontSize: F.md, color: C.amber }}>
+                          {summary.reason === "newer-version" ? "SAVE FROM A NEWER BUILD" : "UNREADABLE SAVE"}
+                        </div>
                       ) : (
                         <div style={{ fontSize: F.md, color: C.bgInput }}>EMPTY SLOT</div>
                       )}
                     </div>
                     <div style={{ fontSize: F.md, color: occupied ? C.green : C.bgInput, marginLeft: 8 }}>
-                      {occupied ? "▶" : "+"}
+                      {occupied ? "▶" : unavailable ? "" : "+"}
                     </div>
                   </div>
 
-                  {/* Delete button for occupied slots */}
-                  {occupied && (
+                  {/* Delete button — occupied slots, and unavailable ones
+                      (deleting the blocked data is the one explicit way to
+                      free the slot; confirm() keeps it deliberate) */}
+                  {(occupied || unavailable) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`Delete "${summary.teamName}" save? This cannot be undone!`)) {
+                        const what = occupied ? `"${summary.teamName}" save` : "the unreadable save in this slot";
+                        if (window.confirm(`Delete ${what}? This cannot be undone!`)) {
                           deleteSave(slot);
                         }
                       }}

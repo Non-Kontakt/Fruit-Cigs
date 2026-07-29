@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
-import { getSaveKey, archiveCareerToMuseum, readProfile } from "../utils/profile.js";
+import { getSaveKey, archiveCareerToMuseum, readProfile, isLoadableSave } from "../utils/profile.js";
+import { storage } from "../persistence/storage.js";
 import { ATTRIBUTES } from "../data/training.js";
 import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS, AI_BENCH_POSITIONS } from "../data/leagues.js";
@@ -192,7 +193,7 @@ export function useSaveGame({
         legendCarryCounts: s.legendCarryCounts,
       });
       const saveKey = getSaveKey(activeProfileId, activeSaveSlot);
-      await window.storage.set(saveKey, JSON.stringify(saveData));
+      await storage.setSave(saveKey, JSON.stringify(saveData), "save");
       // Update slot summary for quick display
       setSaveSlotSummaries(prev => {
         const next = [...prev];
@@ -214,8 +215,13 @@ export function useSaveGame({
     const slot = slotOverride || activeSaveSlot;
     if (!slot || !store.activeProfileId) return false;
     try {
-      const result = await window.storage.get(getSaveKey(store.activeProfileId, slot));
+      const result = await storage.getSave(getSaveKey(store.activeProfileId, slot), { validate: isLoadableSave });
       if (!result) return false;
+      if (result.recovered) {
+        // The active record was missing/unreadable; a rotating backup stood
+        // in. Loud in the console — a silent stand-in would hide data loss.
+        console.warn(`Save slot ${slot}: active record missing, loaded newest backup (#${result.backupId}).`);
+      }
       const s = hydrateState(JSON.parse(result.value));
       if (!s || !s.teamName) return false;
       setActiveSaveSlot(slot);
@@ -706,7 +712,7 @@ export function useSaveGame({
     const s = useGameStore.getState();
     setImportStatus("exporting");
     try {
-      const result = await window.storage.get(getSaveKey(s.activeProfileId, activeSaveSlot));
+      const result = await storage.getSave(getSaveKey(s.activeProfileId, activeSaveSlot));
       if (!result) { setImportStatus("no-save"); setTimeout(() => setImportStatus(null), 2500); return; }
       const blob = new Blob([result.value], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -740,7 +746,7 @@ export function useSaveGame({
         setTimeout(() => setImportStatus(null), 3000);
         return;
       }
-      await window.storage.set(getSaveKey(s.activeProfileId, activeSaveSlot), text);
+      await storage.setSave(getSaveKey(s.activeProfileId, activeSaveSlot), text, "import");
       setImportStatus("imported");
       setTimeout(() => {
         setImportStatus(null);
@@ -759,7 +765,7 @@ export function useSaveGame({
     const slot = slotOverride || activeSaveSlot;
     if (!slot || !s.activeProfileId) return;
     try {
-      await window.storage.delete(getSaveKey(s.activeProfileId, slot));
+      await storage.deleteSave(getSaveKey(s.activeProfileId, slot));
       setSaveSlotSummaries(prev => {
         const next = [...prev];
         next[slot - 1] = null;
@@ -792,7 +798,9 @@ export function useSaveGame({
     const slot = activeSaveSlot;
     if (slot && s.activeProfileId) {
       try {
-        await window.storage.delete(getSaveKey(s.activeProfileId, slot));
+        // Sacking is final — the career and its whole backup ring go, so a
+        // future recovery UI can never become an Ironman reload exploit.
+        await storage.purgeSave(getSaveKey(s.activeProfileId, slot));
         setSaveSlotSummaries(prev => { const n = [...prev]; n[slot - 1] = null; return n; });
       } catch (e) { /* ok */ }
     }

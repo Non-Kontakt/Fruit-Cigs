@@ -15,6 +15,18 @@ installDevHooks();
 if (import.meta.env.DEV && new URLSearchParams(window.location.search).has("reset")) {
   try { localStorage.clear(); } catch (e) {}
   try { sessionStorage.clear(); } catch (e) {}
+  // Game data lives in IndexedDB now; a reset that leaves it standing isn't
+  // one. Deletion is awaited before the app mounts and reopens the database.
+  // `blocked` is NOT success — another tab holds the DB open and deletion is
+  // pending until it closes — so it only warns; the promise resolves on the
+  // real outcome.
+  await new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase("fruit-cigs");
+    req.onsuccess = req.onerror = () => resolve();
+    req.onblocked = () => {
+      console.warn("?reset: database deletion is blocked by another open tab; close it to finish the reset.");
+    };
+  });
   const url = new URL(window.location.href);
   url.searchParams.delete("reset");
   window.history.replaceState({}, "", url.toString());

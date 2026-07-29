@@ -4,6 +4,19 @@ All notable updates to Fruit Cigs, written for players.
 
 ---
 
+## Persistence moved to IndexedDB
+
+Saves now live in your browser's IndexedDB instead of localStorage — more
+room, and every save now keeps a rotating history of backups behind it, so
+an interrupted write or a bad import can't destroy a career.
+
+**One-time reset:** this switch is a clean break — any career saved before
+it will not carry over. (At time of change the only active saves were test
+careers, by owner ruling on the tracker.) Export/import works exactly as
+before.
+
+---
+
 ## 5 July 2026 — The Great Sweep
 
 One weekend, the whole backlog. The largest single update the game has had.

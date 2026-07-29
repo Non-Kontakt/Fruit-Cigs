@@ -50,7 +50,18 @@ A love letter to FIFA, Championship Manager, Ultimate Soccer Manager, and This I
 
 - React + Vite, Zustand store
 - No backend — runs entirely in the browser
-- Saves to localStorage (export/import supported, versioned migrations)
+- Saves to IndexedDB via Dexie (export/import supported, versioned records,
+  rotating backups). One storage adapter (`src/persistence/storage.js`) owns
+  all persistence: Zustand is the live source of truth, Dexie is disk. Every
+  save replacement atomically banks the displaced payload as one of up to 10
+  rotating backups per slot, so a failed write changes nothing and a bad one
+  can be undone. Loading falls back to the newest backup (loudly) if the
+  active record is missing, and refuses records written by a newer build.
+  Settings stay in localStorage on purpose — a corrupt game DB can never
+  take preferences down with it. Backups live in the same browser database:
+  they protect against bad writes and bad imports, **not** against clearing
+  site data — external backup (export files) is the answer there, and the
+  remaining durability work is tracked in #449.
 - `Press Start 2P` pixel font throughout
 - Tested with Vitest + a Playwright visual QA harness
 
