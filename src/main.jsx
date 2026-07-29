@@ -15,6 +15,13 @@ installDevHooks();
 if (import.meta.env.DEV && new URLSearchParams(window.location.search).has("reset")) {
   try { localStorage.clear(); } catch (e) {}
   try { sessionStorage.clear(); } catch (e) {}
+  // Game data lives in IndexedDB now; a reset that leaves it standing isn't
+  // one. Deletion is awaited via the blocked/success events before the app
+  // mounts and reopens the database.
+  await new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase("fruit-cigs");
+    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+  });
   const url = new URL(window.location.href);
   url.searchParams.delete("reset");
   window.history.replaceState({}, "", url.toString());

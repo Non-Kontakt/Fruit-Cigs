@@ -1,5 +1,7 @@
 // Profile system utilities — per-user local accounts with isolated save slots, achievements, museum
 
+import { storage } from "../persistence/storage.js";
+
 const PROFILES_KEY = "jfg-profiles";
 const profileKey = (id) => `jfg-profile-${id}`;
 export const getSaveKey = (profileId, slot) => `jfg-save-${profileId}-${slot}`;
@@ -8,7 +10,7 @@ const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).sli
 
 export async function listProfiles() {
   try {
-    const res = await window.storage.get(PROFILES_KEY);
+    const res = await storage.get(PROFILES_KEY);
     if (!res) return [];
     return JSON.parse(res.value) || [];
   } catch { return []; }
@@ -29,31 +31,31 @@ export async function createProfile(name) {
   };
   const profiles = await listProfiles();
   profiles.push({ id, name: name.trim(), createdAt: now });
-  await window.storage.set(PROFILES_KEY, JSON.stringify(profiles));
-  await window.storage.set(profileKey(id), JSON.stringify(profile));
+  await storage.set(PROFILES_KEY, JSON.stringify(profiles));
+  await storage.set(profileKey(id), JSON.stringify(profile));
   return profile;
 }
 
 export async function readProfile(profileId) {
   try {
-    const res = await window.storage.get(profileKey(profileId));
+    const res = await storage.get(profileKey(profileId));
     if (!res) return null;
     return JSON.parse(res.value);
   } catch { return null; }
 }
 
 export async function writeProfile(profileId, data) {
-  await window.storage.set(profileKey(profileId), JSON.stringify(data));
+  await storage.set(profileKey(profileId), JSON.stringify(data));
 }
 
 export async function deleteProfile(profileId) {
   const profiles = await listProfiles();
   const updated = profiles.filter(p => p.id !== profileId);
-  await window.storage.set(PROFILES_KEY, JSON.stringify(updated));
-  await window.storage.delete(profileKey(profileId));
+  await storage.set(PROFILES_KEY, JSON.stringify(updated));
+  await storage.delete(profileKey(profileId));
   // Delete all 3 save slots for this profile
   for (let i = 1; i <= 3; i++) {
-    try { await window.storage.delete(getSaveKey(profileId, i)); } catch { /* ok */ }
+    try { await storage.deleteSave(getSaveKey(profileId, i)); } catch { /* ok */ }
   }
 }
 
@@ -98,7 +100,7 @@ export async function scanProfileSlots(profileId) {
   const summaries = [null, null, null];
   for (let i = 1; i <= 3; i++) {
     try {
-      const result = await window.storage.get(getSaveKey(profileId, i));
+      const result = await storage.getSave(getSaveKey(profileId, i));
       if (result) {
         const s = JSON.parse(result.value);
         if (s?.teamName) {

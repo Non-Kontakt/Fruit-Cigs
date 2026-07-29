@@ -77,31 +77,6 @@ import { buildAIFiveASide, FIVE_SLOTS } from "./utils/fiveASide.js";
 import { listProfiles, createProfile, readProfile, scanProfileSlots, deleteMuseumEntry } from "./utils/profile.js";
 import { useGameStore } from "./store/gameStore.js";
 
-// Storage polyfill: use window.storage (Claude artifacts) or fall back to localStorage
-if (!window.storage) {
-  window.storage = {
-    async get(key) {
-      const val = localStorage.getItem(key);
-      return val !== null ? { key, value: val } : null;
-    },
-    async set(key, value) {
-      localStorage.setItem(key, value);
-      return { key, value };
-    },
-    async delete(key) {
-      localStorage.removeItem(key);
-      return { key, deleted: true };
-    },
-    async list(prefix) {
-      const keys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!prefix || k.startsWith(prefix)) keys.push(k);
-      }
-      return { keys };
-    },
-  };
-}
 
 // SFX + BGM → src/utils/sfx.js
 // ==================== MATCH RESULT SCREEN ====================

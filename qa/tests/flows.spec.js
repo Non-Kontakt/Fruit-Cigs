@@ -167,25 +167,25 @@ test.describe("full-app flows", () => {
     expect(after.inXI, "player should not have joined the XI").toBe(false);
   });
 
-  test("save round-trips through localStorage and resumes", async ({ page }, testInfo) => {
+  test("save round-trips through persistence and resumes", async ({ page }, testInfo) => {
     await page.goto("index.html");
     await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
     await page.evaluate(() => window.__fc.newGame({ teamName: "Red Lion FC" }));
     await page.waitForFunction(() => window.__fc.getState().league != null, null, { timeout: 10_000 });
 
-    // Capture the live save and seed a profile + slot into storage, exactly
-    // like the game's own save/profile format.
-    await page.evaluate(() => {
+    // Capture the live save and seed a profile + slot through the real
+    // storage adapter (IndexedDB), exactly like the game's own save format.
+    await page.evaluate(async () => {
       const save = window.__fc.dumpSave();
       const id = "qa-profile";
       const now = new Date(0).toISOString();
-      localStorage.setItem("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
-      localStorage.setItem(`jfg-profile-${id}`, JSON.stringify({
+      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
         id, name: "QA", createdAt: now, schemaVersion: 1,
         unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
         ironmanBest: null, lastIronmanVersion: 0, museum: [],
       }));
-      localStorage.setItem(`jfg-save-${id}-1`, JSON.stringify(save));
+      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(save), "save");
     });
 
     // Reload into a cold app that must rediscover the seeded save.
