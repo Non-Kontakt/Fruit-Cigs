@@ -219,16 +219,16 @@ test.describe("full-app flows", () => {
       const base = window.__fc.dumpSave();
       const id = "qa-tt";
       const now = new Date(0).toISOString();
-      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
-      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+      await window.__fc.storage.set("fc-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`fc-profile-${id}`, JSON.stringify({
         id, name: "QA", createdAt: now, schemaVersion: 1,
         unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
         ironmanBest: null, lastIronmanVersion: 0, museum: [],
       }));
       const future = { ...base, careerId: "career-qa", seasonNumber: 1, calendarIndex: 19 };
       const past = { ...base, careerId: "career-qa", seasonNumber: 1, calendarIndex: 11 };
-      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
-      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-2`, JSON.stringify(past), "save");
     });
 
     await page.reload();
@@ -253,16 +253,16 @@ test.describe("full-app flows", () => {
       const base = window.__fc.dumpSave();
       const id = "qa-tt2";
       const now = new Date(0).toISOString();
-      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
-      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+      await window.__fc.storage.set("fc-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`fc-profile-${id}`, JSON.stringify({
         id, name: "QA", createdAt: now, schemaVersion: 1,
         unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
         ironmanBest: null, lastIronmanVersion: 0, museum: [],
       }));
       const future = { ...base, careerId: "career-qa2", seasonNumber: 1, calendarIndex: 19 };
       const past = { ...base, careerId: "career-qa2", seasonNumber: 1, calendarIndex: 11 };
-      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
-      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-2`, JSON.stringify(past), "save");
     });
 
     await page.reload();
@@ -297,8 +297,8 @@ test.describe("full-app flows", () => {
       const base = window.__fc.dumpSave();
       const id = "qa-tt3";
       const now = new Date(0).toISOString();
-      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
-      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+      await window.__fc.storage.set("fc-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`fc-profile-${id}`, JSON.stringify({
         id, name: "QA", createdAt: now, schemaVersion: 1,
         unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
         ironmanBest: null, lastIronmanVersion: 0, museum: [],
@@ -308,8 +308,8 @@ test.describe("full-app flows", () => {
         ...base, careerId: "career-qa3", seasonNumber: 1, calendarIndex: 11,
         unlockedAchievements: [...(base.unlockedAchievements || []), "save_scummer"],
       };
-      await window.__fc.storage.setSave(`jfg-save-${id}-1`, JSON.stringify(future), "save");
-      await window.__fc.storage.setSave(`jfg-save-${id}-2`, JSON.stringify(past), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-1`, JSON.stringify(future), "save");
+      await window.__fc.storage.setSave(`fc-save-${id}-2`, JSON.stringify(past), "save");
     });
 
     await page.reload();
