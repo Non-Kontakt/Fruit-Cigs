@@ -8,6 +8,13 @@ export const getSaveKey = (profileId, slot) => `jfg-save-${profileId}-${slot}`;
 
 const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
+// Minimal "is this payload a loadable save" gate, shared by the slot scan
+// and loadGame so recovery decisions are consistent: parseable JSON with a
+// teamName. Deeper repair stays in the load-time migrations.
+export const isLoadableSave = (value) => {
+  try { return !!(JSON.parse(value)?.teamName); } catch { return false; }
+};
+
 export async function listProfiles() {
   try {
     const res = await storage.get(PROFILES_KEY);
@@ -53,9 +60,10 @@ export async function deleteProfile(profileId) {
   const updated = profiles.filter(p => p.id !== profileId);
   await storage.set(PROFILES_KEY, JSON.stringify(updated));
   await storage.delete(profileKey(profileId));
-  // Delete all 3 save slots for this profile
+  // Purge all 3 save slots permanently — profile deletion leaves no
+  // orphaned backups behind.
   for (let i = 1; i <= 3; i++) {
-    try { await storage.deleteSave(getSaveKey(profileId, i)); } catch { /* ok */ }
+    try { await storage.purgeSave(getSaveKey(profileId, i)); } catch { /* ok */ }
   }
 }
 
@@ -100,7 +108,7 @@ export async function scanProfileSlots(profileId) {
   const summaries = [null, null, null];
   for (let i = 1; i <= 3; i++) {
     try {
-      const result = await storage.getSave(getSaveKey(profileId, i));
+      const result = await storage.getSave(getSaveKey(profileId, i), { validate: isLoadableSave });
       if (result) {
         const s = JSON.parse(result.value);
         if (s?.teamName) {

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useGameStore, serializeState, hydrateState } from "../store/gameStore.js";
-import { getSaveKey, archiveCareerToMuseum, readProfile } from "../utils/profile.js";
+import { getSaveKey, archiveCareerToMuseum, readProfile, isLoadableSave } from "../utils/profile.js";
 import { storage } from "../persistence/storage.js";
 import { ATTRIBUTES } from "../data/training.js";
 import { POSITION_TYPES, TOTAL_SLOTS } from "../data/positions.js";
@@ -215,7 +215,7 @@ export function useSaveGame({
     const slot = slotOverride || activeSaveSlot;
     if (!slot || !store.activeProfileId) return false;
     try {
-      const result = await storage.getSave(getSaveKey(store.activeProfileId, slot));
+      const result = await storage.getSave(getSaveKey(store.activeProfileId, slot), { validate: isLoadableSave });
       if (!result) return false;
       if (result.recovered) {
         // The active record was missing/unreadable; a rotating backup stood

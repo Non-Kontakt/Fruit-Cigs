@@ -58,7 +58,10 @@ A love letter to FIFA, Championship Manager, Ultimate Soccer Manager, and This I
   can be undone. Loading falls back to the newest backup (loudly) if the
   active record is missing, and refuses records written by a newer build.
   Settings stay in localStorage on purpose — a corrupt game DB can never
-  take preferences down with it.
+  take preferences down with it. Backups live in the same browser database:
+  they protect against bad writes and bad imports, **not** against clearing
+  site data — external backup (export files) is the answer there, and the
+  remaining durability work is tracked in #449.
 - `Press Start 2P` pixel font throughout
 - Tested with Vitest + a Playwright visual QA harness
 

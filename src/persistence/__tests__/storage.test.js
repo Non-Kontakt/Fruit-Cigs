@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { indexedDB, IDBKeyRange } from "fake-indexeddb";
-import { createStorage, SaveVersionError } from "../storage.js";
+import { createStorage, SaveVersionError, SaveCorruptError } from "../storage.js";
 import { SAVE_SCHEMA_VERSION, BACKUPS_PER_KEY } from "../db.js";
 
 // The adapter runs against fake-indexeddb here — same async semantics as
@@ -85,16 +85,45 @@ describe("storage adapter — saves and backups", () => {
     expect(newest.value).toBe(`v${BACKUPS_PER_KEY + 3}`);
   });
 
-  it("deleteSave banks the deleted career before removing it", async () => {
+  it("a deleted slot stays deleted: tombstone reads null, survives reload", async () => {
+    const name = `fc-tombstone-${Date.now()}`;
+    const a = createStorage({ name, indexedDB, IDBKeyRange });
+    await a.setSave(KEY, "doomed");
+    await a.deleteSave(KEY);
+    // Deliberate deletion is not accidental loss — no auto-resurrection.
+    expect(await a.getSave(KEY)).toBeNull();
+    // The banked payload exists, but only the explicit path reaches it.
+    const backups = await a.listBackups(KEY);
+    expect(backups[0].reason).toBe("delete");
+    // A reload (fresh adapter over the same DB) still sees a deleted slot.
+    a._db.close();
+    const b = createStorage({ name, indexedDB, IDBKeyRange });
+    expect(await b.getSave(KEY)).toBeNull();
+  });
+
+  it("restoring the delete-backup brings the slot back to life", async () => {
     const s = fresh();
     await s.setSave(KEY, "doomed");
     await s.deleteSave(KEY);
-    const backups = await s.listBackups(KEY);
-    expect(backups[0].reason).toBe("delete");
-    // getSave recovers it rather than reporting nothing ever existed.
+    const [del] = await s.listBackups(KEY);
+    await s.restoreBackup(KEY, del.id);
     const r = await s.getSave(KEY);
-    expect(r.recovered).toBe(true);
     expect(r.value).toBe("doomed");
+    expect(r.recovered).toBe(false);
+    // The tombstone was not banked as a "save" during restore.
+    const reasons = (await s.listBackups(KEY)).map((b) => b.reason);
+    expect(reasons).not.toContain("pre-restore");
+  });
+
+  it("purgeSave removes the save and every backup permanently", async () => {
+    const s = fresh();
+    await s.setSave(KEY, "v1");
+    await s.setSave(KEY, "v2");
+    await s.deleteSave(KEY);
+    await s.purgeSave(KEY);
+    expect(await s.getSave(KEY)).toBeNull();
+    expect(await s.listBackups(KEY)).toEqual([]);
+    expect(await s._db.kv.get(KEY)).toBeUndefined();
   });
 
   it("recovers from a missing active record when a backup exists", async () => {
@@ -112,6 +141,41 @@ describe("storage adapter — saves and backups", () => {
   it("returns null when neither save nor backups exist", async () => {
     const s = fresh();
     expect(await s.getSave(KEY)).toBeNull();
+    expect(await s.getSave(KEY, { validate: () => true })).toBeNull();
+  });
+
+  it("a corrupt active payload recovers from the newest valid backup", async () => {
+    const s = fresh();
+    const valid = JSON.stringify({ teamName: "Red Lion FC" });
+    const isJson = (v) => { try { return !!JSON.parse(v)?.teamName; } catch { return false; } };
+    await s.setSave(KEY, valid);
+    await s.setSave(KEY, "{corrupt-not-json");
+    const r = await s.getSave(KEY, { validate: isJson });
+    expect(r.recovered).toBe(true);
+    expect(r.value).toBe(valid);
+  });
+
+  it("a corrupt newest backup is skipped for the next valid one", async () => {
+    const s = fresh();
+    const isJson = (v) => { try { return !!JSON.parse(v)?.teamName; } catch { return false; } };
+    const valid = JSON.stringify({ teamName: "Red Lion FC" });
+    await s.setSave(KEY, valid);           // → becomes oldest backup
+    await s.setSave(KEY, "{half-written"); // corrupt, → becomes newest backup
+    await s.setSave(KEY, "{also-corrupt"); // corrupt active
+    const r = await s.getSave(KEY, { validate: isJson });
+    expect(r.recovered).toBe(true);
+    expect(r.value).toBe(valid);
+  });
+
+  it("when everything is corrupt, loading fails clearly and deletes nothing", async () => {
+    const s = fresh();
+    const isJson = (v) => { try { return !!JSON.parse(v)?.teamName; } catch { return false; } };
+    await s.setSave(KEY, "{bad-1");
+    await s.setSave(KEY, "{bad-2");
+    await expect(s.getSave(KEY, { validate: isJson })).rejects.toThrow(SaveCorruptError);
+    // Nothing was deleted by the failed load.
+    expect((await s._db.kv.get(KEY)).value).toBe("{bad-2");
+    expect(await s.listBackups(KEY)).toHaveLength(1);
   });
 
   it("refuses a save written by a newer build, leaving it untouched", async () => {

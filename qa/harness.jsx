@@ -8,21 +8,6 @@ import { FIXTURE_MAP, FIXTURES } from "./fixtures/components.jsx";
 // param it renders an index of every fixture so you can click through them
 // by hand. Playwright drives it by URL and screenshots each fixture.
 
-// Some components pull in the storage shim / audio helpers that App.jsx sets
-// up. Provide a minimal localStorage-backed window.storage so nothing throws
-// when the harness mounts a component outside the real app shell.
-if (!window.storage) {
-  window.storage = {
-    async get(key) { const v = localStorage.getItem(key); return v !== null ? { key, value: v } : null; },
-    async set(key, value) { localStorage.setItem(key, value); return { key, value }; },
-    async delete(key) { localStorage.removeItem(key); return { key, deleted: true }; },
-    async list(prefix) {
-      const keys = [];
-      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!prefix || k.startsWith(prefix)) keys.push(k); }
-      return { keys };
-    },
-  };
-}
 
 function Index() {
   return (
