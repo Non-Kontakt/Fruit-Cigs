@@ -15,7 +15,7 @@ import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
 import { ClubFocusTree } from "../../src/components/club/ClubFocusTree.jsx";
 import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { PlayerCompareModal } from "../../src/components/transfer/PlayerCompareModal.jsx";
-import { MatchCommentaryBox, comboxStyle, deriveKit } from "../../src/components/match/MatchCommentaryBox.jsx";
+import { MatchCommentaryBox, comboxStyle, deriveKit, neutralKit } from "../../src/components/match/MatchCommentaryBox.jsx";
 import { findComparablePlayer } from "../../src/utils/transfer.js";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
@@ -596,22 +596,32 @@ const RENDERERS = {
   },
   // Look-first review states for #460 — frozen frames via comboxStyle plus
   // one live component. Labels are harness-only annotation, not game UI.
+  // Borderless per owner redline: background vs text, inverted for the flash.
   "matchday-combox": () => {
     const you = deriveKit("#ef4444");   // Red Lion red → light text
     const opp = deriveKit("#38bdf8");   // Yeralden sky → dark text (contrast case)
     const label = { color: "#64748b", fontFamily: "monospace", fontSize: 11, margin: "16px 0 6px" };
+    // Representative longest real narration (goal text with assist) — the
+    // mobile row below must hold it without visible chopping.
+    const longest = "⚽ GOAL! Nathan Robinson scores for Red Lion FC! (Assist: Alfie Wilson)";
     return (
       <div style={{ maxWidth: 640, margin: "0 auto", padding: 16 }}>
-        <div style={label}>home possession</div>
+        <div style={label}>home featured side</div>
         <div style={comboxStyle(you)}>Robinson breaks through on goal... but fires over!</div>
-        <div style={label}>away possession</div>
+        <div style={label}>away featured side</div>
         <div style={comboxStyle(opp)}>Yeralden work it wide — the cross comes in, headed clear.</div>
+        <div style={label}>neutral (half-time / full-time / MOTM)</div>
+        <div style={comboxStyle(neutralKit())}>Half time.</div>
         <div style={label}>goal flash — phase A</div>
         <div style={comboxStyle(you)}>GOAL FOR RED LION FC!</div>
         <div style={label}>goal flash — phase B (inverted)</div>
         <div style={comboxStyle(you, { inverted: true })}>GOAL FOR RED LION FC!</div>
-        <div style={label}>live component (possession transition, no flash)</div>
-        <MatchCommentaryBox line={"Doherty heads wide from the corner."} kit={opp} goalFlash={null} />
+        <div style={label}>mobile footprint, longest real line</div>
+        <div style={{ maxWidth: 362 }}>
+          <div style={comboxStyle(opp, { mob: true })}>{longest}</div>
+        </div>
+        <div style={label}>live component (featured-side transition, no flash)</div>
+        <MatchCommentaryBox copy={"Doherty heads wide from the corner."} kit={opp} />
       </div>
     );
   },

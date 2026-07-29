@@ -3,15 +3,19 @@ import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { SFX, BGM } from "../../utils/sfx.js";
 import { hasLateEqualiser } from "../../utils/bgmMoments.js";
-import { getMatchFeedPlaceholder } from "../../utils/matchFeedPlaceholder.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { POSITION_ORDER } from "../../data/positions.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ScorerStrip } from "./ScorerStrip.jsx";
+import { MatchCommentaryBox, deriveKit, neutralKit } from "./MatchCommentaryBox.jsx";
+import { useMatchCommentary } from "../../hooks/useMatchCommentary.js";
 
 // Tier whose matches get the "Altitude Trials" theme (see data/leagues.js tier 6).
 const ALTITUDE_TRIALS_TIER = 6;
+
+// In highlights mode only key events narrate through the commentary box.
+const HIGHLIGHT_TYPES = new Set(["goal", "card", "red_card", "sub", "motm", "halftime", "fulltime"]);
 
 export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpeedChange, competitionLabel, matchDetail, instantMatch, isOnHoliday, onPlayerClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, ovrCap = 20, formation, slotAssignments, startingXI, leagueTier, isRunIn }) {
   const [visible, setVisible] = useState(false);
@@ -21,7 +25,6 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const [finished, setFinished] = useState(instantMatch);
   const wasAlwaysFast = React.useRef(initialSpeed === 2 || isHighlights || instantMatch);
   const wasAlwaysNormal = React.useRef(initialSpeed === 1 && !isHighlights && !instantMatch);
-  const [activeTab, setActiveTab] = useState("feed"); // "feed" | "ratings"
 
   // Auto-close result screen when on holiday
   // Use ref for onDone to avoid effect resetting on every App.jsx re-render
@@ -33,7 +36,6 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
       return () => clearTimeout(timer);
     }
   }, [isOnHoliday, finished]);
-  const [flashEvent, setFlashEvent] = useState(null);
   const [shownEvents, setShownEvents] = useState([]);
   const [currentHomeGoals, setCurrentHomeGoals] = useState(0);
   const [currentAwayGoals, setCurrentAwayGoals] = useState(0);
@@ -42,6 +44,14 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const tickerRef = React.useRef(null);
   const mob = useMobile();
   const [viewingTeam, setViewingTeam] = useState(null); // { team, tableRow, matchGoals }
+
+  // Reduced motion is a presentation-logic decision (#460): the goal lock
+  // holds steady colours instead of flickering. Read once per mount.
+  const reducedMotion = useRef(
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  ).current;
 
   // Penalty shootout state
   const [penPhase, setPenPhase] = useState(null); // null | "shooting" | "done"
@@ -52,6 +62,15 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
 
   const homeTeam = league.teams[result.home];
   const awayTeam = league.teams[result.away];
+
+  // The commentary box's presentation queue (#460). shownEvents remains the
+  // canonical match record; this narrates it. Instant matches render a
+  // settled terminal state — no replay.
+  const commentary = useMatchCommentary({
+    detail: matchDetail, mob,
+    homeName: homeTeam.name, awayName: awayTeam.name,
+    instant: instantMatch,
+  });
 
   useEffect(() => {
     setTimeout(() => setVisible(true), instantMatch ? 10 : 50);
@@ -142,9 +161,10 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           if (isPlayerGoal) SFX.goal(); else SFX.noGains();
         }
 
-        if (evt.flash) {
-          setFlashEvent(evt);
-          setTimeout(() => setFlashEvent(null), 2500);
+        // Narrate through the commentary queue. In highlights mode only
+        // key events reach the box (same filter the feed used to apply).
+        if (!isHighlights || HIGHLIGHT_TYPES.has(evt.type) || evt.flash) {
+          commentary.pushEvent(evt);
         }
       }
     }
@@ -169,6 +189,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         // Process this kick
         const kick = penalties.kicks[next - 1];
         if (kick) {
+          commentary.pushPenaltyKick(kick);
           if (kick.scored) {
             if (kick.side === "home") setPenHomeScore(s => s + 1);
             else setPenAwayScore(s => s + 1);
@@ -206,11 +227,6 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
     : (penalties && penPhase === "shooting") ? "PENALTIES"
     : playerWon ? "WIN" : drawn ? "DRAW" : "LOSS";
 
-  // In highlights mode, only show key events in the ticker
-  const HIGHLIGHT_TYPES = new Set(["goal", "card", "red_card", "sub", "motm", "halftime", "fulltime"]);
-  const displayEvents = isHighlights
-    ? shownEvents.filter(e => HIGHLIGHT_TYPES.has(e.type) || e.flash)
-    : shownEvents;
 
   return (
     <div style={{
@@ -227,7 +243,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         border: `3px solid ${resultColor}`,
         padding: mob ? "18px 14px" : "28px 32px",
         maxWidth: 621, width: mob ? "96%" : "92%",
-        height: mob ? "70vh" : "55vh",
+        height: mob ? "70vh" : "72vh",
         display: "flex", flexDirection: "column",
         boxShadow: `0 0 50px ${resultColor}33, inset 0 0 80px rgba(0,0,0,0.6)`,
         transform: visible ? "scale(1)" : "scale(0.8)",
@@ -357,9 +373,9 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           isMobile={mob}
         />
 
-        {/* Speed controls — fixed slot. Highlights mode collapses the slot
-            since there are no controls to show (no marker either now). */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 9, marginBottom: isHighlights ? 0 : 14, minHeight: isHighlights ? 0 : 32, flexShrink: 0 }}>
+        {/* Speed controls — fixed slot while live; collapses in highlights
+            mode and at full time so the ratings get the space instead. */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 9, marginBottom: isHighlights || finished ? 0 : 14, minHeight: isHighlights || finished ? 0 : 32, flexShrink: 0 }}>
           {!finished && !isHighlights && (
             <>
               <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
@@ -380,124 +396,23 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           )}
         </div>
 
-        {/* Flash event — desktop reserves a 58px slot; mobile only renders when an event exists */}
-        {!isHighlights && !mob && (
-        <div style={{ minHeight: 58, marginBottom: 12, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {flashEvent ? (
-            <div style={{
-              width: "100%",
-              padding: "16px 23px",
-              background: `${flashEvent.flashColor}15`,
-              border: `2px solid ${flashEvent.flashColor}`,
-              textAlign: "center",
-              animation: "pulse 0.5s ease 3",
-            }}>
-              <div style={{ fontSize: F.lg, color: flashEvent.flashColor, lineHeight: 1.6 }}>
-                {flashEvent.text}
-              </div>
-            </div>
-          ) : (
-            <div style={{
-              width: "100%", padding: "16px 23px",
-              border: `1px solid ${C.bgCard}`,
-              textAlign: "center",
-            }}>
-              <div style={{ fontSize: F.sm, color: C.bgCard }}>—</div>
-            </div>
-          )}
-        </div>
-        )}
-        {/* Mobile flash event — compact strip, only renders when active */}
-        {!isHighlights && mob && flashEvent && (
-          <div style={{
-            marginBottom: 8, flexShrink: 0,
-            padding: "8px 12px",
-            background: `${flashEvent.flashColor}15`,
-            border: `1px solid ${flashEvent.flashColor}`,
-            textAlign: "center",
-            animation: "pulse 0.5s ease 3",
-          }}>
-            <div style={{ fontSize: F.sm, color: flashEvent.flashColor, lineHeight: 1.4 }}>
-              {flashEvent.text}
-            </div>
-          </div>
-        )}
-
-        {/* Tab buttons — always visible */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 6, flexShrink: 0 }}>
-          {[{ id: "feed", label: "FEED" }, { id: "ratings", label: "RATINGS" }].map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-              flex: 1, padding: "7px", fontFamily: FONT, fontSize: F.xs, cursor: "pointer", letterSpacing: 1,
-              background: activeTab === t.id ? "rgba(74,222,128,0.1)" : "rgba(30,41,59,0.3)",
-              border: activeTab === t.id ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
-              color: activeTab === t.id ? C.green : C.textMuted,
-            }}>{t.label}</button>
-          ))}
+        {/* The commentary box (#460): one line, featured side's colours,
+            goal flash handled inside the component. Fixed footprint. */}
+        <div style={{ marginBottom: 10, flexShrink: 0 }}>
+          <MatchCommentaryBox
+            copy={commentary.copy}
+            kit={commentary.side === "home" ? deriveKit(homeTeam.color)
+              : commentary.side === "away" ? deriveKit(awayTeam.color)
+              : neutralKit()}
+            flashing={commentary.flashing}
+            reducedMotion={reducedMotion}
+            mob={mob}
+          />
         </div>
 
-        {/* FEED tab — event ticker */}
-        {activeTab === "feed" && (
-          <div style={{
-            flex: 1, overflowY: "auto",
-            minHeight: 0,
-            marginBottom: 8,
-            border: `1px solid ${C.bgCard}`,
-            background: "rgba(15,15,35,0.6)",
-          }} ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-            {displayEvents.map((evt, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 12, padding: "8px 15px",
-                borderBottom: "1px solid rgba(30,41,59,0.4)",
-                fontSize: F.sm,
-                color: evt.type === "goal" ? evt.flashColor :
-                       evt.type === "motm" ? C.blue :
-                       evt.type === "red_card" ? C.red :
-                       evt.type === "halftime" || evt.type === "fulltime" ? C.textMuted :
-                       evt.type === "card" ? C.amber :
-                       evt.flash ? C.text : C.slate,
-                // Goal rows previously had a tint background that made them
-                // read as hero cards rather than ticker lines. Drop the tint
-                // entirely (mobile already had it dropped). Colour + bold
-                // still mark them out as significant. MOTM/red keep their
-                // subtle tint because they're rarer and benefit from the
-                // extra emphasis.
-                background: evt.type === "motm" ? "rgba(96,165,250,0.06)" :
-                            evt.type === "red_card" ? "rgba(239,68,68,0.06)" : "transparent",
-                fontWeight: evt.type === "goal" || evt.type === "motm" || evt.type === "red_card" ? "bold" : "normal",
-              }}>
-                <span style={{ color: C.bgInput, minWidth: 36 }}>{evt.minute}'</span>
-                <span>{evt.text}</span>
-              </div>
-            ))}
-            {displayEvents.length === 0 && (
-              <div style={{ padding: 16, textAlign: "center", color: C.bgInput, fontSize: F.xs }}>
-                {getMatchFeedPlaceholder(minute)}
-              </div>
-            )}
-            {/* Penalty kicks in the ticker */}
-            {penPhase && penalties && penalties.kicks.slice(0, penKickIdx).map((kick, i) => (
-              <div key={`pen-${i}`} style={{
-                padding: "8px 16px", borderBottom: "1px solid #1a1a2e",
-                display: "flex", gap: 10, fontSize: F.xs,
-                background: kick.suddenDeath ? "rgba(250,204,21,0.05)" : "transparent",
-              }}>
-                <span style={{ color: C.gold, minWidth: 31, textAlign: "right" }}>
-                  {kick.suddenDeath ? "SD" : `P${kick.round}`}
-                </span>
-                <span style={{
-                  color: kick.scored ? C.green : C.red, flex: 1,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  {kick.scored ? "⚽" : "✕"} {kick.player} ({kick.side === "home" ? homeTeam.name : awayTeam.name})
-                  {kick.scored ? " SCORES!" : " MISSES!"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* RATINGS tab — live player ratings */}
-        {activeTab === "ratings" && result.playerRatings && (() => {
+        {/* Ratings — the permanent section beneath the box */}
+        <div style={{ color: C.textDim, fontSize: F.micro, letterSpacing: 2, marginBottom: 4, flexShrink: 0 }}>RATINGS</div>
+        {result.playerRatings && (() => {
           const playerSide = result.isPlayerHome ? "home" : "away";
 
           // Aggregate events per player from the live feed so far
@@ -646,15 +561,15 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           );
         })()}
 
-        {/* RATINGS tab with no playerRatings yet */}
-        {activeTab === "ratings" && !result.playerRatings && (
+        {!result.playerRatings && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: F.xs, marginBottom: 8 }}>
             Ratings available after kick off
           </div>
         )}
 
-        {/* Continue button — post-match only */}
-        {finished && (!penalties || penPhase === "done") && (
+        {/* Continue button — post-match only, and never while durable
+            narration (a goal, full time, MOTM, a penalty) is still owed */}
+        {finished && (!penalties || penPhase === "done") && !commentary.durableOutstanding && (
           <button onClick={handleDone} style={{
             display: "block", width: "100%",
             padding: "12px",

@@ -74,39 +74,26 @@ async function bootApp(page) {
 }
 
 // ---------------------------------------------------------------------------
-// Matchday — live states, parked mid-match at exactly 45'
+// Matchday — the #460 commentary-box layout. The FEED/RATINGS tabs are gone,
+// so the four old tab-state baselines collapse into two honest ones: the box
+// and ratings share every frame now.
 // ---------------------------------------------------------------------------
 
-test("visual: matchday live feed at 45'", async ({ page }) => {
+test("visual: matchday live at 45'", async ({ page }) => {
   await mountFixture(page, "matchday-live");
   // runFor (not fastForward): fastForward fires each timer at most once,
-  // but the match minute needs its interval fired 45 times.
-  await page.clock.runFor(45_400);
-  await expect(page).toHaveScreenshot("matchday-live-feed.png");
+  // but the match minute needs its interval fired 45 times. The extra
+  // seconds let the commentary queue settle out of any goal lock.
+  await page.clock.runFor(50_000);
+  await expect(page).toHaveScreenshot("matchday-live.png");
 });
 
-test("visual: matchday live ratings at 45'", async ({ page }) => {
-  await mountFixture(page, "matchday-live");
-  await page.clock.runFor(45_400);
-  await page.getByText("RATINGS", { exact: true }).click();
-  await expect(page).toHaveScreenshot("matchday-live-ratings.png");
-});
-
-// ---------------------------------------------------------------------------
-// Matchday — full-time states
-// ---------------------------------------------------------------------------
-
-test("visual: full-time feed", async ({ page }) => {
+test("visual: matchday full-time", async ({ page }) => {
   await mountFixture(page, "match-brace");
   await page.clock.fastForward(2_000);
-  await expect(page).toHaveScreenshot("fulltime-feed.png");
-});
-
-test("visual: full-time ratings", async ({ page }) => {
-  await mountFixture(page, "match-brace");
-  await page.clock.fastForward(2_000);
-  await page.getByText("RATINGS", { exact: true }).click();
-  await expect(page).toHaveScreenshot("fulltime-ratings.png");
+  // #455 acceptance rides on this baseline: at 1440x900 the full-time view
+  // must expose at least six player rows alongside the box and CONTINUE.
+  await expect(page).toHaveScreenshot("matchday-fulltime.png");
 });
 
 // ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import { groupGoalsByScorer, buildScorerDisplayMap, formatScorerName } from "../
  * away column right. Empty state returns null (no placeholder).
  *
  * Driven by `shownEvents` (the live-filtered event stream), so it updates
- * in step with the commentary feed in slow/fast/highlights modes and is
+ * in step with the commentary box in slow/fast/highlights modes and is
  * fully populated on arrival for instant matches.
  *
  * Goals are grouped by scorer so a brace becomes one row instead of two.
