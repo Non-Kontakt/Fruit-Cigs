@@ -134,6 +134,13 @@ export function createStorage(dbOptions) {
       return enqueue(() =>
         db.transaction("rw", db.kv, db.backups, async () => {
           const existing = await db.kv.get(key);
+          // A save written by a newer build is protected: overwriting it
+          // would demote it into the backup ring and eventually rotate it
+          // out. Deleting the slot first (explicit, confirmed) is the one
+          // deliberate way past this.
+          if (existing !== undefined && !existing.deleted && !readable(existing)) {
+            throw new SaveVersionError(key, existing.schemaVersion);
+          }
           if (existing !== undefined && !existing.deleted) {
             await db.backups.add({
               key,
@@ -215,6 +222,9 @@ export function createStorage(dbOptions) {
           if (!backup || backup.key !== key) {
             throw new Error(`No backup ${backupId} for "${key}"`);
           }
+          // Installing a newer-build backup would only fail on the next
+          // load; refuse it here where the reason is still attached.
+          if (!readable(backup)) throw new SaveVersionError(key, backup.schemaVersion);
           const existing = await db.kv.get(key);
           if (existing !== undefined && !existing.deleted) {
             await db.backups.add({

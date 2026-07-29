@@ -798,7 +798,9 @@ export function useSaveGame({
     const slot = activeSaveSlot;
     if (slot && s.activeProfileId) {
       try {
-        await storage.deleteSave(getSaveKey(s.activeProfileId, slot));
+        // Sacking is final — the career and its whole backup ring go, so a
+        // future recovery UI can never become an Ironman reload exploit.
+        await storage.purgeSave(getSaveKey(s.activeProfileId, slot));
         setSaveSlotSummaries(prev => { const n = [...prev]; n[slot - 1] = null; return n; });
       } catch (e) { /* ok */ }
     }

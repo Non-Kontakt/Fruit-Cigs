@@ -104,6 +104,13 @@ export async function deleteMuseumEntry(profileId, archivedAt) {
   } catch { /* non-critical */ }
 }
 
+// Slot scan results are explicitly tri-state, and the distinction is
+// load-bearing for the slot picker:
+// - { status: "ok", ...summary }  — a loadable career
+// - null                          — genuinely empty (or deliberately deleted)
+// - { status: "unavailable", reason: "corrupt" | "newer-version" }
+//   — data EXISTS but must not be presented as an empty slot, or the
+//   picker would invite an overwrite of a save the adapter is protecting.
 export async function scanProfileSlots(profileId) {
   const summaries = [null, null, null];
   for (let i = 1; i <= 3; i++) {
@@ -111,17 +118,22 @@ export async function scanProfileSlots(profileId) {
       const result = await storage.getSave(getSaveKey(profileId, i), { validate: isLoadableSave });
       if (result) {
         const s = JSON.parse(result.value);
-        if (s?.teamName) {
-          summaries[i - 1] = {
-            teamName: s.teamName,
-            seasonNumber: s.seasonNumber || 1,
-            leagueTier: s.leagueTier || 11,
-            week: s.week || (s.calendarIndex || 0) + 1 || 1,
-            gameMode: s.gameMode || "casual",
-          };
-        }
+        summaries[i - 1] = {
+          status: "ok",
+          teamName: s.teamName,
+          seasonNumber: s.seasonNumber || 1,
+          leagueTier: s.leagueTier || 11,
+          week: s.week || (s.calendarIndex || 0) + 1 || 1,
+          gameMode: s.gameMode || "casual",
+        };
       }
-    } catch { /* slot empty or corrupt */ }
+    } catch (e) {
+      console.error(`Slot ${i} unavailable:`, e);
+      summaries[i - 1] = {
+        status: "unavailable",
+        reason: e?.name === "SaveVersionError" ? "newer-version" : "corrupt",
+      };
+    }
   }
   return summaries;
 }

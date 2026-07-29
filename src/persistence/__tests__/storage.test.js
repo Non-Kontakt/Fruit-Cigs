@@ -178,6 +178,27 @@ describe("storage adapter — saves and backups", () => {
     expect(await s.listBackups(KEY)).toHaveLength(1);
   });
 
+  it("setSave refuses to overwrite a newer-build save, leaving it untouched", async () => {
+    const s = fresh();
+    await s._db.kv.put({ key: KEY, value: "protected", schemaVersion: SAVE_SCHEMA_VERSION + 1 });
+    await expect(s.setSave(KEY, "usurper")).rejects.toThrow(SaveVersionError);
+    const row = await s._db.kv.get(KEY);
+    expect(row.value).toBe("protected");
+    expect(row.schemaVersion).toBe(SAVE_SCHEMA_VERSION + 1);
+    // Not demoted into the backup ring either.
+    expect(await s.listBackups(KEY)).toEqual([]);
+  });
+
+  it("restoreBackup refuses a newer-build backup instead of installing it", async () => {
+    const s = fresh();
+    await s.setSave(KEY, "current");
+    const id = await s._db.backups.add({
+      key: KEY, value: "from-the-future", schemaVersion: SAVE_SCHEMA_VERSION + 1, reason: "save", createdAt: Date.now(),
+    });
+    await expect(s.restoreBackup(KEY, id)).rejects.toThrow(SaveVersionError);
+    expect((await s.getSave(KEY)).value).toBe("current");
+  });
+
   it("refuses a save written by a newer build, leaving it untouched", async () => {
     const s = fresh();
     await s._db.kv.put({ key: KEY, value: "from-the-future", schemaVersion: SAVE_SCHEMA_VERSION + 1 });

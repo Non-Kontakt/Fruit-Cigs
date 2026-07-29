@@ -207,6 +207,38 @@ test.describe("full-app flows", () => {
     expect(resumed, "league should hydrate from the injected save").toBe(true);
   });
 
+  test("a corrupt slot is occupied-broken, not an empty slot inviting overwrite", async ({ page }) => {
+    await page.goto("index.html");
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+
+    // Seed a profile whose slot 1 holds an unloadable payload (torn write),
+    // through the real adapter.
+    await page.evaluate(async () => {
+      const id = "qa-corrupt";
+      const now = new Date(0).toISOString();
+      await window.__fc.storage.set("jfg-profiles", JSON.stringify([{ id, name: "QA", createdAt: now }]));
+      await window.__fc.storage.set(`jfg-profile-${id}`, JSON.stringify({
+        id, name: "QA", createdAt: now, schemaVersion: 1,
+        unlockedAchievements: [], achievementDates: {}, ironmanCareers: 0,
+        ironmanBest: null, lastIronmanVersion: 0, museum: [],
+      }));
+      await window.__fc.storage.setSave(`jfg-save-${id}-1`, "{torn-write-not-json", "save");
+    });
+
+    await page.reload();
+    await page.waitForFunction(() => !!window.__fc, null, { timeout: 10_000 });
+    await page.getByText("QA", { exact: true }).first().click();
+
+    // The slot declares itself broken instead of masquerading as empty.
+    const broken = page.getByText("UNREADABLE SAVE", { exact: true });
+    await expect(broken).toBeVisible({ timeout: 5_000 });
+
+    // Clicking it must NOT start the new-career flow over protected data.
+    await broken.click();
+    await page.waitForTimeout(400);
+    await expect(page.getByText("SELECT SAVE SLOT", { exact: true })).toBeVisible();
+  });
+
   test("mobile: selecting a squad player does not shift the list", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile", "mobile-only");
 
