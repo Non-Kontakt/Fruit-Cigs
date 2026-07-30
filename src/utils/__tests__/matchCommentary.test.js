@@ -32,8 +32,8 @@ describe("item adaptation — honest featured side", () => {
     expect(item.copy).toBe("Adams shoots — saved!");
   });
 
-  it("sideless events (halftime/fulltime/motm) map to neutral", () => {
-    for (const type of ["halftime", "fulltime", "motm"]) {
+  it("sideless events (halftime/fulltime/motm/shootout) map to neutral", () => {
+    for (const type of ["halftime", "fulltime", "motm", "shootout"]) {
       const item = itemForEvent({ type, text: "x" }, ctx());
       expect(item.side).toBeNull();
       expect(item.kind).toBe("durable");

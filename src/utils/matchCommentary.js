@@ -24,7 +24,7 @@ export const LOCK_MS = 1080;      // GOAL FOR X! flicker (12 swaps at 90ms)
 export const FOLLOWUP_MS = 1600;  // the goal's scorer line
 export const DURABLE_MS = 1100;   // any other durable item's guaranteed hold
 
-const DURABLE_TYPES = new Set(["goal", "halftime", "fulltime", "motm", "red_card"]);
+const DURABLE_TYPES = new Set(["goal", "halftime", "fulltime", "motm", "red_card", "shootout"]);
 
 export function goalCopy(teamName) {
   return `GOAL FOR ${String(teamName || "").toUpperCase()}!`;

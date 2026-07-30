@@ -170,6 +170,25 @@ test.describe("matchday commentary box (#460)", () => {
     expect(await stepUntil(page, page.getByText("CONTINUE ▶", { exact: true }))).toBe(true);
   });
 
+  test("the shootout scene waits for terminal narration to drain (#462)", async ({ page }) => {
+    await mountMatch(page, "matchday-pens");
+    await page.clock.runFor(88_000);
+    // Step through the whistle and the terminal drain: any frame where the
+    // box still presents the FT line must have no shootout header; the
+    // shootout may only exist after that narration finished.
+    let sawShootout = false;
+    for (let i = 0; i < 120 && !sawShootout; i++) {
+      const terminalShowing = await page.getByText("Full time! The referee blows the whistle.", { exact: true }).count();
+      const shootout = await page.getByText("PENALTY SHOOTOUT", { exact: false }).count();
+      if (terminalShowing > 0) {
+        expect(shootout, "shootout scene began during terminal narration").toBe(0);
+      }
+      sawShootout = shootout > 0;
+      await page.clock.runFor(400);
+    }
+    expect(sawShootout).toBe(true);
+  });
+
   test("full time returns the view to MATCH so terminal commentary is seen", async ({ page }) => {
     await mountMatch(page, "matchday-live");
     await page.clock.runFor(40_000);

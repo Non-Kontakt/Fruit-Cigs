@@ -94,6 +94,9 @@ test("visual: matchday live — RATINGS view", async ({ page }) => {
   await mountFixture(page, "matchday-live");
   await page.clock.runFor(50_000);
   await page.getByText("RATINGS", { exact: true }).click();
+  // Wait for the click-driven render before capturing — a screenshot taken
+  // between click and commit stably captures the WRONG view.
+  await expect(page.getByText("Vaughan", { exact: false }).first()).toBeVisible();
   await expect(page).toHaveScreenshot("matchday-live-ratings.png");
 });
 
@@ -107,6 +110,7 @@ test("visual: matchday full time — RATINGS view (#455 evidence)", async ({ pag
   await mountFixture(page, "match-brace");
   await page.clock.fastForward(2_000);
   await page.getByText("RATINGS", { exact: true }).click();
+  await expect(page.getByText("Vaughan", { exact: false }).first()).toBeVisible();
   await expect(page).toHaveScreenshot("matchday-fulltime-ratings.png");
 });
 

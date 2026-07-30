@@ -179,13 +179,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   // Main ticker loop
   useEffect(() => {
     if (instantMatch) return; // Skip ticker in instant mode
-    if (finished) {
-      // If cup match drew, start penalty phase
-      if (penalties && !penPhase) {
-        setTimeout(() => setPenPhase("shooting"), 800);
-      }
-      return;
-    }
+    if (finished) return;
     // #462 backpressure: the match clock may advance only while commentary
     // is interruptible. A protected presentation — a goal's whole flash and
     // follow-up, any durable item — stops play, the way a real match stops
@@ -204,6 +198,24 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
     }, interval);
     return () => clearInterval(tickerRef.current);
   }, [speed, finished, instantMatch, commentary.clockBlocked]);
+
+  // #462: the shootout SCENE obeys the same coherence rule as the whistle —
+  // it begins only after terminal match narration (a 90' goal, the FT line)
+  // has fully drained. The kick sequence already waited; the phase change
+  // itself must too, or the header says PENALTY SHOOTOUT while the box is
+  // still saying Full time. Managed timeout with cleanup, separate from the
+  // ticker effect so terminal phase changes never orphan a start timer.
+  useEffect(() => {
+    if (instantMatch || !finished || !penalties || penPhase) return;
+    if (commentary.clockBlocked) return;
+    const t = setTimeout(() => {
+      // The box announces the shootout in the same beat the header flips —
+      // the settled Full time line never lingers under a shootout scoreboard.
+      commentary.pushEvent({ type: "shootout", text: "To penalties." });
+      setPenPhase("shooting");
+    }, 800);
+    return () => clearTimeout(t);
+  }, [finished, penPhase, instantMatch, commentary.clockBlocked]);
 
   // #462 full-time coherence: the whistle blows only once the clock has
   // reached 90 AND no event from an earlier minute is still owed narration.
