@@ -3,15 +3,19 @@ import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { SFX, BGM } from "../../utils/sfx.js";
 import { hasLateEqualiser } from "../../utils/bgmMoments.js";
-import { getMatchFeedPlaceholder } from "../../utils/matchFeedPlaceholder.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { POSITION_ORDER } from "../../data/positions.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ScorerStrip } from "./ScorerStrip.jsx";
+import { MatchCommentaryBox, deriveKit, neutralKit } from "./MatchCommentaryBox.jsx";
+import { useMatchCommentary } from "../../hooks/useMatchCommentary.js";
 
 // Tier whose matches get the "Altitude Trials" theme (see data/leagues.js tier 6).
 const ALTITUDE_TRIALS_TIER = 6;
+
+// In highlights mode only key events narrate through the commentary box.
+const HIGHLIGHT_TYPES = new Set(["goal", "card", "red_card", "sub", "motm", "halftime", "fulltime"]);
 
 export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpeedChange, competitionLabel, matchDetail, instantMatch, isOnHoliday, onPlayerClick, clubRelationships, transferFocus, onSetFocus, onRemoveFocus, onReplaceFocus, ovrCap = 20, formation, slotAssignments, startingXI, leagueTier, isRunIn }) {
   const [visible, setVisible] = useState(false);
@@ -21,7 +25,6 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const [finished, setFinished] = useState(instantMatch);
   const wasAlwaysFast = React.useRef(initialSpeed === 2 || isHighlights || instantMatch);
   const wasAlwaysNormal = React.useRef(initialSpeed === 1 && !isHighlights && !instantMatch);
-  const [activeTab, setActiveTab] = useState("feed"); // "feed" | "ratings"
 
   // Auto-close result screen when on holiday
   // Use ref for onDone to avoid effect resetting on every App.jsx re-render
@@ -33,7 +36,6 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
       return () => clearTimeout(timer);
     }
   }, [isOnHoliday, finished]);
-  const [flashEvent, setFlashEvent] = useState(null);
   const [shownEvents, setShownEvents] = useState([]);
   const [currentHomeGoals, setCurrentHomeGoals] = useState(0);
   const [currentAwayGoals, setCurrentAwayGoals] = useState(0);
@@ -42,6 +44,44 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const tickerRef = React.useRef(null);
   const mob = useMobile();
   const [viewingTeam, setViewingTeam] = useState(null); // { team, tableRow, matchGoals }
+  const [showMatchSettings, setShowMatchSettings] = useState(false);
+  const matchSettingsRef = useRef(null);
+  const [view, setView] = useState("match"); // "match" | "ratings"
+
+  // "Default to MATCH live and at full time" is enforced: when a live match
+  // reaches the whistle, the view returns to MATCH so the terminal
+  // commentary (FT, MOTM) plays where the player can see it — never
+  // invisibly behind RATINGS.
+  const wasFinishedRef = useRef(finished);
+  useEffect(() => {
+    if (finished && !wasFinishedRef.current) setView("match");
+    wasFinishedRef.current = finished;
+  }, [finished]);
+
+  // The settings popover closes cleanly: outside click or Escape.
+  useEffect(() => {
+    if (!showMatchSettings) return;
+    const onDown = (e) => {
+      if (matchSettingsRef.current && !matchSettingsRef.current.contains(e.target)) setShowMatchSettings(false);
+    };
+    const onKey = (e) => { if (e.key === "Escape") setShowMatchSettings(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showMatchSettings]);
+
+  // Reduced motion is a presentation-logic decision (#460): the goal lock
+  // holds steady colours instead of flickering. Read once per mount.
+  const reducedMotion = useRef(
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  ).current;
 
   // Penalty shootout state
   const [penPhase, setPenPhase] = useState(null); // null | "shooting" | "done"
@@ -52,6 +92,59 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
 
   const homeTeam = league.teams[result.home];
   const awayTeam = league.teams[result.away];
+
+  const openTeamPanel = (side) => {
+    const team = side === "home" ? homeTeam : awayTeam;
+    if (team.isPlayer || !team.squad) return;
+    const mg = {};
+    (result.scorers || []).filter(sc => sc.side === side).forEach(sc => { mg[sc.name] = (mg[sc.name] || 0) + 1; });
+    const idx = side === "home" ? result.home : result.away;
+    const tableRow = league.table?.find(r => r.teamIndex === idx);
+    setViewingTeam({
+      team,
+      tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null,
+      matchGoals: Object.keys(mg).length > 0 ? mg : null,
+    });
+  };
+
+  // Team names: the AI-side name opens the squad panel, but the permanent
+  // underline was noise on the most important line of the screen — the
+  // affordance appears on hover AND keyboard focus (deliberately, not via
+  // browser defaults alone; the default focus outline is also left intact).
+  // Names keep their own constrained columns with a clean single-line
+  // ellipsis; truncation of genuinely long names is accepted, not fought.
+  const renderTeamName = (side, { mobSize = false, align = "left" } = {}) => {
+    const team = side === "home" ? homeTeam : awayTeam;
+    const clickable = !team.isPlayer && !!team.squad;
+    const base = {
+      fontSize: mobSize ? F.md : F.lg,
+      color: team.isPlayer ? C.green : C.text,
+      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      display: "block", width: "100%", textAlign: align,
+      fontFamily: FONT, lineHeight: 1.5,
+    };
+    if (!clickable) return <div style={base}>{team.name}</div>;
+    return (
+      <button
+        aria-label={`${team.name} squad`}
+        onClick={() => openTeamPanel(side)}
+        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+        onFocus={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+        onBlur={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+        style={{ ...base, background: "none", border: "none", padding: 0, cursor: "pointer", textUnderlineOffset: 3 }}
+      >{team.name}</button>
+    );
+  };
+
+  // The commentary box's presentation queue (#460). shownEvents remains the
+  // canonical match record; this narrates it. Instant matches render a
+  // settled terminal state — no replay.
+  const commentary = useMatchCommentary({
+    detail: matchDetail, mob,
+    homeName: homeTeam.name, awayName: awayTeam.name,
+    instant: instantMatch,
+  });
 
   useEffect(() => {
     setTimeout(() => setVisible(true), instantMatch ? 10 : 50);
@@ -142,9 +235,10 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           if (isPlayerGoal) SFX.goal(); else SFX.noGains();
         }
 
-        if (evt.flash) {
-          setFlashEvent(evt);
-          setTimeout(() => setFlashEvent(null), 2500);
+        // Narrate through the commentary queue. In highlights mode only
+        // key events reach the box (same filter the feed used to apply).
+        if (!isHighlights || HIGHLIGHT_TYPES.has(evt.type) || evt.flash) {
+          commentary.pushEvent(evt);
         }
       }
     }
@@ -169,6 +263,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         // Process this kick
         const kick = penalties.kicks[next - 1];
         if (kick) {
+          commentary.pushPenaltyKick(kick);
           if (kick.scored) {
             if (kick.side === "home") setPenHomeScore(s => s + 1);
             else setPenAwayScore(s => s + 1);
@@ -206,34 +301,134 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
     : (penalties && penPhase === "shooting") ? "PENALTIES"
     : playerWon ? "WIN" : drawn ? "DRAW" : "LOSS";
 
-  // In highlights mode, only show key events in the ticker
-  const HIGHLIGHT_TYPES = new Set(["goal", "card", "red_card", "sub", "motm", "halftime", "fulltime"]);
-  const displayEvents = isHighlights
-    ? shownEvents.filter(e => HIGHLIGHT_TYPES.has(e.type) || e.flash)
-    : shownEvents;
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: Z.panel,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(0,0,0,0.85)",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      background: "#0d0d1f",
       opacity: visible ? 1 : 0,
       pointerEvents: visible ? "auto" : "none",
-      transition: "opacity 0.4s ease",
+      transition: "opacity 0.35s ease",
       fontFamily: FONT,
+      overflowY: "auto",
     }}>
       <div style={{
-        background: "linear-gradient(170deg, #1a1a2e 0%, #0d0d1f 60%, #1a1a2e 100%)",
-        border: `3px solid ${resultColor}`,
-        padding: mob ? "18px 14px" : "28px 32px",
-        maxWidth: 621, width: mob ? "96%" : "92%",
-        height: mob ? "70vh" : "55vh",
+        width: mob ? "94%" : "min(720px, 92%)",
+        padding: mob ? "26px 0 20px" : "44px 0 28px",
         display: "flex", flexDirection: "column",
-        boxShadow: `0 0 50px ${resultColor}33, inset 0 0 80px rgba(0,0,0,0.6)`,
-        transform: visible ? "scale(1)" : "scale(0.8)",
-        transition: "transform 0.4s ease, border-color 0.5s ease",
-        overflow: "hidden",
+        minHeight: 0, flex: 1,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(14px)",
+        transition: "opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s",
+        position: "relative",
       }}>
+        {/* Match settings — SVG gear (emoji glyph metrics sit off-centre) on
+            a 42px target, housing speed only. Mobile reserves a top utility
+            band whose FOOTPRINT stays mounted for the scene's whole life —
+            only the button hides at full time, so the final whistle causes
+            zero layout shift. Desktop pins to the viewport corner (out of
+            layout) and can appear/disappear freely. */}
+        {(() => {
+          const showGear = !finished && !isHighlights && !instantMatch;
+          if (mob) {
+            if (isHighlights || instantMatch) return null; // never shows in these modes — no band, no shift
+            return (
+              <div ref={matchSettingsRef} style={{ alignSelf: "flex-end", position: "relative", zIndex: 2, marginTop: "env(safe-area-inset-top)", marginBottom: 8, flexShrink: 0, height: 42 }}>
+                {showGear && (
+              <button
+                aria-label="Match settings"
+                onClick={() => setShowMatchSettings(v => !v)}
+                style={{
+                  width: 42, height: 42,
+                  display: "grid", placeItems: "center", padding: 0,
+                  background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
+                  border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
+                  color: showMatchSettings ? C.green : C.text,
+                  cursor: "pointer", lineHeight: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+                </svg>
+              </button>
+            )}
+            {showMatchSettings && showGear && (
+              <div style={{
+                position: "absolute", top: "110%", right: 0,
+                background: "#0d0d1f", border: `1px solid ${C.bgInput}`,
+                padding: 10, display: "flex", flexDirection: "column", gap: 8,
+                minWidth: 132, boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+              }}>
+                <div style={{ fontSize: F.micro, color: C.textDim, letterSpacing: 2 }}>SPEED</div>
+                <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 1 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 1 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 1 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶ SLOW</button>
+                <button onClick={() => { setSpeed(2); onSpeedChange?.(2); wasAlwaysNormal.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 2 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 2 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 2 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶▶ FAST</button>
+              </div>
+            )}
+              </div>
+            );
+          }
+          if (!showGear) return null;
+          return (
+            <div ref={matchSettingsRef} style={{ position: "fixed", top: 14, right: 14, zIndex: 2 }}>
+              {showGear && (
+              <button
+                aria-label="Match settings"
+                onClick={() => setShowMatchSettings(v => !v)}
+                style={{
+                  width: 42, height: 42,
+                  display: "grid", placeItems: "center", padding: 0,
+                  background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
+                  border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
+                  color: showMatchSettings ? C.green : C.text,
+                  cursor: "pointer", lineHeight: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+                </svg>
+              </button>
+            )}
+            {showMatchSettings && showGear && (
+              <div style={{
+                position: "absolute", top: "110%", right: 0,
+                background: "#0d0d1f", border: `1px solid ${C.bgInput}`,
+                padding: 10, display: "flex", flexDirection: "column", gap: 8,
+                minWidth: 132, boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+              }}>
+                <div style={{ fontSize: F.micro, color: C.textDim, letterSpacing: 2 }}>SPEED</div>
+                <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 1 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 1 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 1 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶ SLOW</button>
+                <button onClick={() => { setSpeed(2); onSpeedChange?.(2); wasAlwaysNormal.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 2 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 2 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 2 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶▶ FAST</button>
+              </div>
+            )}
+            </div>
+          );
+        })()}
+
         {/* Scoreboard — fixed height */}
         <div style={{ textAlign: "center", marginBottom: 4, flexShrink: 0 }}>
           {/* Competition label */}
@@ -259,60 +454,38 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             )}
           </div>
 
-          {/* Score */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: mob ? 8 : 18, marginBottom: 7 }}>
-            <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>
-              <div
-                onClick={() => {
-                  if (homeTeam.isPlayer || !homeTeam.squad) return;
-                  const side = "home";
-                  const mg = {};
-                  (result.scorers || []).filter(s => s.side === side).forEach(s => { mg[s.name] = (mg[s.name] || 0) + 1; });
-                  const tableRow = league.table?.find(r => r.teamIndex === result.home);
-                  setViewingTeam({ team: homeTeam, tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null, matchGoals: Object.keys(mg).length > 0 ? mg : null });
-                }}
-                style={{
-                  fontSize: mob ? F.md : F.lg, color: homeTeam.isPlayer ? C.green : C.text,
-                  cursor: !homeTeam.isPlayer && homeTeam.squad ? "pointer" : "default",
-                  textDecoration: !homeTeam.isPlayer && homeTeam.squad ? "underline" : "none",
-                  textDecorationColor: homeTeam.color || C.slate,
-                  textDecorationStyle: "dotted",
-                  textUnderlineOffset: 3,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >{homeTeam.name}</div>
+          {/* Score — mobile: team names get their own two-column row (up to
+              two lines each) with the numeric score beneath, so long club
+              names render in full; desktop keeps the inline row. */}
+          {mob ? (
+            <>
+              <div style={{ display: "flex", gap: 22, alignItems: "flex-start", marginBottom: 9 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>{renderTeamName("home", { mobSize: true, align: "right" })}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>{renderTeamName("away", { mobSize: true, align: "left" })}</div>
+              </div>
+              <div style={{
+                fontSize: F.h1, fontWeight: "bold", color: C.text,
+                textShadow: "0 0 15px rgba(226,232,240,0.3)",
+                textAlign: "center", marginBottom: 7,
+              }}>
+                {currentHomeGoals} - {currentAwayGoals}
+              </div>
+            </>
+          ) : (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, marginBottom: 7 }}>
+              <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>{renderTeamName("home", { align: "right" })}</div>
+              <div style={{
+                fontSize: F.hero, fontWeight: "bold", color: C.text,
+                textShadow: "0 0 15px rgba(226,232,240,0.3)",
+                minWidth: 104, textAlign: "center",
+                transition: "all 0.3s ease",
+                flexShrink: 0,
+              }}>
+                {currentHomeGoals} - {currentAwayGoals}
+              </div>
+              <div style={{ textAlign: "left", flex: 1, minWidth: 0 }}>{renderTeamName("away", { align: "left" })}</div>
             </div>
-            <div style={{
-              fontSize: mob ? F.h1 : F.hero, fontWeight: "bold", color: C.text,
-              textShadow: "0 0 15px rgba(226,232,240,0.3)",
-              minWidth: mob ? 70 : 104, textAlign: "center",
-              transition: "all 0.3s ease",
-              flexShrink: 0,
-            }}>
-              {currentHomeGoals} - {currentAwayGoals}
-            </div>
-            <div style={{ textAlign: "left", flex: 1, minWidth: 0 }}>
-              <div
-                onClick={() => {
-                  if (awayTeam.isPlayer || !awayTeam.squad) return;
-                  const side = "away";
-                  const mg = {};
-                  (result.scorers || []).filter(s => s.side === side).forEach(s => { mg[s.name] = (mg[s.name] || 0) + 1; });
-                  const tableRow = league.table?.find(r => r.teamIndex === result.away);
-                  setViewingTeam({ team: awayTeam, tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null, matchGoals: Object.keys(mg).length > 0 ? mg : null });
-                }}
-                style={{
-                  fontSize: mob ? F.md : F.lg, color: awayTeam.isPlayer ? C.green : C.text,
-                  cursor: !awayTeam.isPlayer && awayTeam.squad ? "pointer" : "default",
-                  textDecoration: !awayTeam.isPlayer && awayTeam.squad ? "underline" : "none",
-                  textDecorationColor: awayTeam.color || C.slate,
-                  textDecorationStyle: "dotted",
-                  textUnderlineOffset: 3,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >{awayTeam.name}</div>
-            </div>
-          </div>
+          )}
 
           {/* Penalty score line */}
           {penPhase && (
@@ -349,155 +522,47 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           )}
         </div>
 
-        {/* Scorer/assister strip — persistent under scoreline, all modes */}
+        {/* MATCH | RATINGS — discreet switch; the header above stays put,
+            only the lower content changes. MATCH is the default view. */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 18, margin: "2px 0 10px", flexShrink: 0 }}>
+          {["match", "ratings"].map((v) => (
+            <button key={v} onClick={() => setView(v)} style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: FONT, fontSize: F.xs, letterSpacing: 2,
+              color: view === v ? C.green : C.slate,
+              borderBottom: view === v ? `2px solid ${C.green}` : "2px solid transparent",
+              padding: "4px 2px",
+            }}>{v.toUpperCase()}</button>
+          ))}
+        </div>
+
+        {view === "match" && (<>
+        <div style={{ height: mob ? 10 : 22, flexShrink: 0 }} />
+        {/* The commentary box (#460): the hero of the matchday. */}
+        <div style={{ marginTop: 4, marginBottom: 4, flexShrink: 0 }}>
+          <MatchCommentaryBox
+            copy={commentary.copy}
+            kit={commentary.side === "home" ? deriveKit(homeTeam.color)
+              : commentary.side === "away" ? deriveKit(awayTeam.color)
+              : neutralKit()}
+            flashing={commentary.flashing}
+            reducedMotion={reducedMotion}
+            mob={mob}
+          />
+        </div>
+
+        {/* Scorers/assisters with timestamps — unboxed ledger, spacing and
+            muted typography instead of another panel */}
         <ScorerStrip
           events={shownEvents}
           homeSquad={homeTeam?.squad}
           awaySquad={awayTeam?.squad}
           isMobile={mob}
         />
+        <div style={{ flex: 1, minHeight: 0 }} />
+        </>)}
 
-        {/* Speed controls — fixed slot. Highlights mode collapses the slot
-            since there are no controls to show (no marker either now). */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 9, marginBottom: isHighlights ? 0 : 14, minHeight: isHighlights ? 0 : 32, flexShrink: 0 }}>
-          {!finished && !isHighlights && (
-            <>
-              <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
-                padding: "8px 18px", fontSize: F.sm,
-                background: speed === 1 ? "rgba(74,222,128,0.15)" : "transparent",
-                border: speed === 1 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
-                color: speed === 1 ? C.green : C.slate,
-                fontFamily: FONT, cursor: "pointer",
-              }}>▶ SLOW</button>
-              <button onClick={() => { setSpeed(2); onSpeedChange?.(2); wasAlwaysNormal.current = false; }} style={{
-                padding: "8px 18px", fontSize: F.sm,
-                background: speed === 2 ? "rgba(74,222,128,0.15)" : "transparent",
-                border: speed === 2 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
-                color: speed === 2 ? C.green : C.slate,
-                fontFamily: FONT, cursor: "pointer",
-              }}>▶▶ FAST</button>
-            </>
-          )}
-        </div>
-
-        {/* Flash event — desktop reserves a 58px slot; mobile only renders when an event exists */}
-        {!isHighlights && !mob && (
-        <div style={{ minHeight: 58, marginBottom: 12, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {flashEvent ? (
-            <div style={{
-              width: "100%",
-              padding: "16px 23px",
-              background: `${flashEvent.flashColor}15`,
-              border: `2px solid ${flashEvent.flashColor}`,
-              textAlign: "center",
-              animation: "pulse 0.5s ease 3",
-            }}>
-              <div style={{ fontSize: F.lg, color: flashEvent.flashColor, lineHeight: 1.6 }}>
-                {flashEvent.text}
-              </div>
-            </div>
-          ) : (
-            <div style={{
-              width: "100%", padding: "16px 23px",
-              border: `1px solid ${C.bgCard}`,
-              textAlign: "center",
-            }}>
-              <div style={{ fontSize: F.sm, color: C.bgCard }}>—</div>
-            </div>
-          )}
-        </div>
-        )}
-        {/* Mobile flash event — compact strip, only renders when active */}
-        {!isHighlights && mob && flashEvent && (
-          <div style={{
-            marginBottom: 8, flexShrink: 0,
-            padding: "8px 12px",
-            background: `${flashEvent.flashColor}15`,
-            border: `1px solid ${flashEvent.flashColor}`,
-            textAlign: "center",
-            animation: "pulse 0.5s ease 3",
-          }}>
-            <div style={{ fontSize: F.sm, color: flashEvent.flashColor, lineHeight: 1.4 }}>
-              {flashEvent.text}
-            </div>
-          </div>
-        )}
-
-        {/* Tab buttons — always visible */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 6, flexShrink: 0 }}>
-          {[{ id: "feed", label: "FEED" }, { id: "ratings", label: "RATINGS" }].map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-              flex: 1, padding: "7px", fontFamily: FONT, fontSize: F.xs, cursor: "pointer", letterSpacing: 1,
-              background: activeTab === t.id ? "rgba(74,222,128,0.1)" : "rgba(30,41,59,0.3)",
-              border: activeTab === t.id ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
-              color: activeTab === t.id ? C.green : C.textMuted,
-            }}>{t.label}</button>
-          ))}
-        </div>
-
-        {/* FEED tab — event ticker */}
-        {activeTab === "feed" && (
-          <div style={{
-            flex: 1, overflowY: "auto",
-            minHeight: 0,
-            marginBottom: 8,
-            border: `1px solid ${C.bgCard}`,
-            background: "rgba(15,15,35,0.6)",
-          }} ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-            {displayEvents.map((evt, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 12, padding: "8px 15px",
-                borderBottom: "1px solid rgba(30,41,59,0.4)",
-                fontSize: F.sm,
-                color: evt.type === "goal" ? evt.flashColor :
-                       evt.type === "motm" ? C.blue :
-                       evt.type === "red_card" ? C.red :
-                       evt.type === "halftime" || evt.type === "fulltime" ? C.textMuted :
-                       evt.type === "card" ? C.amber :
-                       evt.flash ? C.text : C.slate,
-                // Goal rows previously had a tint background that made them
-                // read as hero cards rather than ticker lines. Drop the tint
-                // entirely (mobile already had it dropped). Colour + bold
-                // still mark them out as significant. MOTM/red keep their
-                // subtle tint because they're rarer and benefit from the
-                // extra emphasis.
-                background: evt.type === "motm" ? "rgba(96,165,250,0.06)" :
-                            evt.type === "red_card" ? "rgba(239,68,68,0.06)" : "transparent",
-                fontWeight: evt.type === "goal" || evt.type === "motm" || evt.type === "red_card" ? "bold" : "normal",
-              }}>
-                <span style={{ color: C.bgInput, minWidth: 36 }}>{evt.minute}'</span>
-                <span>{evt.text}</span>
-              </div>
-            ))}
-            {displayEvents.length === 0 && (
-              <div style={{ padding: 16, textAlign: "center", color: C.bgInput, fontSize: F.xs }}>
-                {getMatchFeedPlaceholder(minute)}
-              </div>
-            )}
-            {/* Penalty kicks in the ticker */}
-            {penPhase && penalties && penalties.kicks.slice(0, penKickIdx).map((kick, i) => (
-              <div key={`pen-${i}`} style={{
-                padding: "8px 16px", borderBottom: "1px solid #1a1a2e",
-                display: "flex", gap: 10, fontSize: F.xs,
-                background: kick.suddenDeath ? "rgba(250,204,21,0.05)" : "transparent",
-              }}>
-                <span style={{ color: C.gold, minWidth: 31, textAlign: "right" }}>
-                  {kick.suddenDeath ? "SD" : `P${kick.round}`}
-                </span>
-                <span style={{
-                  color: kick.scored ? C.green : C.red, flex: 1,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  {kick.scored ? "⚽" : "✕"} {kick.player} ({kick.side === "home" ? homeTeam.name : awayTeam.name})
-                  {kick.scored ? " SCORES!" : " MISSES!"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* RATINGS tab — live player ratings */}
-        {activeTab === "ratings" && result.playerRatings && (() => {
+        {view === "ratings" && result.playerRatings && (() => {
           const playerSide = result.isPlayerHome ? "home" : "away";
 
           // Aggregate events per player from the live feed so far
@@ -599,13 +664,13 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             return (
               <div key={i} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "7px 13px",
+                padding: "10px 14px",
                 opacity: dimmed ? 0.5 : 1,
-                background: isLeader ? "rgba(250,204,21,0.07)" : displayRating >= 8 ? "rgba(74,222,128,0.05)" : "transparent",
+                background: isLeader ? "rgba(250,204,21,0.07)" : "transparent",
                 borderLeft: isLeader ? `2px solid rgba(250,204,21,0.5)` : "2px solid transparent",
               }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "1px 5px", fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
+                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "3px 6px", lineHeight: 1.4, fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
                   <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: dimmed ? C.textMuted : pr.isSub ? C.textMuted : C.text, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
                   {subOff != null && <span style={{ color: C.red, fontSize: F.micro }}>↓{subOff}'</span>}
                   {subOn != null && <span style={{ color: C.green, fontSize: F.micro }}>↑{subOn}'</span>}
@@ -632,7 +697,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           };
 
           return (
-            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, marginBottom: 8, border: `1px solid ${C.bgCard}`, background: "rgba(15,15,35,0.6)" }}>
+            <div style={{ overflowY: "auto", maxHeight: "60vh", minHeight: 0, marginBottom: 8, border: `1px solid ${C.bgCard}`, background: "rgba(15,15,35,0.6)" }}>
               {starters.map((pr, i) => renderRow(pr, i))}
               {subs.length > 0 && (
                 <>
@@ -646,15 +711,15 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
           );
         })()}
 
-        {/* RATINGS tab with no playerRatings yet */}
-        {activeTab === "ratings" && !result.playerRatings && (
+        {view === "ratings" && !result.playerRatings && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: F.xs, marginBottom: 8 }}>
             Ratings available after kick off
           </div>
         )}
 
-        {/* Continue button — post-match only */}
-        {finished && (!penalties || penPhase === "done") && (
+        {/* Continue button — post-match only, and never while durable
+            narration (a goal, full time, MOTM, a penalty) is still owed */}
+        {finished && (!penalties || penPhase === "done") && !commentary.durableOutstanding && (
           <button onClick={handleDone} style={{
             display: "block", width: "100%",
             padding: "12px",

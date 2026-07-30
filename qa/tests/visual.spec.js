@@ -74,39 +74,40 @@ async function bootApp(page) {
 }
 
 // ---------------------------------------------------------------------------
-// Matchday — live states, parked mid-match at exactly 45'
+// Matchday — the #460 full-screen scene with MATCH | RATINGS views. Four
+// baselines: each view, live and at full time. The MATCH frames protect the
+// hero box + ledger composition; the RATINGS frames protect the redesigned
+// list — and the full-time RATINGS baseline is the #455 acceptance evidence
+// (visible player rows at 1440x900).
 // ---------------------------------------------------------------------------
 
-test("visual: matchday live feed at 45'", async ({ page }) => {
+test("visual: matchday live — MATCH view at 45'", async ({ page }) => {
   await mountFixture(page, "matchday-live");
   // runFor (not fastForward): fastForward fires each timer at most once,
-  // but the match minute needs its interval fired 45 times.
-  await page.clock.runFor(45_400);
-  await expect(page).toHaveScreenshot("matchday-live-feed.png");
+  // but the match minute needs its interval fired repeatedly. The extra
+  // seconds let the commentary queue settle out of any goal lock.
+  await page.clock.runFor(50_000);
+  await expect(page).toHaveScreenshot("matchday-live.png");
 });
 
-test("visual: matchday live ratings at 45'", async ({ page }) => {
+test("visual: matchday live — RATINGS view", async ({ page }) => {
   await mountFixture(page, "matchday-live");
-  await page.clock.runFor(45_400);
+  await page.clock.runFor(50_000);
   await page.getByText("RATINGS", { exact: true }).click();
   await expect(page).toHaveScreenshot("matchday-live-ratings.png");
 });
 
-// ---------------------------------------------------------------------------
-// Matchday — full-time states
-// ---------------------------------------------------------------------------
-
-test("visual: full-time feed", async ({ page }) => {
+test("visual: matchday full time — MATCH view", async ({ page }) => {
   await mountFixture(page, "match-brace");
   await page.clock.fastForward(2_000);
-  await expect(page).toHaveScreenshot("fulltime-feed.png");
+  await expect(page).toHaveScreenshot("matchday-fulltime.png");
 });
 
-test("visual: full-time ratings", async ({ page }) => {
+test("visual: matchday full time — RATINGS view (#455 evidence)", async ({ page }) => {
   await mountFixture(page, "match-brace");
   await page.clock.fastForward(2_000);
   await page.getByText("RATINGS", { exact: true }).click();
-  await expect(page).toHaveScreenshot("fulltime-ratings.png");
+  await expect(page).toHaveScreenshot("matchday-fulltime-ratings.png");
 });
 
 // ---------------------------------------------------------------------------

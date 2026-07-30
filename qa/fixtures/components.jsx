@@ -15,6 +15,7 @@ import { ClubLegends } from "../../src/components/club/ClubLegends.jsx";
 import { ClubFocusTree } from "../../src/components/club/ClubFocusTree.jsx";
 import { YouthIntakeScreen } from "../../src/components/season/YouthIntakeScreen.jsx";
 import { PlayerCompareModal } from "../../src/components/transfer/PlayerCompareModal.jsx";
+import { MatchCommentaryBox, comboxStyle, deriveKit, neutralKit } from "../../src/components/match/MatchCommentaryBox.jsx";
 import { findComparablePlayer } from "../../src/utils/transfer.js";
 import { FIXTURES as REGISTRY } from "./registry.js";
 
@@ -593,6 +594,38 @@ const RENDERERS = {
       }, { league: dupeLeague })} />
     );
   },
+  // Look-first review states for #460 — frozen frames via comboxStyle plus
+  // one live component. Labels are harness-only annotation, not game UI.
+  // Borderless per owner redline: background vs text, inverted for the flash.
+  "matchday-combox": () => {
+    const you = deriveKit("#ef4444");   // Red Lion red → light text
+    const opp = deriveKit("#38bdf8");   // Yeralden sky → dark text (contrast case)
+    const label = { color: "#64748b", fontFamily: "monospace", fontSize: 11, margin: "16px 0 6px" };
+    // Representative longest presentation line the box can actually show:
+    // emoji are stripped and goals use conversational prose, so the longest
+    // realistic copy is a wordy stripped narration line like this one.
+    const longest = "Robinson breaks through on goal... but the keeper stands tall and turns it over the bar!";
+    return (
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: 16 }}>
+        <div style={label}>home featured side</div>
+        <div style={comboxStyle(you)}>Robinson breaks through on goal... but fires over!</div>
+        <div style={label}>away featured side</div>
+        <div style={comboxStyle(opp)}>Yeralden work it wide — the cross comes in, headed clear.</div>
+        <div style={label}>neutral (half-time / full-time / MOTM)</div>
+        <div style={comboxStyle(neutralKit())}>Half time.</div>
+        <div style={label}>goal flash — phase A</div>
+        <div style={comboxStyle(you)}>GOAL FOR RED LION FC!</div>
+        <div style={label}>goal flash — phase B (inverted)</div>
+        <div style={comboxStyle(you, { inverted: true })}>GOAL FOR RED LION FC!</div>
+        <div style={label}>mobile footprint, longest real line</div>
+        <div style={{ maxWidth: 362 }}>
+          <div style={comboxStyle(opp, { mob: true })}>{longest}</div>
+        </div>
+        <div style={label}>live component (featured-side transition, no flash)</div>
+        <MatchCommentaryBox copy={"Doherty heads wide from the corner."} kit={opp} />
+      </div>
+    );
+  },
   "match-highlights": () => (
     <MatchResultScreen {...matchProps(matchResult({
       events: [goal("home", "Sonny Reid", "Kai Bennett", 40, "#4ade80")],
@@ -610,11 +643,36 @@ const RENDERERS = {
         goal("home", "Nathan Robinson", "Alfie Wilson", 28, "#4ade80"),
         goal("home", "Nathan Robinson", null, 31, "#4ade80"),
         goal("away", "Max Doherty", "Reece Palmer", 67, "#38bdf8"),
+        { minute: 90, type: "fulltime", text: "Full time! The referee blows the whistle.", flash: true, flashColor: "#94a3b8" },
       ],
       scorers: [
         { name: "Nathan Robinson", side: "home" }, { name: "Nathan Robinson", side: "home" },
         { name: "Max Doherty", side: "away" },
       ],
+    }), { instantMatch: false, initialSpeed: 1 })} />
+  ),
+  // Drawn match into a full shootout — the queue's hardest real cadence:
+  // kicks land every 1200ms while goal locks hold for longer.
+  "matchday-pens": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [
+        beat(30, "Cagey. Not much in it."),
+        goal("home", "Louie Adams", null, 55, "#4ade80"),
+        goal("away", "Max Doherty", "Reece Palmer", 78, "#38bdf8"),
+        { minute: 90, type: "fulltime", text: "Full time! The referee blows the whistle.", flash: true, flashColor: "#94a3b8" },
+      ],
+      scorers: [{ name: "Louie Adams", side: "home" }, { name: "Max Doherty", side: "away" }],
+      penalties: {
+        kicks: [
+          { round: 1, side: "home", player: "Louie Adams", scored: true },
+          { round: 1, side: "away", player: "Max Doherty", scored: false },
+          { round: 2, side: "home", player: "Nathan Robinson", scored: true },
+          { round: 2, side: "away", player: "Reece Palmer", scored: true },
+          { round: 3, side: "home", player: "Kai Bennett", scored: true },
+          { round: 3, side: "away", player: "Toby Grant", scored: false },
+        ],
+        homeScore: 3, awayScore: 1, winner: "home",
+      },
     }), { instantMatch: false, initialSpeed: 1 })} />
   ),
   "inbox-asst-training": () => <InboxHarness messages={[asstTrainingMsg(false)]} />,
