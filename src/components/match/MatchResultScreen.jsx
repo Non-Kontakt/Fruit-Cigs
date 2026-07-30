@@ -97,20 +97,32 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
     });
   };
 
-  const teamNameStyle = (team, { clampTwoLines = false } = {}) => ({
-    fontSize: clampTwoLines ? F.md : F.lg,
-    color: team.isPlayer ? C.green : C.text,
-    cursor: !team.isPlayer && team.squad ? "pointer" : "default",
-    textDecoration: !team.isPlayer && team.squad ? "underline" : "none",
-    textDecorationColor: team.color || C.slate,
-    textDecorationStyle: "dotted",
-    textUnderlineOffset: 3,
-    ...(clampTwoLines
-      // Mobile: full names on their own row, wrapping to at most two lines —
-      // long club names survive instead of becoming "Red Lio…".
-      ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.5 }
-      : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }),
-  });
+  // Team names: the AI-side name opens the squad panel, but the permanent
+  // underline was noise on the most important line of the screen — the
+  // affordance is hover/focus-visible now (review ruling). Names keep their
+  // own constrained columns with a clean single-line ellipsis; truncation
+  // of genuinely long names is accepted, not fought.
+  const renderTeamName = (side, { mobSize = false, align = "left" } = {}) => {
+    const team = side === "home" ? homeTeam : awayTeam;
+    const clickable = !team.isPlayer && !!team.squad;
+    const base = {
+      fontSize: mobSize ? F.md : F.lg,
+      color: team.isPlayer ? C.green : C.text,
+      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      display: "block", width: "100%", textAlign: align,
+      fontFamily: FONT, lineHeight: 1.5,
+    };
+    if (!clickable) return <div style={base}>{team.name}</div>;
+    return (
+      <button
+        aria-label={`${team.name} squad`}
+        onClick={() => openTeamPanel(side)}
+        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+        style={{ ...base, background: "none", border: "none", padding: 0, cursor: "pointer", textUnderlineOffset: 3 }}
+      >{team.name}</button>
+    );
+  };
 
   // The commentary box's presentation queue (#460). shownEvents remains the
   // canonical match record; this narrates it. Instant matches render a
@@ -385,9 +397,9 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               names render in full; desktop keeps the inline row. */}
           {mob ? (
             <>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 5 }}>
-                <div onClick={() => openTeamPanel("home")} style={{ ...teamNameStyle(homeTeam, { clampTwoLines: true }), textAlign: "right", flex: 1, minWidth: 0 }}>{homeTeam.name}</div>
-                <div onClick={() => openTeamPanel("away")} style={{ ...teamNameStyle(awayTeam, { clampTwoLines: true }), textAlign: "left", flex: 1, minWidth: 0 }}>{awayTeam.name}</div>
+              <div style={{ display: "flex", gap: 22, alignItems: "flex-start", marginBottom: 9 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>{renderTeamName("home", { mobSize: true, align: "right" })}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>{renderTeamName("away", { mobSize: true, align: "left" })}</div>
               </div>
               <div style={{
                 fontSize: F.h1, fontWeight: "bold", color: C.text,
@@ -399,9 +411,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             </>
           ) : (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, marginBottom: 7 }}>
-              <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>
-                <div onClick={() => openTeamPanel("home")} style={teamNameStyle(homeTeam)}>{homeTeam.name}</div>
-              </div>
+              <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>{renderTeamName("home", { align: "right" })}</div>
               <div style={{
                 fontSize: F.hero, fontWeight: "bold", color: C.text,
                 textShadow: "0 0 15px rgba(226,232,240,0.3)",
@@ -411,9 +421,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               }}>
                 {currentHomeGoals} - {currentAwayGoals}
               </div>
-              <div style={{ textAlign: "left", flex: 1, minWidth: 0 }}>
-                <div onClick={() => openTeamPanel("away")} style={teamNameStyle(awayTeam)}>{awayTeam.name}</div>
-              </div>
+              <div style={{ textAlign: "left", flex: 1, minWidth: 0 }}>{renderTeamName("away", { align: "left" })}</div>
             </div>
           )}
 

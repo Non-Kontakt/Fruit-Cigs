@@ -38,7 +38,12 @@ test.describe("matchday commentary box (#460)", () => {
 
     // Ride to the 28' goal; freeze mid-lock (lock lasts 1080ms after it).
     await page.clock.runFor(28_300);
-    await expect(page.getByText("GOAL FOR RED LION FC!", { exact: true })).toBeVisible();
+    const lock = page.getByText("GOAL FOR RED LION FC!", { exact: true });
+    await expect(lock).toBeVisible();
+    // While flashing there are exactly two visual states and no tweened
+    // frames between them: transitions are disabled on the box.
+    const transition = await lock.evaluate((el) => getComputedStyle(el).transitionProperty);
+    expect(transition).toBe("none");
 
     // The lock resolves into conversational prose — no emoji, no timestamp.
     await page.clock.runFor(1_500);

@@ -13,39 +13,9 @@ import { C, F, FONT } from "../../data/tokens";
 
 const FLICKER_MS = 90;
 
-// FC teams carry one colour; the box needs a pair. The second colour is
-// whichever of the app's light text / dark background clears the higher
-// WCAG contrast ratio against the (normalised) team colour.
-export function deriveKit(color) {
-  const normalised = normaliseHex(color);
-  const bgLum = relativeLuminance(normalised);
-  const lightLum = relativeLuminance(normaliseHex(C.text));
-  const darkLum = relativeLuminance(normaliseHex(C.bg));
-  const ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  const text = ratio(bgLum, lightLum) >= ratio(bgLum, darkLum) ? C.text : C.bg;
-  return [normalised, text];
-}
-
-// Neutral palette for sideless items (half-time, full-time, MOTM).
-export function neutralKit() {
-  return [C.bgCard, C.text];
-}
-
-function normaliseHex(color) {
-  const hex = String(color || "").replace("#", "").trim();
-  const six = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
-  return /^[0-9a-fA-F]{6}$/.test(six) ? `#${six.toLowerCase()}` : "#334155";
-}
-
-// WCAG 2.x relative luminance.
-function relativeLuminance(hex) {
-  const n = hex.slice(1);
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const v = parseInt(n.slice(i, i + 2), 16) / 255;
-    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
+// Kit derivation (deriveKit/neutralKit) lives in utils/matchKit.js with the
+// 7:1 mutual-contrast contract; re-exported here for the screen and fixtures.
+export { deriveKit, neutralKit } from "../../utils/matchKit.js";
 
 // Style for one box state. Exported so harness fixtures can freeze exact
 // frames (either flicker phase) without reaching into timing.
