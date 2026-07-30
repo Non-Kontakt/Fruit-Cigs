@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   initialCommentaryState, terminalState, enqueue, advance,
-  durableOutstanding, itemForEvent, itemForPenaltyKick, createHoldScheduler,
+  durableOutstanding, clockBlockedOf, oldestPendingMinute,
+  itemForEvent, itemForPenaltyKick, createHoldScheduler,
 } from "../utils/matchCommentary.js";
 
 // Owns wall-clock time for the commentary machine (#460): the machine
@@ -46,6 +47,11 @@ export function useMatchCommentary({ detail, mob, homeName, awayName, instant = 
     flashing: state.phase === "lock",
     // CONTINUE and any other narration-discarding action gate on this.
     durableOutstanding: durableOutstanding(state),
+    // The #462 backpressure signal: the match clock (and the next penalty
+    // kick) may only move while this is false.
+    clockBlocked: clockBlockedOf(state),
+    // Earliest match minute still owed narration — full-time coherence.
+    oldestPendingMinute: oldestPendingMinute(state),
     pushEvent,
     pushPenaltyKick,
   };

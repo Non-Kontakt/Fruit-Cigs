@@ -55,16 +55,17 @@ export function goalProse(evt, { mob = false } = {}) {
 export function itemForEvent(evt, ctx) {
   const side = evt.side === "home" || evt.side === "away" ? evt.side : null;
   const id = `c${ctx.seq()}`;
+  const minute = typeof evt.minute === "number" ? evt.minute : null;
   if (evt.type === "goal") {
     const teamName = evt.side === "home" ? ctx.homeName : ctx.awayName;
     return {
-      id, kind: "durable", side,
+      id, kind: "durable", side, minute,
       goal: { lockCopy: goalCopy(teamName), followUp: goalProse(evt, ctx) },
       copy: goalProse(evt, ctx),
     };
   }
   const durable = ctx.detail === "highlights" || DURABLE_TYPES.has(evt.type);
-  return { id, kind: durable ? "durable" : "line", side, copy: stripPresentation(evt.text) };
+  return { id, kind: durable ? "durable" : "line", side, minute, copy: stripPresentation(evt.text) };
 }
 
 // Penalty kicks: explicit copy; only a SCORED kick gets the goal treatment.
@@ -102,6 +103,25 @@ const isBusy = (s) => s.phase === "lock" || s.phase === "followup" || s.phase ==
 // True while CONTINUE (or anything that would discard narration) must wait.
 export function durableOutstanding(s) {
   return isBusy(s) || s.queue.length > 0;
+}
+
+// The #462 invariant: the match clock may advance only while commentary is
+// interruptible. Protected presentations — a goal's whole lock + follow-up,
+// any durable item — stop play, exactly as a real match stops for the
+// moment being celebrated.
+export function clockBlockedOf(s) {
+  return isBusy(s) || s.queue.length > 0;
+}
+
+// The earliest match minute still owed a presentation. Full-time semantics
+// hang off this: FULL TIME may show while the 90' group presents, but never
+// while an earlier minute's event is still owed (#462 ruling).
+export function oldestPendingMinute(s) {
+  const mins = [];
+  if (isBusy(s) && typeof s.item?.minute === "number") mins.push(s.item.minute);
+  for (const q of s.queue) if (typeof q.minute === "number") mins.push(q.minute);
+  if (typeof s.pendingLine?.minute === "number") mins.push(s.pendingLine.minute);
+  return mins.length ? Math.min(...mins) : null;
 }
 
 function startItem(state, item) {

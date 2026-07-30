@@ -186,20 +186,34 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
       }
       return;
     }
+    // #462 backpressure: the match clock may advance only while commentary
+    // is interruptible. A protected presentation — a goal's whole flash and
+    // follow-up, any durable item — stops play, the way a real match stops
+    // for the moment being celebrated. The minute rate itself is untouched;
+    // protected moments simply create breathing room at any speed.
+    if (commentary.clockBlocked) return;
     const interval = isHighlights ? 150 : speed === 1 ? 1000 : 400;
     tickerRef.current = setInterval(() => {
       setMinute(prev => {
-        const next = prev + 1;
-        if (next > 90) {
+        if (prev >= 90) {
           clearInterval(tickerRef.current);
-          setFinished(true);
           return 90;
         }
-        return next;
+        return prev + 1;
       });
     }, interval);
     return () => clearInterval(tickerRef.current);
-  }, [speed, finished, instantMatch]);
+  }, [speed, finished, instantMatch, commentary.clockBlocked]);
+
+  // #462 full-time coherence: the whistle blows only once the clock has
+  // reached 90 AND no event from an earlier minute is still owed narration.
+  // The 90' group (FT, MOTM) may present under the FULL TIME scoreboard; a
+  // 62' substitution may not.
+  useEffect(() => {
+    if (instantMatch || finished || minute < 90) return;
+    const oldest = commentary.oldestPendingMinute;
+    if (oldest == null || oldest >= 90) setFinished(true);
+  }, [minute, commentary.oldestPendingMinute, finished, instantMatch]);
 
   // Match BGM — themed tracks are prioritized from most to least specific:
   // a live shootout beats a dramatic late leveller beats the Altitude Trials
@@ -244,23 +258,25 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
     }
   }, [minute, instantMatch]);
 
-  // Penalty shootout ticker
+  // #462: penalties are a serialized sequence — present one kick, let its
+  // protected narration finish (clockBlocked), then schedule the next after
+  // the mode's kick delay. There is no minute clock to preserve here; the
+  // contract is order, completeness and zero presentation backlog.
   useEffect(() => {
     if (instantMatch) return; // Already processed penalties in initial useEffect
     if (penPhase !== "shooting" || !penalties) return;
+    if (commentary.clockBlocked) return; // the previous kick is still presenting
     const kickDelay = isHighlights ? 300 : speed === 2 ? 600 : 1200;
-    const timer = setInterval(() => {
+    const timer = setTimeout(() => {
       setPenKickIdx(prev => {
         const next = prev + 1;
         if (next > penalties.kicks.length) {
-          clearInterval(timer);
           setPenPhase("done");
           setPenHomeScore(penalties.homeScore);
           setPenAwayScore(penalties.awayScore);
           SFX.whistle();
           return prev;
         }
-        // Process this kick
         const kick = penalties.kicks[next - 1];
         if (kick) {
           commentary.pushPenaltyKick(kick);
@@ -274,8 +290,8 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         return next;
       });
     }, kickDelay);
-    return () => clearInterval(timer);
-  }, [penPhase, speed, instantMatch]);
+    return () => clearTimeout(timer);
+  }, [penPhase, penKickIdx, speed, instantMatch, commentary.clockBlocked]);
 
   const handleDone = () => {
     setVisible(false);
