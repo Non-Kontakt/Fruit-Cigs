@@ -162,3 +162,32 @@ export function holdFor(state) {
 export function terminalState() {
   return { ...initialCommentaryState("Full time."), phase: "line" };
 }
+
+// The wall-clock side of the machine, extracted so the timing contract is
+// testable without React: a hold's deadline belongs to the ACTIVE phase and
+// item. Queue growth and pending-line coalescing during a hold must never
+// move that deadline — a second goal queues behind the first, it does not
+// extend the first's lock.
+export function holdKeyOf(state) {
+  return holdFor(state) == null ? null : `${state.phase}:${state.item?.id ?? ""}`;
+}
+
+export function createHoldScheduler(onAdvance, timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h) }) {
+  let armedKey = null;
+  let handle = null;
+  return {
+    sync(state) {
+      const key = holdKeyOf(state);
+      if (key === armedKey) return; // same active hold — the deadline stands
+      timers.clear(handle);
+      handle = null;
+      armedKey = key;
+      if (key != null) handle = timers.set(onAdvance, holdFor(state));
+    },
+    dispose() {
+      timers.clear(handle);
+      handle = null;
+      armedKey = null;
+    },
+  };
+}

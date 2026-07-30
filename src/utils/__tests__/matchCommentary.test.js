@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   initialCommentaryState, enqueue, advance, holdFor, durableOutstanding,
   itemForEvent, itemForPenaltyKick, terminalState, goalCopy, goalProse, stripPresentation,
+  createHoldScheduler, holdKeyOf, LOCK_MS,
 } from "../matchCommentary.js";
 
 const ctx = (over = {}) => {
@@ -148,5 +149,66 @@ describe("machine sequencing", () => {
     expect(s.copy).toBe("Full time.");
     expect(durableOutstanding(s)).toBe(false);
     expect(holdFor(s)).toBeNull();
+  });
+});
+
+describe("hold scheduler — deadlines belong to the active hold", () => {
+  it("enqueueing during a lock does not move the lock's expiry", () => {
+    vi.useFakeTimers();
+    try {
+      const c = ctx();
+      const fired = [];
+      const scheduler = createHoldScheduler(() => fired.push(vi.now ? vi.now() : Date.now()));
+      let s = enqueue(initialCommentaryState(), itemForEvent(goalEvt("home", 44), c));
+      scheduler.sync(s); // lock armed for LOCK_MS
+
+      // Halfway through the lock, a second goal and two lines arrive.
+      vi.advanceTimersByTime(LOCK_MS / 2);
+      s = enqueue(s, itemForEvent(goalEvt("away", 45), c));
+      scheduler.sync(s);
+      s = enqueue(s, { id: "l1", kind: "line", side: "home", copy: "x" });
+      scheduler.sync(s);
+
+      // The original deadline stands: the advance fires at LOCK_MS, not
+      // LOCK_MS/2 + LOCK_MS.
+      vi.advanceTimersByTime(LOCK_MS / 2);
+      expect(fired).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a new active hold re-arms; an unchanged one never does", () => {
+    const c = ctx();
+    let s1 = enqueue(initialCommentaryState(), itemForEvent(goalEvt(), c));
+    const s2 = enqueue(s1, itemForPenaltyKick({ side: "home", player: "A", scored: true }, c));
+    // Same active hold before/after the enqueue…
+    expect(holdKeyOf(s2)).toBe(holdKeyOf(s1));
+    // …and a different key once the machine actually advances to a new item.
+    const s3 = advance(advance(s2)); // lock → followup → next durable's lock
+    expect(holdKeyOf(s3)).not.toBe(holdKeyOf(s1));
+  });
+
+  it("rapid penalty kicks never extend the kick currently holding the box", () => {
+    vi.useFakeTimers();
+    try {
+      const c = ctx();
+      let fired = 0;
+      const scheduler = createHoldScheduler(() => { fired += 1; });
+      let s = enqueue(initialCommentaryState(), itemForPenaltyKick({ side: "home", player: "A", scored: true }, c));
+      scheduler.sync(s);
+      // Kicks land every 300ms while the lock holds for 1080ms.
+      for (const ms of [300, 300, 300]) {
+        vi.advanceTimersByTime(ms);
+        s = enqueue(s, itemForPenaltyKick({ side: "away", player: "B", scored: false }, c));
+        scheduler.sync(s);
+      }
+      // 900ms elapsed, three enqueues later: the first lock still expires on
+      // schedule at 1080ms.
+      vi.advanceTimersByTime(LOCK_MS - 900);
+      expect(fired).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

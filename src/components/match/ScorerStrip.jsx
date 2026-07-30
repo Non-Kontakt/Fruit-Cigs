@@ -13,9 +13,9 @@ import { groupGoalsByScorer, buildScorerDisplayMap, formatScorerName } from "../
  * fully populated on arrival for instant matches.
  *
  * Goals are grouped by scorer so a brace becomes one row instead of two.
- * Mobile drops assists; desktop stacks the assister(s) on a sub-line
- * beneath the scorer to avoid the line being truncated when the column
- * is narrow.
+ * Both layouts read identity first — "Robinson 28', 31'" — with the
+ * assister(s) stacked on a sub-line beneath, so narrow columns never
+ * truncate the scorer's name to fit the metadata.
  */
 export function ScorerStrip({
   events,
@@ -36,7 +36,7 @@ export function ScorerStrip({
 
   if (home.length === 0 && away.length === 0) return null;
 
-  // === Mobile compact ledger ("28', 31' Watkins" — no assists) ===
+  // === Mobile compact ledger ("Robinson 28', 31'", assist sub-line) ===
   if (isMobile) {
     const minutesStr = (entry) => entry.goals
       .map(g => g.minute != null ? `${g.minute}'` : "")

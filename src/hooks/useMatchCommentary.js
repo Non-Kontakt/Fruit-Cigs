@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  initialCommentaryState, terminalState, enqueue, advance, holdFor,
-  durableOutstanding, itemForEvent, itemForPenaltyKick,
+  initialCommentaryState, terminalState, enqueue, advance,
+  durableOutstanding, itemForEvent, itemForPenaltyKick, createHoldScheduler,
 } from "../utils/matchCommentary.js";
 
 // Owns wall-clock time for the commentary machine (#460): the machine
@@ -16,19 +16,21 @@ import {
 export function useMatchCommentary({ detail, mob, homeName, awayName, instant = false }) {
   const [state, setState] = useState(() => (instant ? terminalState() : initialCommentaryState()));
   const seqRef = useRef(0);
-  const timerRef = useRef(null);
   const ctxRef = useRef(null);
   ctxRef.current = { detail, mob, homeName, awayName, seq: () => ++seqRef.current };
 
-  // Schedule (or clear) the advance for the current phase.
+  // The scheduler keys each deadline to the ACTIVE hold (phase + item id):
+  // enqueues during a lock change the state object but not the active hold,
+  // so the running deadline is left alone — a queued goal or penalty kick
+  // never extends the narration currently holding the box.
+  const schedulerRef = useRef(null);
+  if (!schedulerRef.current) {
+    schedulerRef.current = createHoldScheduler(() => setState((s) => advance(s)));
+  }
   useEffect(() => {
-    clearTimeout(timerRef.current);
-    const hold = holdFor(state);
-    if (hold != null) {
-      timerRef.current = setTimeout(() => setState((s) => advance(s)), hold);
-    }
-    return () => clearTimeout(timerRef.current);
+    schedulerRef.current.sync(state);
   }, [state]);
+  useEffect(() => () => schedulerRef.current.dispose(), []);
 
   const pushEvent = useCallback((evt) => {
     setState((s) => enqueue(s, itemForEvent(evt, ctxRef.current)));

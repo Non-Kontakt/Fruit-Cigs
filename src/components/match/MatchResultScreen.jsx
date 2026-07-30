@@ -46,7 +46,17 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const [viewingTeam, setViewingTeam] = useState(null); // { team, tableRow, matchGoals }
   const [showMatchSettings, setShowMatchSettings] = useState(false);
   const matchSettingsRef = useRef(null);
-  const [view, setView] = useState("match"); // "match" | "ratings" — MATCH is the default, live and at full time
+  const [view, setView] = useState("match"); // "match" | "ratings"
+
+  // "Default to MATCH live and at full time" is enforced: when a live match
+  // reaches the whistle, the view returns to MATCH so the terminal
+  // commentary (FT, MOTM) plays where the player can see it — never
+  // invisibly behind RATINGS.
+  const wasFinishedRef = useRef(finished);
+  useEffect(() => {
+    if (finished && !wasFinishedRef.current) setView("match");
+    wasFinishedRef.current = finished;
+  }, [finished]);
 
   // The settings popover closes cleanly: outside click or Escape.
   useEffect(() => {
@@ -99,9 +109,10 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
 
   // Team names: the AI-side name opens the squad panel, but the permanent
   // underline was noise on the most important line of the screen — the
-  // affordance is hover/focus-visible now (review ruling). Names keep their
-  // own constrained columns with a clean single-line ellipsis; truncation
-  // of genuinely long names is accepted, not fought.
+  // affordance appears on hover AND keyboard focus (deliberately, not via
+  // browser defaults alone; the default focus outline is also left intact).
+  // Names keep their own constrained columns with a clean single-line
+  // ellipsis; truncation of genuinely long names is accepted, not fought.
   const renderTeamName = (side, { mobSize = false, align = "left" } = {}) => {
     const team = side === "home" ? homeTeam : awayTeam;
     const clickable = !team.isPlayer && !!team.squad;
@@ -119,6 +130,8 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         onClick={() => openTeamPanel(side)}
         onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
         onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+        onFocus={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+        onBlur={(e) => { e.currentTarget.style.textDecoration = "none"; }}
         style={{ ...base, background: "none", border: "none", padding: 0, cursor: "pointer", textUnderlineOffset: 3 }}
       >{team.name}</button>
     );
@@ -310,37 +323,37 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         transition: "opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s",
         position: "relative",
       }}>
-        {/* Match settings — a gear in the corner instead of an inline
-            control row (owner ruling: the modal was bloated). Houses speed
-            now; the home for any future mid-match settings. */}
-        {/* Match settings — SVG gear (emoji glyph metrics sit off-centre),
-            42px target. Mobile gets a reserved top utility band (safe-area
-            aware) so the control belongs to the layout instead of floating
-            over the header; desktop pins it to the viewport corner. */}
-        {!finished && !isHighlights && !instantMatch && (
-          <div
-            ref={matchSettingsRef}
-            style={mob
-              ? { alignSelf: "flex-end", position: "relative", zIndex: 2, marginTop: "env(safe-area-inset-top)", marginBottom: 8, flexShrink: 0 }
-              : { position: "fixed", top: 14, right: 14, zIndex: 2 }}
-          >
-            <button
-              aria-label="Match settings"
-              onClick={() => setShowMatchSettings(v => !v)}
-              style={{
-                width: 42, height: 42,
-                display: "grid", placeItems: "center", padding: 0,
-                background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
-                border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
-                color: showMatchSettings ? C.green : C.text,
-                cursor: "pointer", lineHeight: 0,
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-              </svg>
-            </button>
-            {showMatchSettings && (
+        {/* Match settings — SVG gear (emoji glyph metrics sit off-centre) on
+            a 42px target, housing speed only. Mobile reserves a top utility
+            band whose FOOTPRINT stays mounted for the scene's whole life —
+            only the button hides at full time, so the final whistle causes
+            zero layout shift. Desktop pins to the viewport corner (out of
+            layout) and can appear/disappear freely. */}
+        {(() => {
+          const showGear = !finished && !isHighlights && !instantMatch;
+          if (mob) {
+            if (isHighlights || instantMatch) return null; // never shows in these modes — no band, no shift
+            return (
+              <div ref={matchSettingsRef} style={{ alignSelf: "flex-end", position: "relative", zIndex: 2, marginTop: "env(safe-area-inset-top)", marginBottom: 8, flexShrink: 0, height: 42 }}>
+                {showGear && (
+              <button
+                aria-label="Match settings"
+                onClick={() => setShowMatchSettings(v => !v)}
+                style={{
+                  width: 42, height: 42,
+                  display: "grid", placeItems: "center", padding: 0,
+                  background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
+                  border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
+                  color: showMatchSettings ? C.green : C.text,
+                  cursor: "pointer", lineHeight: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+                </svg>
+              </button>
+            )}
+            {showMatchSettings && showGear && (
               <div style={{
                 position: "absolute", top: "110%", right: 0,
                 background: "#0d0d1f", border: `1px solid ${C.bgInput}`,
@@ -364,8 +377,57 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                 }}>▶▶ FAST</button>
               </div>
             )}
-          </div>
-        )}
+              </div>
+            );
+          }
+          if (!showGear) return null;
+          return (
+            <div ref={matchSettingsRef} style={{ position: "fixed", top: 14, right: 14, zIndex: 2 }}>
+              {showGear && (
+              <button
+                aria-label="Match settings"
+                onClick={() => setShowMatchSettings(v => !v)}
+                style={{
+                  width: 42, height: 42,
+                  display: "grid", placeItems: "center", padding: 0,
+                  background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
+                  border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
+                  color: showMatchSettings ? C.green : C.text,
+                  cursor: "pointer", lineHeight: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+                </svg>
+              </button>
+            )}
+            {showMatchSettings && showGear && (
+              <div style={{
+                position: "absolute", top: "110%", right: 0,
+                background: "#0d0d1f", border: `1px solid ${C.bgInput}`,
+                padding: 10, display: "flex", flexDirection: "column", gap: 8,
+                minWidth: 132, boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+              }}>
+                <div style={{ fontSize: F.micro, color: C.textDim, letterSpacing: 2 }}>SPEED</div>
+                <button onClick={() => { setSpeed(1); onSpeedChange?.(1); wasAlwaysFast.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 1 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 1 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 1 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶ SLOW</button>
+                <button onClick={() => { setSpeed(2); onSpeedChange?.(2); wasAlwaysNormal.current = false; }} style={{
+                  padding: "8px 12px", fontSize: F.xs,
+                  background: speed === 2 ? "rgba(74,222,128,0.15)" : "transparent",
+                  border: speed === 2 ? `1px solid ${C.green}` : `1px solid ${C.bgInput}`,
+                  color: speed === 2 ? C.green : C.slate,
+                  fontFamily: FONT, cursor: "pointer",
+                }}>▶▶ FAST</button>
+              </div>
+            )}
+            </div>
+          );
+        })()}
 
         {/* Scoreboard — fixed height */}
         <div style={{ textAlign: "center", marginBottom: 4, flexShrink: 0 }}>

@@ -601,9 +601,10 @@ const RENDERERS = {
     const you = deriveKit("#ef4444");   // Red Lion red → light text
     const opp = deriveKit("#38bdf8");   // Yeralden sky → dark text (contrast case)
     const label = { color: "#64748b", fontFamily: "monospace", fontSize: 11, margin: "16px 0 6px" };
-    // Representative longest real narration (goal text with assist) — the
-    // mobile row below must hold it without visible chopping.
-    const longest = "⚽ GOAL! Nathan Robinson scores for Red Lion FC! (Assist: Alfie Wilson)";
+    // Representative longest presentation line the box can actually show:
+    // emoji are stripped and goals use conversational prose, so the longest
+    // realistic copy is a wordy stripped narration line like this one.
+    const longest = "Robinson breaks through on goal... but the keeper stands tall and turns it over the bar!";
     return (
       <div style={{ maxWidth: 640, margin: "0 auto", padding: 16 }}>
         <div style={label}>home featured side</div>
@@ -642,11 +643,36 @@ const RENDERERS = {
         goal("home", "Nathan Robinson", "Alfie Wilson", 28, "#4ade80"),
         goal("home", "Nathan Robinson", null, 31, "#4ade80"),
         goal("away", "Max Doherty", "Reece Palmer", 67, "#38bdf8"),
+        { minute: 90, type: "fulltime", text: "Full time! The referee blows the whistle.", flash: true, flashColor: "#94a3b8" },
       ],
       scorers: [
         { name: "Nathan Robinson", side: "home" }, { name: "Nathan Robinson", side: "home" },
         { name: "Max Doherty", side: "away" },
       ],
+    }), { instantMatch: false, initialSpeed: 1 })} />
+  ),
+  // Drawn match into a full shootout — the queue's hardest real cadence:
+  // kicks land every 1200ms while goal locks hold for longer.
+  "matchday-pens": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [
+        beat(30, "Cagey. Not much in it."),
+        goal("home", "Louie Adams", null, 55, "#4ade80"),
+        goal("away", "Max Doherty", "Reece Palmer", 78, "#38bdf8"),
+        { minute: 90, type: "fulltime", text: "Full time! The referee blows the whistle.", flash: true, flashColor: "#94a3b8" },
+      ],
+      scorers: [{ name: "Louie Adams", side: "home" }, { name: "Max Doherty", side: "away" }],
+      penalties: {
+        kicks: [
+          { round: 1, side: "home", player: "Louie Adams", scored: true },
+          { round: 1, side: "away", player: "Max Doherty", scored: false },
+          { round: 2, side: "home", player: "Nathan Robinson", scored: true },
+          { round: 2, side: "away", player: "Reece Palmer", scored: true },
+          { round: 3, side: "home", player: "Kai Bennett", scored: true },
+          { round: 3, side: "away", player: "Toby Grant", scored: false },
+        ],
+        homeScore: 3, awayScore: 1, winner: "home",
+      },
     }), { instantMatch: false, initialSpeed: 1 })} />
   ),
   "inbox-asst-training": () => <InboxHarness messages={[asstTrainingMsg(false)]} />,

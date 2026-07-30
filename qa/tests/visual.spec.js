@@ -74,26 +74,40 @@ async function bootApp(page) {
 }
 
 // ---------------------------------------------------------------------------
-// Matchday — the #460 commentary-box layout. The FEED/RATINGS tabs are gone,
-// so the four old tab-state baselines collapse into two honest ones: the box
-// and ratings share every frame now.
+// Matchday — the #460 full-screen scene with MATCH | RATINGS views. Four
+// baselines: each view, live and at full time. The MATCH frames protect the
+// hero box + ledger composition; the RATINGS frames protect the redesigned
+// list — and the full-time RATINGS baseline is the #455 acceptance evidence
+// (visible player rows at 1440x900).
 // ---------------------------------------------------------------------------
 
-test("visual: matchday live at 45'", async ({ page }) => {
+test("visual: matchday live — MATCH view at 45'", async ({ page }) => {
   await mountFixture(page, "matchday-live");
   // runFor (not fastForward): fastForward fires each timer at most once,
-  // but the match minute needs its interval fired 45 times. The extra
+  // but the match minute needs its interval fired repeatedly. The extra
   // seconds let the commentary queue settle out of any goal lock.
   await page.clock.runFor(50_000);
   await expect(page).toHaveScreenshot("matchday-live.png");
 });
 
-test("visual: matchday full-time", async ({ page }) => {
+test("visual: matchday live — RATINGS view", async ({ page }) => {
+  await mountFixture(page, "matchday-live");
+  await page.clock.runFor(50_000);
+  await page.getByText("RATINGS", { exact: true }).click();
+  await expect(page).toHaveScreenshot("matchday-live-ratings.png");
+});
+
+test("visual: matchday full time — MATCH view", async ({ page }) => {
   await mountFixture(page, "match-brace");
   await page.clock.fastForward(2_000);
-  // #455 acceptance rides on this baseline: at 1440x900 the full-time view
-  // must expose at least six player rows alongside the box and CONTINUE.
   await expect(page).toHaveScreenshot("matchday-fulltime.png");
+});
+
+test("visual: matchday full time — RATINGS view (#455 evidence)", async ({ page }) => {
+  await mountFixture(page, "match-brace");
+  await page.clock.fastForward(2_000);
+  await page.getByText("RATINGS", { exact: true }).click();
+  await expect(page).toHaveScreenshot("matchday-fulltime-ratings.png");
 });
 
 // ---------------------------------------------------------------------------
