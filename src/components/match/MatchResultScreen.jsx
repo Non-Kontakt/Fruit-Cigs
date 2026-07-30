@@ -83,6 +83,35 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
   const homeTeam = league.teams[result.home];
   const awayTeam = league.teams[result.away];
 
+  const openTeamPanel = (side) => {
+    const team = side === "home" ? homeTeam : awayTeam;
+    if (team.isPlayer || !team.squad) return;
+    const mg = {};
+    (result.scorers || []).filter(sc => sc.side === side).forEach(sc => { mg[sc.name] = (mg[sc.name] || 0) + 1; });
+    const idx = side === "home" ? result.home : result.away;
+    const tableRow = league.table?.find(r => r.teamIndex === idx);
+    setViewingTeam({
+      team,
+      tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null,
+      matchGoals: Object.keys(mg).length > 0 ? mg : null,
+    });
+  };
+
+  const teamNameStyle = (team, { clampTwoLines = false } = {}) => ({
+    fontSize: clampTwoLines ? F.md : F.lg,
+    color: team.isPlayer ? C.green : C.text,
+    cursor: !team.isPlayer && team.squad ? "pointer" : "default",
+    textDecoration: !team.isPlayer && team.squad ? "underline" : "none",
+    textDecorationColor: team.color || C.slate,
+    textDecorationStyle: "dotted",
+    textUnderlineOffset: 3,
+    ...(clampTwoLines
+      // Mobile: full names on their own row, wrapping to at most two lines —
+      // long club names survive instead of becoming "Red Lio…".
+      ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: 1.5 }
+      : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }),
+  });
+
   // The commentary box's presentation queue (#460). shownEvents remains the
   // canonical match record; this narrates it. Instant matches render a
   // settled terminal state — no replay.
@@ -272,21 +301,33 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
         {/* Match settings — a gear in the corner instead of an inline
             control row (owner ruling: the modal was bloated). Houses speed
             now; the home for any future mid-match settings. */}
+        {/* Match settings — SVG gear (emoji glyph metrics sit off-centre),
+            42px target. Mobile gets a reserved top utility band (safe-area
+            aware) so the control belongs to the layout instead of floating
+            over the header; desktop pins it to the viewport corner. */}
         {!finished && !isHighlights && !instantMatch && (
-          <div ref={matchSettingsRef} style={{ position: "fixed", top: 14, right: 14, zIndex: 2 }}>
+          <div
+            ref={matchSettingsRef}
+            style={mob
+              ? { alignSelf: "flex-end", position: "relative", zIndex: 2, marginTop: "env(safe-area-inset-top)", marginBottom: 8, flexShrink: 0 }
+              : { position: "fixed", top: 14, right: 14, zIndex: 2 }}
+          >
             <button
               aria-label="Match settings"
               onClick={() => setShowMatchSettings(v => !v)}
               style={{
                 width: 42, height: 42,
-                display: "flex", alignItems: "center", justifyContent: "center",
+                display: "grid", placeItems: "center", padding: 0,
                 background: showMatchSettings ? "rgba(74,222,128,0.15)" : "rgba(30,41,59,0.75)",
                 border: `1px solid ${showMatchSettings ? C.green : C.bgInput}`,
                 color: showMatchSettings ? C.green : C.text,
-                fontFamily: FONT, fontSize: F.xl, cursor: "pointer",
-                lineHeight: 1, padding: 0,
+                cursor: "pointer", lineHeight: 0,
               }}
-            >⚙</button>
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+              </svg>
+            </button>
             {showMatchSettings && (
               <div style={{
                 position: "absolute", top: "110%", right: 0,
@@ -313,6 +354,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             )}
           </div>
         )}
+
         {/* Scoreboard — fixed height */}
         <div style={{ textAlign: "center", marginBottom: 4, flexShrink: 0 }}>
           {/* Competition label */}
@@ -338,60 +380,42 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             )}
           </div>
 
-          {/* Score */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: mob ? 8 : 18, marginBottom: 7 }}>
-            <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>
-              <div
-                onClick={() => {
-                  if (homeTeam.isPlayer || !homeTeam.squad) return;
-                  const side = "home";
-                  const mg = {};
-                  (result.scorers || []).filter(s => s.side === side).forEach(s => { mg[s.name] = (mg[s.name] || 0) + 1; });
-                  const tableRow = league.table?.find(r => r.teamIndex === result.home);
-                  setViewingTeam({ team: homeTeam, tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null, matchGoals: Object.keys(mg).length > 0 ? mg : null });
-                }}
-                style={{
-                  fontSize: mob ? F.md : F.lg, color: homeTeam.isPlayer ? C.green : C.text,
-                  cursor: !homeTeam.isPlayer && homeTeam.squad ? "pointer" : "default",
-                  textDecoration: !homeTeam.isPlayer && homeTeam.squad ? "underline" : "none",
-                  textDecorationColor: homeTeam.color || C.slate,
-                  textDecorationStyle: "dotted",
-                  textUnderlineOffset: 3,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >{homeTeam.name}</div>
+          {/* Score — mobile: team names get their own two-column row (up to
+              two lines each) with the numeric score beneath, so long club
+              names render in full; desktop keeps the inline row. */}
+          {mob ? (
+            <>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 5 }}>
+                <div onClick={() => openTeamPanel("home")} style={{ ...teamNameStyle(homeTeam, { clampTwoLines: true }), textAlign: "right", flex: 1, minWidth: 0 }}>{homeTeam.name}</div>
+                <div onClick={() => openTeamPanel("away")} style={{ ...teamNameStyle(awayTeam, { clampTwoLines: true }), textAlign: "left", flex: 1, minWidth: 0 }}>{awayTeam.name}</div>
+              </div>
+              <div style={{
+                fontSize: F.h1, fontWeight: "bold", color: C.text,
+                textShadow: "0 0 15px rgba(226,232,240,0.3)",
+                textAlign: "center", marginBottom: 7,
+              }}>
+                {currentHomeGoals} - {currentAwayGoals}
+              </div>
+            </>
+          ) : (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, marginBottom: 7 }}>
+              <div style={{ textAlign: "right", flex: 1, minWidth: 0 }}>
+                <div onClick={() => openTeamPanel("home")} style={teamNameStyle(homeTeam)}>{homeTeam.name}</div>
+              </div>
+              <div style={{
+                fontSize: F.hero, fontWeight: "bold", color: C.text,
+                textShadow: "0 0 15px rgba(226,232,240,0.3)",
+                minWidth: 104, textAlign: "center",
+                transition: "all 0.3s ease",
+                flexShrink: 0,
+              }}>
+                {currentHomeGoals} - {currentAwayGoals}
+              </div>
+              <div style={{ textAlign: "left", flex: 1, minWidth: 0 }}>
+                <div onClick={() => openTeamPanel("away")} style={teamNameStyle(awayTeam)}>{awayTeam.name}</div>
+              </div>
             </div>
-            <div style={{
-              fontSize: mob ? F.h1 : F.hero, fontWeight: "bold", color: C.text,
-              textShadow: "0 0 15px rgba(226,232,240,0.3)",
-              minWidth: mob ? 70 : 104, textAlign: "center",
-              transition: "all 0.3s ease",
-              flexShrink: 0,
-            }}>
-              {currentHomeGoals} - {currentAwayGoals}
-            </div>
-            <div style={{ textAlign: "left", flex: 1, minWidth: 0 }}>
-              <div
-                onClick={() => {
-                  if (awayTeam.isPlayer || !awayTeam.squad) return;
-                  const side = "away";
-                  const mg = {};
-                  (result.scorers || []).filter(s => s.side === side).forEach(s => { mg[s.name] = (mg[s.name] || 0) + 1; });
-                  const tableRow = league.table?.find(r => r.teamIndex === result.away);
-                  setViewingTeam({ team: awayTeam, tableRow: tableRow ? { played: tableRow.played, won: tableRow.won, drawn: tableRow.drawn, lost: tableRow.lost, goalsFor: tableRow.goalsFor, goalsAgainst: tableRow.goalsAgainst, points: tableRow.points } : null, matchGoals: Object.keys(mg).length > 0 ? mg : null });
-                }}
-                style={{
-                  fontSize: mob ? F.md : F.lg, color: awayTeam.isPlayer ? C.green : C.text,
-                  cursor: !awayTeam.isPlayer && awayTeam.squad ? "pointer" : "default",
-                  textDecoration: !awayTeam.isPlayer && awayTeam.squad ? "underline" : "none",
-                  textDecorationColor: awayTeam.color || C.slate,
-                  textDecorationStyle: "dotted",
-                  textUnderlineOffset: 3,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >{awayTeam.name}</div>
-            </div>
-          </div>
+          )}
 
           {/* Penalty score line */}
           {penPhase && (

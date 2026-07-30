@@ -45,22 +45,25 @@ export function ScorerStrip({
     const renderEntry = (entry, key, alignRight) => {
       const name = displayMap?.[entry.player] ?? formatScorerName(entry.player);
       const mins = minutesStr(entry);
+      // Identity first, timestamps second — "Robinson 28', 31'" — with the
+      // assist on its own sub-line when present.
+      const assisters = entry.goals.filter(g => g.assister).map(g => formatScorerName(g.assister));
       return (
-        <div key={key} style={{
-          fontSize: F.xs, lineHeight: 1.6, color: C.textMuted,
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          textAlign: alignRight ? "right" : "left",
-        }}>
-          {alignRight ? (
-            <>
-              <span>{name}</span>
-              {mins && <span style={{ color: C.textDim, marginLeft: 4 }}>{mins}</span>}
-            </>
-          ) : (
-            <>
-              {mins && <span style={{ color: C.textDim, marginRight: 4 }}>{mins}</span>}
-              <span>{name}</span>
-            </>
+        <div key={key} style={{ textAlign: alignRight ? "right" : "left" }}>
+          <div style={{
+            fontSize: F.xs, lineHeight: 1.6, color: C.textMuted,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            <span>{name}</span>
+            {mins && <span style={{ color: C.textDim, marginLeft: 4 }}>{mins}</span>}
+          </div>
+          {assisters.length > 0 && (
+            <div style={{
+              fontSize: F.micro, lineHeight: 1.5, color: C.textDim,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              ({assisters.join(", ")})
+            </div>
           )}
         </div>
       );
