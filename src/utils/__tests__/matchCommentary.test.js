@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   initialCommentaryState, enqueue, advance, holdFor, durableOutstanding,
   itemForEvent, itemForPenaltyKick, terminalState, goalCopy, goalProse, stripPresentation,
-  createHoldScheduler, holdKeyOf, LOCK_MS,
+  createHoldScheduler, holdKeyOf, LOCK_MS, clockBlockedOf, oldestPendingMinute,
 } from "../matchCommentary.js";
 
 const ctx = (over = {}) => {
@@ -32,8 +32,8 @@ describe("item adaptation — honest featured side", () => {
     expect(item.copy).toBe("Adams shoots — saved!");
   });
 
-  it("sideless events (halftime/fulltime/motm) map to neutral", () => {
-    for (const type of ["halftime", "fulltime", "motm"]) {
+  it("sideless events (halftime/fulltime/motm/shootout) map to neutral", () => {
+    for (const type of ["halftime", "fulltime", "motm", "shootout"]) {
       const item = itemForEvent({ type, text: "x" }, ctx());
       expect(item.side).toBeNull();
       expect(item.kind).toBe("durable");
@@ -210,5 +210,42 @@ describe("hold scheduler — deadlines belong to the active hold", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("clock backpressure signals (#462)", () => {
+  it("the clock is blocked through a goal's whole protected presentation", () => {
+    const c = ctx();
+    let s = enqueue(initialCommentaryState(), itemForEvent(goalEvt("home", 28), c));
+    expect(clockBlockedOf(s)).toBe(true);   // lock
+    s = advance(s);
+    expect(clockBlockedOf(s)).toBe(true);   // follow-up prose too — not just the flash
+    s = advance(s);
+    expect(clockBlockedOf(s)).toBe(false);  // released
+  });
+
+  it("ordinary lines never block the clock; a non-empty queue always does", () => {
+    const c = ctx();
+    let s = enqueue(initialCommentaryState(), { id: "l", kind: "line", side: "home", copy: "x", minute: 15 });
+    expect(clockBlockedOf(s)).toBe(false);
+    s = enqueue(s, itemForEvent(goalEvt("home", 20), c));
+    s = enqueue(s, itemForEvent(goalEvt("away", 21), c));
+    // Active lock plus one queued goal: blocked until BOTH have presented.
+    let guard = 0;
+    while (clockBlockedOf(s) && guard++ < 10) s = advance(s);
+    expect(guard).toBe(4); // lock, followup, lock, followup
+  });
+
+  it("oldestPendingMinute tracks the earliest minute still owed", () => {
+    const c = ctx();
+    let s = initialCommentaryState();
+    expect(oldestPendingMinute(s)).toBeNull();
+    s = enqueue(s, itemForEvent(goalEvt("home", 62), c));
+    s = enqueue(s, itemForEvent({ type: "fulltime", text: "Full time!", minute: 90 }, c));
+    expect(oldestPendingMinute(s)).toBe(62);
+    s = advance(advance(s)); // 62' goal fully presented → FT active
+    expect(oldestPendingMinute(s)).toBe(90);
+    s = advance(s);
+    expect(oldestPendingMinute(s)).toBeNull();
   });
 });

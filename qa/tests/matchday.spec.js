@@ -23,6 +23,17 @@ async function mountMatch(page, fixtureId) {
   await settleFonts(page);
 }
 
+// Bounded virtual-time stepping: advance the fake clock in small chunks
+// until a condition holds. Deterministic in outcome; immune to sub-second
+// skew from fonts/audio readiness.
+const stepUntil = async (page, locator, { steps = 120, chunk = 400 } = {}) => {
+  for (let i = 0; i < steps; i++) {
+    if (await locator.count() > 0) return true;
+    await page.clock.runFor(chunk);
+  }
+  return false;
+};
+
 // Mobile drops the assist sentence from the goal prose by design.
 const goalProseFor = (project) =>
   project === "mobile" ? "Robinson makes no mistake." : "Robinson makes no mistake. Wilson created the opening.";
@@ -36,10 +47,11 @@ test.describe("matchday commentary box (#460)", () => {
     // The old tabbed feed is gone.
     await expect(page.getByText("FEED", { exact: true })).toHaveCount(0);
 
-    // Ride to the 28' goal; freeze mid-lock (lock lasts 1080ms after it).
-    await page.clock.runFor(28_300);
+    // Ride to the 28' goal (bounded stepping — parallel-load skew must not
+    // matter, only that the lock arrives).
+    await page.clock.runFor(27_000);
     const lock = page.getByText("GOAL FOR RED LION FC!", { exact: true });
-    await expect(lock).toBeVisible();
+    expect(await stepUntil(page, lock)).toBe(true);
     // While flashing there are exactly two visual states and no tweened
     // frames between them: transitions are disabled on the box.
     const transition = await lock.evaluate((el) => getComputedStyle(el).transitionProperty);
@@ -74,14 +86,51 @@ test.describe("matchday commentary box (#460)", () => {
 
   test("full time: durable queue drains before CONTINUE appears", async ({ page }) => {
     await mountMatch(page, "matchday-live");
-    // To 90' — the fulltime event enters the durable queue at the whistle.
-    await page.clock.runFor(90_500);
-    // Immediately at the whistle, durable narration can still be owed.
-    // After the holds drain, CONTINUE must be available.
-    await page.clock.runFor(6_000);
-    await expect(page.getByText("CONTINUE ▶", { exact: true })).toBeVisible();
+    await page.clock.runFor(90_500);   // ~90' plus protected pauses en route
+    expect(await stepUntil(page, page.getByText("CONTINUE ▶", { exact: true }))).toBe(true);
     // And the feed never came back at full time.
     await expect(page.getByText("FEED", { exact: true })).toHaveCount(0);
+  });
+
+  test("key events mode: the whistle never outruns the narration (#462)", async ({ page }) => {
+    await mountMatch(page, "matchday-key");
+    // Dense protected narration far beyond the old 13.5s highlights budget.
+    expect(await stepUntil(page, page.getByText("FULL TIME", { exact: false }), { steps: 240, chunk: 400 })).toBe(true);
+    // From the moment the scoreboard says FULL TIME, no earlier-minute event
+    // may ever appear in the box — only the 90' terminal group.
+    const stale = ["Substitution for Yeralden", "goes into the book", "booked for a late one", "Red card!", "Yellow card"];
+    for (let i = 0; i < 30; i++) {
+      for (const text of stale) {
+        expect(await page.getByText(text, { exact: false }).count(), `stale after FT: ${text}`).toBe(0);
+      }
+      if (await page.getByText("CONTINUE ▶", { exact: true }).count() > 0) break;
+      await page.clock.runFor(400);
+    }
+    await expect(page.getByText("CONTINUE ▶", { exact: true })).toBeVisible();
+  });
+
+  test("the minute freezes for a goal's whole presentation, then resumes (#462)", async ({ page }) => {
+    await mountMatch(page, "matchday-live");
+    // Only coalescable lines before 28': the clock must run right through
+    // them — 20 virtual seconds is exactly 20 minutes.
+    await page.clock.runFor(20_000);
+    await expect(page.getByText("20'", { exact: false })).toBeVisible();
+    // Ride into the 28' goal lock.
+    expect(await stepUntil(page, page.getByText("GOAL FOR RED LION FC!", { exact: true }))).toBe(true);
+    const readMinute = () => page.evaluate(() => document.body.innerText.match(/(\d+)'/)?.[1]);
+    const during = await readMinute();
+    // Mid-presentation (follow-up prose), the minute has not moved.
+    await page.clock.runFor(1_200);
+    expect(await readMinute()).toBe(during);
+    // After the presentation drains, play resumes (bounded: the very next
+    // goal at 31' can re-freeze the clock, so we only require the minute to
+    // move at all, not a fixed distance).
+    let resumed = during;
+    for (let i = 0; i < 20 && resumed === during; i++) {
+      await page.clock.runFor(500);
+      resumed = await readMinute();
+    }
+    expect(Number(resumed)).toBeGreaterThan(Number(during));
   });
 
   test("instant match renders a settled terminal state", async ({ page }) => {
@@ -97,30 +146,47 @@ test.describe("matchday commentary box (#460)", () => {
 
   test("penalty shootout: kicks narrate in order and CONTINUE waits for the drain", async ({ page }) => {
     await mountMatch(page, "matchday-pens");
-    await page.clock.runFor(91_200);   // whistle at 1-1; pens spin up moments later
+    await page.clock.runFor(91_200);   // ~90' plus the two goals' protected pauses
+    expect(await stepUntil(page, page.getByText("PENALTY SHOOTOUT", { exact: false }))).toBe(true);
 
-    // Step virtual time in small increments until each contract point is
-    // met (bounded) — sub-second skew from fonts/audio readiness must not
-    // matter, only the ORDER of what the box shows and when CONTINUE gates.
-    const stepUntil = async (locator, maxSteps = 60) => {
-      for (let i = 0; i < maxSteps; i++) {
-        if (await locator.count() > 0) return true;
-        await page.clock.runFor(300);
-      }
-      return false;
-    };
-
-    // The first scored kick locks the box.
-    expect(await stepUntil(page.getByText("GOAL FOR RED LION FC!", { exact: true }))).toBe(true);
-    // Its conversational follow-up lands next.
-    expect(await stepUntil(page.getByText("Adams scores from the spot.", { exact: true }))).toBe(true);
-    // Kicks keep arriving faster than holds expire; the queue must deliver
-    // the LAST kick eventually with nothing dropped in between…
-    expect(await stepUntil(page.getByText("Grant misses from the spot.", { exact: true }), 120)).toBe(true);
-    // …and while that final durable still holds the box, CONTINUE waits.
+    // Serialized shootout (#462): every kick presents exactly once, in
+    // order, each starting only after the previous protected presentation
+    // finished. Assert the full sequence.
+    for (const copy of [
+      "GOAL FOR RED LION FC!",             // Adams' kick locks
+      "Adams scores from the spot.",
+      "Doherty misses from the spot.",
+      "Robinson scores from the spot.",
+      "Palmer scores from the spot.",
+      "Bennett scores from the spot.",
+      "Grant misses from the spot.",
+    ]) {
+      expect(await stepUntil(page, page.getByText(copy, { exact: true })), copy).toBe(true);
+    }
+    // While the final durable still holds the box, CONTINUE waits.
     await expect(page.getByText("CONTINUE ▶", { exact: true })).toHaveCount(0);
-    await page.clock.runFor(2_000);
-    await expect(page.getByText("CONTINUE ▶", { exact: true })).toBeVisible();
+    // Then the shootout terminator fires (one more serialized step) and the
+    // drain completes.
+    expect(await stepUntil(page, page.getByText("CONTINUE ▶", { exact: true }))).toBe(true);
+  });
+
+  test("the shootout scene waits for terminal narration to drain (#462)", async ({ page }) => {
+    await mountMatch(page, "matchday-pens");
+    await page.clock.runFor(88_000);
+    // Step through the whistle and the terminal drain: any frame where the
+    // box still presents the FT line must have no shootout header; the
+    // shootout may only exist after that narration finished.
+    let sawShootout = false;
+    for (let i = 0; i < 120 && !sawShootout; i++) {
+      const terminalShowing = await page.getByText("Full time! The referee blows the whistle.", { exact: true }).count();
+      const shootout = await page.getByText("PENALTY SHOOTOUT", { exact: false }).count();
+      if (terminalShowing > 0) {
+        expect(shootout, "shootout scene began during terminal narration").toBe(0);
+      }
+      sawShootout = shootout > 0;
+      await page.clock.runFor(400);
+    }
+    expect(sawShootout).toBe(true);
   });
 
   test("full time returns the view to MATCH so terminal commentary is seen", async ({ page }) => {
@@ -132,9 +198,8 @@ test.describe("matchday commentary box (#460)", () => {
     // The whistle flips the view back to MATCH: the FT durable plays in
     // sight, never invisibly behind RATINGS.
     await page.clock.runFor(51_000);
-    await expect(page.getByText("Full time! The referee blows the whistle.", { exact: true })).toBeVisible();
-    await page.clock.runFor(3_000);
-    await expect(page.getByText("CONTINUE ▶", { exact: true })).toBeVisible();
+    expect(await stepUntil(page, page.getByText("Full time! The referee blows the whistle.", { exact: true }))).toBe(true);
+    expect(await stepUntil(page, page.getByText("CONTINUE ▶", { exact: true }))).toBe(true);
   });
 
   test("mobile: the final whistle causes zero layout shift", async ({ page }, testInfo) => {
@@ -142,17 +207,18 @@ test.describe("matchday commentary box (#460)", () => {
     await mountMatch(page, "matchday-live");
     await page.clock.runFor(85_000);
     const before = await page.getByText("Concrete Schoolyard", { exact: false }).boundingBox();
-    await page.clock.runFor(10_000);   // through the whistle + drain
-    await expect(page.getByText("CONTINUE ▶", { exact: true })).toBeVisible();
+    expect(await stepUntil(page, page.getByText("CONTINUE ▶", { exact: true }))).toBe(true);
     const after = await page.getByText("Concrete Schoolyard", { exact: false }).boundingBox();
-    expect(after.y).toBe(before.y);
+    // Sub-pixel text-metric rounding is not a layout shift; a real shift
+    // (the 50px utility band collapsing) would move this by tens of pixels.
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1);
   });
 
   test("reduced motion: the goal lock still shows its copy (steady, no strobe)", async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await mountMatch(page, "matchday-live");
-    await page.clock.runFor(28_300);
-    await expect(page.getByText("GOAL FOR RED LION FC!", { exact: true })).toBeVisible();
+    await page.clock.runFor(27_000);
+    expect(await stepUntil(page, page.getByText("GOAL FOR RED LION FC!", { exact: true }))).toBe(true);
     await page.clock.runFor(1_500);
     await expect(page.getByText(goalProseFor(testInfo.project.name), { exact: true })).toBeVisible();
   });

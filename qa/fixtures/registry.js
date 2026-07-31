@@ -18,6 +18,7 @@ export const FIXTURES = [
   { id: "matchday-combox", label: "Matchday commentary box — possession states + both flicker phases (#460)" },
   { id: "matchday-live", label: "Match — live, ticking from kick-off (visual spec parks it at 45')" },
   { id: "matchday-pens", label: "Match — drawn, runs into a full penalty shootout", settleMs: 1200 },
+  { id: "matchday-key", label: "Match — Key Events mode, dense protected narration (#462)", settleMs: 1200 },
   { id: "inbox-asst-training", label: "Inbox — asst. manager training (unresolved)" },
   { id: "inbox-asst-training-resolved", label: "Inbox — asst. manager training (resolved)" },
   { id: "inbox-trial", label: "Inbox — trial offer (accept/decline)" },

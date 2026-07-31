@@ -651,6 +651,30 @@ const RENDERERS = {
       ],
     }), { instantMatch: false, initialSpeed: 1 })} />
   ),
+  // Key Events mode with enough protected narration to exceed the old
+  // 13.5-second highlights budget — the #462 backpressure regression.
+  "matchday-key": () => (
+    <MatchResultScreen {...matchProps(matchResult({
+      events: [
+        goal("home", "Nathan Robinson", "Alfie Wilson", 12, "#4ade80"),
+        { minute: 20, type: "card", side: "away", cardPlayer: "Dean Cox", cardTeamName: "Yeralden", text: "Yellow card for Dean Cox." },
+        goal("away", "Max Doherty", null, 25, "#38bdf8"),
+        { minute: 33, type: "card", side: "home", cardPlayer: "Joe Marsh", cardTeamName: "Red Lion FC", text: "Joe Marsh goes into the book." },
+        goal("home", "Louie Adams", "Sonny Reid", 38, "#4ade80"),
+        { minute: 45, type: "halftime", text: "Half time.", flash: true, flashColor: "#94a3b8" },
+        { minute: 50, type: "card", side: "away", cardPlayer: "Leon Pryce", cardTeamName: "Yeralden", text: "Leon Pryce is booked for a late one." },
+        { minute: 60, type: "sub", side: "away", playerOff: "Ben Gibbs", playerOn: "Noah Brown", text: "Substitution for Yeralden: Noah Brown replaces Ben Gibbs." },
+        goal("home", "Kai Bennett", null, 70, "#4ade80"),
+        { minute: 78, type: "red_card", side: "away", cardPlayer: "Toby Grant", cardTeamName: "Yeralden", text: "Red card! Toby Grant is off." },
+        { minute: 90, type: "fulltime", text: "Full time! The referee blows the whistle.", flash: true, flashColor: "#94a3b8" },
+        { minute: 90, type: "motm", text: "Man of the Match: Nathan Robinson.", flash: true, flashColor: "#60a5fa" },
+      ],
+      scorers: [
+        { name: "Nathan Robinson", side: "home" }, { name: "Max Doherty", side: "away" },
+        { name: "Louie Adams", side: "home" }, { name: "Kai Bennett", side: "home" },
+      ],
+    }), { instantMatch: false, initialSpeed: 1, matchDetail: "highlights" })} />
+  ),
   // Drawn match into a full shootout — the queue's hardest real cadence:
   // kicks land every 1200ms while goal locks hold for longer.
   "matchday-pens": () => (
