@@ -47,6 +47,17 @@ describe("actual career save/load boundary", () => {
     expect(states).toHaveLength(1);
     expect(states[0].squad.length).toBeGreaterThan(10);
   });
+  it("preserves assigned formation slots and pads legacy eleven-slot arrays", async () => {
+    const actions = game();
+    const assignments = [...useGameStore.getState().startingXI].reverse();
+    useGameStore.setState({ slotAssignments: assignments });
+    expect(await actions.saveGame()).toBe(true);
+    useGameStore.setState({ slotAssignments: null });
+    expect(await actions.loadGame()).toBe(true);
+    const restored = useGameStore.getState().slotAssignments;
+    expect(restored.slice(0, 11)).toEqual(assignments);
+    expect(restored.slice(11)).toEqual(Array(restored.length - 11).fill(null));
+  });
   it("does not replace live state or the saved slot with an invalid import", async () => {
     const actions=game(); await actions.saveGame();
     const before=useGameStore.getState(); const disk=await storage.getSave(getSaveKey("test",1));

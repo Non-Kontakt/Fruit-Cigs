@@ -301,9 +301,9 @@ export function useSaveGame({
     }
     // Load slot assignments
     if (s.slotAssignments && Array.isArray(s.slotAssignments) && s.slotAssignments.length >= 11) {
-      const loaded = [...s.slotAssignments];
-      while (loaded.length < TOTAL_SLOTS) loaded.push(null);
-      loaded.slotAssignments = loaded;
+      const assignments = [...s.slotAssignments];
+      while (assignments.length < TOTAL_SLOTS) assignments.push(null);
+      loaded.slotAssignments = assignments;
     } else {
       loaded.slotAssignments = null;
     }
