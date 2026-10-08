@@ -26,11 +26,10 @@ export function useGainPopupHandler({
   setInjuryWarning,
   // Component-local callbacks
   tryUnlockAchievement,
-  // Refs
-  pendingTrialAction,
 }) {
   const processGainsDone = useCallback((gains) => {
     const s = useGameStore.getState();
+    if (!gains || !s.gains || s.gains.reportId !== gains.reportId) return;
     const ovrCap = getOvrCap(s.prestigeLevel || 0);
 
     let appliedSquad = s.squad;
@@ -240,8 +239,8 @@ export function useGainPopupHandler({
     }
 
     // === Apply deferred trial player actions ===
-    const trialAction = pendingTrialAction.current;
-    pendingTrialAction.current = null;
+    const trialAction = s.pendingTrialAction;
+    s.setPendingTrialAction(null);
     if (trialAction) {
       if (trialAction.type === "impressed") {
         s.setSquad(prev => prev.filter(p => p.id !== trialAction.id));
@@ -508,7 +507,7 @@ export function useGainPopupHandler({
         s.setMatchPending(true);
       }
     }
-  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement, pendingTrialAction]);
+  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement]);
 
   return { processGainsDone };
 }

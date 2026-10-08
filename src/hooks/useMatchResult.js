@@ -33,12 +33,10 @@ export function useMatchResult({
   tryUnlockAchievement,
   updateUltimatumProgress,
   updateMatchLog,
-  pendingLeagueRef,
-  cardedPlayerIdsRef,
-  weekRecoveriesRef,
 }) {
   const processMatchDone = useCallback((matchResult, wasAlwaysFast, wasAlwaysNormal) => {
     const s = useGameStore.getState();
+    if (!matchResult || s.matchResult !== matchResult) return;
     const ovrCap = getOvrCap(s.prestigeLevel || 0);
 
     try {
@@ -52,10 +50,10 @@ export function useMatchResult({
 
       // === Flush deferred league table update ===
       let currentLeague = s.league;
-      if (pendingLeagueRef.current) {
-        currentLeague = pendingLeagueRef.current;
+      if (s.pendingLeague) {
+        currentLeague = s.pendingLeague;
         s.setLeague(currentLeague);
-        pendingLeagueRef.current = null;
+        s.setPendingLeague(null);
       }
 
       // Tier 8: Track carded player team players so they skip next training
@@ -67,7 +65,7 @@ export function useMatchResult({
           .map(e => e.cardPlayer);
         if (cardedNames.length > 0) {
           const cardedIds = s.squad.filter(p => cardedNames.includes(p.name)).map(p => p.id);
-          cardedIds.forEach(id => cardedPlayerIdsRef.current.add(id));
+          s.setCardedPlayerIds(prev => new Set([...prev, ...cardedIds]));
         }
       }
 
@@ -368,7 +366,7 @@ export function useMatchResult({
           seasonAwayWins: (!isHome && playerWon) ? s.seasonAwayWins + 1 : s.seasonAwayWins,
           seasonAwayGames: !isHome ? s.seasonAwayGames + 1 : s.seasonAwayGames,
           leagueWins: s.leagueWins, wasAlwaysFast,
-          recoveries: weekRecoveriesRef.current || [],
+          recoveries: s.weekRecoveries,
           recentScorelines: [...s.recentScorelines.slice(-2), [playerGoals, oppGoals]],
           secondPlaceFinishes: s.secondPlaceFinishes,
           playerInjuryCount: s.playerInjuryCount,
@@ -1024,7 +1022,7 @@ export function useMatchResult({
       setMatchResult(null);
       s.setProcessing(false);
     }
-  }, [setMatchResult, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog, pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef]);
+  }, [setMatchResult, tryUnlockAchievement, updateUltimatumProgress, updateMatchLog]);
 
   return { processMatchDone };
 }

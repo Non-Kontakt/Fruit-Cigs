@@ -47,6 +47,40 @@ describe("actual career save/load boundary", () => {
     expect(states).toHaveLength(1);
     expect(states[0].squad.length).toBeGreaterThan(10);
   });
+  it.each(["summary", "prestige", "legendSelect", "intake"])("resumes the unconsumed %s season phase", async phase => {
+    const actions = game();
+    const data = { fromTier: 11, toTier: 10, position: 1, weeksLeft: 5, youthCandidates: [] };
+    useGameStore.setState({ summerPhase: phase, summerData: data });
+    await actions.saveGame();
+    useGameStore.setState({ summerPhase: null, summerData: null });
+    expect(await actions.loadGame()).toBe(true);
+    expect(useGameStore.getState().summerPhase).toBe(phase);
+    expect(useGameStore.getState().summerData).toEqual(data);
+  });
+  it("round-trips deferred training, claimed rewards, disciplinary and trial state", async () => {
+    const actions = game();
+    const s = useGameStore.getState();
+    s.setGains({ improvements: [], injuries: [], revealedItems: ["gain:0"], pickedTickets: { "capped_arc_ticket:1": "rewind" } });
+    useGameStore.setState({ pendingSquad: s.squad, cardedPlayerIds: new Set([s.squad[0].id]), weekRecoveries: [{ playerName: s.squad[0].name }], pendingTrialAction: { type: "continue", id: "trial", newWeeksLeft: 1, newStarts: 2 }, matchPending: true });
+    const before = createSavePayload(useGameStore.getState(), 0);
+    await actions.saveGame();
+    useGameStore.setState({ gains: null, pendingSquad: null, pendingTrialAction: null, matchPending: false });
+    expect(await actions.loadGame()).toBe(true);
+    const after = createSavePayload(useGameStore.getState(), 0);
+    for (const key of ["gains", "pendingSquad", "pendingTrialAction", "weekRecoveries", "cardedPlayerIds", "matchPending"]) expect(after[key]).toEqual(before[key]);
+  });
+  it.each(["matchResult", "cupMatchResult"])("retains the exact rolled %s and deferred standings", async field => {
+    const actions = game();
+    const result = { home: 0, away: 1, homeGoals: 2, awayGoals: 1, events: [], _calendarIndex: 3 };
+    const table = structuredClone(useGameStore.getState().league);
+    table.table[0].points = 3;
+    useGameStore.setState({ [field]: result, pendingLeague: table });
+    await actions.saveGame();
+    useGameStore.setState({ [field]: null, pendingLeague: null });
+    expect(await actions.loadGame()).toBe(true);
+    expect(useGameStore.getState()[field]).toEqual(result);
+    expect(useGameStore.getState().pendingLeague).toEqual(table);
+  });
   it("preserves assigned formation slots and pads legacy eleven-slot arrays", async () => {
     const actions = game();
     const assignments = [...useGameStore.getState().startingXI].reverse();

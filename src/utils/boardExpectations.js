@@ -17,3 +17,11 @@ export function getBoardExpectation(tier) {
   }
   return { demand: "us to survive and build for the future", line: "Survive and build for the future." };
 }
+
+// A cup lifeline ends only with the trophy or elimination, never an
+// intermediate win. null means the existing pending decision stays open.
+export function getCupUltimatumOutcome({ pending, gameMode, isFinal, playerWon, playerEliminated }) {
+  if (!pending || gameMode !== "ironman") return null;
+  if (isFinal && playerWon) return "reprieve";
+  return playerEliminated ? "sack" : null;
+}

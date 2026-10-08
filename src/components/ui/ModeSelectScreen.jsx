@@ -16,7 +16,7 @@ const MODES = [
       "Save & load",
       "as you wish.",
       "",
-      "No achievements.",
+      "Earn achievements.",
     ],
   },
   {
@@ -26,8 +26,8 @@ const MODES = [
     color: C.lightRed,
     lines: [
       "One life.",
-      "Achievements",
-      "only count here.",
+      "Progress saves",
+      "automatically.",
       "",
       "The board can",
       "sack you.",
@@ -57,7 +57,7 @@ export function ModeSelectScreen({ slotNumber, onSelect, onBack }) {
           )}
           {confirming === "casual" && (
             <div style={{ fontSize: F.sm, color: C.textMuted, marginBottom: 24, lineHeight: 2 }}>
-              This career will be Casual. Save and load freely. No achievements will be earned. This cannot be changed.
+              This career will be Casual. Save and load freely. Achievements are available in both modes. This cannot be changed.
             </div>
           )}
           <button

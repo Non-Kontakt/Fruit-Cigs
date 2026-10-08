@@ -1,3 +1,5 @@
+import { recordTrainingReveal, recordTrainingTicket } from "./utils/trainingReport.js";
+import { getCupUltimatumOutcome } from "./utils/boardExpectations.js";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { POSITION_TYPES, POSITION_ORDER, POS_COLORS, SUB_COLOR, TOTAL_SLOTS } from "./data/positions.js";
 import { ATTRIBUTES, TRAINING_FOCUSES } from "./data/training.js";
@@ -249,19 +251,18 @@ function FruitCigs() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
   const [swapTarget, setSwapTarget] = useState(null); // injured player being swapped out
-  const [gains, setGains] = useState(null);
-  const [pendingBreakouts, setPendingBreakouts] = useState(null); // breakout results to show after match report closes
+  const gains = useGameStore(s => s.gains);
+  const setGains = useGameStore.getState().setGains;
+  const pendingBreakouts = useGameStore(s => s.pendingBreakouts);
+  const setPendingBreakouts = useGameStore.getState().setPendingBreakouts;
   const [showBreakoutPopup, setShowBreakoutPopup] = useState(false); // delayed reveal after match report closes
   const pendingSquad = useGameStore(s => s.pendingSquad);
 
-  const pendingLeagueRef = useRef(null); // deferred league table update until match result dismissed
-  const cardedPlayerIdsRef = useRef(new Set()); // Tier 8: carded players skip next training
   const dynastyCupQualifiers = useGameStore(s => s.dynastyCupQualifiers); // Tier 3: top 4 at halfway for end-of-season knockout
   const dynastyCupBracket = useGameStore(s => s.dynastyCupBracket);
   const miniTournamentBracket = useGameStore(s => s.miniTournamentBracket);
   const fiveASideSquad = useGameStore(s => s.fiveASideSquad); // Tier 2: player's 5v5 squad selection [5 player IDs]
   // showFiveASidePicker removed — squad page panel handles 5v5 selection
-  const pendingTrialAction = useRef(null); // deferred trial processing after gains popup
   const holidayTargetRef = useRef(null); // Tracks target matchweek for Go on Holiday feature
   const holidayIntervalRef = useRef(null); // Interval ID for auto-advance
   const isOnHoliday = useGameStore(s => s.isOnHoliday);
@@ -331,7 +332,8 @@ function FruitCigs() {
   const processing = useGameStore(s => s.processing);
   const [weekTransition, setWeekTransition] = useState(false);
   const league = useGameStore(s => s.league);
-  const [matchResult, setMatchResult] = useState(null);
+  const matchResult = useGameStore(s => s.matchResult);
+  const setMatchResult = useGameStore.getState().setMatchResult;
   const [showTable, setShowTable] = useState(false);
   const [showTransfers, setShowTransfers] = useState(false);
   const clubRelationships = useGameStore(s => s.clubRelationships); // { [teamName]: { pct, tier } }
@@ -460,7 +462,8 @@ function FruitCigs() {
   // the ref is always up to date even if the closure was formed before the last render.
   const cup = useGameStore(s => s.cup);
   const [showCup, setShowCup] = useState(false);
-  const [cupMatchResult, setCupMatchResult] = useState(null);
+  const cupMatchResult = useGameStore(s => s.cupMatchResult);
+  const setCupMatchResult = useGameStore.getState().setCupMatchResult;
   const [showCalendar, setShowCalendar] = useState(false);
   const [showSquad, setShowSquad] = useState(false);
   const [initialBootRoomTab, setInitialBootRoomTab] = useState(null);
@@ -840,8 +843,6 @@ function FruitCigs() {
 
   // Auto-save after each match (when matchResult clears)
   const prevMatchResult = useRef(null);
-  const revealedInjuryCount = useRef(0);
-  const weekRecoveriesRef = useRef([]); // persists past gains clearing for achievement checks
   const pendingFinalRewardRef = useRef(null); // captures arc final reward for post-training application
   const storyArcsRef = useLatestRef(storyArcs);
 
@@ -882,6 +883,13 @@ function FruitCigs() {
       return () => clearTimeout(timer);
     }
   }, [pendingBreakouts, matchResult, cupMatchResult, processing, arcStepQueue]);
+
+  // Reports contain already-rolled outcomes, not disposable UI state. Save
+  // both their creation and consumption so reload resumes the same outcome.
+  useEffect(() => {
+    const s = useGameStore.getState();
+    if ((s.gameMode === "ironman" || autoSaveEnabled) && teamName && league && !s.gameOver) saveGame();
+  }, [gains, matchResult, cupMatchResult, matchPending, pendingBreakouts, arcStepQueue, autoSaveEnabled, teamName, saveGame]);
 
   // Ironman auto-save: save after every week advance (training, match, cup skip) and summer phase change
   const ironmanCalendarLoaded = useRef(false);
@@ -1474,9 +1482,8 @@ function FruitCigs() {
     setShowAchievements, setShowTable, setShowCalendar, setShowCup,
     setShowTransfers, setShowLegends, setShowSquad,
     tryUnlockAchievement,
-    storyArcsRef, pendingFinalRewardRef, weekRecoveriesRef, cardedPlayerIdsRef,
-    boardWarnWeekRef, revealedInjuryCount,
-    pendingTrialAction,
+    storyArcsRef, pendingFinalRewardRef,
+    boardWarnWeekRef,
   });
 
 
@@ -1487,7 +1494,6 @@ function FruitCigs() {
 
   const { onSeasonEndRevealDone, onPrestigeDone, onLegendSelectionDone, onYouthIntakeDone } = useSeasonEnd({
     tryUnlockAchievement,
-    cardedPlayerIdsRef,
     setMatchResult, setCupMatchResult,
   });
   advanceWeekRef.current = advanceWeek;
@@ -1771,13 +1777,11 @@ function FruitCigs() {
   const { processMatchDone } = useMatchResult({
     setMatchResult,
     tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
-    pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef,
   });
 
   const { processGainsDone } = useGainPopupHandler({
     setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning,
     tryUnlockAchievement,
-    pendingTrialAction,
   });
 
   // Keyboard shortcuts for desktop play
@@ -1918,7 +1922,13 @@ function FruitCigs() {
                       // Empty slot: select it and show mode picker for new
                       // career — which must not inherit the previous
                       // career's identity from this session.
-                      useGameStore.getState().setCareerId(null);
+                      const freshSquad = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
+                      useGameStore.getState().startNewCareer(freshSquad);
+                      setSaveStatus(null);
+                      setArchiveStatus(null);
+                      setPendingPlayerUnlock(null);
+                      setAchievementQueue([]);
+                      setNameInput("");
                       setActiveSaveSlot(slot);
                       setShowModeSelect(true);
                     }
@@ -2875,11 +2885,8 @@ function FruitCigs() {
                 holidayTargetRef.current = null;
                 setIsOnHoliday(false);
                 setInstantMatch(false);
-                setMatchResult(null);
-                setCupMatchResult(null);
                 setProcessing(false);
-                setMatchPending(false);
-                setArcStepQueue([]);
+                // Leaving holiday must not discard already-rolled work.
                 // Navigate to Home tab
                 setShowAchievements(false); setShowTable(false); setShowCalendar(false);
                 setShowCup(false); setShowTransfers(false); setShowLegends(false); setShowSquad(false);
@@ -4031,7 +4038,7 @@ function FruitCigs() {
                   // Defer league table update until match result screen is dismissed
                   // so the Dashboard mini-table doesn't spoil the result
                   if (playerMatch && !useGameStore.getState().isOnHoliday) {
-                    pendingLeagueRef.current = updatedLeague;
+                    useGameStore.getState().setPendingLeague(updatedLeague);
                   } else {
                     setLeague(updatedLeague);
                   }
@@ -5342,10 +5349,17 @@ function FruitCigs() {
         <GainPopup
           gains={gains}
           cardSpeed={trainingCardSpeed}
-          onTicketPicked={(ticketType) => {
-            setTickets(prev => [...prev, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: ticketType }]);
+          onTicketPicked={(ticketType, itemId) => {
+            const s = useGameStore.getState();
+            const report = recordTrainingTicket(s.gains, itemId, ticketType);
+            if (report === s.gains) return;
+            useGameStore.setState({ gains: report, tickets: [...s.tickets, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: ticketType }] });
           }}
           onAchievementCheck={(revealedItem) => {
+            const s = useGameStore.getState();
+            const report = recordTrainingReveal(s.gains, revealedItem.id);
+            if (report === s.gains) return;
+            setGains(report);
             const newUnlocks = [];
             if (revealedItem.type === "gain" || revealedItem.type === "arc_boost_group") {
               if (!unlockedAchievements.has("first_gain")) newUnlocks.push("first_gain");
@@ -5356,8 +5370,8 @@ function FruitCigs() {
               setTotalGains(prev => prev + 1);
             }
             if (revealedItem.type === "injury") {
-              revealedInjuryCount.current++;
-              if (revealedInjuryCount.current >= 3 && !unlockedAchievements.has("cursed")) {
+              const injuryCount = report.revealedItems.filter(id => id.startsWith("injury:")).length;
+              if (injuryCount >= 3 && !unlockedAchievements.has("cursed")) {
                 newUnlocks.push("cursed");
               }
               // Forgot Kit — injury while 'Forgot Kit' is playing
@@ -5392,6 +5406,7 @@ function FruitCigs() {
         <BreakoutPopup
           breakouts={pendingBreakouts}
           onDone={() => {
+            if (useGameStore.getState().pendingBreakouts !== pendingBreakouts) return;
             // Send deferred breakout inbox messages now that the popup has been seen
             if (pendingBreakouts) {
               pendingBreakouts.forEach(bo => {
@@ -5524,6 +5539,7 @@ function FruitCigs() {
             // any advance below — every unlock banked in this handler passes
             // it so week stamps record when the event happened, not the
             // already-advanced live calendar.
+            if (useGameStore.getState().cupMatchResult !== cupMatchResult) return;
             const cupEventIdx = cupMatchResult._calendarIndex ?? useGameStore.getState().calendarIndex;
             const cupEventWeek = { week: cupEventIdx + 1 };
             // === DYNASTY CUP MATCH RESULT ===
@@ -6068,7 +6084,7 @@ function FruitCigs() {
                 playerRatingTracker, beatenTeams, halfwayPosition,
                 seasonHomeUnbeaten, seasonAwayWins, seasonAwayGames,
                 leagueWins, wasAlwaysFast: !!cupWasAlwaysFast,
-                recoveries: weekRecoveriesRef.current || [],
+                recoveries: useGameStore.getState().weekRecoveries,
                 recentScorelines: [...recentScorelines.slice(-2), [cupPlayerGoals, cupOppGoals]],
                 secondPlaceFinishes, playerInjuryCount, benchStreaks,
                 highScoringMatches: highScoringMatches + ((cupPlayerGoals + cupOppGoals >= 5) ? 1 : 0),
@@ -6361,9 +6377,14 @@ function FruitCigs() {
             }
 
             // Cup-pending sacking resolution (Ironman)
-            if (useGameStore.getState().ultimatumCupPending && useGameStore.getState().gameMode === "ironman") {
+            const cupUltimatum = getCupUltimatumOutcome({
+              pending: useGameStore.getState().ultimatumCupPending,
+              gameMode: useGameStore.getState().gameMode,
+              isFinal, playerWon: winner.isPlayer, playerEliminated: playerEliminated2,
+            });
+            if (cupUltimatum) {
               setUltimatumCupPending(false);
-              if (isFinal && winner.isPlayer) {
+              if (cupUltimatum === "reprieve") {
                 // Won the cup final — reprieve!
                 setBoardWarnCount(0);
                 setBoardSentiment(Math.max(50, useGameStore.getState().boardSentiment));
@@ -6377,7 +6398,7 @@ function FruitCigs() {
                 const newUltimatumsSurvivedC = useGameStore.getState().ultimatumsSurvived + 1;
                 setUltimatumsSurvived(newUltimatumsSurvivedC);
                 if (checkCheatingDeath(newUltimatumsSurvivedC, useGameStore.getState().unlockedAchievements)) tryUnlockAchievement("cheating_death", cupEventWeek);
-              } else if (playerEliminated2) {
+              } else {
                 // Eliminated from cup — sacked
                 triggerSacking();
               }
@@ -6563,12 +6584,8 @@ function FruitCigs() {
             holidayTargetRef.current = null;
             setIsOnHoliday(false);
             setInstantMatch(false); // Restore normal match speed
-            // Clear any stale match/popup state
-            setMatchResult(null);
-            setCupMatchResult(null);
+            // Pending results and rewards remain available to settle manually.
             setProcessing(false);
-            setMatchPending(false);
-            setArcStepQueue([]);
             // Navigate to Home tab
             setShowAchievements(false); setShowTable(false); setShowCalendar(false);
             setShowCup(false); setShowTransfers(false); setShowLegends(false); setShowSquad(false);

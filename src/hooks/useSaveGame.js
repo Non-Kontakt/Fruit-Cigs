@@ -97,6 +97,17 @@ export function useSaveGame({
     let pendingUnlocks = null;
 
     loaded.careerId = s.careerId || null;
+    loaded.matchPending = s.matchPending === true;
+    loaded.pendingSquad = s.pendingSquad || null;
+    loaded.gains = s.gains || null;
+    loaded.matchResult = s.matchResult || null;
+    loaded.cupMatchResult = s.cupMatchResult || null;
+    loaded.pendingLeague = s.pendingLeague || null;
+    loaded.weekRecoveries = s.weekRecoveries || [];
+    loaded.cardedPlayerIds = s.cardedPlayerIds || new Set();
+    loaded.pendingTrialAction = s.pendingTrialAction || null;
+    loaded.pendingBreakouts = s.pendingBreakouts || null;
+    loaded.arcStepQueue = s.arcStepQueue || [];
     loaded.teamName = s.teamName;
     loaded.newspaperName = s.newspaperName || generateNewspaperName(s.teamName);
     loaded.reporterName = s.reporterName || generateReporterName();
@@ -215,8 +226,11 @@ export function useSaveGame({
     // Migrate cup name: strip "The " prefix
     s.cup = stripCupNamePrefix(s.cup);
     loaded.cup = s.cup || initCup(s.teamName, migratedTier, s.leagueRosters);
-    // Migration: convert summerPhase="summary" to "break"
-    const { phase: loadedSummerPhase, data: loadedSummerData } = migrateSummerPhase(s.summerPhase || null, s.summerData);
+    // Only legacy summaries represented a completed reveal. Current saves
+    // resume the reveal because retirements and rollover are still pending.
+    const { phase: loadedSummerPhase, data: loadedSummerData } = s.version >= 5
+      ? { phase: s.summerPhase || null, data: s.summerData || null }
+      : migrateSummerPhase(s.summerPhase || null, s.summerData);
     loaded.summerPhase = loadedSummerPhase;
     // Migration: v2 mid-summer saves predate the Awards Night beat — shift
     // their remaining-weeks counter so the next click fires the right beat.
@@ -254,7 +268,8 @@ export function useSaveGame({
     loaded.lopsidedWarned = s.lopsidedWarned || new Set();
     loaded.ovrHistory = s.ovrHistory || [];
     // Migration v3: reconstruct completed arcs
-    const loadedArcs = migrateStoryArcsCompletion(s.storyArcs || initStoryArcs(), s.inboxMessages);
+    const loadedArcs = s.version >= 5 ? (s.storyArcs || initStoryArcs())
+      : migrateStoryArcsCompletion(s.storyArcs || initStoryArcs(), s.inboxMessages);
     loaded.storyArcs = loadedArcs;
     // Club Focus tree — additive, no save-version bump. Saves predating this
     // field default to an empty tree (migration-by-default).

@@ -1,3 +1,4 @@
+import { buildTrainingItems } from "../../utils/trainingReport.js";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { getPosColor, progressToPips } from "../../utils/calc.js";
@@ -15,7 +16,7 @@ import { TICKET_DEFS } from "../../data/tickets.js";
 export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, onTicketPicked, cardSpeed, isOnHoliday }) {
   const [visible, setVisible] = useState(false);
   const [revealedCount, setRevealedCount] = useState(0);
-  const [pickedTickets, setPickedTickets] = useState({});
+  const [pickedTickets, setPickedTickets] = useState(() => gains.pickedTickets || {});
   const mob = useMobile();
   const dn = (name) => displayName(name, mob); // abbreviated on mobile, full on desktop
   const isQuick = cardSpeed === "quick";
@@ -42,39 +43,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
 
   // Build all items, then split into mystery (tap to reveal) and overflow (auto-shown)
   const [{ mysteryQueue, overflowItems }] = useState(() => {
-    const allItems = [];
-    injuries.forEach(inj => allItems.push({ type: "injury", data: inj, priority: 100 }));
-    duos.forEach(d => allItems.push({ type: "duo", data: d, priority: 90 }));
-    improvements.forEach(g => {
-      if (g.isProdigalBoost) {
-        allItems.push({ type: "prodigal_boost", data: g, priority: 120 });
-      } else {
-        // Higher stat gains are more interesting
-        allItems.push({ type: "gain", data: g, priority: 30 + (g.newVal || 0) });
-      }
-    });
-    // Group arc boosts into cards — one card per (source × stat) combination
-    // This ensures a squad-wide PHY boost and a separate individual PHY boost show as distinct cards
-    if (arcBoosts.length > 0) {
-      const bySourceAttr = {};
-      arcBoosts.forEach(ab => {
-        const k = `${ab.sourceKey || "arc"}:${ab.attr}`;
-        if (!bySourceAttr[k]) bySourceAttr[k] = { attr: ab.attr, amount: ab.newVal - ab.oldVal, players: [], sourceKey: ab.sourceKey, filterLabel: ab.filterLabel || null };
-        bySourceAttr[k].players.push({ name: ab.playerName, position: ab.playerPosition, oldVal: ab.oldVal, newVal: ab.newVal });
-      });
-      Object.values(bySourceAttr).forEach(group => {
-        allItems.push({ type: "arc_boost_group", data: group, priority: 110 });
-      });
-    }
-    ticketBoosts.forEach(tb => allItems.push({ type: tb.source === "televised" ? "televised_boost" : "ticket_boost", data: tb, priority: 115 }));
-    (gains.cappedArcTickets || []).forEach(ct => allItems.push({ type: "capped_arc_ticket", data: ct, priority: 105 }));
-    progressEvents.forEach(p => {
-      if (p.type === "positionLearned") {
-        allItems.push({ type: "positionLearned", data: p, priority: 80 });
-      } else {
-        allItems.push({ type: "progress", data: p, priority: p.newProgress >= 0.8 ? 25 : 10 });
-      }
-    });
+    const allItems = buildTrainingItems(gains);
 
     // Sort by priority descending for selection
     const sorted = [...allItems].sort((a, b) => b.priority - a.priority);
@@ -139,6 +108,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
   }, [mysteryQueue]);
 
   const handleDismiss = () => {
+    handleRevealAll();
     setVisible(false);
     setTimeout(() => { try { safeDone(); } catch(e) { console.error("GainPopup onDone error:", e); } }, 400);
   };
@@ -420,7 +390,7 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
     }
     if (item.type === "capped_arc_ticket") {
       const ct = item.data;
-      const picked = pickedTickets[index];
+      const picked = pickedTickets[item.id];
       const pickedDef = picked ? TICKET_DEFS[picked] : null;
       return (
         <div key={index} style={{
@@ -456,8 +426,8 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
                   <div
                     key={ticketType}
                     onClick={() => {
-                      setPickedTickets(prev => ({ ...prev, [index]: ticketType }));
-                      onTicketPicked?.(ticketType);
+                      setPickedTickets(prev => ({ ...prev, [item.id]: ticketType }));
+                      onTicketPicked?.(ticketType, item.id);
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = `${def.color}28`; e.currentTarget.style.borderColor = `${def.color}88`; }}
                     onMouseLeave={e => { e.currentTarget.style.background = `${def.color}12`; e.currentTarget.style.borderColor = `${def.color}44`; }}
