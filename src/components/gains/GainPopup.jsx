@@ -32,13 +32,6 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
     }
   }, [isOnHoliday, onDone]);
 
-  const improvements = gains.improvements || [];
-  const injuries = gains.injuries || [];
-  const duos = gains.duos || [];
-  const progressEvents = gains.progress || [];
-  const arcBoosts = gains.arcBoosts || [];
-  const ticketBoosts = gains.ticketBoosts || [];
-
   const MAX_MYSTERY = 6;
 
   // Build all items, then split into mystery (tap to reveal) and overflow (auto-shown)
@@ -788,4 +781,3 @@ export function GainPopup({ gains, onDone, onPlayerClick, onAchievementCheck, on
     </div>
   );
 }
-
