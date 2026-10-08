@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { offlineBuild } from "./scripts/offlineBuild.js";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), offlineBuild()],
   base: "/Fruit-Cigs/",
   build: {
     // Only the game entry ships to production. qa.html is a dev-only harness

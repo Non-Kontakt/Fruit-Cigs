@@ -683,7 +683,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             </div>
 
             {/* Debug Tools */}
-            <div style={{ padding: mob ? "18px 15px" : "21px 23px", borderBottom: `1px solid ${C.bgCard}` }}>
+            {import.meta.env.DEV && <div style={{ padding: mob ? "18px 15px" : "21px 23px", borderBottom: `1px solid ${C.bgCard}` }}>
               <div style={{ fontSize: F.md, color: C.text, marginBottom: 9 }}>🛠️ Debug Tools</div>
               <div style={{ fontSize: mob ? F.xs : F.sm, color: C.slate, marginBottom: 9 }}>
                 Prestige testing tools
@@ -764,7 +764,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                 border: `1px solid ${C.bgCard}`,
                 color: C.amber,
               }}>🏆 WIN LEAGUE</button>
-            </div>
+            </div>}
 
             {/* Exit to Menu */}
             {onExitToMenu && (
@@ -846,7 +846,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
       )}
 
       {/* Debug Tier Jump Confirmation Modal */}
-      {debugTierConfirm && (
+      {import.meta.env.DEV && debugTierConfirm && (
         <div style={{ ...MODAL.backdrop }}>
           <div style={{
             ...MODAL.box,
@@ -910,4 +910,3 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
 }
 
 // ==================== CUP PAGE (FULL PAGE WITH TABS) ====================
-

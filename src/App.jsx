@@ -2297,7 +2297,7 @@ function FruitCigs() {
       margin: "0 auto",
     }}>
       {/* Emergency reset - always accessible at highest z-index */}
-      {(processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
+      {import.meta.env.DEV && (processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
         <button onClick={() => {
           setProcessing(false);
           setMatchResult(null);

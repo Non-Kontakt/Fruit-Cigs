@@ -13,9 +13,6 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
     <link rel="apple-touch-icon-precomposed" href="apple-touch-icon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" crossorigin="anonymous" />
     <style>
       @keyframes glow {
         0%, 100% { box-shadow: 0 0 5px rgba(74,222,128,0.3); }
@@ -30,13 +27,5 @@
   <body style="margin:0;background:#0a0a1a">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("sw.js").catch(() => {});
-        });
-      }
-    </script>
-    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
   </body>
 </html>
