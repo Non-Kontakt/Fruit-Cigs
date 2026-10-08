@@ -2,6 +2,8 @@ import { POSITION_TYPES } from "../data/positions.js";
 import { rand, getOverall } from "./calc.js";
 import { getTeamOOPMultiplier } from "./formation.js";
 import { findCareerKey } from "./careerLedger.js";
+import { resolveDiscipline } from "./matchDiscipline.js";
+export { generatePenaltyShootout } from "./penaltyShootout.js";
 
 // Match simulation constants — all tuning values in one place
 const MATCH = {
@@ -101,11 +103,6 @@ const MATCH = {
   RATE_MAX: 10.0,
   RATE_SUB_THRESHOLD: 10,
 
-  // Penalty shootout
-  PEN_RATE: 0.75,
-  PEN_SUDDEN_RATE: 0.7,
-  PEN_MAX_ROUNDS: 15,
-
   // Injured starter effectiveness (in getTeamStrength)
   INJURED_EFFECTIVENESS: 0.6,
 
@@ -140,14 +137,15 @@ const MATCH = {
   FLASH_MOTM: "#60a5fa",
 };
 
-export function getTeamStrength(team, startingXI) {
+export function getTeamStrength(team, startingXI, matchSize = 11) {
+  if (![5, 11].includes(matchSize)) throw new Error("Unsupported match size");
   let starters;
   if (team.isPlayer && startingXI) {
     starters = team.squad.filter(p => startingXI.includes(p.id));
   } else {
     starters = team.squad.filter(p => !p.isBench);
   }
-  if (starters.length === 0) return 5;
+  if (starters.length === 0) return 0;
 
   // Weighted average: top 3 players contribute 40%, rest contribute 60%.
   // This makes individual star players matter — a lone star moves the needle.
@@ -155,7 +153,10 @@ export function getTeamStrength(team, startingXI) {
     let ovr = getOverall(p);
     if (team.isPlayer && p.injury) ovr *= MATCH.INJURED_EFFECTIVENESS;
     return ovr;
-  }).sort((a, b) => b - a);
+  }).sort((a, b) => b - a).slice(0, matchSize);
+  // Empty positions contribute zero, rather than improving the average
+  // when the manager removes a weaker player from the side.
+  while (ovrs.length < matchSize) ovrs.push(0);
 
   const top3 = ovrs.slice(0, 3);
   const rest = ovrs.slice(3);
@@ -263,8 +264,8 @@ export function generateFixtures(teamCount) {
 }
 
 export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench, neutral, playerOOPMult, twelfthManBoost, talismanId, fanSentimentMod = 0, modifiers = {}) {
-  const homeStr = getTeamStrength(homeTeam, homeTeam.isPlayer ? playerStartingXI : null);
-  const awayStr = getTeamStrength(awayTeam, awayTeam.isPlayer ? playerStartingXI : null);
+  const homeStr = getTeamStrength(homeTeam, homeTeam.isPlayer ? playerStartingXI : null, modifiers.matchSize ?? 11);
+  const awayStr = getTeamStrength(awayTeam, awayTeam.isPlayer ? playerStartingXI : null, modifiers.matchSize ?? 11);
 
   const homeAdv = neutral ? 0 : MATCH.HOME_ADV + (twelfthManBoost || 0); // 12th Man ticket can boost home advantage
   let homeExpected = Math.max(MATCH.XG_FLOOR, MATCH.XG_INTERCEPT + (homeStr - awayStr) * MATCH.XG_MULTIPLIER + homeAdv);
@@ -900,39 +901,14 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     }
   }
 
-  // Post-process: detect second yellows → red cards, then debuff goals
-  const cardCounts = {}; // "teamName|playerName" → count
-  const redCards = []; // { minute, teamName }
-  if (modifiers.noCards) {
-    // Strip all card events from the match
-    for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].type === "card") events.splice(i, 1);
-    }
-  }
-  for (const evt of events) {
-    if (evt.type === "card" && evt.cardPlayer && evt.cardTeamName) {
-      const key = `${evt.cardTeamName}|${evt.cardPlayer}`;
-      cardCounts[key] = (cardCounts[key] || 0) + 1;
-      if (cardCounts[key] === 2) {
-        // Convert second yellow to red card. countsAsYellow: true tells
-        // stats accumulators to credit both a yellow and a red.
-        evt.text = `🟥 RED CARD! ${evt.cardPlayer} gets a second yellow and is sent off!`;
-        evt.flashColor = MATCH.FLASH_RED;
-        evt.type = "red_card";
-        evt.redReason = "second_yellow";
-        evt.countsAsYellow = true;
-        redCards.push({ minute: evt.minute, teamName: evt.cardTeamName });
-      }
-    }
-    // Collect direct (straight) red cards
-    if (evt.type === "red_card" && evt.isDirectRed && evt.cardTeamName) {
-      redCards.push({ minute: evt.minute, teamName: evt.cardTeamName });
-    }
-  }
+  const discipline = resolveDiscipline(events, modifiers);
+  events.splice(0, events.length, ...discipline.events);
+  const redCards = discipline.redCards;
 
   // For each red card, remove some goals from that team after the red card minute
   // (simulates playing with 10 men being harder)
   for (const red of redCards) {
+    if (red.minute >= 90) continue;
     const isHome = red.teamName === homeTeam.name;
     const goalsAfterRed = events.filter(e =>
       e.type === "goal" && e.minute > red.minute &&
@@ -969,12 +945,12 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     }
   }
 
-  // VAR: disallow goals and upgrade yellows to reds
+  // VAR disallows goals after final card decisions have affected the match.
   if (modifiers.var) {
     // Disallow goals
     for (let i = events.length - 1; i >= 0; i--) {
       const evt = events[i];
-      if (evt.type === "goal" && Math.random() < (modifiers.varDisallowChance || 0.12)) {
+      if (evt.type === "goal" && Math.random() < (modifiers.varDisallowChance ?? 0.12)) {
         evt.type = "var_disallowed";
         evt.text = `📺 VAR REVIEW — Goal by ${evt.player} DISALLOWED!`;
         evt.flash = true;
@@ -983,15 +959,7 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
         else awayGoals--;
       }
     }
-    // Upgrade yellows to reds
-    for (const evt of events) {
-      if (evt.type === "card" && evt.cardPlayer && Math.random() < (modifiers.varRedUpgradeChance || 0.15)) {
-        evt.type = "red_card";
-        evt.text = `📺 VAR UPGRADE — ${evt.cardPlayer}'s yellow upgraded to 🟥 RED CARD!`;
-        evt.flashColor = MATCH.FLASH_RED;
-        redCards.push({ minute: evt.minute, teamName: evt.cardTeamName });
-      }
-    }
+
   }
 
   // Re-sort after red card / VAR processing
@@ -1033,7 +1001,7 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     const calcRating = (p, isSubstitute) => {
       if (!p.attrs) return null;
       const overall = getOverall(p);
-      let base = MATCH.RATE_BASE + (overall / MATCH.ATTR_MAX) * MATCH.RATE_OVR_SCALE;
+      let base = MATCH.RATE_BASE + Math.min(1, overall / (modifiers.ovrCap ?? MATCH.ATTR_MAX)) * MATCH.RATE_OVR_SCALE;
       const noise = (Math.random() - 0.5) * MATCH.RATE_NOISE;
       if (!isSubstitute && p.injury) base -= MATCH.RATE_INJURY;
       const goals = playerGoalCounts[p.name] || 0;
@@ -1107,9 +1075,9 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
   const oppFinalGoals = playerIsHome ? awayGoals : homeGoals;
   const comeback = maxDeficit >= MATCH.COMEBACK_DEFICIT && playerFinalGoals > oppFinalGoals;
 
-  // Shot counting per side (shot + chance events, keyed by side field set at creation)
-  const homeShotsCount = events.filter(e => (e.type === "shot" || e.type === "chance") && e.side === "home").length;
-  const awayShotsCount = events.filter(e => (e.type === "shot" || e.type === "chance") && e.side === "away").length;
+  // Every valid goal is a shot too; disallowed goals are not counted.
+  const homeShotsCount = events.filter(e => (e.type === "shot" || e.type === "chance" || e.type === "goal") && e.side === "home").length;
+  const awayShotsCount = events.filter(e => (e.type === "shot" || e.type === "chance" || e.type === "goal") && e.side === "away").length;
 
   // Name → ID fallback for events that lack a canonical id (composite/legacy).
   const nameToId = {};
@@ -1210,105 +1178,6 @@ export function simulateMatch(homeTeam, awayTeam, playerStartingXI, playerBench,
     earliestPlayerSub,
     halfTimeScore: { home: htHome, away: htAway },
   };
-}
-
-export function generatePenaltyShootout(homeTeam, awayTeam, events, playerStartingXI, playerBench, modifiers = {}) {
-  // Determine who's on the pitch after substitutions
-  const getActivePlayers = (team) => {
-    const squad = team.squad || [];
-    // Parse sub events for this team to find who came on/off
-    const subbedOff = new Set();
-    const subbedOn = new Set();
-    if (events) {
-      events.filter(e => e.type === "sub" && e.text?.includes(team.name)).forEach(e => {
-        const match = e.text.match(/:\s*(.+?)\s+replaces\s+(.+)$/);
-        if (match) {
-          subbedOn.add(match[1].trim());
-          subbedOff.add(match[2].trim());
-        }
-      });
-    }
-
-    let starters, benchPlayers;
-    if (team.isPlayer && playerStartingXI) {
-      // Use the actual starting XI and bench for the player's team
-      starters = playerStartingXI.map(id => squad.find(p => p.id === id)).filter(Boolean);
-      benchPlayers = playerBench ? playerBench.map(id => squad.find(p => p.id === id)).filter(Boolean) : [];
-    } else {
-      // AI teams: use isBench flag
-      starters = squad.filter(p => !p.isBench);
-      benchPlayers = squad.filter(p => p.isBench);
-    }
-
-    // Final on-pitch: starters minus subbed off, plus subbed on from bench
-    const onPitch = [];
-    starters.forEach(p => {
-      if (!subbedOff.has(p.name)) onPitch.push(p);
-    });
-    benchPlayers.forEach(p => {
-      if (subbedOn.has(p.name)) onPitch.push(p);
-    });
-
-    // Exclude GK from penalty takers
-    const outfield = onPitch.filter(p => p.position !== "GK");
-    return outfield.length > 0 ? outfield : [{ name: `${team.name} Player`, position: "CM" }];
-  };
-
-  const homePlayers = getActivePlayers(homeTeam);
-  const awayPlayers = getActivePlayers(awayTeam);
-
-  const kicks = [];
-  let homeScore = 0;
-  let awayScore = 0;
-
-  const getShooter = (players, idx) => {
-    // Cycle through available players, prioritising attackers/midfielders first
-    const sorted = [...players].sort((a, b) => {
-      const order = { ST: 0, AM: 1, RW: 2, LW: 3, CM: 4, RB: 5, LB: 6, CB: 7 };
-      return (order[a.position] ?? 5) - (order[b.position] ?? 5);
-    });
-    return sorted[idx % sorted.length]?.name || `Player ${idx + 1}`;
-  };
-
-  const penRate = MATCH.PEN_RATE - (modifiers.penaltyConversionNerf || 0);
-
-  // First 5 rounds
-  for (let i = 0; i < 5; i++) {
-    const homeShooter = getShooter(homePlayers, i);
-    const homeScored = Math.random() < penRate;
-    if (homeScored) homeScore++;
-    kicks.push({ round: i + 1, side: "home", player: homeShooter, scored: homeScored });
-
-    const awayKicksLeft = 5 - i;
-    if (homeScore > awayScore + awayKicksLeft) break;
-
-    const awayShooter = getShooter(awayPlayers, i);
-    const awayScored = Math.random() < penRate;
-    if (awayScored) awayScore++;
-    kicks.push({ round: i + 1, side: "away", player: awayShooter, scored: awayScored });
-
-    const homeKicksLeft = 4 - i;
-    if (awayScore > homeScore + homeKicksLeft) break;
-  }
-
-  // Sudden death if still level
-  let sdRound = 6;
-  while (homeScore === awayScore && sdRound < MATCH.PEN_MAX_ROUNDS) {
-    const hShooter = getShooter(homePlayers, sdRound - 1);
-    const hScored = Math.random() < (MATCH.PEN_SUDDEN_RATE - (modifiers.penaltyConversionNerf || 0));
-    if (hScored) homeScore++;
-    kicks.push({ round: sdRound, side: "home", player: hShooter, scored: hScored, suddenDeath: true });
-
-    const aShooter = getShooter(awayPlayers, sdRound - 1);
-    const aScored = Math.random() < (MATCH.PEN_SUDDEN_RATE - (modifiers.penaltyConversionNerf || 0));
-    if (aScored) awayScore++;
-    kicks.push({ round: sdRound, side: "away", player: aShooter, scored: aScored, suddenDeath: true });
-
-    if (homeScore !== awayScore) break;
-    sdRound++;
-  }
-
-  return { kicks, homeScore, awayScore, winner: homeScore > awayScore ? "home" : "away" };
 }
 
 export function simulateMatchweek(league, matchweekIndex, playerSquad, startingXI, bench, formation, slotAssignments, twelfthManBoost, talismanId, fanSentimentMod = 0, modifiers = {}) {

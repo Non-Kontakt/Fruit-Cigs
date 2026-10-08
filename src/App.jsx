@@ -1180,7 +1180,7 @@ function FruitCigs() {
     const updatedLeague = { ...rewindLeague, table: rewindLeague.table.map(r => ({ ...r })) };
     const mod = getModifier(leagueTier);
     const oopMult = formation ? getTeamOOPMultiplier(startingXI, formation, rewindSquad, slotAssignments) : 1.0;
-    const commentaryCtx = { playerSeasonStats, playerMatchLog, playerSquad: rewindSquad, playerCareers: clubHistory?.playerCareers };
+    const commentaryCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: rewindSquad, playerCareers: clubHistory?.playerCareers };
     const newResult = simulateMatch(
       updatedLeague.teams[fixture.home], updatedLeague.teams[fixture.away],
       startingXI, bench, false, oopMult, 0, talismanIdRef.current, 0, { ...mod, ...commentaryCtx }
@@ -2317,7 +2317,7 @@ function FruitCigs() {
         <button onClick={exportSave} style={{ ...BTN.ghost, margin: 8 }}>EXPORT CURRENT CAREER</button>
       </div>}
       {/* Emergency reset - always accessible at highest z-index */}
-      {(processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
+      {import.meta.env.DEV && (processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
         <button onClick={() => {
           setProcessing(false);
           setMatchResult(null);
@@ -2532,8 +2532,8 @@ function FruitCigs() {
                       const aiFive = buildAIFiveASide(_miniOpp);
                       const playerTeam = { name: teamName, color: C.green, squad: playerFive, isPlayer: true, trait: null };
                       const oppTeam = { ..._miniOpp, squad: aiFive };
-                      const miniMod = getModifier(leagueTier);
-                      const miniCtx = { playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
+                      const miniMod = { ...getModifier(leagueTier), matchSize: 5 };
+                      const miniCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
                       const result = simulateMatch(playerTeam, oppTeam, _fiveIds, [], true, 1.0, 0, null, 0, { ...miniMod, ...miniCtx });
                       let penalties = null;
                       if ((_miniRound === "final" || _miniRound === "third_place") && result.homeGoals === result.awayGoals) {
@@ -2950,7 +2950,7 @@ function FruitCigs() {
                       const awayT = isPlayerHome ? awayTeam : playerTeam;
                       const dynOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, freshSquad, slotAssignments) : 1.0;
                       const dynMod = getModifier(leagueTier);
-                      const dynCtx = { playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
+                      const dynCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
                       const result = simulateMatch(homeT, awayT, currentXI, currentBench, true, dynOOPMult, 0, talismanIdRef.current, 0, { ...dynMod, ...dynCtx });
                       let penalties = null;
                       if (result.homeGoals === result.awayGoals) {
@@ -3094,7 +3094,7 @@ function FruitCigs() {
                       const cupOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, freshSquad, slotAssignments) : 1.0;
                       const cup12thMan = (isPlayerHome && !isNeutral && useGameStore.getState().twelfthManActive) ? 0.15 : 0;
                       const cupFanMod = isPlayerHome && !isNeutral ? (useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0) : 0;
-                      const cupCommentaryCtx = { playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
+                      const cupCommentaryCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
                       const result = simulateMatch(homeT, awayT, currentXI, currentBench, isNeutral, cupOOPMult, cup12thMan, talismanIdRef.current, cupFanMod, cupCommentaryCtx);
                       if (cup12thMan > 0) setTwelfthManActive(false);
                       let penalties = null;
@@ -3248,7 +3248,7 @@ function FruitCigs() {
                       const leagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                       // Hangover: one random healthy starter gets -1 all attrs for the match
                       const holLeagueModBase = getModifier(leagueTier);
-                      const holLeagueMod = { ...holLeagueModBase, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, useGameStore.getState().clubHistory) };
+                      const holLeagueMod = { ...holLeagueModBase, ovrCap, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, useGameStore.getState().clubHistory) };
                       let holHangoverPlayer = null;
                       let holHangoverOrig = null;
                       if (holLeagueMod.hangover) {
@@ -3313,7 +3313,7 @@ function FruitCigs() {
                         }
                         // Holiday: Mini-Tournament bracket setup at end of league
                         {
-                          const holMiniMod = getModifier(leagueTier);
+                          const holMiniMod = { ...getModifier(leagueTier), matchSize: 5 };
                           if (holMiniMod.miniTournament) {
                             const holMiniTotal = updatedLeague.fixtures?.length || DEFAULT_FIXTURE_COUNT;
                             const holMiniCompleted = capturedMWIdx + 1;
@@ -3911,7 +3911,7 @@ function FruitCigs() {
                 const cupOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, squad, slotAssignments) : 1.0;
                 const cup12thMan2 = (isPlayerHome && !isNeutral && useGameStore.getState().twelfthManActive) ? 0.15 : 0;
                 const cup2FanMod = isPlayerHome && !isNeutral ? (useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0) : 0;
-                const cup2Ctx = { playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
+                const cup2Ctx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
                 const result = simulateMatch(homeT, awayT, currentXI, currentBench, isNeutral, cupOOPMult, cup12thMan2, talismanIdRef.current, cup2FanMod, cup2Ctx);
                 if (cup12thMan2 > 0) setTwelfthManActive(false);
                 let penalties = null;
@@ -3954,7 +3954,7 @@ function FruitCigs() {
                 const awayT = isPlayerHome ? awayTeam : playerTeam;
                 const dynOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, squad, slotAssignments) : 1.0;
                 const dynMod = getModifier(leagueTier);
-                const dynCtx2 = { playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
+                const dynCtx2 = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
                 const result = simulateMatch(homeT, awayT, currentXI, currentBench, true, dynOOPMult, 0, talismanIdRef.current, 0, { ...dynMod, ...dynCtx2 });
                 let penalties = null;
                 if (result.homeGoals === result.awayGoals) {
@@ -3992,7 +3992,7 @@ function FruitCigs() {
                 const normalLeagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                 // Hangover: one random healthy starter gets -1 all attrs for the match
                 const leagueModBase = getModifier(leagueTier);
-                const leagueMod = { ...leagueModBase, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, clubHistory) };
+                const leagueMod = { ...leagueModBase, ovrCap, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, clubHistory) };
                 let hangoverPlayer = null;
                 let hangoverOrigAttrs = null;
                 if (leagueMod.hangover) {
@@ -5682,7 +5682,7 @@ function FruitCigs() {
                 // Sim other SF
                 const otherSFKey = bracket.playerSF === 1 ? "sf2" : "sf1";
                 const otherSF = bracket[otherSFKey];
-                const mMod = getModifier(leagueTier);
+                const mMod = { ...getModifier(leagueTier), matchSize: 5 };
                 // Sim other SF leg 1 if not done
                 let otherLeg1 = otherSF.leg1;
                 if (!otherLeg1) {
@@ -5749,7 +5749,7 @@ function FruitCigs() {
                 // Sim the final if player is NOT in the final (AI vs AI)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (!bracket.playerInFinal && bracket.final?.home && bracket.final?.away) {
-                  const mMod = getModifier(leagueTier);
+                  const mMod = { ...getModifier(leagueTier), matchSize: 5 };
                   const finR = simulateMatch(bracket.final.home, bracket.final.away, null, null, true, 1, 0, null, 0, mMod);
                   let finW = finR.homeGoals > finR.awayGoals ? bracket.final.home : finR.awayGoals > finR.homeGoals ? bracket.final.away : null;
                   if (!finW) { const fp = generatePenaltyShootout(bracket.final.home, bracket.final.away, finR.events, null, null, mMod); finW = fp.winner === "home" ? bracket.final.home : bracket.final.away; }
@@ -5803,7 +5803,7 @@ function FruitCigs() {
                 // Sim 3rd-place playoff if player was in the final (AI vs AI 3rd place)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (bracket.thirdPlace && !bracket.thirdPlace.winner) {
-                  const mMod = getModifier(leagueTier);
+                  const mMod = { ...getModifier(leagueTier), matchSize: 5 };
                   const tpR = simulateMatch(bracket.thirdPlace.home, bracket.thirdPlace.away, null, null, true, 1, 0, null, 0, mMod);
                   let tpW = tpR.homeGoals > tpR.awayGoals ? bracket.thirdPlace.home : tpR.awayGoals > tpR.homeGoals ? bracket.thirdPlace.away : null;
                   if (!tpW) { const tp2 = generatePenaltyShootout(bracket.thirdPlace.home, bracket.thirdPlace.away, tpR.events, null, null, mMod); tpW = tp2.winner === "home" ? bracket.thirdPlace.home : bracket.thirdPlace.away; }

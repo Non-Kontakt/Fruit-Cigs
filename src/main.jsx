@@ -7,6 +7,13 @@ import { installDevHooks } from "./devHooks.js";
 // Dev-only test hooks (no-op / stripped in production builds).
 installDevHooks();
 
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
+      .catch(error => console.warn("Offline installation failed; online play is still available.", error));
+  });
+}
+
 // Dev-only `?reset` URL trigger: wipe browser storage and strip the query
 // before mount. Bookmark `/Fruit-Cigs/?reset` on the dev server for a
 // clean slate without the F12 console dance. Gated on `import.meta.env.DEV`
