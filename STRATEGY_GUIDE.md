@@ -381,6 +381,10 @@ They're calibrated to your current squad's average OVR, so using the ticket with
 
 The window is open for **6 weeks** by default at the start of each season. **The Federation (tier 5)** extends this to **9 weeks** — its own league modifier. Outside the window, you can't make signings; plan your Transfer Insider and Saudi Agent ticket usage (Saudi Super League grants 3 free instant-sign tickets per season) around when the window is actually open.
 
+Manual swaps must cover at least the players' fair transfer value. Clubs charge a negotiating premium of **40%, 30%, 20%, 10%, then 0%** at relationship levels **0, 25, 50, 80, and 100**. Scarce positions can still cost extra; a surplus never reduces the asking price below fair value. Build relationships to remove the premium, not to buy a player cheaply and immediately sell him back for a profit. The displayed asking price is the actual acceptance threshold, with no hidden 5% tolerance.
+
+Incoming AI offers are separate, limited opportunities. They can still favour you and retain their existing achievement checks; accepting one consumes it and requires both players to still belong to the clubs shown.
+
 ---
 
 ## Prestige: The New Game+ Loop
