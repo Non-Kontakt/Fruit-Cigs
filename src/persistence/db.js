@@ -13,7 +13,7 @@ import Dexie from "dexie";
 //   reading it is refused rather than half-parsed.
 
 export const DB_NAME = "fruit-cigs";
-export const SAVE_SCHEMA_VERSION = 1;
+export const SAVE_SCHEMA_VERSION = 2;
 export const BACKUPS_PER_KEY = 10;
 
 export function createDb({ name = DB_NAME, indexedDB, IDBKeyRange } = {}) {

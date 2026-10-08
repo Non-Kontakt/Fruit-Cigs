@@ -188,7 +188,7 @@ describe("clubHistory migration/backfill", () => {
     expect(migrateClubHistoryNames(null)).toBe(null);
   });
 
-  it("backfillClubHistory estimates career totals from available aggregate fields", () => {
+  it("backfillClubHistory preserves observed totals without inventing earlier seasons", () => {
     const s = {
       seasonNumber: 3, totalMatches: 20, seasonGoalsFor: 10,
       consecutiveWins: 2, consecutiveUnbeaten: 4, consecutiveLosses: 1,
@@ -200,11 +200,12 @@ describe("clubHistory migration/backfill", () => {
       leagueTier: 5, lastSeasonMove: "promoted",
     };
     const h = backfillClubHistory(s);
-    expect(h.totalWins).toBeGreaterThanOrEqual(5);
-    expect(h.totalDraws).toBeGreaterThanOrEqual(2);
-    expect(h.playerCareers["Kai Mori"].goals).toBe(9); // 3 goals * seasonNumber(3)
-    expect(h.seasonArchive.length).toBe(2); // seasons 1 and 2 (seasonNumber is 3)
-    expect(h.seasonArchive[1].result).toBe("promoted");
+    expect(h.totalWins).toBe(5);
+    expect(h.totalDraws).toBe(2);
+    expect(h.totalGoalsFor).toBe(12);
+    expect(h.playerCareers).toEqual({});
+    expect(h.seasonArchive).toEqual([]);
+    expect(h.historyIncomplete).toBe(true);
   });
 });
 

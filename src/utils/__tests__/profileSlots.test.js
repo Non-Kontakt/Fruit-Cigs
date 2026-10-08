@@ -12,7 +12,8 @@ import { scanProfileSlots, getSaveKey, findNewerSaveOfCareer, compareCareerState
 // UI invites an overwrite. These tests run through the REAL scanProfileSlots
 // and the real singleton adapter.
 
-const save = (teamName) => JSON.stringify({ teamName, seasonNumber: 3, leagueTier: 9, calendarIndex: 4, gameMode: "casual" });
+const shape = { squad: [{ id: "p", name: "Player", attrs: { pace: 10 } }], startingXI: ["p"], bench: [], league: { teams: [{ name: "Us" }, { name: "Them" }], fixtures: [[{ home: 0, away: 1 }]], table: [{ teamIndex: 0 }] } };
+const save = (teamName) => JSON.stringify({ ...shape, teamName, seasonNumber: 3, leagueTier: 9, calendarIndex: 4, gameMode: "casual" });
 
 describe("scanProfileSlots — tri-state boundary", () => {
   it("reports loadable, empty and deleted slots correctly", async () => {
@@ -68,7 +69,7 @@ describe("scanProfileSlots — tri-state boundary", () => {
 
 describe("save scummer — time-travel detection fuel", () => {
   const career = (careerId, seasonNumber, calendarIndex) =>
-    JSON.stringify({ teamName: "Red Lion FC", careerId, seasonNumber, calendarIndex });
+    JSON.stringify({ ...shape, teamName: "Red Lion FC", careerId, seasonNumber, calendarIndex });
 
   it("orders career states season-first, week-second, matches as tie-break", () => {
     expect(compareCareerStates({ seasonNumber: 2, calendarIndex: 0 }, { seasonNumber: 1, calendarIndex: 30 })).toBeGreaterThan(0);

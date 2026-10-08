@@ -297,6 +297,9 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
         {tab === "records" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: mob ? "18px 14px" : "24px" }}>
             <div style={{ fontSize: F.xs, color: C.gold, letterSpacing: 2, marginBottom: 2 }}>🏟️ MATCH RECORD</div>
+            {h.historyIncomplete && <p style={{ fontSize: F.sm, color: C.textMuted, lineHeight: 1.8 }}>
+              Earlier records are unavailable. These totals include only recorded results, not estimates.
+            </p>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
               {[
                 { label: "WINS", value: h.totalWins || 0, color: C.green },
@@ -533,4 +536,3 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
 }
 
 // ==================== LEAGUE PAGE (FULL PAGE WITH TABS) ====================
-

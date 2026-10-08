@@ -728,6 +728,7 @@ function FruitCigs() {
   const [presetSaveFlash, setPresetSaveFlash] = useState(null); // "primary" | "secondary" | null
   const [selectedSlot, setSelectedSlot] = useState(null); // index of formation slot being assigned
   const [saveStatus, setSaveStatus] = useState(null);
+  const [archiveStatus, setArchiveStatus] = useState(null);
   const [loadingGame, setLoadingGame] = useState(true);
   const [activeSaveSlot, setActiveSaveSlot] = useState(null); // 1, 2, or 3
   const [saveSlotSummaries, setSaveSlotSummaries] = useState([null, null, null]); // [{teamName, seasonNumber, leagueTier, week}]
@@ -758,7 +759,7 @@ function FruitCigs() {
   // Save/load/export/import/delete/sacking — extracted to useSaveGame hook
   const { saveGame, loadGame, exportSave, importSave, deleteSave, triggerSacking } = useSaveGame({
     activeSaveSlot,
-    setSaveStatus, setActiveSaveSlot, setSaveSlotSummaries, setImportStatus, setPendingPlayerUnlock,
+    setSaveStatus, setArchiveStatus, setActiveSaveSlot, setSaveSlotSummaries, setImportStatus, setPendingPlayerUnlock,
     loadSettings, generateNewspaperName, generateReporterName,
     // Save Scummer: invoked by loadGame only after the whole load has
     // succeeded, so the unlock's week-recording reads the hydrated store.
@@ -2262,6 +2263,10 @@ function FruitCigs() {
         totalMatches={totalMatches}
         totalGoals={clubHistory?.totalGoalsFor || 0}
         clubHistory={clubHistory?.seasonArchive || []}
+        archivePending={archiveStatus !== "saved"}
+        archiveFailed={archiveStatus !== "saving" && archiveStatus !== "saved"}
+        onRetryArchive={triggerSacking}
+        onExportCareer={exportSave}
         onViewCareer={async () => {
           // Load the most recent museum entry from this profile
           try {
@@ -2296,6 +2301,11 @@ function FruitCigs() {
       maxWidth: 1600,
       margin: "0 auto",
     }}>
+      {saveStatus === "error" && <div role="alert" style={{ padding: 12, border: `1px solid ${C.red}`, color: C.text, fontSize: F.sm, lineHeight: 1.8 }}>
+        Save failed. Keep this page open until you retry or export your current career.
+        <button onClick={saveGame} style={{ ...BTN.primary, margin: 8 }}>RETRY SAVE</button>
+        <button onClick={exportSave} style={{ ...BTN.ghost, margin: 8 }}>EXPORT CURRENT CAREER</button>
+      </div>}
       {/* Emergency reset - always accessible at highest z-index */}
       {(processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
         <button onClick={() => {
@@ -3607,7 +3617,7 @@ function FruitCigs() {
             });
           } }}
           onExitToMenu={async () => {
-            await saveGame();
+            if (!await saveGame()) return;
             useGameStore.getState().setCareerId(null);
             setTeamName("");
             setNewspaperName(null);
