@@ -104,8 +104,8 @@ describe("getTeamStrength", () => {
     expect(getTeamStrength(strong, null)).toBeGreaterThan(getTeamStrength(weak, null));
   });
 
-  it("returns 5 for empty squad", () => {
-    expect(getTeamStrength({ isPlayer: false, squad: [] }, null)).toBe(5);
+  it("returns zero for empty squad", () => {
+    expect(getTeamStrength({ isPlayer: false, squad: [] }, null)).toBe(0);
   });
 });
 

@@ -1336,7 +1336,7 @@ export function useAdvanceWeek({
             const _holOppTeam = { ..._holOpp, squad: _holAIFive };
             const _holAutoFive = buildAIFiveASide(_holPlayerTeam); // use same AI logic for auto-pick
             const _holAutoIds = _holAutoFive.map(p => p.id);
-            const _holMiniMod = getModifier(leagueTier);
+            const _holMiniMod = { ...getModifier(leagueTier), matchSize: 5, ovrCap };
             const _holPlayerTeamFive = { name: teamName, color: "#4ade80", squad: _holAutoFive, isPlayer: true, trait: null };
             const _holResult = simulateMatch(_holPlayerTeamFive, _holOppTeam, _holAutoIds, [], true, 1.0, 0, null, 0, _holMiniMod);
             const _holHG = _holResult.homeGoals;
@@ -1489,7 +1489,7 @@ export function useAdvanceWeek({
             s.setCalendarIndex(prev => prev + 1);
           } else {
             // Non-participant: sim AI mini match in background
-            const mMod = getModifier(leagueTier);
+            const mMod = { ...getModifier(leagueTier), matchSize: 5 };
             if (nextEntry.round === "sf_leg1") {
               if (!mBracket) {
                 // Player didn't qualify — set up bracket from standings
