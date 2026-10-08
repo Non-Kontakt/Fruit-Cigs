@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { F, C, FONT, Z, BTN } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
-import { evaluateTrade, getRelationshipDiscount } from "../../utils/transfer.js";
+import { evaluateTrade } from "../../utils/transfer.js";
 import { displayName } from "../../utils/player.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
@@ -107,6 +107,7 @@ export function TradeProposal({
   const [userWant, setUserWant] = useState(preSelectedPlayer ? [preSelectedPlayer] : []);
   const [mobileTab, setMobileTab] = useState("yours"); // "yours" | "theirs"
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
   const mob = useMobile();
 
   const userOfferIds = useMemo(() => new Set(userOffer.map(p => p.id)), [userOffer]);
@@ -117,9 +118,8 @@ export function TradeProposal({
     return evaluateTrade(userOffer, userWant, aiSquad, relationship);
   }, [userOffer, userWant, aiSquad, relationship]);
 
-  const discount = getRelationshipDiscount(relationship);
   const balancePct = evaluation.effectiveAI > 0
-    ? Math.min(100, Math.round((evaluation.ratio || 0) * 100))
+    ? Math.min(100, Math.floor((evaluation.ratio || 0) * 100))
     : 0;
 
   const toggleUserOffer = (player) => {
@@ -139,11 +139,19 @@ export function TradeProposal({
   };
 
   const handleConfirm = () => {
+    if (success || !evaluation.acceptable) return;
+    if (!onConfirm({ offered: userOffer, received: userWant })) {
+      setError("This deal has changed. Close it and make a fresh offer.");
+      return;
+    }
     setSuccess(true);
-    setTimeout(() => {
-      onConfirm({ offered: userOffer, received: userWant });
-    }, 1200);
   };
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(onClose, 1200);
+    return () => clearTimeout(timer);
+  }, [success, onClose]);
 
   // Success flash
   if (success) {
@@ -208,8 +216,8 @@ export function TradeProposal({
         )}
         <div style={{ fontSize: F.micro, color: C.slate, marginTop: 6 }}>
           Asking: <span style={{ color: C.text }}>{Math.round(evaluation.effectiveAI || 0)}</span>
-          {evaluation.aiValue > 0 && evaluation.discount > 0 && (
-            <span style={{ color: C.green }}> (-{Math.round(evaluation.discount * 100)}%)</span>
+          {evaluation.aiValue > 0 && (
+            <span style={{ color: C.green }}> {evaluation.premium > 0 ? `(+${Math.round(evaluation.premium * 100)}% negotiation)` : "(no negotiation premium)"}</span>
           )}
         </div>
       </div>
@@ -232,11 +240,6 @@ export function TradeProposal({
                 ? "linear-gradient(90deg, #78350f, #f59e0b)"
                 : "linear-gradient(90deg, #7f1d1d, #ef4444)",
             transition: "width 0.3s ease, background 0.3s ease",
-          }} />
-          {/* 95% threshold marker */}
-          <div style={{
-            position: "absolute", top: 0, bottom: 0, left: "95%",
-            width: 2, background: "#4ade8066",
           }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
@@ -264,6 +267,7 @@ export function TradeProposal({
       </div>
 
       {/* Confirm */}
+      {error && <div role="alert" style={{ color: C.red, fontSize: F.xs, lineHeight: 1.8 }}>{error}</div>}
       <button
         onClick={handleConfirm}
         disabled={!evaluation.acceptable || userOffer.length === 0 || userWant.length === 0}
@@ -299,6 +303,8 @@ export function TradeProposal({
       }}
     >
       <div
+        role="dialog"
+        aria-label="Trade proposal"
         onClick={e => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: 1200, maxHeight: "95vh",

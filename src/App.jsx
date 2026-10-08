@@ -3698,12 +3698,9 @@ function FruitCigs() {
           }}
           transferWindowOpen={transferWindowOpen}
           transferWindowWeeksRemaining={transferWindowWeeksRemaining}
-          setSquad={setSquad}
-          setAllLeagueStates={setAllLeagueStates}
           seasonNumber={seasonNumber}
           week={calendarIndex}
           startingXI={startingXI}
-          setStartingXI={setStartingXI}
           onPlayerClick={resolveAnyPlayer}
           onTeamClick={handleGlobalTeamClick}
           shortlist={shortlist}

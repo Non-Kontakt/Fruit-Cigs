@@ -29,29 +29,16 @@ export function getPlayerValue(player) {
 }
 
 /**
- * Get discount multiplier based on relationship percentage
+ * Relationships remove the negotiating premium, never the fair-value floor.
  * @param {number} relationshipPct - Relationship percentage (0-100)
- * @returns {number} Discount (0.0-0.4)
+ * @returns {number} Premium (0.0-0.4)
  */
-export function getRelationshipDiscount(relationshipPct) {
-  if (relationshipPct < 25) return 0;       // Stranger: no discount
-  if (relationshipPct < 50) return 0.10;    // Acquaintance: 10%
-  if (relationshipPct < 80) return 0.20;    // Friendly: 20%
-  if (relationshipPct < 100) return 0.30;   // Allied: 30%
-  return 0.40;                               // Partners: 40%
-}
-
-/**
- * Check if a trade is balanced (user offers enough value)
- * @param {Array} userPlayers - Players offered by user
- * @param {Array} aiPlayers - Players requested from AI
- * @param {number} discount - Relationship discount (0.0-0.4)
- * @returns {boolean} True if trade is fair
- */
-export function isTradeBalanced(userPlayers, aiPlayers, discount) {
-  const userValue = userPlayers.reduce((sum, p) => sum + getPlayerValue(p), 0);
-  const aiValue = aiPlayers.reduce((sum, p) => sum + getPlayerValue(p), 0);
-  return userValue >= aiValue * (1 - discount) * 0.95; // discount reduces AI asking price
+export function getRelationshipPremium(relationshipPct = 0) {
+  if (!Number.isFinite(relationshipPct) || relationshipPct < 25) return 0.40;
+  if (relationshipPct < 50) return 0.30;
+  if (relationshipPct < 80) return 0.20;
+  if (relationshipPct < 100) return 0.10;
+  return 0;
 }
 
 /**
@@ -408,19 +395,25 @@ export function getPositionalNeedMultiplier(aiSquad, player) {
  * @returns {{ userValue, aiValue, effectiveAI, ratio, mood, quote, quoteColor, acceptable }}
  */
 export function evaluateTrade(userOffer, userWant, aiSquad, relationshipPct) {
-  const userValue = userOffer.reduce((sum, p) => sum + getPlayerValue(p), 0);
+  const values = valueTrade(userOffer, userWant, aiSquad, relationshipPct);
+  return { ...getManagerQuote(values.ratio), ...values };
+}
+
+// Shared by the quote UI and the commit boundary; no random dialogue here.
+export function valueTrade(userOffer, userWant, aiSquad, relationshipPct) {
+  const userValue = getTotalValue(userOffer);
+  const aiValue = getTotalValue(userWant);
   const aiAdjusted = userWant.reduce((sum, p) => {
     return sum + getPlayerValue(p) * getPositionalNeedMultiplier(aiSquad, p);
   }, 0);
-  const discount = getRelationshipDiscount(relationshipPct);
-  const effectiveAI = aiAdjusted * (1 - discount);
-
-  if (userWant.length === 0 || effectiveAI === 0) {
-    return { userValue, aiValue: 0, effectiveAI: 0, ratio: 0, ...getManagerQuote(0) };
-  }
-
-  const ratio = userValue / effectiveAI;
-  return { userValue, aiValue: aiAdjusted, effectiveAI, ratio, discount, ...getManagerQuote(ratio) };
+  const premium = getRelationshipPremium(relationshipPct);
+  const effectiveAI = Math.ceil(Math.max(aiValue, aiAdjusted) * (1 + premium));
+  const ids = [...userOffer, ...userWant].map(p => p.id);
+  const valid = userOffer.length > 0 && userWant.length > 0
+    && ids.every(id => id != null) && new Set(ids).size === ids.length
+    && Number.isFinite(userValue) && Number.isFinite(effectiveAI) && effectiveAI > 0;
+  const ratio = valid ? userValue / effectiveAI : 0;
+  return { userValue, aiValue, effectiveAI, ratio, premium, acceptable: valid && userValue >= effectiveAI };
 }
 
 /**
@@ -442,7 +435,7 @@ export function getManagerQuote(ratio) {
   if (ratio === 0) return { mood: "waiting", quote: pickRandom(quotes.waiting), quoteColor: "#475569", acceptable: false };
   if (ratio >= 1.3) return { mood: "ecstatic", quote: pickRandom(quotes.ecstatic), quoteColor: "#4ade80", acceptable: true };
   if (ratio >= 1.05) return { mood: "happy", quote: pickRandom(quotes.happy), quoteColor: "#4ade80", acceptable: true };
-  if (ratio >= 0.95) return { mood: "willing", quote: pickRandom(quotes.willing), quoteColor: "#facc15", acceptable: true };
+  if (ratio >= 1) return { mood: "willing", quote: pickRandom(quotes.willing), quoteColor: "#facc15", acceptable: true };
   if (ratio >= 0.85) return { mood: "skeptical", quote: pickRandom(quotes.skeptical), quoteColor: "#f59e0b", acceptable: false };
   if (ratio >= 0.70) return { mood: "dismissive", quote: pickRandom(quotes.dismissive), quoteColor: "#ef4444", acceptable: false };
   return { mood: "angry", quote: pickRandom(quotes.angry), quoteColor: "#ef4444", acceptable: false };

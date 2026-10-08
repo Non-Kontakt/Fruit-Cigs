@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { useGameStore } from "../../store/gameStore.js";
+import { preparePlayerExchange } from "../../utils/playerExchange.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { F, C, FONT, Z } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
@@ -49,9 +51,8 @@ export function TransfersPage({
   transferOffers, setTransferOffers,
   transferHistory, setTransferHistory,
   transferWindowOpen, transferWindowWeeksRemaining,
-  setSquad, setAllLeagueStates,
   seasonNumber, week,
-  startingXI, setStartingXI,
+  startingXI,
   formation, slotAssignments,
   onPlayerClick, onTeamClick,
   shortlist, setShortlist, onToggleShortlist,
@@ -73,6 +74,7 @@ export function TransfersPage({
   const [confirmFocus, setConfirmFocus] = useState(null);
   const [viewSquad, setViewSquad] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null); // AI player profile
+  const [tradeError, setTradeError] = useState(null);
   const [tradeTarget, setTradeTarget] = useState(null); // { player, club } for TradeProposal
   const [compareTarget, setCompareTarget] = useState(null); // AI player being compared against your squad
   // Most recent comparison, for Upgrade Confirmed — { targetId, targetName,
@@ -248,10 +250,17 @@ export function TransfersPage({
   };
 
   // --- Execute trade: swap players between squads ---
-  const handleTradeConfirm = ({ offered, received }) => {
-    const offeredIds = new Set(offered.map(p => p.id));
-    const receivedIds = new Set(received.map(p => p.id));
+  const handleTradeConfirm = (proposal) => {
+    if (!tradeTarget) return false;
     const targetClubName = tradeTarget.clubName;
+    const exchange = preparePlayerExchange(useGameStore.getState(), {
+      clubName: targetClubName,
+      offeredIds: proposal.offered.map(p => p.id), receivedIds: proposal.received.map(p => p.id),
+    });
+    if (!exchange) return false;
+    const { offered, received, patch } = exchange;
+    useGameStore.setState(patch);
+    setTradeError(null);
 
     // The Academy Pays For Itself — traded away a homegrown player
     if (tryUnlockAchievement && !unlockedAchievements?.has?.("academy_pays") && offered.some(p => p.isYouthIntake || p.isYouthCoup)) {
@@ -287,60 +296,6 @@ export function TransfersPage({
       }
     }
 
-    // Remove offered players from user squad, add received
-    setSquad(prev => {
-      const updated = prev.filter(p => !offeredIds.has(p.id));
-      const incoming = received.map(p => ({
-        ...p,
-        clubName: undefined,
-        clubColor: undefined,
-        clubTier: undefined,
-        isOwnPlayer: undefined,
-        ovr: undefined,
-        // Default to balanced training so transferred players still improve
-        training: "balanced",
-        positionTraining: null,
-        statProgress: {},
-        gains: {},
-        history: p.history || [],
-        seasonStartOvr: getOverall(p),
-        seasonStartAttrs: { ...p.attrs },
-      }));
-      return [...updated, ...incoming];
-    });
-
-    // Remove offered from startingXI if applicable
-    if (startingXI && setStartingXI) {
-      setStartingXI(prev => prev.filter(id => !offeredIds.has(id)));
-    }
-
-    // Update AI squad in allLeagueStates
-    if (setAllLeagueStates) {
-      setAllLeagueStates(prev => {
-        const updated = { ...prev };
-        for (const tier in updated) {
-          const state = updated[tier];
-          if (!state?.teams) continue;
-          const teamIdx = state.teams.findIndex(t => t.name === targetClubName && !t.isPlayer);
-          if (teamIdx === -1) continue;
-          const team = { ...state.teams[teamIdx] };
-          team.squad = (team.squad || [])
-            .filter(p => !receivedIds.has(p.id))
-            .concat(offered.map(p => ({
-              ...p,
-              clubName: undefined, clubColor: undefined, clubTier: undefined,
-              isOwnPlayer: undefined, ovr: undefined,
-              training: null, positionTraining: null, statProgress: {}, gains: {},
-            })));
-          const newTeams = [...state.teams];
-          newTeams[teamIdx] = team;
-          updated[tier] = { ...state, teams: newTeams };
-          break;
-        }
-        return updated;
-      });
-    }
-
     // Log to history
     const trade = {
       id: generateTradeId(seasonNumber || 1, week || 1),
@@ -361,14 +316,19 @@ export function TransfersPage({
       if (watch) setCompareSignWatch(watch);
     }
 
-    setTradeTarget(null);
+    return true;
   };
 
   // --- Offers IN handlers ---
-  const handleAcceptOffer = (offer, idx) => {
-    // Treat as auto-trade: swap players directly
-    const offeredIds = new Set(offer.aiWants.map(p => p.id));
-    const receivedIds = new Set(offer.aiOffers.map(p => p.id));
+  const handleAcceptOffer = (offer) => {
+    const exchange = preparePlayerExchange(useGameStore.getState(), { incomingOffer: offer });
+    if (!exchange) {
+      setTradeError("This offer is no longer available. A player has moved or the window has closed.");
+      return;
+    }
+    useGameStore.setState(exchange.patch);
+    setTradeError(null);
+    offer = { ...offer, aiWants: exchange.offered, aiOffers: exchange.received };
 
     if (tryUnlockAchievement) {
       const ratio = getOfferValueRatio(offer);
@@ -411,43 +371,6 @@ export function TransfersPage({
       }
     }
 
-    setSquad(prev => {
-      const updated = prev.filter(p => !offeredIds.has(p.id));
-      const incoming = offer.aiOffers.map(p => ({
-        ...p, training: "balanced", positionTraining: null, statProgress: {}, gains: {}, history: p.history || [],
-        seasonStartOvr: getOverall(p),
-        seasonStartAttrs: { ...p.attrs },
-      }));
-      return [...updated, ...incoming];
-    });
-
-    if (startingXI && setStartingXI) {
-      setStartingXI(prev => prev.filter(id => !offeredIds.has(id)));
-    }
-
-    if (setAllLeagueStates) {
-      setAllLeagueStates(prev => {
-        const updated = { ...prev };
-        for (const tier in updated) {
-          const state = updated[tier];
-          if (!state?.teams) continue;
-          const teamIdx = state.teams.findIndex(t => t.name === offer.aiClubName && !t.isPlayer);
-          if (teamIdx === -1) continue;
-          const team = { ...state.teams[teamIdx] };
-          team.squad = (team.squad || [])
-            .filter(p => !receivedIds.has(p.id))
-            .concat(offer.aiWants.map(p => ({
-              ...p, training: null, positionTraining: null, statProgress: {}, gains: {},
-            })));
-          const newTeams = [...state.teams];
-          newTeams[teamIdx] = team;
-          updated[tier] = { ...state, teams: newTeams };
-          break;
-        }
-        return updated;
-      });
-    }
-
     const trade = {
       id: generateTradeId(seasonNumber || 1, week || 1),
       season: seasonNumber || 1, week: week || 1,
@@ -457,8 +380,6 @@ export function TransfersPage({
     };
     if (setTransferHistory) setTransferHistory(prev => [...prev, trade]);
     if (onTradeComplete) onTradeComplete(offer.aiClubName);
-    if (setTransferOffers) setTransferOffers(prev => prev.filter((_, i) => i !== idx));
-
     // Upgrade Confirmed watch — persist only if the signed player is the one
     // most recently compared.
     if (setCompareSignWatch) {
@@ -508,6 +429,7 @@ export function TransfersPage({
 
   return (
     <div style={{ fontFamily: FONT }}>
+      {tradeError && <div role="alert" style={{ color: C.red, fontSize: F.xs, lineHeight: 1.8 }}>{tradeError}</div>}
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {TABS.map(tab => (
@@ -941,7 +863,7 @@ export function TransfersPage({
       {tradeTarget && (
         <TradeProposal
           userSquad={squad || []}
-          aiSquad={tradeTarget.squad || []}
+          aiSquad={allClubs.find(club => club.name === tradeTarget.clubName)?.squad || []}
           aiClubName={tradeTarget.clubName}
           aiClubColor={tradeTarget.clubColor}
           aiClubTier={tradeTarget.clubTier}
