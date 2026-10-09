@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { F, C, FONT, Z, TEXT } from "../../data/tokens";
+import { F, C, FONT, Z, TYPE } from "../../data/tokens";
 import { SFX } from "../../utils/sfx.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getPackSurfaceBackground, makeTearClipPath } from "../../utils/packCeremony.js";
@@ -29,6 +29,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
   const [dealtCount, setDealtCount] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [focused, setFocused] = useState(false);
   const doneCalledRef = useRef(false);
   const mob = useMobile();
   const reducedMotionRef = useRef(
@@ -99,11 +100,11 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
 
   // Auto-advance once fully settled, paused on hover; cancelled by manual dismiss.
   useEffect(() => {
-    if (phase !== "shown" || isOnHoliday || paused) return;
+    if (phase !== "shown" || isOnHoliday || paused || focused) return;
     const ms = reducedMotionRef.current ? REDUCED_MOTION_AUTO_ADVANCE_MS : AUTO_ADVANCE_MS;
     const timer = setTimeout(handleDismiss, ms);
     return () => clearTimeout(timer);
-  }, [phase, paused, isOnHoliday]);
+  }, [phase, paused, focused, isOnHoliday]);
 
   if (!pack) return null;
 
@@ -126,6 +127,8 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
       onClick={handleDismiss}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
       style={{
         position: "fixed",
         inset: 0,
@@ -137,7 +140,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         background: "rgba(0,0,0,0.88)",
         opacity: overlayVisible ? 1 : 0,
         pointerEvents: overlayVisible ? "auto" : "none",
-        transition: "opacity 0.3s ease",
+        transition: reducedMotionRef.current ? "none" : "opacity 0.3s ease",
         fontFamily: FONT,
         cursor: "pointer",
         overflow: "hidden",
@@ -195,8 +198,8 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         marginBottom: 20,
         opacity: isRevealed ? 1 : 0,
         transform: isRevealed ? "translateY(0)" : "translateY(10px)",
-        transition: "opacity 0.5s ease, transform 0.5s ease",
-        animation: phase === "shown" ? "headerPulse 2s ease infinite" : undefined,
+        transition: reducedMotionRef.current ? "none" : "opacity 0.5s ease, transform 0.5s ease",
+        animation: phase === "shown" && !reducedMotionRef.current ? "headerPulse 2s ease 2" : undefined,
         textAlign: "center",
       }}>
         NEW PACK UNLOCKED
@@ -241,9 +244,9 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
               : "scale(0.8)",
         opacity: phase === "enter" ? 0 : 1,
         filter: isRevealed ? "none" : "brightness(0.6)",
-        transition: "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        animation: phase === "shown"
-          ? "packGlow 2.5s ease-in-out infinite"
+        transition: reducedMotionRef.current ? "none" : "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        animation: reducedMotionRef.current ? undefined : phase === "shown"
+          ? "packGlow 2.5s ease-in-out 2"
           : phase === "torn" ? "packJolt 0.4s ease" : undefined,
       }}>
         {/* The lid: flush with the pack top until the tear, then flies off
@@ -278,7 +281,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
             <div style={{
               position: "absolute", top: 0, left: 0, width: "50%", height: "100%",
               background: `linear-gradient(105deg, transparent 0%, rgba(${rgb}, 0.03) 40%, rgba(${rgb}, 0.08) 50%, rgba(${rgb}, 0.03) 60%, transparent 100%)`,
-              animation: "packShimmer 3s ease infinite",
+              animation: reducedMotionRef.current ? undefined : "packShimmer 3s ease 2",
             }} />
           </div>
         )}
@@ -312,8 +315,8 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
           filter: isRevealed
             ? `drop-shadow(0 0 12px rgba(${rgb}, 0.5))`
             : "none",
-          animation: phase === "shown" ? "packFloat 2s ease-in-out infinite" : undefined,
-          transition: "opacity 0.4s ease, filter 0.4s ease",
+          animation: phase === "shown" && !reducedMotionRef.current ? "packFloat 2s ease-in-out 2" : undefined,
+          transition: reducedMotionRef.current ? "none" : "opacity 0.4s ease, filter 0.4s ease",
         }}>
           {isRevealed ? pack.icon : "🔒"}
         </div>
@@ -332,8 +335,8 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
           textShadow: isRevealed
             ? `0 0 12px rgba(${rgbLight}, 0.5)`
             : "none",
-          animation: phase === "shown" ? "stampReveal 0.5s ease-out" : undefined,
-          transition: "color 0.4s ease",
+          animation: phase === "shown" && !reducedMotionRef.current ? "stampReveal 0.5s ease-out" : undefined,
+          transition: reducedMotionRef.current ? "none" : "color 0.4s ease",
           lineHeight: 1.4,
         }}>
           {isRevealed ? pack.name : "???"}
@@ -362,7 +365,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         marginTop: 20,
         opacity: isRevealed ? 1 : 0,
         transform: isRevealed ? "translateY(0)" : "translateY(8px)",
-        transition: "opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s",
+        transition: reducedMotionRef.current ? "none" : "opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s",
         textShadow: `0 0 16px rgba(${rgb}, 0.4)`,
         textAlign: "center",
       }}>
@@ -400,7 +403,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
         }}>
           {bankedCount > 0 && (
             <div style={{
-              ...TEXT.xsMultiline, color: pack.color,
+              ...TYPE.compact, color: pack.color,
               letterSpacing: 1, opacity: 0.8, textAlign: "center",
             }}>
               {bankedCount} CARD{bankedCount !== 1 ? "S" : ""} ALREADY COLLECTED
@@ -426,7 +429,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
                   }}>?</div>
                 ))}
               </div>
-              <div style={{ fontSize: F.micro, color: C.textMuted, letterSpacing: 1 }}>
+              <div style={{ ...TYPE.compact, color: C.textMuted }}>
                 {remaining} TO FIND
               </div>
             </div>
@@ -436,15 +439,20 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
 
       {/* Tap to dismiss hint */}
       {phase === "shown" && (
-        <div style={{
+        <button onClick={event => { event.stopPropagation(); handleDismiss(); }} style={{
           fontSize: F.xs,
-          color: C.textDim,
+          fontFamily: FONT,
+          color: C.text,
+          background: "transparent",
+          border: `1px solid ${C.textDim}`,
+          padding: "12px 20px",
+          minHeight: 44,
+          cursor: "pointer",
           marginTop: 22,
-          opacity: 0.5,
           letterSpacing: 1,
         }}>
-          TAP TO CONTINUE
-        </div>
+          CONTINUE
+        </button>
       )}
     </div>
   );

@@ -9,9 +9,9 @@ import { findCareerKey } from "../../utils/careerLedger.js";
 import { useGameStore } from "../../store/gameStore.js";
 import { ClubFocusTree } from "./ClubFocusTree.jsx";
 
-export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRatingTracker, league, seasonNumber, leagueTier, squad, ovrHistory, ovrCap = 20 }) {
+export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRatingTracker, league, seasonNumber, leagueTier, squad, ovrHistory, ovrCap = 20, initialFocusOpen = false }) {
   const [tab, setTab] = useState("records");
-  const [showFocus, setShowFocus] = useState(false);
+  const [showFocus, setShowFocus] = useState(initialFocusOpen);
   const clubFocuses = useGameStore(s => s.clubFocuses);
   const setClubFocuses = useGameStore(s => s.setClubFocuses);
   // Switching focus keeps partial progress — only activeId changes here.

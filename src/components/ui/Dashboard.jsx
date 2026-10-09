@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { F, C, FONT, Z, MODAL, TEXT } from "../../data/tokens";
+import { F, C, FONT, Z, MODAL, TEXT, TYPE } from "../../data/tokens";
+import { getFocusNode } from "../../utils/clubFocuses.js";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getModifier } from "../../data/leagueModifiers.js";
@@ -32,6 +33,7 @@ export function Dashboard({
   showLineupWarning = false, onDismissLineupWarning, onLineupWarningGoToSquad, onLineupWarningPlayAnyway,
   rotationWarning = null, onDismissRotationWarning, onRotationWarningGoToSquad,
   latestHeadline = null,
+  storyArcs, clubFocuses, onOpenTraining, onOpenArcs, onOpenClubFocus,
 }) {
   const mob = useMobile();
   const [showSentimentLog, setShowSentimentLog] = useState(false);
@@ -438,6 +440,25 @@ export function Dashboard({
       </div>
 
       {/* ═══ 3-COLUMN GRID ═══ */}
+      {onOpenTraining && (() => {
+        const unassigned = (squad || []).filter(p => !p.training && !p.positionTraining && !p.injury).length;
+        const activeArcs = Object.values(storyArcs || {}).filter(a => a?.arcId && !a.completed).length;
+        const focus = getFocusNode(clubFocuses?.activeId);
+        const shortcuts = [
+          { label: "TRAINING", status: unassigned ? `${unassigned} without a focus` : "Review squad training", color: C.blue, onClick: onOpenTraining },
+          { label: "ARCS", status: activeArcs ? `${activeArcs} in progress` : "Choose your stories", color: C.amber, onClick: onOpenArcs },
+          { label: "CLUB FOCUS", status: focus ? `${focus.name} · ${Math.max(0, focus.weeks - (clubFocuses.progressById?.[focus.id] || 0))}w left` : "Choose a focus", color: C.purple, onClick: onOpenClubFocus },
+        ];
+        return <div aria-label="Club management" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", borderBottom: `1px solid ${RULE}` }}>
+          {shortcuts.map(({ label, status, color, onClick }) => <button key={label} onClick={onClick} style={{
+            background: "transparent", border: "none", borderRight: label === "CLUB FOCUS" ? "none" : `1px solid ${RULE}`,
+            padding: mob ? "12px 8px" : "14px 20px", textAlign: "left", cursor: "pointer", minWidth: 0,
+          }}>
+            <span style={{ display: "block", fontFamily: FONT, fontSize: F.xs, lineHeight: 1.6, color }}>{label} &gt;</span>
+            <span style={{ display: "block", ...TYPE.compact, color: C.textMuted, marginTop: 6 }}>{status}</span>
+          </button>)}
+        </div>;
+      })()}
       <div style={{
         display: "grid",
         gridTemplateColumns: mob ? "1fr" : "minmax(0, 4fr) minmax(0, 4fr) minmax(0, 3fr)",
@@ -502,8 +523,8 @@ export function Dashboard({
                 </div>
                 {msg.body && !msg.choices && (
                   <div style={{
-                    fontSize: F.xs, color: "#556677", lineHeight: 1.7, marginTop: 3,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    ...TYPE.compact, color: C.textMuted, marginTop: 6,
+                    overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                   }}>
                     {msg.body.split("\n")[0]}
                   </div>

@@ -22,12 +22,12 @@ export { deriveKit, neutralKit } from "../../utils/matchKit.js";
 export function comboxStyle([bg, fg], { inverted = false, mob = false } = {}) {
   // Hero scale: the box is the matchday experience, not an accessory.
   return {
-    height: mob ? 74 : 92,
+    height: mob ? 112 : 120,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
-    padding: mob ? "8px 14px" : "10px 22px",
+    padding: mob ? "12px 16px" : "16px 24px",
     background: inverted ? fg : bg,
     color: inverted ? bg : fg,
     fontFamily: FONT,
@@ -52,7 +52,7 @@ export function MatchCommentaryBox({ copy, kit, flashing = false, reducedMotion 
   }, [flashing, reducedMotion]);
 
   return (
-    <div style={{
+    <div data-testid="commentary-box" style={{
       ...comboxStyle(kit, { inverted: flashing && inverted, mob }),
       transition: flashing ? "none" : "background-color 250ms ease, color 250ms ease",
     }}>

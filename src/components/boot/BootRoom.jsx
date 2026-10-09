@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BGM, BGM_TRACKS } from "../../utils/sfx.js";
 import { StoryArcsPanel } from "../arcs/StoryArcsPanel.jsx";
 import { STORY_ARCS } from "../../data/storyArcs.js";
-import { F, C, FONT, MODAL, CARD } from "../../data/tokens";
+import { F, C, FONT, MODAL, CARD, TYPE } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
@@ -158,13 +158,13 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                     if (onMessageRead) onMessageRead();
                   }
                 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                    <span style={{ fontSize: mob ? F.md : F.lg, color: msg.color || C.blue }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                    <span style={{ fontSize: mob ? F.sm : F.md, lineHeight: 1.6, color: msg.color || C.blue }}>
                       {msg.icon} {msg.title} {!msg.read && <span style={{ fontSize: F.micro, color: C.red, marginLeft: 5 }}>● NEW</span>}
                     </span>
-                    <span style={{ fontSize: F.xs, color: C.bgInput }}>S{msg.season} W{msg.week}</span>
+                    <span style={{ ...TYPE.caption, color: C.textMuted, flexShrink: 0 }}>S{msg.season} W{msg.week}</span>
                   </div>
-                  <div style={{ fontSize: F.md, color: C.textMuted, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                  <div style={{ ...TYPE.body, color: C.text, whiteSpace: "pre-line" }}>
                     {msg.body}
                   </div>
                   {/* Choice result line — colour, icon and copy all come
@@ -174,14 +174,14 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                     const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
                     const { color, icon, text } = getChoiceResult(msg, chosen);
                     return (
-                      <div style={{ fontSize: mob ? F.xs : F.sm, color, marginTop: 9, fontStyle: "italic" }}>
+                      <div style={{ ...TYPE.compact, color, marginTop: 12, fontStyle: "italic" }}>
                         {icon ? `${icon} ${text}` : text}
                       </div>
                     );
                   })()}
                   {/* Follow-up info */}
                   {msg.followUp && (
-                    <div style={{ fontSize: mob ? F.xs : F.sm, color: C.amber, marginTop: 7, lineHeight: 1.5 }}>
+                    <div style={{ ...TYPE.compact, color: C.amber, marginTop: 12 }}>
                       {msg.followUp}
                     </div>
                   )}
@@ -190,7 +190,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                       the shared resolver — no value-name heuristics, no
                       first-position-wins guessing. */}
                   {msg.choices && !msg.choiceResult && (
-                    <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
                       {msg.choices.map((choice) => {
                         const style = getChoiceButtonStyle(msg, choice);
                         return (
@@ -200,7 +200,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                             if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
                             setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
                           }} style={{
-                            padding: mob ? "10px 17px" : "10px 24px",
+                            padding: mob ? "10px 17px" : "10px 24px", minHeight: 44, lineHeight: 1.5,
                             fontSize: mob ? F.xs : F.sm,
                             fontFamily: FONT,
                             background: style.background,

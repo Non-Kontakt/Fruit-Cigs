@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import { F, C, FONT, Z, EMOJI, TEXT } from "../../data/tokens";
+import { F, C, FONT, Z, EMOJI, TYPE } from "../../data/tokens";
 import { CLUB_FOCUS_NODES, FOCUS_GRID_COLS, FOCUS_GRID_ROWS } from "../../data/clubFocuses.js";
 import { getFocusNode, isFocusAvailable, getMissingPrereqs } from "../../utils/clubFocuses.js";
 import { useMobile } from "../../hooks/useMobile.js";
 
 // Full-screen overlay page for the Club Focus tree (AchievementCabinet
 // pattern: fixed, z-modal, own header + close). Positions every node on the
-// authored 6×4 grid, draws prerequisite lines beneath the chips, and lets the
+// authored 6×4 grid (compact cards with written prerequisites on mobile), and lets the
 // player start or switch the active focus. State lives in the store; this
 // component reads clubFocuses and calls onStart(nodeId) to set activeId.
 
 const COL_W = 156;
 const ROW_H = 150;
-const CHIP_W = 122;
-const CHIP_H = 96;
+const CHIP_W = 140;
+const CHIP_H = 112;
 
 const centerX = (col) => col * COL_W + COL_W / 2;
 const centerY = (row) => row * ROW_H + ROW_H / 2;
@@ -88,26 +88,28 @@ export function ClubFocusTree({ clubFocuses, onStart, onClose }) {
           </div>
           {activeNode ? (
             <span style={{
-              fontSize: F.xs, color: C.gold, background: "rgba(250,204,21,0.12)",
-              border: `1px solid ${C.gold}`, borderRadius: 12, padding: "5px 10px",
+              ...TYPE.compact, color: C.gold, background: "rgba(250,204,21,0.12)",
+              border: `1px solid ${C.gold}`, padding: "5px 10px",
             }}>
               {activeNode.artKey} {activeNode.name} · {Math.max(0, activeNode.weeks - (cf.progressById?.[activeNode.id] || 0))}w left
             </span>
           ) : (
-            <span style={{ fontSize: F.xs, color: C.textDim, ...TEXT.xsMultiline }}>No focus underway — pick one below</span>
+            <span style={{ ...TYPE.compact, color: C.textMuted }}>No focus underway — pick one below</span>
           )}
         </div>
         <button onClick={onClose} style={{
           background: "rgba(30,41,59,0.6)", border: `1px solid ${C.bgInput}`,
-          color: C.text, fontFamily: FONT, fontSize: F.sm, padding: "9px 16px", cursor: "pointer",
+          color: C.text, fontFamily: FONT, fontSize: F.xs, padding: "9px 12px", minHeight: 44, flexShrink: 0, cursor: "pointer",
         }}>✕ CLOSE</button>
       </div>
 
       {/* Scrollable tree canvas */}
       <div style={{ flex: "1 1 auto", overflow: "auto", padding: mob ? 16 : 28 }}>
-        <div style={{ position: "relative", width: canvasW, height: canvasH, margin: "0 auto" }}>
+        <div style={mob
+          ? { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }
+          : { position: "relative", width: canvasW, height: canvasH, margin: "0 auto" }}>
           {/* Edges beneath the chips */}
-          <svg width={canvasW} height={canvasH} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {!mob && <svg width={canvasW} height={canvasH} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
             {edges.map((e, i) => {
               const bothDone = completedIds.includes(e.from.id) && completedIds.includes(e.to.id);
               const fromDone = completedIds.includes(e.from.id);
@@ -123,7 +125,7 @@ export function ClubFocusTree({ clubFocuses, onStart, onClose }) {
                 />
               );
             })}
-          </svg>
+          </svg>}
 
           {/* Nodes */}
           {CLUB_FOCUS_NODES.map(node => {
@@ -140,20 +142,21 @@ export function ClubFocusTree({ clubFocuses, onStart, onClose }) {
               ? `🔒 Needs: ${missingLabels.join(", ")}`
               : node.desc;
             return (
-              <div
+              <button
                 key={node.id}
+                type="button"
+                disabled={state !== "available"}
                 data-testid={`focus-node-${node.id}`}
                 data-state={state}
                 title={tip}
                 onClick={() => handleNodeClick(node)}
                 style={{
-                  position: "absolute", left: x, top: y, width: CHIP_W, height: CHIP_H,
-                  boxSizing: "border-box", padding: "7px 6px",
+                  ...(mob ? { minWidth: 0, minHeight: 112 } : { position: "absolute", left: x, top: y, width: CHIP_W, height: CHIP_H }),
+                  boxSizing: "border-box", padding: "12px 8px",
                   background: st.bg, border: `2px solid ${st.border}`,
-                  borderRadius: 6, cursor: state === "available" ? "pointer" : "default",
-                  opacity: state === "locked" ? 0.55 : 1,
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  textAlign: "center", overflow: "hidden",
+                  cursor: state === "available" ? "pointer" : "default",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                  textAlign: "center",
                   boxShadow: state === "active" ? `0 0 10px ${C.gold}66` : undefined,
                 }}
               >
@@ -161,20 +164,23 @@ export function ClubFocusTree({ clubFocuses, onStart, onClose }) {
                   <span style={{ ...EMOJI }}>{state === "locked" ? "🔒" : node.artKey}</span>
                   {state === "complete" ? <span style={{ ...EMOJI, marginLeft: 3 }}>✓</span> : null}
                 </div>
-                <div style={{ fontSize: F.micro, color: st.text, lineHeight: 1.25 }}>{node.name}</div>
+                <div style={{ ...TYPE.compact, fontWeight: 600, color: state === "locked" ? C.textMuted : st.text }}>{node.name}</div>
+                {mob && <div style={{ ...TYPE.caption, color: C.textMuted }}>
+                  {state === "locked" ? `Needs: ${missingLabels.join(", ")}` : node.desc}
+                </div>}
                 {state === "active" ? (
                   <>
                     <div style={{ width: "88%", height: 5, background: "rgba(0,0,0,0.4)", borderRadius: 3, overflow: "hidden" }}>
                       <div style={{ width: `${Math.round((progress / node.weeks) * 100)}%`, height: "100%", background: C.gold }} />
                     </div>
-                    <div style={{ fontSize: F.micro, color: C.gold }}>{progress}/{node.weeks}w</div>
+                    <div style={{ ...TYPE.caption, color: C.gold }}>{progress}/{node.weeks}w</div>
                   </>
                 ) : (
-                  <div style={{ fontSize: F.micro, color: state === "complete" ? C.green : C.textDim }}>
+                  <div style={{ ...TYPE.caption, color: state === "complete" ? C.green : C.textMuted }}>
                     {state === "complete" ? "DONE" : `${node.weeks}w`}
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -194,8 +200,8 @@ export function ClubFocusTree({ clubFocuses, onStart, onClose }) {
             <div style={{ fontSize: F.lg, color: C.gold }}>
               <span style={{ ...EMOJI }}>{confirm.artKey}</span> {confirm.name}
             </div>
-            <div style={{ ...TEXT.smMultiline, color: C.textMuted }}>{confirm.desc}</div>
-            <div style={{ ...TEXT.xsMultiline, color: C.textDim }}>
+            <div style={{ ...TYPE.body, color: C.text }}>{confirm.desc}</div>
+            <div style={{ ...TYPE.compact, color: C.textMuted }}>
               {activeNode && activeNode.id !== confirm.id
                 ? `Switch focus? Progress on ${activeNode.name} is kept.`
                 : `Start this focus? It will take ${confirm.weeks} weeks.`}
@@ -203,11 +209,11 @@ export function ClubFocusTree({ clubFocuses, onStart, onClose }) {
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={() => doStart(confirm)} style={{
                 background: "rgba(250,204,21,0.14)", border: `1px solid ${C.gold}`, color: C.gold,
-                fontFamily: FONT, fontSize: F.sm, padding: "10px 18px", cursor: "pointer",
+                fontFamily: FONT, fontSize: F.sm, padding: "10px 18px", minHeight: 44, cursor: "pointer",
               }}>{activeNode && activeNode.id !== confirm.id ? "SWITCH" : "START"}</button>
               <button onClick={() => setConfirm(null)} style={{
                 background: "rgba(30,41,59,0.6)", border: `1px solid ${C.bgInput}`, color: C.text,
-                fontFamily: FONT, fontSize: F.sm, padding: "10px 18px", cursor: "pointer",
+                fontFamily: FONT, fontSize: F.sm, padding: "10px 18px", minHeight: 44, cursor: "pointer",
               }}>CANCEL</button>
             </div>
           </div>

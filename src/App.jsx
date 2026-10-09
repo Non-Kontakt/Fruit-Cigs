@@ -446,6 +446,7 @@ function FruitCigs() {
     else BGM.releaseContext();
   }, [showAchievements]);
   const [showLegends, setShowLegends] = useState(false);
+  const [initialClubFocusOpen, setInitialClubFocusOpen] = useState(false);
   const seasonCards = useGameStore(s => s.seasonCards);
   const seasonNumber = useGameStore(s => s.seasonNumber);
   const leagueWins = useGameStore(s => s.leagueWins);
@@ -700,6 +701,14 @@ function FruitCigs() {
   const [pendingPlayerUnlock, setPendingPlayerUnlock] = useState(null);
   const [showAssignAll, setShowAssignAll] = useState(false);
   const assignAllRef = useRef(null);
+  const [openTrainingOnArrival, setOpenTrainingOnArrival] = useState(false);
+  useEffect(() => {
+    if (!showSquad || !openTrainingOnArrival || !assignAllRef.current) return;
+    assignAllRef.current.scrollIntoView({ block: "center" });
+    assignAllRef.current.querySelector("button")?.focus({ preventScroll: true });
+    setShowAssignAll(true);
+    setOpenTrainingOnArrival(false);
+  }, [showSquad, openTrainingOnArrival]);
   useEffect(() => {
     if (!showAssignAll) return;
     const handleClick = (e) => {
@@ -2603,7 +2612,7 @@ function FruitCigs() {
           ...(isMobile
             ? {
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 4, height: 54, padding: "5px 4px",
+                gap: 4, height: 54, padding: "5px 2px",
                 fontSize: F.xs,
               }
             : {
@@ -2615,23 +2624,19 @@ function FruitCigs() {
         // every button gets the same internal shape regardless of label
         // length or whether it carries a badge (badges move to an
         // absolutely-positioned corner overlay so they never join the text
-        // flow and force a wrap). Desktop keeps the inline "icon label"
-        // row with badges inline, unchanged.
+        // flow and force a wrap). Desktop keeps icons and badges inline.
         const navIcon = (icon) => isMobile ? <span style={{ fontSize: F.sm, lineHeight: 1.2 }}>{icon}</span> : null;
         const navLabel = (label) => isMobile
-          ? <span style={{ fontSize: F.xs, lineHeight: 1.25, textAlign: "center", overflowWrap: "break-word", maxWidth: "100%" }}>{label}</span>
+          ? <span style={{ fontSize: `clamp(${F.micro}px, 2.2vw, ${F.xs}px)`, lineHeight: 1.4, textAlign: "center", maxWidth: "100%" }}>{label}</span>
           : `${label}`;
         const navBadgeOverlay = (badges) => isMobile && badges
           ? <span style={{ position: "absolute", top: 2, right: 2, display: "flex", gap: 2 }}>{badges}</span>
           : null;
-        // A strict 4-column grid keeps every row full (8 items = two even
+        // A shared 4-column grid keeps every row full (8 items = two even
         // rows of 4) instead of flex-wrap's content-width wrapping, which
         // left CORNER SHOP alone on a banner-width third row.
         return (
-          <div style={isMobile
-            ? { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }
-            : { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }
-          }>
+          <nav className="fc-primary-nav" aria-label="Main navigation">
             <button onClick={() => clearAll()} style={navBtn(isHome, C.green)}>
               {isMobile ? <>{navIcon("🏠")}{navLabel("HOME")}</> : "🏠 HOME"}
             </button>
@@ -2682,7 +2687,7 @@ function FruitCigs() {
                 );
               })()}
             </button>
-            <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>
+            <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setInitialClubFocusOpen(false); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>
               {isMobile ? <>{navIcon("📜")}{navLabel("CLUB")}</> : "📜 CLUB"}
             </button>
             <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); setLastSeenAchievementCount(unlockedAchievements.size); }} style={navBtn(showAchievements, C.gold)}>
@@ -2699,7 +2704,7 @@ function FruitCigs() {
                 );
               })()}
             </button>
-          </div>
+          </nav>
         );
       })()}
 
@@ -3669,7 +3674,7 @@ function FruitCigs() {
           setPassiveRevealSignings={setPassiveRevealSignings}
         />
       ) : showLegends ? (
-        <ClubLegends key={clubKey} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
+        <ClubLegends key={clubKey} initialFocusOpen={initialClubFocusOpen} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
       ) : (
       <>
       {/* Injury warning banner */}
@@ -5189,6 +5194,11 @@ function FruitCigs() {
       </>
       ) : (
       <Dashboard
+        storyArcs={storyArcs}
+        clubFocuses={clubFocuses}
+        onOpenTraining={() => { clearAllTabs(); setShowSquad(true); setOpenTrainingOnArrival(true); }}
+        onOpenArcs={() => { clearAllTabs(); setInitialBootRoomTab("arcs"); setShowCalendar(true); }}
+        onOpenClubFocus={() => { clearAllTabs(); setInitialClubFocusOpen(true); setShowLegends(true); }}
         inboxMessages={inboxMessages}
         week={calendarIndex + 1}
         seasonNumber={seasonNumber}

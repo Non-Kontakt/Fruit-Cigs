@@ -61,8 +61,14 @@ export const Z = {
   fullscreen: 9999,
 };
 
-// The one font — every element uses this
+// Pixel type carries the game's identity; supporting prose has its own scale.
 export const FONT = "'Press Start 2P', monospace";
+export const BODY_FONT = "'IBM Plex Sans', sans-serif";
+export const TYPE = {
+  body: { fontFamily: BODY_FONT, fontSize: s(16), lineHeight: 1.5 },
+  compact: { fontFamily: BODY_FONT, fontSize: s(14), lineHeight: 1.45 },
+  caption: { fontFamily: BODY_FONT, fontSize: s(12), lineHeight: 1.5 },
+};
 
 // Emoji style token — spread onto elements where emojis clip in tight containers
 // Usage: <span style={{ ...EMOJI, fontSize: F.lg }}>🔥</span>

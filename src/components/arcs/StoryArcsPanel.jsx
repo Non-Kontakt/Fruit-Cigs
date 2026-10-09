@@ -3,7 +3,7 @@ import { ARC_CATS, ARC_CAT_LABELS } from "../../data/storyArcs.js";
 import { getOverall, getPosColor } from "../../utils/calc.js";
 import { getArcById, getArcsForCat, getValidTargets } from "../../utils/arcs.js";
 import { displayName } from "../../utils/player.js";
-import { F, C, FONT, EMOJI, TEXT } from "../../data/tokens";
+import { F, C, FONT, EMOJI, TYPE } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodigalSon, league, leagueTier, onAchievementCheck, week, seasonNumber }) {
@@ -57,7 +57,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
     if (catState.completed) {
       return (
         <div style={{ padding:"12px 0" }}>
-          <div style={{ color:C.green, ...(mob?TEXT.xsMultiline:TEXT.smMultiline), marginBottom:12 }}>✅ {arc.rewardDesc}</div>
+          <div style={{ color:C.green, ...TYPE.compact, marginBottom:12 }}>✅ {arc.rewardDesc}</div>
           <button onClick={() => {
             setStoryArcs(prev => ({...prev, [cat]: null}));
           }} style={{
@@ -75,7 +75,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
     if (step.t === "target" && !catState.tracking?.targetId) {
       return (
         <div>
-          <div style={{ color:C.textMuted, fontSize:mob?F.xs:F.sm, marginBottom:9 }}>{step.desc}</div>
+          <div style={{ ...TYPE.body, color:C.textMuted, marginBottom:12 }}>{step.desc}</div>
           <button onClick={() => setSelectingTarget({ cat, arcId:arc.id })} style={{
             background:"rgba(96,165,250,0.15)", border:`1px solid ${C.blue}`, color:C.blue,
             padding:"9px 18px", cursor:"pointer", fontSize:F.sm, fontFamily:FONT,
@@ -109,7 +109,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
                   textAlign:"left", fontFamily:FONT,
                 }}>
                   <div style={{ fontSize:mob?F.xs:F.sm, color:ch==="a"?"#a78bfa":C.blue, marginBottom:5 }}>{opt.name}</div>
-                  <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:C.textMuted }}>{opt.w} weeks · {opt.desc}</div>
+                  <div style={{ ...TYPE.compact, color:C.textMuted }}>{opt.w} weeks · {opt.desc}</div>
                 </button>
               );
             })}
@@ -128,14 +128,14 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
           <div style={{ background:C.bgCard, height:9, borderRadius:5, overflow:"hidden", marginBottom:5 }}>
             <div style={{ width:`${pct}%`, height:"100%", background:"linear-gradient(90deg,#a78bfa,#60a5fa)", transition:"width 0.3s" }} />
           </div>
-          <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:C.textDim }}>{catState.focus.weeksLeft} weeks remaining · {opt.desc}</div>
+          <div style={{ ...TYPE.compact, color:C.textDim }}>{catState.focus.weeksLeft} weeks remaining · {opt.desc}</div>
         </div>
       );
     }
 
     // Condition step
     if (step.t === "cond") {
-      return <div style={{ color:C.textMuted, ...(mob?TEXT.xsMultiline:TEXT.smMultiline) }}>📋 {step.desc}</div>;
+      return <div style={{ color:C.textMuted, ...TYPE.compact }}>📋 {step.desc}</div>;
     }
     return null;
   };
@@ -179,7 +179,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
                   }}>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:mob?F.xs:F.sm, color:locked?C.slate:col }}>{arc.icon} {arc.name} {done && "✓"}</div>
-                      <div style={{ fontSize:mob?F.xs:F.sm, color:C.textDim, marginTop:2 }}>{arc.desc}</div>
+                      <div style={{ ...TYPE.compact, color:C.textMuted, marginTop:2 }}>{arc.desc}</div>
                     </div>
                     {noTargets && (
                       <div style={{
@@ -242,7 +242,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
             )
           )}
         </div>
-        <div style={{ fontSize:mob?F.xs:F.sm, color:C.textDim, marginBottom:5 }}>{arc.desc}</div>
+        <div style={{ ...TYPE.compact, color:C.textMuted, marginBottom:5 }}>{arc.desc}</div>
         {targetPlayer && (
           <div style={{ fontSize:mob?F.xs:F.sm, color:C.textMuted, marginBottom:5 }}>
             🎯 {displayName(targetPlayer.name, mob)} ({targetPlayer.position}) · OVR {getOverall(targetPlayer)}
@@ -293,7 +293,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
   return (
     <div>
       <div style={{ fontSize:mob?F.md:F.lg, color:C.text, marginBottom:5, letterSpacing:1 }}>📖 STORY ARCS</div>
-      <div style={{ fontSize:mob?F.xs:F.sm, color:C.slate, marginBottom:18 }}>Choose one arc per category. Complete steps to earn powerful rewards.</div>
+      <div style={{ ...TYPE.body, color:C.textMuted, marginBottom:18 }}>Choose one arc per category. Complete steps to earn powerful rewards.</div>
       {storyArcs.completed?.length > 0 && (
         <div style={{ fontSize:mob?F.xs:F.sm, color:C.green, marginBottom:14 }}>
           ✅ Completed: {storyArcs.completed.map(id => getArcById(id)?.name).filter(Boolean).join(", ")}
@@ -308,7 +308,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
         if (b.trialStatBoost) parts.push(`Trial players +${b.trialStatBoost} stats`);
         if (b.injuryShield) parts.push(`Injury shield: ${b.injuryShield}w`);
         if (parts.length === 0) return null;
-        return <div style={{ ...(mob?TEXT.xsMultiline:TEXT.smMultiline), color:"#a78bfa", marginBottom:14 }}>🎁 Active bonuses: {parts.join(" · ")}</div>;
+        return <div style={{ ...TYPE.compact, color:"#a78bfa", marginBottom:14 }}>🎁 Active bonuses: {parts.join(" · ")}</div>;
       })()}
       <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
         {ARC_CATS.map(cat => (
@@ -327,4 +327,3 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
 }
 
 // ==================== BOOT ROOM (ADMIN HUB) ====================
-

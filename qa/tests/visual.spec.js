@@ -33,7 +33,13 @@ async function settleUntil(page, fn, { timeout = 15_000 } = {}) {
   }
 }
 
-const fontsReady = () => document.fonts.check('12px "Press Start 2P"');
+const fontsReady = async () => {
+  await Promise.all([
+    document.fonts.load('12px "Press Start 2P"'),
+    document.fonts.load('14px "IBM Plex Sans"'),
+  ]);
+  return true;
+};
 
 // Seeded LCG stand-in for Math.random — deterministic squad/league/name
 // generation for full-app boots. Installed before any app module evaluates.
