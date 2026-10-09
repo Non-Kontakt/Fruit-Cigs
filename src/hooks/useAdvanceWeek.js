@@ -70,14 +70,11 @@ export function useAdvanceWeek({
   // Refs
   storyArcsRef,
   pendingFinalRewardRef,
-  weekRecoveriesRef,
-  cardedPlayerIdsRef,
   boardWarnWeekRef,
-  revealedInjuryCount,
-  pendingTrialAction,
 }) {
   const advanceWeek = useCallback(() => {
     const s = useGameStore.getState();
+    let pendingTrialAction = null;
     const {
       processing, squad, league, prodigalSon, leagueTier, matchweekIndex,
       transferFocus, storyArcs, summerPhase, summerData, calendarIndex,
@@ -91,7 +88,7 @@ export function useAdvanceWeek({
     const ovrCap = getOvrCap(prestigeLevel || 0);
     const focusBonuses = getClubFocusBonuses(clubFocuses);
 
-    if (processing || !league) return;
+    if (processing || !league || s.gains || s.matchResult || s.cupMatchResult || s.matchPending) return;
 
     // Clear stale summer state if data is missing
     if (summerPhase && summerPhase !== "break" && !summerData) {
@@ -210,7 +207,7 @@ export function useAdvanceWeek({
     }
     s.setReadsThisWeek(0);
     setRecentOvrLevelUps(null);
-    weekRecoveriesRef.current = [];
+    s.setWeekRecoveries([]);
 
     // === PASSIVE SHORTLIST SCOUTING ===
     // Ticks down every shortlisted player's scouting timer; whoever crosses
@@ -593,7 +590,7 @@ export function useAdvanceWeek({
             const injuryShield = storyArcs?.bonuses?.injuryShield > 0;
             const mod = getModifier(leagueTier);
             // Tier 8: Carded players skip training
-            if (mod.cardSkipsTraining && cardedPlayerIdsRef.current.has(p.id)) {
+            if (mod.cardSkipsTraining && s.cardedPlayerIds.has(p.id)) {
               weekCardSkips.push(p.name);
               const snapshot = { week: calendarIndex + 1, season: seasonNumber };
               ATTRIBUTES.forEach(({ key }) => { snapshot[key] = newPlayer.attrs[key]; });
@@ -1107,8 +1104,7 @@ export function useAdvanceWeek({
       s.setTrainedThisWeek(new Set());
       s.setManualTrainingThisWeek(new Set());
       // Don't set gains (no popup to show them)
-      weekRecoveriesRef.current = weekRecoveries;
-      revealedInjuryCount.current = 0;
+      s.setWeekRecoveries(weekRecoveries);
 
       // Compensation tickets for arc boosts that couldn't apply because the
       // target attr was capped — normally offered as a choice via GainPopup,
@@ -1155,7 +1151,7 @@ export function useAdvanceWeek({
           if (twl <= 0) {
             const trainedP = useGameStore.getState().squad.find(p => p.id === freshTP.id) || freshTP;
             if (tns > 0) {
-              pendingTrialAction.current = {
+              pendingTrialAction = {
                 type: "impressed", id: freshTP.id, name: freshTP.name, position: freshTP.position,
                 nationality: freshTP.nationality, flag: freshTP.flag, countryLabel: freshTP.countryLabel,
                 attrs: { ...trainedP.attrs }, potential: freshTP.potential, starts: tns,
@@ -1164,21 +1160,21 @@ export function useAdvanceWeek({
             } else {
               const rivals = (useGameStore.getState().league || league)?.teams?.filter(t => !t.isPlayer) || [];
               const rival = rivals.length > 0 ? rivals[rand(0, rivals.length - 1)] : null;
-              pendingTrialAction.current = {
+              pendingTrialAction = {
                 type: "no_starts", id: freshTP.id, name: freshTP.name, position: freshTP.position,
                 nationality: freshTP.nationality, flag: freshTP.flag, countryLabel: freshTP.countryLabel,
                 rivalTeam: rival?.name || "a rival club", season: seasonNumber, week: calendarIndex + 1,
               };
             }
           } else {
-            pendingTrialAction.current = { type: "continue", id: freshTP.id, newWeeksLeft: twl, newStarts: tns };
+            pendingTrialAction = { type: "continue", id: freshTP.id, newWeeksLeft: twl, newStarts: tns };
           }
         }
       } catch(err) { console.error("Holiday trial countdown error:", err); }
 
       // Process trial player actions (computed just above)
-      const trialAction = pendingTrialAction.current;
-      pendingTrialAction.current = null;
+      const trialAction = pendingTrialAction;
+      pendingTrialAction = null;
       try {
         if (trialAction) {
           if (trialAction.type === "impressed") {
@@ -1336,7 +1332,7 @@ export function useAdvanceWeek({
             const _holOppTeam = { ..._holOpp, squad: _holAIFive };
             const _holAutoFive = buildAIFiveASide(_holPlayerTeam); // use same AI logic for auto-pick
             const _holAutoIds = _holAutoFive.map(p => p.id);
-            const _holMiniMod = getModifier(leagueTier);
+            const _holMiniMod = { ...getModifier(leagueTier), matchSize: 5, ovrCap };
             const _holPlayerTeamFive = { name: teamName, color: "#4ade80", squad: _holAutoFive, isPlayer: true, trait: null };
             const _holResult = simulateMatch(_holPlayerTeamFive, _holOppTeam, _holAutoIds, [], true, 1.0, 0, null, 0, _holMiniMod);
             const _holHG = _holResult.homeGoals;
@@ -1489,7 +1485,7 @@ export function useAdvanceWeek({
             s.setCalendarIndex(prev => prev + 1);
           } else {
             // Non-participant: sim AI mini match in background
-            const mMod = getModifier(leagueTier);
+            const mMod = { ...getModifier(leagueTier), matchSize: 5 };
             if (nextEntry.round === "sf_leg1") {
               if (!mBracket) {
                 // Player didn't qualify — set up bracket from standings
@@ -1628,8 +1624,7 @@ export function useAdvanceWeek({
     if (!useGameStore.getState().isOnHoliday) {
       setTimeout(() => setWeekTransition(false), 1500);
     }
-    weekRecoveriesRef.current = weekRecoveries;
-    revealedInjuryCount.current = 0;
+    s.setWeekRecoveries(weekRecoveries);
 
     // Track injury counts per player for Injury Prone
     if (weekInjuries.length > 0) {
@@ -1642,7 +1637,7 @@ export function useAdvanceWeek({
 
     // Tier 8: Clear carded players after training and send inbox
     if (weekCardSkips.length > 0) {
-      cardedPlayerIdsRef.current.clear();
+      s.setCardedPlayerIds(new Set());
       s.setInboxMessages(prev => [...prev, createInboxMessage(
         MSG.disciplinePenalty(weekCardSkips.join(", ")),
         { calendarIndex, seasonNumber },
@@ -1772,7 +1767,7 @@ export function useAdvanceWeek({
     }
 
     // Trial player — compute action but defer squad changes to avoid re-triggering this useEffect
-    pendingTrialAction.current = null;
+    pendingTrialAction = null;
     if (trialPlayer && calendarIndex > (trialPlayer.trialStartWeek ?? trialPlayer.trialStartMatchweek ?? -1)) {
       const wasInXI = startingXI.includes(trialPlayer.id);
       const newWeeksLeft = trialPlayer.trialWeeksLeft - 1;
@@ -1782,7 +1777,7 @@ export function useAdvanceWeek({
         // Get trained attrs from current squad
         const trainedPlayer = squad.find(p => p.id === trialPlayer.id) || trialPlayer;
         if (newStarts > 0) {
-          pendingTrialAction.current = {
+          pendingTrialAction = {
             type: "impressed", id: trialPlayer.id,
             name: trialPlayer.name, position: trialPlayer.position,
             nationality: trialPlayer.nationality, flag: trialPlayer.flag,
@@ -1792,7 +1787,7 @@ export function useAdvanceWeek({
         } else {
           const rivals = league?.teams?.filter(t => !t.isPlayer) || [];
           const rival = rivals[rand(0, rivals.length - 1)];
-          pendingTrialAction.current = {
+          pendingTrialAction = {
             type: "no_starts", id: trialPlayer.id,
             name: trialPlayer.name, position: trialPlayer.position,
             nationality: trialPlayer.nationality, flag: trialPlayer.flag,
@@ -1801,12 +1796,13 @@ export function useAdvanceWeek({
           };
         }
       } else {
-        pendingTrialAction.current = {
+        pendingTrialAction = {
           type: "continue", id: trialPlayer.id,
           newWeeksLeft, newStarts,
         };
       }
     }
+    s.setPendingTrialAction(pendingTrialAction);
   }, []); // All state read from getState() — no closure deps needed
 
   return { advanceWeek };

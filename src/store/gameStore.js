@@ -4,6 +4,7 @@ import { DEFAULT_FORMATION } from "../data/formations.js";
 import { initStoryArcs } from "../utils/arcs.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
 import { defaultClubFocuses } from "../data/clubFocuses.js";
+import { STARTER_PACKS } from "../data/cigPacks.js";
 
 /**
  * Core game state store — replaces the useState + useRef mirror pattern.
@@ -33,6 +34,7 @@ const SET_FIELDS = [
   "manualSlotIndices",
   "wonderkidTips",
   "backPagesReceived",
+  "cardedPlayerIds",
 ];
 
 // Fields that use Map in-memory but must be serialized as plain objects for JSON
@@ -109,6 +111,14 @@ export const useGameStore = create((set, get) => ({
   matchPending: false,
   processing: false,
   pendingSquad: null,
+  gains: null,
+  matchResult: null,
+  cupMatchResult: null,
+  pendingLeague: null,
+  pendingTrialAction: null,
+  pendingBreakouts: null,
+  weekRecoveries: [],
+  cardedPlayerIds: new Set(),
   isOnHoliday: false,
   wonLeagueOnHoliday: false,
 
@@ -409,6 +419,12 @@ export const useGameStore = create((set, get) => ({
   // --- Setters ---
   // Each setter accepts a value or an updater function: set(val) or set(prev => newVal)
 
+  startNewCareer: squad => {
+    const activeProfileId = get().activeProfileId;
+    const data = Object.fromEntries(Object.entries(useGameStore.getInitialState()).filter(([, value]) => typeof value !== "function"));
+    set({ ...structuredClone(data), activeProfileId, squad, gameMode: "ironman", unlockedPacks: new Set(STARTER_PACKS) });
+  },
+
   setSquad: (val) => set(s => ({ squad: typeof val === "function" ? val(s.squad) : val })),
   setLeague: (val) => set(s => ({ league: typeof val === "function" ? val(s.league) : val })),
   setCup: (val) => set(s => ({ cup: typeof val === "function" ? val(s.cup) : val })),
@@ -428,6 +444,17 @@ export const useGameStore = create((set, get) => ({
   }),
 
   setMatchPending: (val) => set(s => ({ matchPending: typeof val === "function" ? val(s.matchPending) : val })),
+  setGains: val => set(s => {
+    const report = typeof val === "function" ? val(s.gains) : val;
+    return { gains: report ? { ...report, reportId: report.reportId || crypto.randomUUID() } : null };
+  }),
+  setMatchResult: val => set(s => ({ matchResult: typeof val === "function" ? val(s.matchResult) : val })),
+  setCupMatchResult: val => set(s => ({ cupMatchResult: typeof val === "function" ? val(s.cupMatchResult) : val })),
+  setPendingLeague: val => set({ pendingLeague: val }),
+  setPendingTrialAction: val => set({ pendingTrialAction: val }),
+  setPendingBreakouts: val => set({ pendingBreakouts: val }),
+  setWeekRecoveries: val => set({ weekRecoveries: val }),
+  setCardedPlayerIds: val => set(s => ({ cardedPlayerIds: typeof val === "function" ? val(s.cardedPlayerIds) : val })),
   setProcessing: (val) => set(s => ({ processing: typeof val === "function" ? val(s.processing) : val })),
   setPendingSquad: (val) => set(s => ({ pendingSquad: typeof val === "function" ? val(s.pendingSquad) : val })),
   setIsOnHoliday: (val) => set({ isOnHoliday: val }),

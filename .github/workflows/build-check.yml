@@ -10,17 +10,14 @@ permissions:
   issues: write
 
 jobs:
-  build:
+  verify:
+    uses: ./.github/workflows/verify.yml
+  report-failure:
+    needs: verify
+    if: failure()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install
-      - run: npx --no vite build --mode development
       - name: Create issue on failure
-        if: failure()
         uses: actions/github-script@v7
         with:
           script: |

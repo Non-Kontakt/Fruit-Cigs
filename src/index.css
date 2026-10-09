@@ -1,3 +1,30 @@
+@font-face {
+  font-family: "Pixel Operator";
+  src: url("/fonts/PixelOperator.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixel Operator";
+  src: url("/fonts/PixelOperator-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+.fc-primary-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .fc-primary-nav { gap: 6px; }
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,4 +33,16 @@
 
 body {
   background: #0a0e17;
+  font-family: "Pixel Operator", monospace;
+  font-size: 24px;
+  line-height: 1.1;
+  font-synthesis: none;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button, h1, h2, h3, h4, strong, b {
+  font-weight: 700;
 }

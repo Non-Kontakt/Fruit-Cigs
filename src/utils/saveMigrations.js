@@ -245,15 +245,14 @@ export function migrateClubHistoryNames(clubHistory) {
 
 /**
  * Construct a fallback clubHistory for saves that predate clubHistory
- * tracking, estimating career totals from whatever aggregate fields the
- * save does have. Pure — doesn't touch the save's existing clubHistory;
+ * tracking, retaining only figures actually present in the save. Pure — doesn't touch the save's existing clubHistory;
  * callers decide whether to use this or the save's own history.
  */
 export function backfillClubHistory(s) {
   const h = {
     totalWins: 0, totalDraws: 0, totalLosses: 0,
     totalGoalsFor: 0, totalGoalsConceded: 0,
-    bestWinStreak: s.consecutiveWins || s.consecutiveUnbeaten || 0,
+    bestWinStreak: s.consecutiveWins || 0,
     bestUnbeatenRun: s.consecutiveUnbeaten || 0,
     worstLossStreak: s.consecutiveLosses || 0,
     biggestWin: null, worstDefeat: null,
@@ -272,39 +271,11 @@ export function backfillClubHistory(s) {
       h.totalGoalsConceded = playerRow.goalsAgainst || 0;
     }
   }
-  const currentPlayed = (h.totalWins + h.totalDraws + h.totalLosses);
-  const priorMatches = (s.totalMatches || 0) - currentPlayed;
-  if (priorMatches > 0) {
-    h.totalWins += Math.round(priorMatches * 0.5);
-    h.totalDraws += Math.round(priorMatches * 0.25);
-    h.totalLosses += priorMatches - Math.round(priorMatches * 0.5) - Math.round(priorMatches * 0.25);
-    const avgGF = s.seasonGoalsFor ? s.seasonGoalsFor / Math.max(1, currentPlayed) : 1.5;
-    h.totalGoalsFor += Math.round(priorMatches * avgGF);
-    h.totalGoalsConceded += Math.round(priorMatches * 1.2);
-  }
-  if (s.playerSeasonStats) {
-    Object.entries(s.playerSeasonStats).forEach(([name, stats]) => {
-      h.playerCareers[name] = {
-        goals: (stats.goals || 0) * (s.seasonNumber || 1),
-        apps: (stats.apps || 0) * (s.seasonNumber || 1),
-        motm: (stats.motm || 0) * (s.seasonNumber || 1),
-        yellows: stats.yellows || 0,
-        reds: stats.reds || 0,
-        seasons: [],
-      };
-    });
-  }
-  for (let i = 1; i < (s.seasonNumber || 1); i++) {
-    h.seasonArchive.push({
-      season: i,
-      tier: i === 1 ? NUM_TIERS : (s.leagueTier || NUM_TIERS),
-      leagueName: "Unknown (pre-tracking)",
-      position: "?",
-      points: "?",
-      topScorer: "N/A",
-      result: i < (s.seasonNumber || 1) - 1 ? "stayed" : (s.lastSeasonMove || "stayed"),
-    });
-  }
+  // Missing seasons cannot be inferred from today's squad or table. Keep
+  // only observed totals and mark their limited coverage in the records UI.
+  h.historyIncomplete = true;
+  h.cupHistory = [];
+  h.rivalryLedger = {};
   return h;
 }
 

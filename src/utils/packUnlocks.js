@@ -1,4 +1,7 @@
-import { CIG_PACKS } from "../data/cigPacks.js";
+import { CIG_PACKS, STARTER_PACKS } from "../data/cigPacks.js";
+
+// Starter packs are available from the beginning, not earned milestones.
+export const earnedPackReveals = packIds => packIds.filter(id => !STARTER_PACKS.has(id));
 
 /** Check if a pack is fully completed */
 export function isPackComplete(packId, unlockedAchievements) {

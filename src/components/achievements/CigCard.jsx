@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { C, FONT } from "../../data/tokens";
+import { C, F, FONT, LH } from "../../data/tokens";
 import { CIG_PACKS } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, LEGENDARY_ACHIEVEMENTS } from "../../data/achievements.js";
 import { mixColor, mountDithering, prefersReducedMotion } from "../../utils/cigCardShaders.js";
@@ -170,8 +170,8 @@ function renderBack({ accent, noGl, backGlRef }) {
           boxShadow: `0 0 0 3px ${STICKER}, 0 0 0 5px rgba(0,0,0,0.4)`, clipPath: SQUARE_CLIP,
         }}>
           <span style={{ fontSize: 26, display: "block", marginBottom: 8 }}>🚬</span>
-          <span style={{ fontFamily: FONT, fontSize: 8, color: "#f1f5f9", letterSpacing: 1, display: "block" }}>FRUIT CIGS</span>
-          <span style={{ fontFamily: FONT, fontSize: 5, color: C.textDim, letterSpacing: 1, display: "block", marginTop: 6 }}>CIG CARD SERIES</span>
+          <span style={{ fontFamily: FONT, fontSize: F.xs, color: "#f1f5f9", letterSpacing: 1, display: "block" }}>FRUIT CIGS</span>
+          <span style={{ fontFamily: FONT, fontSize: F.micro, color: C.textDim, letterSpacing: 1, display: "block", marginTop: 6 }}>CIG CARD SERIES</span>
         </div>
       </div>
     </div>
@@ -254,20 +254,20 @@ function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, pack
 
         {/* plate */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 12px 10px", gap: 8 }}>
-          <div style={{ fontFamily: FONT, fontSize: 6.5, letterSpacing: 1, color: packLineColor, display: "flex", justifyContent: "space-between", gap: 6 }}>
+          <div style={{ fontFamily: FONT, fontSize: F.micro, letterSpacing: 1, color: packLineColor, display: "flex", justifyContent: "space-between", gap: 6 }}>
             <span>{packName}</span>
             <span>{packCount}</span>
           </div>
-          <div style={{ fontFamily: FONT, fontSize: 11, lineHeight: 1.65, color: nameColor, textWrap: "balance", textTransform: "uppercase" }}>
+          <div style={{ fontFamily: FONT, fontSize: F.xs, fontWeight: 700, lineHeight: LH.body, color: nameColor, textWrap: "balance", textTransform: "uppercase" }}>
             {ach.name}
           </div>
-          <div style={{ fontFamily: FONT, fontSize: 10, lineHeight: 1.55, color: descColor, flex: 1 }}>
+          <div style={{ fontFamily: FONT, fontSize: F.xs, lineHeight: LH.body, color: descColor, flex: 1 }}>
             {ach.desc}
           </div>
           {progress && (
             <div data-testid="cig-card-meter" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{
-                display: "flex", justifyContent: "space-between", fontFamily: FONT, fontSize: 6,
+                display: "flex", justifyContent: "space-between", fontFamily: FONT, fontSize: F.micro,
                 letterSpacing: 1, color: "#767e9c", fontVariantNumeric: "tabular-nums",
               }}>
                 <span>{progress.label}</span>
@@ -288,13 +288,13 @@ function renderFace({ ach, accent, legendary, isGhost, isCollected, serial, pack
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, borderTop: "2px solid #1e1e33", paddingTop: 8 }}>
-            <span style={{ fontFamily: FONT, fontSize: 6, color: "#4a5170", letterSpacing: 1 }}>{serial}</span>
+            <span style={{ fontFamily: FONT, fontSize: F.micro, color: "#4a5170", letterSpacing: 1 }}>{serial}</span>
             {/* Old saves can hold collected cigs with no recorded week — the
                 full-colour card already says collected, so no chip at all
                 beats an empty stamp. */}
             {isCollected && formatUnlockWeek(unlockWeek) && (
               <span style={{
-                fontFamily: FONT, fontSize: 6, letterSpacing: 1, color: INK,
+                fontFamily: FONT, fontSize: F.micro, letterSpacing: 1, color: INK,
                 background: legendary ? C.amber : C.green, padding: "4px 6px 3px", boxShadow: "2px 2px 0 rgba(0,0,0,0.5)",
               }}>
                 {formatUnlockWeek(unlockWeek)}

@@ -2,17 +2,15 @@
 
 import { storage } from "../persistence/storage.js";
 import { PROFILES_KEY, profileKey, getSaveKey } from "../persistence/keys.js";
+import { validateSavePayload } from "../persistence/savePayload.js";
 
 // Re-exported so save/load call sites keep one import point for save keys.
 export { getSaveKey };
 
 const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
-// Minimal "is this payload a loadable save" gate, shared by the slot scan
-// and loadGame so recovery decisions are consistent: parseable JSON with a
-// teamName. Deeper repair stays in the load-time migrations.
 export const isLoadableSave = (value) => {
-  try { return !!(JSON.parse(value)?.teamName); } catch { return false; }
+  try { validateSavePayload(JSON.parse(value)); return true; } catch { return false; }
 };
 
 export async function listProfiles() {
@@ -69,20 +67,23 @@ export async function deleteProfile(profileId) {
 
 export async function unlockAchievementToProfile(profileId, achievementId) {
   try {
-    const profile = await readProfile(profileId);
-    if (!profile) return;
-    if (profile.unlockedAchievements.includes(achievementId)) return;
-    profile.unlockedAchievements.push(achievementId);
-    profile.achievementDates[achievementId] = new Date().toISOString().slice(0, 10);
-    await writeProfile(profileId, profile);
+    await storage.update(profileKey(profileId), value => {
+      const profile = JSON.parse(value);
+      if (profile.unlockedAchievements.includes(achievementId)) return value;
+      profile.unlockedAchievements.push(achievementId);
+      profile.achievementDates[achievementId] = new Date().toISOString().slice(0, 10);
+      return JSON.stringify(profile);
+    });
   } catch { /* non-critical */ }
 }
 
-export async function archiveCareerToMuseum(profileId, careerSnapshot) {
-  try {
-    const profile = await readProfile(profileId);
-    if (!profile) return;
+export async function archiveCareerToMuseum(profileId, careerSnapshot, slot, expectedLegacyValue = null) {
+  if (!slot || !careerSnapshot.careerId) throw new Error("Cannot archive an unidentified career");
+  return storage.finalizeSave(getSaveKey(profileId, slot), profileKey(profileId), careerSnapshot.careerId, value => {
+    const profile = JSON.parse(value);
+    if (!profile || profile.id !== profileId) throw new Error("Career profile is unavailable");
     profile.museum = profile.museum || [];
+    if (profile.museum.some(c => c.careerId === careerSnapshot.careerId)) return value;
     profile.museum.push({ ...careerSnapshot, archivedAt: new Date().toISOString() });
     profile.ironmanCareers = (profile.ironmanCareers || 0) + 1;
     const seasons = careerSnapshot.seasonNumber || 1;
@@ -91,16 +92,17 @@ export async function archiveCareerToMuseum(profileId, careerSnapshot) {
         (seasons === profile.ironmanBest.seasons && tier < profile.ironmanBest.highestTier)) {
       profile.ironmanBest = { seasons, highestTier: tier, teamName: careerSnapshot.teamName };
     }
-    await writeProfile(profileId, profile);
-  } catch { /* non-critical */ }
+    return JSON.stringify(profile);
+  }, expectedLegacyValue);
 }
 
 export async function deleteMuseumEntry(profileId, archivedAt) {
   try {
-    const profile = await readProfile(profileId);
-    if (!profile) return;
-    profile.museum = (profile.museum || []).filter(e => e.archivedAt !== archivedAt);
-    await writeProfile(profileId, profile);
+    await storage.update(profileKey(profileId), value => {
+      const profile = JSON.parse(value);
+      profile.museum = (profile.museum || []).filter(e => e.archivedAt !== archivedAt);
+      return JSON.stringify(profile);
+    });
   } catch { /* non-critical */ }
 }
 

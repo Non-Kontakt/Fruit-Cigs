@@ -228,3 +228,25 @@ describe("storage adapter — saves and backups", () => {
     expect((await b.get("test-rows")).value).toBe("[1]");
   });
 });
+
+describe("atomic career finalization", () => {
+  it("rolls back both archive and slot when finalization fails", async () => {
+    const s = fresh();
+    await s.set("profile", "original profile");
+    await s.setSave(KEY, JSON.stringify({ careerId: "ended" }));
+    await expect(s.finalizeSave(KEY, "profile", "ended", () => () => {})).rejects.toThrow();
+    expect((await s.get("profile")).value).toBe("original profile");
+    expect(JSON.parse((await s.getSave(KEY)).value).careerId).toBe("ended");
+  });
+  it("does not let a late write revive a closed career after the slot is reused", async () => {
+    const s = fresh();
+    await s.set("profile", "original profile");
+    const old = JSON.stringify({ careerId: "ended" });
+    await s.setSave(KEY, old);
+    await s.finalizeSave(KEY, "profile", "ended", () => "archived profile");
+    const next = JSON.stringify({ careerId: "new" });
+    await s.setSave(KEY, next);
+    await expect(s.setSave(KEY, old)).rejects.toThrow("ended");
+    expect((await s.getSave(KEY)).value).toBe(next);
+  });
+});

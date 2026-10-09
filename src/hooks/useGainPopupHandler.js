@@ -26,11 +26,10 @@ export function useGainPopupHandler({
   setInjuryWarning,
   // Component-local callbacks
   tryUnlockAchievement,
-  // Refs
-  pendingTrialAction,
 }) {
   const processGainsDone = useCallback((gains) => {
     const s = useGameStore.getState();
+    if (!gains || !s.gains || s.gains.reportId !== gains.reportId) return;
     const ovrCap = getOvrCap(s.prestigeLevel || 0);
 
     let appliedSquad = s.squad;
@@ -240,8 +239,8 @@ export function useGainPopupHandler({
     }
 
     // === Apply deferred trial player actions ===
-    const trialAction = pendingTrialAction.current;
-    pendingTrialAction.current = null;
+    const trialAction = s.pendingTrialAction;
+    s.setPendingTrialAction(null);
     if (trialAction) {
       if (trialAction.type === "impressed") {
         s.setSquad(prev => prev.filter(p => p.id !== trialAction.id));
@@ -337,7 +336,7 @@ export function useGainPopupHandler({
         const mBkt = useGameStore.getState().miniTournamentBracket;
         const shouldSkipM = !mBkt || mBkt.playerEliminated;
         if (shouldSkipM) {
-          const mMod2 = getModifier(s.leagueTier);
+          const mMod2 = { ...getModifier(s.leagueTier), matchSize: 5 };
           if (entry2m.round === "sf_leg1") {
             if (!mBkt) {
               const mSorted = sortStandings(useGameStore.getState().league?.table || []);
@@ -475,7 +474,7 @@ export function useGainPopupHandler({
           const _mRound = _nextCal.round;
           const _playerInFinal = _mBracket.playerInFinal;
           if (_mRound === "third_place" && _playerInFinal) {
-            const _mMod = getModifier(s.leagueTier);
+            const _mMod = { ...getModifier(s.leagueTier), matchSize: 5 };
             const _tp = _mBracket.thirdPlace;
             if (_tp && !_tp.winner) {
               const _tpR = simulateMatch(_tp.home, _tp.away, null, null, true, 1, 0, null, 0, _mMod);
@@ -508,7 +507,7 @@ export function useGainPopupHandler({
         s.setMatchPending(true);
       }
     }
-  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement, pendingTrialAction]);
+  }, [setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning, tryUnlockAchievement]);
 
   return { processGainsDone };
 }

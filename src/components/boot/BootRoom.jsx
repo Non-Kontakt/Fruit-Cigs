@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BGM, BGM_TRACKS } from "../../utils/sfx.js";
 import { StoryArcsPanel } from "../arcs/StoryArcsPanel.jsx";
 import { STORY_ARCS } from "../../data/storyArcs.js";
-import { F, C, FONT, MODAL, CARD } from "../../data/tokens";
+import { F, C, FONT, MODAL, CARD, TYPE, LH } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
@@ -158,13 +158,13 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                     if (onMessageRead) onMessageRead();
                   }
                 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                    <span style={{ fontSize: mob ? F.md : F.lg, color: msg.color || C.blue }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                    <span style={{ fontSize: mob ? F.sm : F.md, lineHeight: LH.body, color: msg.color || C.blue }}>
                       {msg.icon} {msg.title} {!msg.read && <span style={{ fontSize: F.micro, color: C.red, marginLeft: 5 }}>● NEW</span>}
                     </span>
-                    <span style={{ fontSize: F.xs, color: C.bgInput }}>S{msg.season} W{msg.week}</span>
+                    <span style={{ ...TYPE.caption, color: C.textMuted, flexShrink: 0 }}>S{msg.season} W{msg.week}</span>
                   </div>
-                  <div style={{ fontSize: F.md, color: C.textMuted, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                  <div style={{ ...TYPE.body, color: C.text, whiteSpace: "pre-line" }}>
                     {msg.body}
                   </div>
                   {/* Choice result line — colour, icon and copy all come
@@ -174,14 +174,14 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                     const chosen = msg.choices?.find(c => c.value === msg.choiceResult);
                     const { color, icon, text } = getChoiceResult(msg, chosen);
                     return (
-                      <div style={{ fontSize: mob ? F.xs : F.sm, color, marginTop: 9, fontStyle: "italic" }}>
+                      <div style={{ ...TYPE.compact, color, marginTop: 12, fontStyle: "italic" }}>
                         {icon ? `${icon} ${text}` : text}
                       </div>
                     );
                   })()}
                   {/* Follow-up info */}
                   {msg.followUp && (
-                    <div style={{ fontSize: mob ? F.xs : F.sm, color: C.amber, marginTop: 7, lineHeight: 1.5 }}>
+                    <div style={{ ...TYPE.compact, color: C.amber, marginTop: 12 }}>
                       {msg.followUp}
                     </div>
                   )}
@@ -190,7 +190,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                       the shared resolver — no value-name heuristics, no
                       first-position-wins guessing. */}
                   {msg.choices && !msg.choiceResult && (
-                    <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
                       {msg.choices.map((choice) => {
                         const style = getChoiceButtonStyle(msg, choice);
                         return (
@@ -200,7 +200,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                             if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
                             setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
                           }} style={{
-                            padding: mob ? "10px 17px" : "10px 24px",
+                            padding: mob ? "10px 17px" : "10px 24px", minHeight: 44, lineHeight: LH.body,
                             fontSize: mob ? F.xs : F.sm,
                             fontFamily: FONT,
                             background: style.background,
@@ -419,13 +419,13 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                 <div style={{ fontSize: F.md, color: C.text, marginBottom: 5 }}>💾 Auto-Save</div>
                 <div style={{ fontSize: mob ? F.xs : F.sm, color: C.slate }}>Save automatically after each match</div>
               </div>
-              <button onClick={() => setAutoSaveEnabled(!autoSaveEnabled)} style={{
+              {gameMode === "ironman" ? <span style={{ fontSize: F.xs, color: C.green }}>ALWAYS ON</span> : <button onClick={() => setAutoSaveEnabled(!autoSaveEnabled)} style={{
                 fontSize: F.md, padding: "6px 18px", cursor: "pointer",
                 fontFamily: FONT,
                 background: autoSaveEnabled ? "rgba(74,222,128,0.15)" : "rgba(239,68,68,0.1)",
                 border: autoSaveEnabled ? `1px solid ${C.green}` : `1px solid ${C.red}`,
                 color: autoSaveEnabled ? C.green : C.red,
-              }}>{autoSaveEnabled ? "ON" : "OFF"}</button>
+              }}>{autoSaveEnabled ? "ON" : "OFF"}</button>}
             </div>
 
             {/* Save Management */}
@@ -433,7 +433,6 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
               <div style={{ fontSize: mob ? F.xs : F.sm, color: C.bgInput, marginBottom: 12, letterSpacing: 1 }}>
                 SAVE MANAGEMENT {activeSaveSlot != null && <span style={{ color: C.slate }}>· SLOT {activeSaveSlot}</span>}
                 {activeProfileName && <span style={{ color: C.slate }}> · {activeProfileName}</span>}
-                {gameMode === "ironman" && <span style={{ color: C.lightRed, marginLeft: 8 }}>⚔ IRONMAN</span>}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {gameMode !== "ironman" && (
@@ -683,7 +682,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             </div>
 
             {/* Debug Tools */}
-            <div style={{ padding: mob ? "18px 15px" : "21px 23px", borderBottom: `1px solid ${C.bgCard}` }}>
+            {import.meta.env.DEV && <div style={{ padding: mob ? "18px 15px" : "21px 23px", borderBottom: `1px solid ${C.bgCard}` }}>
               <div style={{ fontSize: F.md, color: C.text, marginBottom: 9 }}>🛠️ Debug Tools</div>
               <div style={{ fontSize: mob ? F.xs : F.sm, color: C.slate, marginBottom: 9 }}>
                 Prestige testing tools
@@ -764,7 +763,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                 border: `1px solid ${C.bgCard}`,
                 color: C.amber,
               }}>🏆 WIN LEAGUE</button>
-            </div>
+            </div>}
 
             {/* Exit to Menu */}
             {onExitToMenu && (
@@ -805,7 +804,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             <div style={{
               fontSize: mob ? F.xs : F.sm,
               color: C.text,
-              lineHeight: 1.8,
+              lineHeight: LH.prose,
               marginBottom: 28,
             }}>
               Simulate to Matchweek {holidayConfirm.targetMD}?
@@ -846,7 +845,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
       )}
 
       {/* Debug Tier Jump Confirmation Modal */}
-      {debugTierConfirm && (
+      {import.meta.env.DEV && debugTierConfirm && (
         <div style={{ ...MODAL.backdrop }}>
           <div style={{
             ...MODAL.box,
@@ -866,7 +865,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             <div style={{
               fontSize: mob ? F.xs : F.sm,
               color: C.text,
-              lineHeight: 1.8,
+              lineHeight: LH.prose,
               marginBottom: 28,
             }}>
               Jump to {debugTierConfirm.name}?
@@ -910,4 +909,3 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
 }
 
 // ==================== CUP PAGE (FULL PAGE WITH TABS) ====================
-

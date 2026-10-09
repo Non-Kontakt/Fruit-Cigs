@@ -1,0 +1,41 @@
+name: Verify Release
+
+on:
+  workflow_call:
+    inputs:
+      upload_pages:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx --no playwright install --with-deps chromium
+      - run: npm run check:release
+      # Pixel baselines are macOS-specific; Linux runs functional flows.
+      - run: npm run qa -- --grep-invert 'visual:' --workers=2
+        env:
+          CI: true
+      - run: npm run qa:release
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failed-browser-checks
+          path: qa/.artifacts/
+          retention-days: 7
+      - uses: actions/upload-pages-artifact@v3
+        if: inputs.upload_pages
+        with:
+          path: dist

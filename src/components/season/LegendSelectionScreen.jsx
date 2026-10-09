@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { getOverall, getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { useMobile } from "../../hooks/useMobile.js";
@@ -85,7 +85,7 @@ export function LegendSelectionScreen({ squad, maxPicks = 5, legendCap, newPrest
           animation: "confirmReveal 0.5s ease-out forwards",
         }}>
           <div style={{
-            fontSize: mob ? 10 : 12, color: C.amber, letterSpacing: 4, marginBottom: 8, opacity: 0.6,
+            fontSize: mob ? F.xs : F.sm, color: C.amber, letterSpacing: 4, marginBottom: 8, opacity: 0.6,
           }}>
             {"★ ★ ★ ★ ★"}
           </div>
@@ -95,7 +95,7 @@ export function LegendSelectionScreen({ squad, maxPicks = 5, legendCap, newPrest
           }}>
             CONFIRM LEGENDS?
           </div>
-          <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: 28, lineHeight: 1.8 }}>
+          <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: 28, lineHeight: LH.prose }}>
             These players become immortal. Everyone else retires.
           </div>
           <div style={{ marginBottom: 32 }}>
@@ -106,7 +106,7 @@ export function LegendSelectionScreen({ squad, maxPicks = 5, legendCap, newPrest
                 color: C.amber, fontSize: F.sm,
                 animation: `cardReveal 0.4s ease-out ${i * 0.1}s both`,
               }}>
-                <span style={{ color: "rgba(251,191,36,0.4)", fontSize: 8 }}>{"★"}</span>
+                <span style={{ color: "rgba(251,191,36,0.4)", fontSize: F.micro }}>{"★"}</span>
                 <span style={{ color: getPosColor(p.position), fontSize: F.xs }}>{p.position}</span>
                 <span>{displayName(p.name, mob)}</span>
                 <span style={{ color: C.textDim, fontSize: F.xs }}>OVR {getOverall(p)}</span>
@@ -204,7 +204,7 @@ export function LegendSelectionScreen({ squad, maxPicks = 5, legendCap, newPrest
           }}>
             {/* Decorative stars */}
             <div style={{
-              fontSize: mob ? 8 : 10, color: C.amber, letterSpacing: 8, marginBottom: 12, opacity: 0.5,
+              fontSize: mob ? F.micro : F.xs, color: C.amber, letterSpacing: 8, marginBottom: 12, opacity: 0.5,
             }}>
               {"★  ★  ★  ★  ★"}
             </div>
@@ -218,18 +218,18 @@ export function LegendSelectionScreen({ squad, maxPicks = 5, legendCap, newPrest
             </div>
 
             <div style={{
-              fontSize: mob ? 8 : 9, color: "rgba(251,191,36,0.4)", letterSpacing: 3, marginBottom: 16,
+              fontSize: mob ? F.micro : F.xs, color: "rgba(251,191,36,0.4)", letterSpacing: 3, marginBottom: 16,
             }}>
               {"— PRESTIGE " + newPrestigeLevel + " INDUCTION —"}
             </div>
 
             <div style={{
-              fontSize: mob ? F.xs : F.sm, color: C.textMuted, lineHeight: 2, marginBottom: 4,
+              fontSize: mob ? F.xs : F.sm, color: C.textMuted, lineHeight: LH.prose, marginBottom: 4,
             }}>
               Choose {effectiveMax} players to immortalise.
             </div>
             <div style={{
-              fontSize: mob ? F.xs : F.sm, color: C.textDim, lineHeight: 2, marginBottom: 12,
+              fontSize: mob ? F.xs : F.sm, color: C.textDim, lineHeight: LH.prose, marginBottom: 12,
             }}>
               Everyone else will retire.
             </div>
@@ -255,7 +255,7 @@ export function LegendSelectionScreen({ squad, maxPicks = 5, legendCap, newPrest
           }}>
             {Array.from({ length: effectiveMax }, (_, i) => (
               <div key={i} style={{
-                fontSize: mob ? 14 : 18,
+                fontSize: mob ? F.md : F.xl,
                 color: i < selected.size ? C.amber : "rgba(148,163,184,0.2)",
                 transition: "all 0.3s ease",
                 transform: i < selected.size ? "scale(1.1)" : "scale(1)",

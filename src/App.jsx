@@ -1,3 +1,5 @@
+import { recordTrainingReveal, recordTrainingTicket } from "./utils/trainingReport.js";
+import { getCupUltimatumOutcome } from "./utils/boardExpectations.js";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { POSITION_TYPES, POSITION_ORDER, POS_COLORS, SUB_COLOR, TOTAL_SLOTS } from "./data/positions.js";
 import { ATTRIBUTES, TRAINING_FOCUSES } from "./data/training.js";
@@ -5,8 +7,8 @@ import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achieveme
 import { LEAGUE_DEFS, NUM_TIERS } from "./data/leagues.js";
 import { ARC_TICKET_POOL, ARC_CATS, STORY_ARCS } from "./data/storyArcs.js";
 import { CIG_PACKS, ACH_TO_PACK } from "./data/cigPacks.js";
-import { checkPackUnlocks, isPackComplete } from "./utils/packUnlocks.js";
-import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
+import { checkPackUnlocks, earnedPackReveals, isPackComplete } from "./utils/packUnlocks.js";
+import { F, C, FONT, BTN, MODAL, CARD, Z, LH } from "./data/tokens";
 import { MSG } from "./data/messages.js";
 import { getModifier } from "./data/leagueModifiers.js";
 import { rand, getOverall, getAttrColor, getPosColor, getPositionTrainingWeeks, pickRandom } from "./utils/calc.js";
@@ -69,7 +71,6 @@ import { PlayerPanel } from "./components/player/PlayerPanel.jsx";
 import { TacticsPanel } from "./components/player/TacticsPanel.jsx";
 import { Dashboard } from "./components/ui/Dashboard.jsx";
 import { ProfileSelectScreen } from "./components/ui/ProfileSelectScreen.jsx";
-import { ModeSelectScreen } from "./components/ui/ModeSelectScreen.jsx";
 import { ManagerIdentityScreen } from "./components/ui/ManagerIdentityScreen.jsx";
 import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
@@ -193,7 +194,6 @@ function FruitCigs() {
   const newspaperName = useGameStore(s => s.newspaperName);
   const reporterName = useGameStore(s => s.reporterName);
   const latestHeadline = useGameStore(s => s.latestHeadline);
-  const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => {
     const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
     useGameStore.getState().setSquad(sq);
@@ -205,7 +205,7 @@ function FruitCigs() {
     setSquad, setLeague, setCup, setMatchPending, setProcessing,
     setPendingSquad, setIsOnHoliday, setCalendarIndex, setSeasonCalendar,
     setSummerPhase, setFanSentiment, setBoardSentiment, setSentimentLog,
-    setActiveProfileId, setGameMode, setGameOver,
+    setActiveProfileId, setGameOver,
     setBoardWarnCount, setUltimatumActive, setUltimatumTarget,
     setUltimatumPtsEarned, setUltimatumGamesLeft, setUltimatumCupPending,
     setDoubleTrainingWeek, setTwelfthManActive,
@@ -249,19 +249,18 @@ function FruitCigs() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [viewingTeamGlobal, setViewingTeamGlobal] = useState(null); // { team, tableRow, seasonGoals, seasonAssists } — global AITeamPanel
   const [swapTarget, setSwapTarget] = useState(null); // injured player being swapped out
-  const [gains, setGains] = useState(null);
-  const [pendingBreakouts, setPendingBreakouts] = useState(null); // breakout results to show after match report closes
+  const gains = useGameStore(s => s.gains);
+  const setGains = useGameStore.getState().setGains;
+  const pendingBreakouts = useGameStore(s => s.pendingBreakouts);
+  const setPendingBreakouts = useGameStore.getState().setPendingBreakouts;
   const [showBreakoutPopup, setShowBreakoutPopup] = useState(false); // delayed reveal after match report closes
   const pendingSquad = useGameStore(s => s.pendingSquad);
 
-  const pendingLeagueRef = useRef(null); // deferred league table update until match result dismissed
-  const cardedPlayerIdsRef = useRef(new Set()); // Tier 8: carded players skip next training
   const dynastyCupQualifiers = useGameStore(s => s.dynastyCupQualifiers); // Tier 3: top 4 at halfway for end-of-season knockout
   const dynastyCupBracket = useGameStore(s => s.dynastyCupBracket);
   const miniTournamentBracket = useGameStore(s => s.miniTournamentBracket);
   const fiveASideSquad = useGameStore(s => s.fiveASideSquad); // Tier 2: player's 5v5 squad selection [5 player IDs]
   // showFiveASidePicker removed — squad page panel handles 5v5 selection
-  const pendingTrialAction = useRef(null); // deferred trial processing after gains popup
   const holidayTargetRef = useRef(null); // Tracks target matchweek for Go on Holiday feature
   const holidayIntervalRef = useRef(null); // Interval ID for auto-advance
   const isOnHoliday = useGameStore(s => s.isOnHoliday);
@@ -331,7 +330,8 @@ function FruitCigs() {
   const processing = useGameStore(s => s.processing);
   const [weekTransition, setWeekTransition] = useState(false);
   const league = useGameStore(s => s.league);
-  const [matchResult, setMatchResult] = useState(null);
+  const matchResult = useGameStore(s => s.matchResult);
+  const setMatchResult = useGameStore.getState().setMatchResult;
   const [showTable, setShowTable] = useState(false);
   const [showTransfers, setShowTransfers] = useState(false);
   const clubRelationships = useGameStore(s => s.clubRelationships); // { [teamName]: { pct, tier } }
@@ -446,6 +446,7 @@ function FruitCigs() {
     else BGM.releaseContext();
   }, [showAchievements]);
   const [showLegends, setShowLegends] = useState(false);
+  const [initialClubFocusOpen, setInitialClubFocusOpen] = useState(false);
   const seasonCards = useGameStore(s => s.seasonCards);
   const seasonNumber = useGameStore(s => s.seasonNumber);
   const leagueWins = useGameStore(s => s.leagueWins);
@@ -460,7 +461,8 @@ function FruitCigs() {
   // the ref is always up to date even if the closure was formed before the last render.
   const cup = useGameStore(s => s.cup);
   const [showCup, setShowCup] = useState(false);
-  const [cupMatchResult, setCupMatchResult] = useState(null);
+  const cupMatchResult = useGameStore(s => s.cupMatchResult);
+  const setCupMatchResult = useGameStore.getState().setCupMatchResult;
   const [showCalendar, setShowCalendar] = useState(false);
   const [showSquad, setShowSquad] = useState(false);
   const [initialBootRoomTab, setInitialBootRoomTab] = useState(null);
@@ -508,7 +510,7 @@ function FruitCigs() {
       setUnlockedPacks(prev => { const n = new Set(prev); newPacks.forEach(id => n.add(id)); return n; });
       // Only show reveal modals after initial load settles (not on load/cascade)
       if (packRevealReady.current) {
-        setPackUnlockQueue(prev => [...prev, ...newPacks]);
+        setPackUnlockQueue(prev => [...prev, ...earnedPackReveals(newPacks)]);
       }
     }
   }, [unlockedAchievements, unlockedPacks, seasonNumber, leagueTier, prestigeLevel]);
@@ -587,8 +589,6 @@ function FruitCigs() {
   const [profileList, setProfileList] = useState([]); // [{ id, name, createdAt }]
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const gameMode = useGameStore(s => s.gameMode);
-  const [showModeSelect, setShowModeSelect] = useState(false);
-  const [showManagerSelect, setShowManagerSelect] = useState(false);
   const managerName = useGameStore(s => s.managerName);
   const managerAvatar = useGameStore(s => s.managerAvatar);
   const gameOver = useGameStore(s => s.gameOver);
@@ -701,6 +701,14 @@ function FruitCigs() {
   const [pendingPlayerUnlock, setPendingPlayerUnlock] = useState(null);
   const [showAssignAll, setShowAssignAll] = useState(false);
   const assignAllRef = useRef(null);
+  const [openTrainingOnArrival, setOpenTrainingOnArrival] = useState(false);
+  useEffect(() => {
+    if (!showSquad || !openTrainingOnArrival || !assignAllRef.current) return;
+    assignAllRef.current.scrollIntoView({ block: "center" });
+    assignAllRef.current.querySelector("button")?.focus({ preventScroll: true });
+    setShowAssignAll(true);
+    setOpenTrainingOnArrival(false);
+  }, [showSquad, openTrainingOnArrival]);
   useEffect(() => {
     if (!showAssignAll) return;
     const handleClick = (e) => {
@@ -728,6 +736,7 @@ function FruitCigs() {
   const [presetSaveFlash, setPresetSaveFlash] = useState(null); // "primary" | "secondary" | null
   const [selectedSlot, setSelectedSlot] = useState(null); // index of formation slot being assigned
   const [saveStatus, setSaveStatus] = useState(null);
+  const [archiveStatus, setArchiveStatus] = useState(null);
   const [loadingGame, setLoadingGame] = useState(true);
   const [activeSaveSlot, setActiveSaveSlot] = useState(null); // 1, 2, or 3
   const [saveSlotSummaries, setSaveSlotSummaries] = useState([null, null, null]); // [{teamName, seasonNumber, leagueTier, week}]
@@ -758,7 +767,7 @@ function FruitCigs() {
   // Save/load/export/import/delete/sacking — extracted to useSaveGame hook
   const { saveGame, loadGame, exportSave, importSave, deleteSave, triggerSacking } = useSaveGame({
     activeSaveSlot,
-    setSaveStatus, setActiveSaveSlot, setSaveSlotSummaries, setImportStatus, setPendingPlayerUnlock,
+    setSaveStatus, setArchiveStatus, setActiveSaveSlot, setSaveSlotSummaries, setImportStatus, setPendingPlayerUnlock,
     loadSettings, generateNewspaperName, generateReporterName,
     // Save Scummer: invoked by loadGame only after the whole load has
     // succeeded, so the unlock's week-recording reads the hydrated store.
@@ -839,8 +848,6 @@ function FruitCigs() {
 
   // Auto-save after each match (when matchResult clears)
   const prevMatchResult = useRef(null);
-  const revealedInjuryCount = useRef(0);
-  const weekRecoveriesRef = useRef([]); // persists past gains clearing for achievement checks
   const pendingFinalRewardRef = useRef(null); // captures arc final reward for post-training application
   const storyArcsRef = useLatestRef(storyArcs);
 
@@ -881,6 +888,13 @@ function FruitCigs() {
       return () => clearTimeout(timer);
     }
   }, [pendingBreakouts, matchResult, cupMatchResult, processing, arcStepQueue]);
+
+  // Reports contain already-rolled outcomes, not disposable UI state. Save
+  // both their creation and consumption so reload resumes the same outcome.
+  useEffect(() => {
+    const s = useGameStore.getState();
+    if ((s.gameMode === "ironman" || autoSaveEnabled) && teamName && league && !s.gameOver) saveGame();
+  }, [gains, matchResult, cupMatchResult, matchPending, pendingBreakouts, arcStepQueue, autoSaveEnabled, teamName, saveGame]);
 
   // Ironman auto-save: save after every week advance (training, match, cup skip) and summer phase change
   const ironmanCalendarLoaded = useRef(false);
@@ -1171,7 +1185,7 @@ function FruitCigs() {
     const updatedLeague = { ...rewindLeague, table: rewindLeague.table.map(r => ({ ...r })) };
     const mod = getModifier(leagueTier);
     const oopMult = formation ? getTeamOOPMultiplier(startingXI, formation, rewindSquad, slotAssignments) : 1.0;
-    const commentaryCtx = { playerSeasonStats, playerMatchLog, playerSquad: rewindSquad, playerCareers: clubHistory?.playerCareers };
+    const commentaryCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: rewindSquad, playerCareers: clubHistory?.playerCareers };
     const newResult = simulateMatch(
       updatedLeague.teams[fixture.home], updatedLeague.teams[fixture.away],
       startingXI, bench, false, oopMult, 0, talismanIdRef.current, 0, { ...mod, ...commentaryCtx }
@@ -1473,9 +1487,8 @@ function FruitCigs() {
     setShowAchievements, setShowTable, setShowCalendar, setShowCup,
     setShowTransfers, setShowLegends, setShowSquad,
     tryUnlockAchievement,
-    storyArcsRef, pendingFinalRewardRef, weekRecoveriesRef, cardedPlayerIdsRef,
-    boardWarnWeekRef, revealedInjuryCount,
-    pendingTrialAction,
+    storyArcsRef, pendingFinalRewardRef,
+    boardWarnWeekRef,
   });
 
 
@@ -1486,7 +1499,6 @@ function FruitCigs() {
 
   const { onSeasonEndRevealDone, onPrestigeDone, onLegendSelectionDone, onYouthIntakeDone } = useSeasonEnd({
     tryUnlockAchievement,
-    cardedPlayerIdsRef,
     setMatchResult, setCupMatchResult,
   });
   advanceWeekRef.current = advanceWeek;
@@ -1770,13 +1782,11 @@ function FruitCigs() {
   const { processMatchDone } = useMatchResult({
     setMatchResult,
     tryUnlockAchievement, updateUltimatumProgress, updateMatchLog,
-    pendingLeagueRef, cardedPlayerIdsRef, weekRecoveriesRef,
   });
 
   const { processGainsDone } = useGainPopupHandler({
     setGains, setOvrLevelUps, setRecentOvrLevelUps, setInjuryWarning,
     tryUnlockAchievement,
-    pendingTrialAction,
   });
 
   // Keyboard shortcuts for desktop play
@@ -1809,6 +1819,26 @@ function FruitCigs() {
     }));
   }, []);
 
+  const prepareNewCareer = slot => {
+    const freshSquad = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
+    useGameStore.getState().startNewCareer(freshSquad);
+    setSaveStatus(null);
+    setArchiveStatus(null);
+    setPendingPlayerUnlock(null);
+    setAchievementQueue([]);
+    setPackUnlockQueue([]);
+    completedPacksRef.current.clear();
+    setActiveSaveSlot(slot);
+  };
+
+  const confirmCareer = ({ teamName: club, managerName: name, managerAvatar: avatar }) => {
+    setManagerName(name);
+    setManagerAvatar(avatar);
+    setNewspaperName(generateNewspaperName(club));
+    setReporterName(generateReporterName());
+    setTeamName(club);
+  };
+
   // ===== EARLY RETURNS (after all hooks) =====
 
   // Loading
@@ -1824,7 +1854,24 @@ function FruitCigs() {
     );
   }
 
-  // Profile selection (shown before slot picker)
+  // A first career needs only the club name. Profiles remain available for
+  // returning/shared-device players; create the first one only on submit.
+  if (!activeProfileId && profileList.length === 0) {
+    return (
+      <ManagerIdentityScreen
+        generateName={generateManagerName}
+        onConfirm={async identity => {
+          const profile = await createProfile(identity.managerName);
+          setProfileList([{ id: profile.id, name: profile.name, createdAt: profile.createdAt }]);
+          setActiveProfileId(profile.id);
+          prepareNewCareer(1);
+          confirmCareer(identity);
+        }}
+      />
+    );
+  }
+
+  // Profile selection (shown before slot picker for existing profiles)
   if (!activeProfileId) {
     return (
       <ProfileSelectScreen
@@ -1914,12 +1961,7 @@ function FruitCigs() {
                         setActiveSaveSlot(null);
                       }
                     } else {
-                      // Empty slot: select it and show mode picker for new
-                      // career — which must not inherit the previous
-                      // career's identity from this session.
-                      useGameStore.getState().setCareerId(null);
-                      setActiveSaveSlot(slot);
-                      setShowModeSelect(true);
+                      prepareNewCareer(slot);
                     }
                   }}
                   onMouseEnter={e => { if (!unavailable) e.currentTarget.style.background = occupied ? "rgba(30,41,59,0.6)" : "rgba(30,41,59,0.3)"; }}
@@ -1991,7 +2033,7 @@ function FruitCigs() {
                 style={{
                   padding: "14px 28px", background: "none",
                   border: "1px solid #334155", color: C.slate,
-                  fontFamily: FONT, fontSize: "clamp(8px,1.8vw,10px)",
+                  fontFamily: FONT, fontSize: isMobile ? F.micro : F.xs,
                   cursor: "pointer", letterSpacing: 2,
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = "#94a3b8"}
@@ -2003,103 +2045,13 @@ function FruitCigs() {
       );
     }
 
-    // Mode selection (for new empty slot)
-    if (showModeSelect) {
-      return (
-        <ModeSelectScreen
-          slotNumber={activeSaveSlot}
-          onSelect={(mode) => { setGameMode(mode); setShowModeSelect(false); setShowManagerSelect(true); }}
-          onBack={() => { setShowModeSelect(false); setActiveSaveSlot(null); }}
-        />
-      );
-    }
-
-    // Manager identity (between mode select and team name input)
-    if (showManagerSelect) {
-      return (
-        <ManagerIdentityScreen
-          slotNumber={activeSaveSlot}
-          generateName={generateManagerName}
-          onConfirm={({ managerName: mn, managerAvatar: ma }) => {
-            setManagerName(mn);
-            setManagerAvatar(ma);
-            setShowManagerSelect(false);
-          }}
-          onBack={() => { setShowManagerSelect(false); setShowModeSelect(true); }}
-        />
-      );
-    }
-
-    // New game name input (activeSaveSlot is set, mode chosen, but no teamName yet)
     return (
-      <div style={{
-        minHeight: "100vh", background: "#0a0a1a", color: C.text,
-        fontFamily: FONT,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: isMobile ? "16px" : 0,
-      }}>
-        <div style={{ textAlign: "center", maxWidth: 420, width: "90%" }}>
-          <div style={{
-            fontSize: F.h3, color: C.green, letterSpacing: 3, marginBottom: 8,
-            textShadow: "0 0 20px rgba(74,222,128,0.4)",
-          }}>
-            🚬 FRUIT CIGS
-          </div>
-          <div style={{ fontSize: F.sm, color: C.slate, marginBottom: 32 }}>
-            Save Slot {activeSaveSlot} · New Career
-          </div>
-
-          <div style={{ fontSize: F.md, color: C.textMuted, marginBottom: 12, letterSpacing: 1 }}>
-            NAME YOUR CLUB
-          </div>
-          <input
-            type="text"
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value.slice(0, 20))}
-            onKeyDown={e => { if (e.key === "Enter" && nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); setReporterName(generateReporterName()); } }}
-            placeholder="e.g. Denton FC"
-            autoFocus
-            style={{
-              width: "100%", padding: "14px 18px",
-              background: C.bg, border: `2px solid ${C.bgInput}`,
-              color: C.text, fontSize: F.lg,
-              fontFamily: FONT,
-              textAlign: "center", outline: "none",
-              marginBottom: 16,
-            }}
-            onFocus={e => e.target.style.borderColor = C.green}
-            onBlur={e => e.target.style.borderColor = C.bgInput}
-          />
-          <button
-            onClick={() => { if (nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); setReporterName(generateReporterName()); } }}
-            disabled={!nameInput.trim()}
-            style={{
-              width: "100%", padding: "16px",
-              background: nameInput.trim() ? "linear-gradient(180deg, #166534, #14532d)" : "rgba(30,41,59,0.3)",
-              border: nameInput.trim() ? `2px solid ${C.green}` : `1px solid ${C.bgCard}`,
-              color: nameInput.trim() ? C.green : C.bgInput,
-              fontFamily: FONT,
-              fontSize: F.lg, cursor: nameInput.trim() ? "pointer" : "default",
-              letterSpacing: 2,
-              marginBottom: 12,
-              animation: nameInput.trim() ? "glow 2s ease infinite" : "none",
-            }}
-          >
-            NEW GAME ▶
-          </button>
-          <button
-            onClick={() => setActiveSaveSlot(null)}
-            style={{
-              width: "100%", padding: "12px",
-              background: "none", border: `1px solid ${C.bgCard}`,
-              color: C.slate, fontFamily: FONT,
-              fontSize: F.sm, cursor: "pointer", letterSpacing: 1,
-            }}
-          >
-            ◀ BACK
-          </button>
-        </div>
-      </div>
+      <ManagerIdentityScreen
+        slotNumber={activeSaveSlot}
+        generateName={generateManagerName}
+        onConfirm={confirmCareer}
+        onBack={() => setActiveSaveSlot(null)}
+      />
     );
   }
 
@@ -2112,12 +2064,12 @@ function FruitCigs() {
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 32 }}>
             <div style={{ fontSize: "2em", marginBottom: 14 }}>📋</div>
-            <div style={{ fontSize: "clamp(16px,4vw,22px)", color: C.lightRed, letterSpacing: 2, marginBottom: 10 }}>MUSEUM</div>
-            <div style={{ fontSize: "clamp(9px,2vw,11px)", color: C.slate, letterSpacing: 1 }}>ARCHIVED IRONMAN CAREERS</div>
+            <div style={{ fontSize: isMobile ? F.lg : F.h3, color: C.lightRed, letterSpacing: 2, marginBottom: 10 }}>MUSEUM</div>
+            <div style={{ fontSize: isMobile ? F.micro : F.xs, color: C.slate, letterSpacing: 1 }}>ARCHIVED CAREERS</div>
           </div>
           {entries.length === 0 ? (
-            <div style={{ textAlign: "center", fontSize: "clamp(9px,2vw,11px)", color: C.slate, padding: "32px 0" }}>
-              No archived careers yet.<br /><br />Ironman careers are saved here<br />when the board sacks you.
+            <div style={{ textAlign: "center", fontSize: isMobile ? F.micro : F.xs, color: C.slate, padding: "32px 0" }}>
+              No archived careers yet.<br /><br />Your careers are saved here<br />when the board sacks you.
             </div>
           ) : (
             entries.slice().reverse().map((entry, i) => {
@@ -2142,15 +2094,15 @@ function FruitCigs() {
                     onClick={() => setViewingMuseumCareer(entry)}
                   >
                     <div>
-                      <div style={{ fontSize: "clamp(11px,2.5vw,13px)", color: "#f1f5f9", marginBottom: 6 }}>
+                      <div style={{ fontSize: isMobile ? F.sm : F.md, color: "#f1f5f9", marginBottom: 6 }}>
                         {entry.teamName || "Unknown Club"}
                       </div>
-                      <div style={{ fontSize: "clamp(8px,1.8vw,10px)", color: "#94a3b8", lineHeight: 1.8 }}>
+                      <div style={{ fontSize: isMobile ? F.micro : F.xs, color: "#94a3b8", lineHeight: LH.prose }}>
                         {seasons > 0 ? `${seasons} season${seasons !== 1 ? "s" : ""}` : "<1 season"} · Tier {entry.leagueTier || "?"}
                         {date ? ` · ${date}` : ""}
                       </div>
                     </div>
-                    <div style={{ fontSize: "clamp(10px,2.2vw,12px)", color: C.lightRed, flexShrink: 0 }}>VIEW ▶</div>
+                    <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.lightRed, flexShrink: 0 }}>VIEW ▶</div>
                   </div>
                   {/* Delete — fixed-width column, full card height, separated by border */}
                   <button
@@ -2164,7 +2116,7 @@ function FruitCigs() {
                       border: "none", borderLeft: "1px solid rgba(248,113,113,0.15)",
                       borderRadius: "0 3px 3px 0",
                       color: C.slate, fontFamily: FONT,
-                      fontSize: "clamp(9px,2vw,11px)", cursor: "pointer",
+                      fontSize: isMobile ? F.micro : F.xs, cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = C.lightRed; e.currentTarget.style.background = "rgba(248,113,113,0.1)"; }}
@@ -2181,7 +2133,7 @@ function FruitCigs() {
               style={{
                 padding: "14px 28px", background: "none",
                 border: "1px solid #334155", color: C.slate,
-                fontFamily: FONT, fontSize: "clamp(8px,1.8vw,10px)",
+                fontFamily: FONT, fontSize: isMobile ? F.micro : F.xs,
                 cursor: "pointer", letterSpacing: 2,
               }}
               onMouseEnter={e => e.currentTarget.style.color = "#94a3b8"}
@@ -2198,19 +2150,19 @@ function FruitCigs() {
               padding: "36px 44px", maxWidth: 420, width: "90%",
               boxShadow: "0 0 50px rgba(248,113,113,0.25), inset 0 0 80px rgba(0,0,0,0.6)",
             }}>
-              <div style={{ fontSize: "clamp(11px,2.5vw,14px)", color: C.lightRed, marginBottom: 16, letterSpacing: 2 }}>
+              <div style={{ fontSize: isMobile ? F.sm : F.md, color: C.lightRed, marginBottom: 16, letterSpacing: 2 }}>
                 🗑 DELETE CAREER?
               </div>
-              <div style={{ fontSize: "clamp(10px,2.2vw,12px)", color: "#f1f5f9", lineHeight: 2, marginBottom: 8 }}>
+              <div style={{ fontSize: isMobile ? F.xs : F.sm, color: "#f1f5f9", lineHeight: LH.prose, marginBottom: 8 }}>
                 {museumDeleteConfirm.teamName || "This career"}
               </div>
-              <div style={{ fontSize: "clamp(8px,1.8vw,10px)", color: "#94a3b8", lineHeight: 1.8, marginBottom: 28 }}>
+              <div style={{ fontSize: isMobile ? F.micro : F.xs, color: "#94a3b8", lineHeight: LH.prose, marginBottom: 28 }}>
                 This will permanently erase their legacy.<br />There is no undo.
               </div>
               <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
                 <button onClick={() => setMuseumDeleteConfirm(null)} style={{
                   ...BTN.primary, background: "rgba(74,222,128,0.08)",
-                  padding: "14px 26px", fontSize: "clamp(8px,1.8vw,10px)",
+                  padding: "14px 26px", fontSize: isMobile ? F.micro : F.xs,
                 }}>KEEP</button>
                 <button onClick={() => {
                   const key = museumDeleteConfirm.archivedAt;
@@ -2218,7 +2170,7 @@ function FruitCigs() {
                   setViewingMuseumList(prev => prev ? { ...prev, entries: prev.entries.filter(en => en.archivedAt !== key) } : prev);
                   setMuseumDeleteConfirm(null);
                 }} style={{
-                  ...BTN.danger, padding: "14px 26px", fontSize: "clamp(8px,1.8vw,10px)",
+                  ...BTN.danger, padding: "14px 26px", fontSize: isMobile ? F.micro : F.xs,
                 }}>DELETE</button>
               </div>
             </div>
@@ -2262,6 +2214,10 @@ function FruitCigs() {
         totalMatches={totalMatches}
         totalGoals={clubHistory?.totalGoalsFor || 0}
         clubHistory={clubHistory?.seasonArchive || []}
+        archivePending={archiveStatus !== "saved"}
+        archiveFailed={archiveStatus !== "saving" && archiveStatus !== "saved"}
+        onRetryArchive={triggerSacking}
+        onExportCareer={exportSave}
         onViewCareer={async () => {
           // Load the most recent museum entry from this profile
           try {
@@ -2296,8 +2252,13 @@ function FruitCigs() {
       maxWidth: 1600,
       margin: "0 auto",
     }}>
+      {saveStatus === "error" && <div role="alert" style={{ padding: 12, border: `1px solid ${C.red}`, color: C.text, fontSize: F.sm, lineHeight: LH.prose }}>
+        Save failed. Keep this page open until you retry or export your current career.
+        <button onClick={saveGame} style={{ ...BTN.primary, margin: 8 }}>RETRY SAVE</button>
+        <button onClick={exportSave} style={{ ...BTN.ghost, margin: 8 }}>EXPORT CURRENT CAREER</button>
+      </div>}
       {/* Emergency reset - always accessible at highest z-index */}
-      {(processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
+      {import.meta.env.DEV && (processing || matchResult || gains !== null || ovrLevelUps || showBreakoutPopup || cupMatchResult || selectedPlayer || pendingPlayerUnlock) && (
         <button onClick={() => {
           setProcessing(false);
           setMatchResult(null);
@@ -2432,7 +2393,7 @@ function FruitCigs() {
                 // nowrap + ellipsis clips from the tail of the line, so the
                 // opponent already gets whatever space remains rather than
                 // splitting it evenly with the known-short parts.
-                <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: 1.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: LH.body, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {bannerMatch.isHome ? (
                     <>
                       <span style={{ color: C.green, fontWeight: "bold" }}>{teamName}</span>
@@ -2512,8 +2473,8 @@ function FruitCigs() {
                       const aiFive = buildAIFiveASide(_miniOpp);
                       const playerTeam = { name: teamName, color: C.green, squad: playerFive, isPlayer: true, trait: null };
                       const oppTeam = { ..._miniOpp, squad: aiFive };
-                      const miniMod = getModifier(leagueTier);
-                      const miniCtx = { playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
+                      const miniMod = { ...getModifier(leagueTier), matchSize: 5 };
+                      const miniCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
                       const result = simulateMatch(playerTeam, oppTeam, _fiveIds, [], true, 1.0, 0, null, 0, { ...miniMod, ...miniCtx });
                       let penalties = null;
                       if ((_miniRound === "final" || _miniRound === "third_place") && result.homeGoals === result.awayGoals) {
@@ -2651,7 +2612,7 @@ function FruitCigs() {
           ...(isMobile
             ? {
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 4, height: 54, padding: "5px 4px",
+                gap: 4, height: 54, padding: "5px 2px",
                 fontSize: F.xs,
               }
             : {
@@ -2663,23 +2624,19 @@ function FruitCigs() {
         // every button gets the same internal shape regardless of label
         // length or whether it carries a badge (badges move to an
         // absolutely-positioned corner overlay so they never join the text
-        // flow and force a wrap). Desktop keeps the inline "icon label"
-        // row with badges inline, unchanged.
-        const navIcon = (icon) => isMobile ? <span style={{ fontSize: F.sm, lineHeight: 1.2 }}>{icon}</span> : null;
+        // flow and force a wrap). Desktop keeps icons and badges inline.
+        const navIcon = (icon) => isMobile ? <span style={{ fontSize: F.xs, lineHeight: 1.2 }}>{icon}</span> : null;
         const navLabel = (label) => isMobile
-          ? <span style={{ fontSize: F.xs, lineHeight: 1.25, textAlign: "center", overflowWrap: "break-word", maxWidth: "100%" }}>{label}</span>
+          ? <span style={{ fontSize: `clamp(${F.micro}px, 2.2vw, ${F.xs}px)`, lineHeight: LH.tight, textAlign: "center", maxWidth: "100%" }}>{label}</span>
           : `${label}`;
         const navBadgeOverlay = (badges) => isMobile && badges
           ? <span style={{ position: "absolute", top: 2, right: 2, display: "flex", gap: 2 }}>{badges}</span>
           : null;
-        // A strict 4-column grid keeps every row full (8 items = two even
+        // A shared 4-column grid keeps every row full (8 items = two even
         // rows of 4) instead of flex-wrap's content-width wrapping, which
         // left CORNER SHOP alone on a banner-width third row.
         return (
-          <div style={isMobile
-            ? { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }
-            : { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }
-          }>
+          <nav className="fc-primary-nav" aria-label="Main navigation">
             <button onClick={() => clearAll()} style={navBtn(isHome, C.green)}>
               {isMobile ? <>{navIcon("🏠")}{navLabel("HOME")}</> : "🏠 HOME"}
             </button>
@@ -2730,7 +2687,7 @@ function FruitCigs() {
                 );
               })()}
             </button>
-            <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>
+            <button onClick={() => { if (showLegends) setClubKey(k => k + 1); clearAll(); setInitialClubFocusOpen(false); setShowLegends(true); }} style={navBtn(showLegends, C.purple)}>
               {isMobile ? <>{navIcon("📜")}{navLabel("CLUB")}</> : "📜 CLUB"}
             </button>
             <button onClick={() => { if (showAchievements) setCabinetKey(k => k + 1); clearAll(); setShowAchievements(true); setLastSeenAchievementCount(unlockedAchievements.size); }} style={navBtn(showAchievements, C.gold)}>
@@ -2747,7 +2704,7 @@ function FruitCigs() {
                 );
               })()}
             </button>
-          </div>
+          </nav>
         );
       })()}
 
@@ -2865,11 +2822,8 @@ function FruitCigs() {
                 holidayTargetRef.current = null;
                 setIsOnHoliday(false);
                 setInstantMatch(false);
-                setMatchResult(null);
-                setCupMatchResult(null);
                 setProcessing(false);
-                setMatchPending(false);
-                setArcStepQueue([]);
+                // Leaving holiday must not discard already-rolled work.
                 // Navigate to Home tab
                 setShowAchievements(false); setShowTable(false); setShowCalendar(false);
                 setShowCup(false); setShowTransfers(false); setShowLegends(false); setShowSquad(false);
@@ -2933,7 +2887,7 @@ function FruitCigs() {
                       const awayT = isPlayerHome ? awayTeam : playerTeam;
                       const dynOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, freshSquad, slotAssignments) : 1.0;
                       const dynMod = getModifier(leagueTier);
-                      const dynCtx = { playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
+                      const dynCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
                       const result = simulateMatch(homeT, awayT, currentXI, currentBench, true, dynOOPMult, 0, talismanIdRef.current, 0, { ...dynMod, ...dynCtx });
                       let penalties = null;
                       if (result.homeGoals === result.awayGoals) {
@@ -3077,7 +3031,7 @@ function FruitCigs() {
                       const cupOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, freshSquad, slotAssignments) : 1.0;
                       const cup12thMan = (isPlayerHome && !isNeutral && useGameStore.getState().twelfthManActive) ? 0.15 : 0;
                       const cupFanMod = isPlayerHome && !isNeutral ? (useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0) : 0;
-                      const cupCommentaryCtx = { playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
+                      const cupCommentaryCtx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: freshSquad, playerCareers: clubHistory?.playerCareers };
                       const result = simulateMatch(homeT, awayT, currentXI, currentBench, isNeutral, cupOOPMult, cup12thMan, talismanIdRef.current, cupFanMod, cupCommentaryCtx);
                       if (cup12thMan > 0) setTwelfthManActive(false);
                       let penalties = null;
@@ -3231,7 +3185,7 @@ function FruitCigs() {
                       const leagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                       // Hangover: one random healthy starter gets -1 all attrs for the match
                       const holLeagueModBase = getModifier(leagueTier);
-                      const holLeagueMod = { ...holLeagueModBase, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, useGameStore.getState().clubHistory) };
+                      const holLeagueMod = { ...holLeagueModBase, ovrCap, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, useGameStore.getState().clubHistory) };
                       let holHangoverPlayer = null;
                       let holHangoverOrig = null;
                       if (holLeagueMod.hangover) {
@@ -3296,7 +3250,7 @@ function FruitCigs() {
                         }
                         // Holiday: Mini-Tournament bracket setup at end of league
                         {
-                          const holMiniMod = getModifier(leagueTier);
+                          const holMiniMod = { ...getModifier(leagueTier), matchSize: 5 };
                           if (holMiniMod.miniTournament) {
                             const holMiniTotal = updatedLeague.fixtures?.length || DEFAULT_FIXTURE_COUNT;
                             const holMiniCompleted = capturedMWIdx + 1;
@@ -3607,7 +3561,7 @@ function FruitCigs() {
             });
           } }}
           onExitToMenu={async () => {
-            await saveGame();
+            if (!await saveGame()) return;
             useGameStore.getState().setCareerId(null);
             setTeamName("");
             setNewspaperName(null);
@@ -3698,12 +3652,9 @@ function FruitCigs() {
           }}
           transferWindowOpen={transferWindowOpen}
           transferWindowWeeksRemaining={transferWindowWeeksRemaining}
-          setSquad={setSquad}
-          setAllLeagueStates={setAllLeagueStates}
           seasonNumber={seasonNumber}
           week={calendarIndex}
           startingXI={startingXI}
-          setStartingXI={setStartingXI}
           onPlayerClick={resolveAnyPlayer}
           onTeamClick={handleGlobalTeamClick}
           shortlist={shortlist}
@@ -3723,7 +3674,7 @@ function FruitCigs() {
           setPassiveRevealSignings={setPassiveRevealSignings}
         />
       ) : showLegends ? (
-        <ClubLegends key={clubKey} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
+        <ClubLegends key={clubKey} initialFocusOpen={initialClubFocusOpen} clubHistory={clubHistory} teamName={teamName} playerSeasonStats={playerSeasonStats} playerRatingTracker={playerRatingTracker} league={league} seasonNumber={seasonNumber} leagueTier={leagueTier} squad={squad} ovrHistory={ovrHistory} ovrCap={ovrCap} />
       ) : (
       <>
       {/* Injury warning banner */}
@@ -3833,7 +3784,7 @@ function FruitCigs() {
           justifyContent: "space-between", gap: 12,
           fontFamily: FONT,
         }}>
-          <span style={{ fontSize: F.sm, color: C.green, lineHeight: 1.6 }}>
+          <span style={{ fontSize: F.sm, color: C.green, lineHeight: LH.body }}>
             🎓 Youth intake pending — {summerData.youthCandidates.length} graduates available. Release players if needed, then sign.
           </span>
           <button onClick={() => setShowYouthIntake(true)} style={{
@@ -3894,7 +3845,7 @@ function FruitCigs() {
                 const cupOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, squad, slotAssignments) : 1.0;
                 const cup12thMan2 = (isPlayerHome && !isNeutral && useGameStore.getState().twelfthManActive) ? 0.15 : 0;
                 const cup2FanMod = isPlayerHome && !isNeutral ? (useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0) : 0;
-                const cup2Ctx = { playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
+                const cup2Ctx = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
                 const result = simulateMatch(homeT, awayT, currentXI, currentBench, isNeutral, cupOOPMult, cup12thMan2, talismanIdRef.current, cup2FanMod, cup2Ctx);
                 if (cup12thMan2 > 0) setTwelfthManActive(false);
                 let penalties = null;
@@ -3937,7 +3888,7 @@ function FruitCigs() {
                 const awayT = isPlayerHome ? awayTeam : playerTeam;
                 const dynOOPMult = formation ? getTeamOOPMultiplier(currentXI, formation, squad, slotAssignments) : 1.0;
                 const dynMod = getModifier(leagueTier);
-                const dynCtx2 = { playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
+                const dynCtx2 = { ovrCap, playerSeasonStats, playerMatchLog, playerSquad: squad, playerCareers: clubHistory?.playerCareers };
                 const result = simulateMatch(homeT, awayT, currentXI, currentBench, true, dynOOPMult, 0, talismanIdRef.current, 0, { ...dynMod, ...dynCtx2 });
                 let penalties = null;
                 if (result.homeGoals === result.awayGoals) {
@@ -3975,7 +3926,7 @@ function FruitCigs() {
                 const normalLeagueFanMod = useGameStore.getState().fanSentiment > 75 ? 0.03 : useGameStore.getState().fanSentiment < 25 ? -0.03 : 0;
                 // Hangover: one random healthy starter gets -1 all attrs for the match
                 const leagueModBase = getModifier(leagueTier);
-                const leagueMod = { ...leagueModBase, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, clubHistory) };
+                const leagueMod = { ...leagueModBase, ovrCap, ...getRivalryModifierForFixture(updatedLeague, capturedMWIdx, teamName, clubHistory) };
                 let hangoverPlayer = null;
                 let hangoverOrigAttrs = null;
                 if (leagueMod.hangover) {
@@ -4021,7 +3972,7 @@ function FruitCigs() {
                   // Defer league table update until match result screen is dismissed
                   // so the Dashboard mini-table doesn't spoil the result
                   if (playerMatch && !useGameStore.getState().isOnHoliday) {
-                    pendingLeagueRef.current = updatedLeague;
+                    useGameStore.getState().setPendingLeague(updatedLeague);
                   } else {
                     setLeague(updatedLeague);
                   }
@@ -4694,7 +4645,7 @@ function FruitCigs() {
                       <span style={{
                         position: "absolute", top: -6, right: -10, fontSize: F.micro,
                         background: getPosColor(player.position), color: C.bg, padding: "0px 2px",
-                        borderRadius: 1, fontWeight: "bold", lineHeight: 1.3,
+                        borderRadius: 1, fontWeight: "bold", lineHeight: LH.tight,
                       }}>{player.position}</span>
                     )}
                   </span>
@@ -5243,6 +5194,11 @@ function FruitCigs() {
       </>
       ) : (
       <Dashboard
+        storyArcs={storyArcs}
+        clubFocuses={clubFocuses}
+        onOpenTraining={() => { clearAllTabs(); setShowSquad(true); setOpenTrainingOnArrival(true); }}
+        onOpenArcs={() => { clearAllTabs(); setInitialBootRoomTab("arcs"); setShowCalendar(true); }}
+        onOpenClubFocus={() => { clearAllTabs(); setInitialClubFocusOpen(true); setShowLegends(true); }}
         inboxMessages={inboxMessages}
         week={calendarIndex + 1}
         seasonNumber={seasonNumber}
@@ -5332,10 +5288,17 @@ function FruitCigs() {
         <GainPopup
           gains={gains}
           cardSpeed={trainingCardSpeed}
-          onTicketPicked={(ticketType) => {
-            setTickets(prev => [...prev, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: ticketType }]);
+          onTicketPicked={(ticketType, itemId) => {
+            const s = useGameStore.getState();
+            const report = recordTrainingTicket(s.gains, itemId, ticketType);
+            if (report === s.gains) return;
+            useGameStore.setState({ gains: report, tickets: [...s.tickets, { id: `t_arc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: ticketType }] });
           }}
           onAchievementCheck={(revealedItem) => {
+            const s = useGameStore.getState();
+            const report = recordTrainingReveal(s.gains, revealedItem.id);
+            if (report === s.gains) return;
+            setGains(report);
             const newUnlocks = [];
             if (revealedItem.type === "gain" || revealedItem.type === "arc_boost_group") {
               if (!unlockedAchievements.has("first_gain")) newUnlocks.push("first_gain");
@@ -5346,8 +5309,8 @@ function FruitCigs() {
               setTotalGains(prev => prev + 1);
             }
             if (revealedItem.type === "injury") {
-              revealedInjuryCount.current++;
-              if (revealedInjuryCount.current >= 3 && !unlockedAchievements.has("cursed")) {
+              const injuryCount = report.revealedItems.filter(id => id.startsWith("injury:")).length;
+              if (injuryCount >= 3 && !unlockedAchievements.has("cursed")) {
                 newUnlocks.push("cursed");
               }
               // Forgot Kit — injury while 'Forgot Kit' is playing
@@ -5382,6 +5345,7 @@ function FruitCigs() {
         <BreakoutPopup
           breakouts={pendingBreakouts}
           onDone={() => {
+            if (useGameStore.getState().pendingBreakouts !== pendingBreakouts) return;
             // Send deferred breakout inbox messages now that the popup has been seen
             if (pendingBreakouts) {
               pendingBreakouts.forEach(bo => {
@@ -5514,6 +5478,7 @@ function FruitCigs() {
             // any advance below — every unlock banked in this handler passes
             // it so week stamps record when the event happened, not the
             // already-advanced live calendar.
+            if (useGameStore.getState().cupMatchResult !== cupMatchResult) return;
             const cupEventIdx = cupMatchResult._calendarIndex ?? useGameStore.getState().calendarIndex;
             const cupEventWeek = { week: cupEventIdx + 1 };
             // === DYNASTY CUP MATCH RESULT ===
@@ -5656,7 +5621,7 @@ function FruitCigs() {
                 // Sim other SF
                 const otherSFKey = bracket.playerSF === 1 ? "sf2" : "sf1";
                 const otherSF = bracket[otherSFKey];
-                const mMod = getModifier(leagueTier);
+                const mMod = { ...getModifier(leagueTier), matchSize: 5 };
                 // Sim other SF leg 1 if not done
                 let otherLeg1 = otherSF.leg1;
                 if (!otherLeg1) {
@@ -5723,7 +5688,7 @@ function FruitCigs() {
                 // Sim the final if player is NOT in the final (AI vs AI)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (!bracket.playerInFinal && bracket.final?.home && bracket.final?.away) {
-                  const mMod = getModifier(leagueTier);
+                  const mMod = { ...getModifier(leagueTier), matchSize: 5 };
                   const finR = simulateMatch(bracket.final.home, bracket.final.away, null, null, true, 1, 0, null, 0, mMod);
                   let finW = finR.homeGoals > finR.awayGoals ? bracket.final.home : finR.awayGoals > finR.homeGoals ? bracket.final.away : null;
                   if (!finW) { const fp = generatePenaltyShootout(bracket.final.home, bracket.final.away, finR.events, null, null, mMod); finW = fp.winner === "home" ? bracket.final.home : bracket.final.away; }
@@ -5777,7 +5742,7 @@ function FruitCigs() {
                 // Sim 3rd-place playoff if player was in the final (AI vs AI 3rd place)
                 const bracket = useGameStore.getState().miniTournamentBracket;
                 if (bracket.thirdPlace && !bracket.thirdPlace.winner) {
-                  const mMod = getModifier(leagueTier);
+                  const mMod = { ...getModifier(leagueTier), matchSize: 5 };
                   const tpR = simulateMatch(bracket.thirdPlace.home, bracket.thirdPlace.away, null, null, true, 1, 0, null, 0, mMod);
                   let tpW = tpR.homeGoals > tpR.awayGoals ? bracket.thirdPlace.home : tpR.awayGoals > tpR.homeGoals ? bracket.thirdPlace.away : null;
                   if (!tpW) { const tp2 = generatePenaltyShootout(bracket.thirdPlace.home, bracket.thirdPlace.away, tpR.events, null, null, mMod); tpW = tp2.winner === "home" ? bracket.thirdPlace.home : bracket.thirdPlace.away; }
@@ -6058,7 +6023,7 @@ function FruitCigs() {
                 playerRatingTracker, beatenTeams, halfwayPosition,
                 seasonHomeUnbeaten, seasonAwayWins, seasonAwayGames,
                 leagueWins, wasAlwaysFast: !!cupWasAlwaysFast,
-                recoveries: weekRecoveriesRef.current || [],
+                recoveries: useGameStore.getState().weekRecoveries,
                 recentScorelines: [...recentScorelines.slice(-2), [cupPlayerGoals, cupOppGoals]],
                 secondPlaceFinishes, playerInjuryCount, benchStreaks,
                 highScoringMatches: highScoringMatches + ((cupPlayerGoals + cupOppGoals >= 5) ? 1 : 0),
@@ -6351,9 +6316,14 @@ function FruitCigs() {
             }
 
             // Cup-pending sacking resolution (Ironman)
-            if (useGameStore.getState().ultimatumCupPending && useGameStore.getState().gameMode === "ironman") {
+            const cupUltimatum = getCupUltimatumOutcome({
+              pending: useGameStore.getState().ultimatumCupPending,
+              gameMode: useGameStore.getState().gameMode,
+              isFinal, playerWon: winner.isPlayer, playerEliminated: playerEliminated2,
+            });
+            if (cupUltimatum) {
               setUltimatumCupPending(false);
-              if (isFinal && winner.isPlayer) {
+              if (cupUltimatum === "reprieve") {
                 // Won the cup final — reprieve!
                 setBoardWarnCount(0);
                 setBoardSentiment(Math.max(50, useGameStore.getState().boardSentiment));
@@ -6367,7 +6337,7 @@ function FruitCigs() {
                 const newUltimatumsSurvivedC = useGameStore.getState().ultimatumsSurvived + 1;
                 setUltimatumsSurvived(newUltimatumsSurvivedC);
                 if (checkCheatingDeath(newUltimatumsSurvivedC, useGameStore.getState().unlockedAchievements)) tryUnlockAchievement("cheating_death", cupEventWeek);
-              } else if (playerEliminated2) {
+              } else {
                 // Eliminated from cup — sacked
                 triggerSacking();
               }
@@ -6483,12 +6453,13 @@ function FruitCigs() {
       {achievementQueue.length > 0 && !isOnHoliday && (
         <AchievementToast
           key={achievementQueue[0] + "-" + achievementToastKeyRef.current}
-          achievement={achievementQueue[0]}
+          achievements={achievementQueue}
           muteSound={false}
-          sealedPack={!unlockedPacks.has(ACH_TO_PACK[achievementQueue[0]])}
-          onDone={() => {
+          sealedCount={achievementQueue.filter(id => !unlockedPacks.has(ACH_TO_PACK[id])).length}
+          onDone={acknowledged => {
             achievementToastKeyRef.current++;
-            setAchievementQueue(prev => prev.slice(1));
+            const shown = new Set(acknowledged);
+            setAchievementQueue(prev => prev.filter(id => !shown.has(id)));
           }}
         />
       )}
@@ -6518,7 +6489,7 @@ function FruitCigs() {
             <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.red, marginBottom: 16, letterSpacing: 2 }}>
               🚫 SQUAD FULL
             </div>
-            <div style={{ fontSize: F.micro, color: C.text, lineHeight: 1.8, marginBottom: 24 }}>
+            <div style={{ fontSize: F.micro, color: C.text, lineHeight: LH.prose, marginBottom: 24 }}>
               Squad is full (25/25).
               <br />
               Release a player first to make room.
@@ -6553,12 +6524,8 @@ function FruitCigs() {
             holidayTargetRef.current = null;
             setIsOnHoliday(false);
             setInstantMatch(false); // Restore normal match speed
-            // Clear any stale match/popup state
-            setMatchResult(null);
-            setCupMatchResult(null);
+            // Pending results and rewards remain available to settle manually.
             setProcessing(false);
-            setMatchPending(false);
-            setArcStepQueue([]);
             // Navigate to Home tab
             setShowAchievements(false); setShowTable(false); setShowCalendar(false);
             setShowCup(false); setShowTransfers(false); setShowLegends(false); setShowSquad(false);

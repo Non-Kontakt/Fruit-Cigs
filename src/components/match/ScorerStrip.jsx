@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { F, C, FONT } from "../../data/tokens";
+import { C, FONT, TYPE } from "../../data/tokens";
 import { groupGoalsByScorer, buildScorerDisplayMap, formatScorerName } from "../../utils/matchEvents.js";
 
 /**
@@ -51,15 +51,14 @@ export function ScorerStrip({
       return (
         <div key={key} style={{ textAlign: alignRight ? "right" : "left" }}>
           <div style={{
-            fontSize: F.xs, lineHeight: 1.6, color: C.textMuted,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            ...TYPE.compact, color: C.text, overflowWrap: "anywhere",
           }}>
             <span>{name}</span>
             {mins && <span style={{ color: C.textDim, marginLeft: 4 }}>{mins}</span>}
           </div>
           {assisters.length > 0 && (
             <div style={{
-              fontSize: F.micro, lineHeight: 1.5, color: C.textDim,
+              ...TYPE.caption, color: C.textMuted,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
               ({assisters.join(", ")})
@@ -110,7 +109,7 @@ export function ScorerStrip({
     }
     return (
       <div key={key} style={{
-        fontSize: F.sm, lineHeight: 1.5, color: C.textMuted,
+        ...TYPE.body, color: C.text,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         textAlign: alignRight ? "right" : "left",
       }}>
@@ -122,7 +121,7 @@ export function ScorerStrip({
         </div>
         {assistLine && (
           <div style={{
-            fontSize: F.xs, color: C.textDim,
+            ...TYPE.compact, color: C.textMuted,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {assistLine}

@@ -3,15 +3,15 @@ import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { sortStandings } from "../../utils/league.js";
 import { getNatFlag, inferNationality, displayName } from "../../utils/player.js";
 import { OvrProgressChart } from "../charts/OvrCharts.jsx";
-import { F, C, FONT, TEXT } from "../../data/tokens";
+import { F, C, FONT, TEXT, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { findCareerKey } from "../../utils/careerLedger.js";
 import { useGameStore } from "../../store/gameStore.js";
 import { ClubFocusTree } from "./ClubFocusTree.jsx";
 
-export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRatingTracker, league, seasonNumber, leagueTier, squad, ovrHistory, ovrCap = 20 }) {
+export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRatingTracker, league, seasonNumber, leagueTier, squad, ovrHistory, ovrCap = 20, initialFocusOpen = false }) {
   const [tab, setTab] = useState("records");
-  const [showFocus, setShowFocus] = useState(false);
+  const [showFocus, setShowFocus] = useState(initialFocusOpen);
   const clubFocuses = useGameStore(s => s.clubFocuses);
   const setClubFocuses = useGameStore(s => s.setClubFocuses);
   // Switching focus keeps partial progress — only activeId changes here.
@@ -297,6 +297,9 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
         {tab === "records" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: mob ? "18px 14px" : "24px" }}>
             <div style={{ fontSize: F.xs, color: C.gold, letterSpacing: 2, marginBottom: 2 }}>🏟️ MATCH RECORD</div>
+            {h.historyIncomplete && <p style={{ fontSize: F.sm, color: C.textMuted, lineHeight: LH.prose }}>
+              Earlier records are unavailable. These totals include only recorded results, not estimates.
+            </p>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
               {[
                 { label: "WINS", value: h.totalWins || 0, color: C.green },
@@ -533,4 +536,3 @@ export function ClubLegends({ clubHistory, teamName, playerSeasonStats, playerRa
 }
 
 // ==================== LEAGUE PAGE (FULL PAGE WITH TABS) ====================
-

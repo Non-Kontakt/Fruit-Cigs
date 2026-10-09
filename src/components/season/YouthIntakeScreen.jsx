@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
 import { getAttrColor, getPosColor } from "../../utils/calc.js";
 import { getNatFlag, displayName } from "../../utils/player.js";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 const ARCHETYPE_BADGE = {
@@ -39,7 +39,7 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, ovrCap =
         <div style={{ fontSize: mob ? F.lg : F.h3, color: C.green, letterSpacing: mob ? 2 : 5, marginBottom: 12 }}>
           🎓 YOUTH INTAKE
         </div>
-        <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: mob ? 20 : 30, lineHeight: 1.8 }}>
+        <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: mob ? 20 : 30, lineHeight: LH.prose }}>
           New academy graduates available. Select who to sign.
           {slotsAvailable < intake.candidates.length && (
             <div style={{ color: "#f59e0b", marginTop: 6 }}>
@@ -63,7 +63,7 @@ export function YouthIntakeScreen({ intake, onDone, squadSize, onClose, ovrCap =
         {intake.retirees && intake.retirees.length > 0 && (
           <div style={{
             background: "rgba(239,68,68,0.08)", border: "1px solid #ef444433",
-            padding: "14px 21px", marginBottom: 23, fontSize: F.xs, color: "#fca5a5", lineHeight: 1.8,
+            padding: "14px 21px", marginBottom: 23, fontSize: F.xs, color: "#fca5a5", lineHeight: LH.prose,
           }}>
             👋 Retired: {intake.retirees.map(r => `${displayName(r.name, mob)} (${r.position}, ${r.age})`).join(", ")}
           </div>

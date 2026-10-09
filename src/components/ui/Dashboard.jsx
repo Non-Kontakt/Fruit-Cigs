@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { F, C, FONT, Z, MODAL, TEXT } from "../../data/tokens";
+import { F, C, FONT, Z, MODAL, TEXT, TYPE, LH } from "../../data/tokens";
+import { getFocusNode } from "../../utils/clubFocuses.js";
 import { POS_COLORS } from "../../data/positions.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
 import { getModifier } from "../../data/leagueModifiers.js";
@@ -32,6 +33,7 @@ export function Dashboard({
   showLineupWarning = false, onDismissLineupWarning, onLineupWarningGoToSquad, onLineupWarningPlayAnyway,
   rotationWarning = null, onDismissRotationWarning, onRotationWarningGoToSquad,
   latestHeadline = null,
+  storyArcs, clubFocuses, onOpenTraining, onOpenArcs, onOpenClubFocus,
 }) {
   const mob = useMobile();
   const [showSentimentLog, setShowSentimentLog] = useState(false);
@@ -334,7 +336,7 @@ export function Dashboard({
               display: "flex", alignItems: "baseline",
               justifyContent: "space-between", gap: 12, flexWrap: "wrap",
             }}>
-              <div style={{ fontSize: mob ? F.sm : F.md, color: C.lightRed, letterSpacing: 2, lineHeight: 1.4 }}>
+              <div style={{ fontSize: mob ? F.sm : F.md, color: C.lightRed, letterSpacing: 2, lineHeight: LH.tight }}>
                 ⚠ BOARD ULTIMATUM
               </div>
               <div style={{ fontSize: F.xs, color: "#94a3b8", textAlign: "right" }}>
@@ -383,10 +385,10 @@ export function Dashboard({
         background: "linear-gradient(180deg, rgba(30,41,59,0.3) 0%, transparent 100%)",
       }}>
         <div style={{
-          fontSize: mob ? F.lg : F.h3,
+          fontSize: mob ? F.lg : F.h3, fontWeight: 700,
           color: "#f1f5f9",
           letterSpacing: mob ? 3 : 6,
-          lineHeight: 1.4,
+          lineHeight: LH.tight,
         }}>
           {(newspaperName || `The ${teamName || "City"} Gazette`).toUpperCase()}
         </div>
@@ -407,9 +409,9 @@ export function Dashboard({
         textAlign: "center",
       }}>
         <div style={{
-          fontSize: mob ? F.md : F.xl,
+          fontSize: mob ? F.md : F.xl, fontWeight: 700,
           color: "#f1f5f9",
-          lineHeight: 1.6,
+          lineHeight: LH.body,
           letterSpacing: 1,
         }}>
           {headline.main}
@@ -438,6 +440,25 @@ export function Dashboard({
       </div>
 
       {/* ═══ 3-COLUMN GRID ═══ */}
+      {onOpenTraining && (() => {
+        const unassigned = (squad || []).filter(p => !p.training && !p.positionTraining && !p.injury).length;
+        const activeArcs = Object.values(storyArcs || {}).filter(a => a?.arcId && !a.completed).length;
+        const focus = getFocusNode(clubFocuses?.activeId);
+        const shortcuts = [
+          { label: "TRAINING", status: unassigned ? `${unassigned} without a focus` : "Review squad training", color: C.blue, onClick: onOpenTraining },
+          { label: "ARCS", status: activeArcs ? `${activeArcs} in progress` : "Choose your stories", color: C.amber, onClick: onOpenArcs },
+          { label: "CLUB FOCUS", status: focus ? `${focus.name} · ${Math.max(0, focus.weeks - (clubFocuses.progressById?.[focus.id] || 0))}w left` : "Choose a focus", color: C.purple, onClick: onOpenClubFocus },
+        ];
+        return <div aria-label="Club management" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", borderBottom: `1px solid ${RULE}` }}>
+          {shortcuts.map(({ label, status, color, onClick }) => <button key={label} onClick={onClick} style={{
+            background: "transparent", border: "none", borderRight: label === "CLUB FOCUS" ? "none" : `1px solid ${RULE}`,
+            padding: mob ? "12px 8px" : "14px 20px", textAlign: "left", cursor: "pointer", minWidth: 0,
+          }}>
+            <span style={{ display: "block", fontFamily: FONT, fontSize: F.xs, lineHeight: LH.body, color }}>{label} &gt;</span>
+            <span style={{ display: "block", ...TYPE.compact, color: C.textMuted, marginTop: 6 }}>{status}</span>
+          </button>)}
+        </div>;
+      })()}
       <div style={{
         display: "grid",
         gridTemplateColumns: mob ? "1fr" : "minmax(0, 4fr) minmax(0, 4fr) minmax(0, 3fr)",
@@ -495,15 +516,15 @@ export function Dashboard({
                 <div style={{
                   fontSize: mob ? F.xs : F.sm,
                   color: msg.color || C.blue,
-                  lineHeight: 1.5,
+                  lineHeight: LH.body,
                 }}>
                   {msg.icon} {msg.title}
                   {!msg.read && <span style={{ fontSize: F.xs, color: C.red, marginLeft: 6 }}>{"\u25CF"}</span>}
                 </div>
                 {msg.body && !msg.choices && (
                   <div style={{
-                    fontSize: F.xs, color: "#556677", lineHeight: 1.7, marginTop: 3,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    ...TYPE.compact, color: C.textMuted, marginTop: 6,
+                    overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                   }}>
                     {msg.body.split("\n")[0]}
                   </div>
@@ -518,7 +539,7 @@ export function Dashboard({
                   );
                 })()}
                 {msg.followUp && (
-                  <div style={{ fontSize: F.xs, color: C.amber, marginTop: 4, lineHeight: 1.5 }}>{msg.followUp}</div>
+                  <div style={{ fontSize: F.xs, color: C.amber, marginTop: 4, lineHeight: LH.body }}>{msg.followUp}</div>
                 )}
                 {msg.choices && !msg.choiceResult && (
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -627,7 +648,7 @@ export function Dashboard({
                 return (
                   <div key={i} style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
-                    fontSize: F.xs, color: C.textMuted, lineHeight: 2.0,
+                    fontSize: F.xs, color: C.textMuted, lineHeight: LH.prose,
                     borderBottom: i < 2 ? `1px dotted ${RULE_LIGHT}` : "none",
                     padding: "3px 0",
                   }}>
@@ -762,19 +783,19 @@ export function Dashboard({
           {sectionHeader("Squad News", C.green)}
           <div style={{ marginBottom: 16 }}>
             {topScorer ? (
-              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: 2.2, borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "3px 0" }}>
+              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: LH.prose, borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "3px 0" }}>
                 <span onClick={() => onPlayerClick?.(topScorer.name)} style={{ color: C.green, cursor: "pointer" }}>{displayName(topScorer.name, mob)}</span>{" \u2014 "}{topScorer.goals} goal{topScorer.goals !== 1 ? "s" : ""} in {topScorer.apps} app{topScorer.apps !== 1 ? "s" : ""}
               </div>
             ) : null}
             {bestRated ? (
-              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: 2.2, borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "3px 0" }}>
+              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: LH.prose, borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "3px 0" }}>
                 <span onClick={() => onPlayerClick?.(bestRated.name)} style={{ color: C.amber, cursor: "pointer" }}>{displayName(bestRated.name, mob)}</span>{" \u2014 "}avg {bestRated.avg.toFixed(1)}
               </div>
             ) : null}
             {injuredCount > 0 ? (
               <div style={{ fontSize: F.xs, color: C.red, padding: "3px 0" }}>
                 {injuredPlayers.map((p, i) => (
-                  <div key={i} style={{ lineHeight: 2.2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div key={i} style={{ lineHeight: LH.prose, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span onClick={() => onPlayerClick?.(p.name)} style={{ cursor: "pointer" }}>🏥 {displayName(p.name, mob)}</span>
                     <span style={{ color: C.textMuted }}>{p.injuryName} ({p.weeksLeft}w)</span>
                   </div>
@@ -795,7 +816,7 @@ export function Dashboard({
                   <div key={s.name} style={{
                     display: "flex", justifyContent: "space-between",
                     fontSize: F.xs, color: i === 0 ? C.amber : C.textMuted,
-                    lineHeight: 2.2,
+                    lineHeight: LH.prose,
                     borderBottom: i < goldenBoot.length - 1 ? `1px dotted ${RULE_LIGHT}` : "none",
                     padding: "2px 0",
                   }}>
@@ -897,7 +918,7 @@ export function Dashboard({
           {cupInfo && (
             <>
               {sectionHeader("Cup Corner", "#fb923c")}
-              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: 2.2, marginBottom: 16 }}>
+              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: LH.prose, marginBottom: 16 }}>
                 <div style={{ color: C.text, marginBottom: 2 }}>{cupInfo.name}</div>
                 {cupInfo.eliminated ? (
                   <div style={{ color: C.red }}>
@@ -919,7 +940,7 @@ export function Dashboard({
           {clubHistory && clubHistory.totalWins > 0 && (
             <>
               {sectionHeader("Club Records", C.textMuted)}
-              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: 2.2 }}>
+              <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: LH.prose }}>
                 {clubHistory.biggestWin && (
                   <div style={{ borderBottom: `1px dotted ${RULE_LIGHT}`, padding: "2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     Best: <span style={{ color: C.green }}>{clubHistory.biggestWin.score}</span> vs <span onClick={() => onTeamClick?.(clubHistory.biggestWin.opponent)} style={{ cursor: "pointer" }}>{clubHistory.biggestWin.opponent}</span>
@@ -961,7 +982,7 @@ export function Dashboard({
             <div style={{
               fontSize: mob ? F.xs : F.sm,
               color: C.text,
-              lineHeight: 1.8,
+              lineHeight: LH.prose,
               marginBottom: 28,
             }}>
               You haven't selected your starting lineup!
@@ -1019,7 +1040,7 @@ export function Dashboard({
             <div style={{
               fontSize: mob ? F.xs : F.sm,
               color: C.text,
-              lineHeight: 1.8,
+              lineHeight: LH.prose,
               marginBottom: 28,
             }}>
               {rotationWarning.reduced

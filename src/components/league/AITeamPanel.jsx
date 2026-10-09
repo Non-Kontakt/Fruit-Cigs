@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, getAttrColor, relColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
@@ -253,7 +253,7 @@ export function AITeamPanel({
               </button>
             ) : (
               <div>
-                <div style={{ fontSize: F.micro, color: C.textMuted, marginBottom: 8, lineHeight: 1.8 }}>
+                <div style={{ fontSize: F.micro, color: C.textMuted, marginBottom: 8, lineHeight: LH.prose }}>
                   Both slots full. Replace which?
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>

@@ -63,6 +63,11 @@ export function createStorage(dbOptions) {
   }
 
   const readable = (row) => (row.schemaVersion ?? 1) <= SAVE_SCHEMA_VERSION;
+  const assertCareerOpen = (row, value) => {
+    if (!row?.completedCareerIds?.length) return;
+    const careerId = JSON.parse(value)?.careerId;
+    if (row.completedCareerIds.includes(careerId)) throw new Error("This career has ended and cannot be resumed");
+  };
 
   return {
     // --- plain key/value (old window.storage contract) --------------------
@@ -77,6 +82,16 @@ export function createStorage(dbOptions) {
         await db.kv.put({ key, value });
         return { key, value };
       });
+    },
+
+    update(key, transform) {
+      return enqueue(() => db.transaction("rw", db.kv, async () => {
+        const row = await db.kv.get(key);
+        if (!row) throw new Error(`Record "${key}" is unavailable`);
+        const value = transform(row.value);
+        await db.kv.put({ ...row, value });
+        return { key, value };
+      }));
     },
 
     delete(key) {
@@ -110,7 +125,7 @@ export function createStorage(dbOptions) {
       if (row !== undefined) {
         if (!readable(row)) throw new SaveVersionError(key, row.schemaVersion);
         if (row.deleted) return null;
-        if (!validate || validate(row.value)) {
+        if (!validate || await validate(row.value)) {
           return { key, value: row.value, recovered: false };
         }
         sawUnreadable = true;
@@ -119,7 +134,7 @@ export function createStorage(dbOptions) {
       const backups = await db.backups.where("key").equals(key).sortBy("createdAt");
       for (const b of backups.reverse()) {
         if (!readable(b)) { sawUnreadable = true; continue; }
-        if (validate && !validate(b.value)) { sawUnreadable = true; continue; }
+        if (validate && !await validate(b.value)) { sawUnreadable = true; continue; }
         return { key, value: b.value, recovered: true, backupId: b.id };
       }
 
@@ -134,6 +149,7 @@ export function createStorage(dbOptions) {
       return enqueue(() =>
         db.transaction("rw", db.kv, db.backups, async () => {
           const existing = await db.kv.get(key);
+          assertCareerOpen(existing, value);
           // A save written by a newer build is protected: overwriting it
           // would demote it into the backup ring and eventually rotate it
           // out. Deleting the slot first (explicit, confirmed) is the one
@@ -155,6 +171,7 @@ export function createStorage(dbOptions) {
             value,
             schemaVersion: SAVE_SCHEMA_VERSION,
             updatedAt: Date.now(),
+            completedCareerIds: existing?.completedCareerIds || [],
           });
           await pruneBackups(key);
           return { key, value };
@@ -181,6 +198,7 @@ export function createStorage(dbOptions) {
               key,
               value: null,
               deleted: true,
+              completedCareerIds: existing.completedCareerIds || [],
               schemaVersion: SAVE_SCHEMA_VERSION,
               updatedAt: Date.now(),
             });
@@ -189,6 +207,34 @@ export function createStorage(dbOptions) {
           return { key, deleted: existing !== undefined && !existing.deleted };
         }),
       );
+    },
+
+    // Archive and close a career together; either both survive or neither
+    // changes. The marker also rejects autosaves queued after termination.
+    finalizeSave(key, profileKey, careerId, updateProfile, expectedLegacyValue = null) {
+      return enqueue(() => db.transaction("rw", db.kv, db.backups, async () => {
+        const existing = await db.kv.get(key);
+        if (existing && !readable(existing)) throw new SaveVersionError(key, existing.schemaVersion);
+        const profile = await db.kv.get(profileKey);
+        if (!profile) throw new Error("Career profile is unavailable");
+        if (existing && !existing.deleted) {
+          const savedId = JSON.parse(existing.value).careerId;
+          // Pre-identity saves can only close the exact payload loaded by
+          // this session, never a replacement that appeared in its slot.
+          if (savedId !== careerId && (savedId || existing.value !== expectedLegacyValue)) {
+            throw new Error("The slot belongs to a different career");
+          }
+        }
+        const value = updateProfile(profile.value);
+        await db.kv.put({ ...profile, value });
+        await db.kv.put({
+          key, value: null, deleted: true, schemaVersion: SAVE_SCHEMA_VERSION,
+          completedCareerIds: [...new Set([...(existing?.completedCareerIds || []), careerId])],
+          updatedAt: Date.now(),
+        });
+        await db.backups.where("key").equals(key).delete();
+        return { key, archived: true };
+      }));
     },
 
     // Permanent removal: the active row, its tombstone and every backup go.
@@ -226,6 +272,8 @@ export function createStorage(dbOptions) {
           // load; refuse it here where the reason is still attached.
           if (!readable(backup)) throw new SaveVersionError(key, backup.schemaVersion);
           const existing = await db.kv.get(key);
+          assertCareerOpen(existing, backup.value);
+          if (existing && !readable(existing)) throw new SaveVersionError(key, existing.schemaVersion);
           if (existing !== undefined && !existing.deleted) {
             await db.backups.add({
               key,
@@ -239,6 +287,7 @@ export function createStorage(dbOptions) {
             key,
             value: backup.value,
             schemaVersion: backup.schemaVersion ?? 1,
+            completedCareerIds: existing?.completedCareerIds || [],
             updatedAt: Date.now(),
           });
           await pruneBackups(key);

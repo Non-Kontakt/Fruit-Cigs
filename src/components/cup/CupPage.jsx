@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, cupKey as makeCupKey, computeTeamOfCup } from "../../utils/competitionStats.js";
 
@@ -300,7 +300,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, league,
                 {cup.currentRound === 0 && cup.seededTeams && cup.seededTeams.length > 0 && (
                   <div style={{ marginTop: 12, padding: "13px 16px", background: "rgba(250,204,21,0.05)", border: `1px solid ${C.gold}22` }}>
                     <div style={{ fontSize: F.xs, color: C.gold, marginBottom: 6 }}>Seeded teams (receive a bye in Round of 32):</div>
-                    <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: 2 }}>
+                    <div style={{ fontSize: F.xs, color: C.textMuted, lineHeight: LH.prose }}>
                       {cup.seededTeams.map(t => t.name).join("  ·  ")}
                     </div>
                   </div>
@@ -406,7 +406,7 @@ export function CupPage({ cup, clubHistory, seasonNumber, leagueRosters, league,
             {/* Player-level cup stats — canonical seasonCupStats */}
             {!seasonCupStatsAvailable ? (
               <div style={{ marginTop: 24, textAlign: "center" }}>
-                <div style={{ fontSize: F.sm, color: C.textDim, lineHeight: 1.6, maxWidth: 460, margin: "0 auto" }}>
+                <div style={{ fontSize: F.sm, color: C.textDim, lineHeight: LH.body, maxWidth: 460, margin: "0 auto" }}>
                   Player-level cup stats are unavailable for this season. This save was loaded from an older version that didn't track cup events. Full cup stats will resume next season.
                 </div>
               </div>

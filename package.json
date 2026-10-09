@@ -14,7 +14,9 @@
     "qa:mobile": "playwright test --project=mobile",
     "qa:report": "playwright show-report qa/.artifacts/report",
     "test:visual": "playwright test qa/tests/visual.spec.js",
-    "test:visual:update": "playwright test qa/tests/visual.spec.js --update-snapshots"
+    "test:visual:update": "playwright test qa/tests/visual.spec.js --update-snapshots",
+    "qa:release": "playwright test --config playwright.release.config.js",
+    "check:release": "npm test && npm run build && node scripts/check-release.mjs"
   },
   "dependencies": {
     "@paper-design/shaders": "^0.0.77",

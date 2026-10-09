@@ -40,10 +40,13 @@ for (const fx of FIXTURES) {
 
     // Screenshots are typography evidence — a fixture page silently falling
     // back to system fonts makes every visual review lie. Fail loudly instead.
-    await page.waitForFunction(
-      () => document.fonts.check('12px "Press Start 2P"'),
-      { timeout: 10_000 }
-    );
+    for (const weight of [400, 700]) {
+      const loaded = await page.evaluate(async weight => {
+        const faces = await document.fonts.load(`${weight} 24px "Pixel Operator"`);
+        return faces.length === 1 && faces[0].status === "loaded";
+      }, weight);
+      expect(loaded, `Pixel Operator ${weight} must load`).toBe(true);
+    }
 
     // Optional sub-navigation (e.g. click the STATS tab on LeaguePage).
     if (fx.clickText) {

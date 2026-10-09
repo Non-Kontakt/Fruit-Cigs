@@ -79,12 +79,12 @@ function finalizeSeasonStatsIntoAllTime({
  */
 export function useSeasonEnd({
   tryUnlockAchievement,
-  cardedPlayerIdsRef,
   setMatchResult,
   setCupMatchResult,
 }) {
   const onSeasonEndRevealDone = useCallback(() => {
     const s = useGameStore.getState();
+    if (s.summerPhase !== "summary" || !s.summerData) return;
     const {
       calendarIndex, clubHistory, clubFocuses, league, playerSeasonStats, prestigeLevel, retiringPlayers,
       seasonNumber, squad, storyArcs, summerData, trialHistory, unlockedAchievements,
@@ -237,11 +237,13 @@ export function useSeasonEnd({
   }, []); // All state read from getState()
 
   const onPrestigeDone = useCallback(() => {
-    useGameStore.getState().setSummerPhase("legendSelect");
+    const s = useGameStore.getState();
+    if (s.summerPhase === "prestige") s.setSummerPhase("legendSelect");
   }, []);
 
   const onLegendSelectionDone = useCallback((selectedIds) => {
     const s = useGameStore.getState();
+    if (s.summerPhase !== "legendSelect") return;
     const {
       allLeagueStates, cup, formation, gameMode, league, leagueRosters, leagueTier,
       playerRatingNames, playerRatingTracker, playerSeasonStats, prestigeLevel,
@@ -438,7 +440,7 @@ export function useSeasonEnd({
       )]);
     }
     // Reset tier-specific state for prestige reset
-    cardedPlayerIdsRef.current = new Set();
+    useGameStore.getState().setCardedPlayerIds(new Set());
     setDynastyCupQualifiers(null);
     setDynastyCupBracket(null);
     setMiniTournamentBracket(null);
@@ -472,6 +474,7 @@ export function useSeasonEnd({
 
   const onYouthIntakeDone = useCallback((chosen) => {
     const s = useGameStore.getState();
+    if (s.summerPhase !== "intake" || !s.summerData) return;
     const {
       allLeagueStates, clubFocuses, clubHistory, cup, league, leagueResults, leagueRosters, leagueTier,
       playerRatingNames, playerRatingTracker, playerSeasonStats, prestigeLevel, prodigalSon,
@@ -1218,7 +1221,7 @@ export function useSeasonEnd({
         setTickets(prev => [...prev, ...Array.from({ length: newSeasonMod.rewindTickets }, (_, i) => ({ id: `t_rw_${Date.now()}_${i}`, type: "rewind" }))]);
       }
       // Reset tier-specific state for new season
-      cardedPlayerIdsRef.current = new Set();
+      useGameStore.getState().setCardedPlayerIds(new Set());
       setDynastyCupQualifiers(null);
       setDynastyCupBracket(null);
       setMiniTournamentBracket(null);

@@ -1,9 +1,9 @@
 import { useState } from "react";
 
-import { C as TC, FONT } from "../../data/tokens";
+import { C as TC, F as TF, FONT, LH } from "../../data/tokens";
 
 const C = { ...TC, bg: "#0a0a1a", bgCard: "rgba(30,41,59,0.6)", bgInput: "#1e293b" };
-const F = { xl: "clamp(13px,3vw,18px)", lg: "clamp(10px,2.5vw,14px)", md: "clamp(8px,2vw,11px)", sm: "clamp(6px,1.5vw,9px)" };
+const F = { xl: TF.h3, lg: TF.md, md: TF.sm, sm: TF.xs };
 
 export function ProfileSelectScreen({ profiles, onSelect, onCreate, onViewMuseum }) {
   const [creating, setCreating] = useState(false);
@@ -28,8 +28,8 @@ export function ProfileSelectScreen({ profiles, onSelect, onCreate, onViewMuseum
 
       <div style={{ textAlign: "center", maxWidth: 420, width: "90%" }}>
         <div style={{
-          fontSize: F.xl, color: C.green, letterSpacing: 2, marginBottom: 6,
-          textShadow: "0 0 20px rgba(74,222,128,0.4)", lineHeight: 1.4,
+          fontSize: F.xl, fontWeight: 700, color: C.green, letterSpacing: 2, marginBottom: 6,
+          textShadow: "0 0 20px rgba(74,222,128,0.4)", lineHeight: LH.tight,
         }}>
           FRUIT CIGS
         </div>

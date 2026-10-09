@@ -5,29 +5,29 @@ This guide is for AI agents working on this codebase. Follow these rules strictl
 ## Team Structure
 
 ### Platforms
-- **Primary**: Forgejo (self-hosted) at `http://localhost:3000` — all issues, PRs, and code review happen here
-- **Deploy mirror**: GitHub — a launchd bridge polls Forgejo `main` and pushes to GitHub, which triggers the GitHub Pages deploy. Nobody pushes GitHub manually.
-- **Public tunnel**: Cloudflare Tunnel exposes Forgejo for external agents (URL changes on restart)
+- **Code and PRs**: GitHub (`Non-Kontakt/Fruit-Cigs`), per the owner's October 2026 direction. Push review branches, never directly to main.
+- **Existing issues**: Forgejo at `http://localhost:3000` remains reference material. Use explicit Forgejo links; its issue numbers are not GitHub issue numbers.
+- **Deployment**: GitHub Pages, after the shared verification gate passes on merged main. See `docs/release-checks.md`, including the legacy bridge handoff.
 
 ### Roles
 | Agent | Platform | Title | Role | Access |
 |-------|----------|-------|------|--------|
 | **Gadon** (onvx) | Human | Owner | Merges PRs, final approval, playtests, design decisions | Admin |
-| **Calo** (calo-onvx) | Claude Code (local) | Lead Clanker | Primary developer — writes code, reviews subagent work, creates branches/PRs/issues | Full read/write (local) |
-| **Bandon** (bandon-onvx) | Codex (sandboxed) | Snr Clanker | Code reviewer, idea interrogator — reads/writes on Forgejo via tunnel | Full read/write (via tunnel URL) |
+| **Calo** (calo-onvx) | Claude Code (local) | Lead Clanker | Development and review as assigned by the owner | Local repository access |
+| **Sarna** (formerly Bandon) | Codex | Snr Clanker | Review and owner-authorized implementation, via review branches | GitHub review workflow |
 
 > Trask (trask-onvx, Jnr Clanker) has retired from active duty. He lives on
 > in the game as the unlockable player **Trask Ulgo** (`src/data/achievements.js`).
 
 ### Workflow
-1. **Calo** creates a branch, makes changes (directly or via delegated subagents whose work Calo reviews), verifies, opens a PR on Forgejo
-2. **Bandon** reviews on Forgejo (comments, feedback)
-3. **Calo** addresses feedback and makes all code edits
+1. The assigned developer creates a branch, makes changes, verifies them, and opens a GitHub PR.
+2. The other reviewer checks functionality, regressions and whether the changes improve the codebase.
+3. The developer addresses feedback on the same review branch.
 4. **Owner** merges PRs — no one else merges
-5. The deploy bridge ships merged `main` to GitHub Pages automatically
+5. GitHub verifies merged main, then deploys the exact tested build to Pages.
 
 ### What reviewers should NOT do
-- Do not make code edits — all code changes go through Calo
+- Do not turn a review request into implementation without the owner's authorization.
 - Do not merge PRs — only Owner merges
 
 ## Golden Rules

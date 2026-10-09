@@ -118,10 +118,7 @@ export function PlayerCompareModal({ yourPlayer, targetPlayer, ovrCap = 20, scou
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          {/* Press Start 2P has no ⚖ glyph, so it fell back to a hairline
-              system-font scale that read as microscopic next to the pixel
-              headline. A "VS" chip in the same pixel font stays legible at
-              any size and fits the head-to-head framing of this screen. */}
+          {/* A text chip avoids relying on a platform-specific scales glyph. */}
           <span style={{ fontSize: mob ? F.lg : F.h3, color: C.text, letterSpacing: 1 }}>
             <span style={{ color: C.gold }}>VS</span> COMPARE
           </span>

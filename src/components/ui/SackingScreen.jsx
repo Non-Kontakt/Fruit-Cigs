@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 
-import { C as TC, FONT, EMOJI } from "../../data/tokens";
+import { C as TC, F as TF, FONT, EMOJI, BTN, LH } from "../../data/tokens";
 
 const C = { ...TC };
-const F = { xl: "clamp(12px,3vw,17px)", lg: "clamp(9px,2.5vw,13px)", md: "clamp(7px,2vw,10px)", sm: "clamp(6px,1.5vw,8px)", xs: "clamp(5px,1.2vw,7px)" };
+const F = { xl: TF.h3, lg: TF.md, md: TF.sm, sm: TF.xs, xs: TF.micro };
 
 function StatPill({ label, value }) {
   return (
@@ -17,7 +17,7 @@ function StatPill({ label, value }) {
   );
 }
 
-export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches, totalGoals, clubHistory, onViewCareer, onReturnToMenu }) {
+export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches, totalGoals, clubHistory, onViewCareer, onReturnToMenu, archivePending = false, archiveFailed = false, onRetryArchive, onExportCareer }) {
   const [visible, setVisible] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
@@ -58,11 +58,11 @@ export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches
         <div style={{
           fontSize: F.xl, color: C.red, letterSpacing: 2, marginBottom: 10,
           animation: visible ? "redPulse 3s ease infinite" : "none",
-          lineHeight: 1.4,
+          lineHeight: LH.tight,
         }}>
           YOU'VE BEEN SACKED
         </div>
-        <div style={{ fontSize: F.md, color: C.textMuted, marginBottom: 32, lineHeight: 1.8 }}>
+        <div style={{ fontSize: F.md, color: C.textMuted, marginBottom: 32, lineHeight: LH.prose }}>
           {teamName} have terminated<br />your contract.
         </div>
 
@@ -91,7 +91,7 @@ export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches
           }}>
             <div style={{ fontSize: F.xs, color: C.slate, marginBottom: 10 }}>CAREER HIGHLIGHTS</div>
             {clubHistory.slice(-4).map((entry, i) => (
-              <div key={i} style={{ fontSize: F.xs, color: C.textMuted, marginBottom: 5, lineHeight: 1.8 }}>
+              <div key={i} style={{ fontSize: F.xs, color: C.textMuted, marginBottom: 5, lineHeight: LH.prose }}>
                 S{entry.season}: {entry.leagueName || `Tier ${entry.tier}`} · {entry.position ? `${entry.position}${entry.position === 1 ? "st" : entry.position === 2 ? "nd" : entry.position === 3 ? "rd" : "th"}` : "—"}
               </div>
             ))}
@@ -101,7 +101,16 @@ export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches
         {/* Buttons */}
         {showButtons && (
           <div style={{ animation: "fadeIn 0.5s ease" }}>
-            {onViewCareer && (
+            {archivePending && (
+              <div role="alert" style={{ fontSize: F.sm, color: C.textMuted, lineHeight: LH.prose, marginBottom: 14 }}>
+                {archiveFailed ? "Your career has ended, but its archive could not be saved. Retry or export it before leaving." : "Saving your career archive..."}
+                {archiveFailed && <div>
+                  <button onClick={onRetryArchive} style={{ ...BTN.primary, margin: 8 }}>RETRY ARCHIVE</button>
+                  <button onClick={onExportCareer} style={{ ...BTN.ghost, margin: 8 }}>EXPORT CAREER</button>
+                </div>}
+              </div>
+            )}
+            {onViewCareer && !archivePending && (
               <button
                 onClick={onViewCareer}
                 style={{
@@ -117,6 +126,7 @@ export function SackingScreen({ teamName, seasonNumber, leagueTier, totalMatches
             )}
             <button
               onClick={onReturnToMenu}
+              disabled={archivePending}
               style={{
                 width: "100%", padding: "12px",
                 background: "none", border: "1px solid rgba(30,41,59,0.8)",

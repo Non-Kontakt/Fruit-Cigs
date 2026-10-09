@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getPosColor } from "../../utils/calc.js";
-import { displayName } from "../../utils/player.js";
 import { SFX, BGM } from "../../utils/sfx.js";
 import { hasLateEqualiser } from "../../utils/bgmMoments.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { POSITION_ORDER } from "../../data/positions.js";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, TYPE, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ScorerStrip } from "./ScorerStrip.jsx";
 import { MatchCommentaryBox, deriveKit, neutralKit } from "./MatchCommentaryBox.jsx";
@@ -121,12 +120,13 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
       color: team.isPlayer ? C.green : C.text,
       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       display: "block", width: "100%", textAlign: align,
-      fontFamily: FONT, lineHeight: 1.5,
+      fontFamily: FONT, lineHeight: LH.body,
     };
-    if (!clickable) return <div style={base}>{team.name}</div>;
+    if (!clickable) return <div style={base} title={team.name}>{team.name}</div>;
     return (
       <button
         aria-label={`${team.name} squad`}
+        title={team.name}
         onClick={() => openTeamPanel(side)}
         onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
         onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
@@ -477,7 +477,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               "⚽ FULL TIME (PENS)"
             ) : finished ? "⚽ FULL TIME" : (
               <span style={{ animation: "pulse 1s ease infinite" }}>
-                <span style={{ lineHeight: 1.4, display: "inline-block" }}>⏱</span> {minute}'
+                <span style={{ lineHeight: LH.tight, display: "inline-block" }}>⏱</span> {minute}'
               </span>
             )}
           </div>
@@ -554,18 +554,18 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             only the lower content changes. MATCH is the default view. */}
         <div style={{ display: "flex", justifyContent: "center", gap: 18, margin: "2px 0 10px", flexShrink: 0 }}>
           {["match", "ratings"].map((v) => (
-            <button key={v} onClick={() => setView(v)} style={{
+            <button key={v} onClick={() => setView(v)} aria-pressed={view === v} style={{
               background: "none", border: "none", cursor: "pointer",
               fontFamily: FONT, fontSize: F.xs, letterSpacing: 2,
-              color: view === v ? C.green : C.slate,
+              color: view === v ? C.green : C.textMuted,
               borderBottom: view === v ? `2px solid ${C.green}` : "2px solid transparent",
-              padding: "4px 2px",
+              padding: "12px 8px", minHeight: 44,
             }}>{v.toUpperCase()}</button>
           ))}
         </div>
 
         {view === "match" && (<>
-        <div style={{ height: mob ? 10 : 22, flexShrink: 0 }} />
+        <div style={{ height: 12, flexShrink: 0 }} />
         {/* The commentary box (#460): the hero of the matchday. */}
         <div style={{ marginTop: 4, marginBottom: 4, flexShrink: 0 }}>
           <MatchCommentaryBox
@@ -679,7 +679,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
             const isLeader = pr.name === motmLeader;
             if (!pr.rating && !pr.isSub) return (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 13px" }}>
-                <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: C.bgInput, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
+                <span onClick={() => onPlayerClick?.(pr.name)} style={{ ...TYPE.compact, color: C.textMuted, cursor: "pointer" }}>{pr.name}</span>
                 <span style={{ color: C.bgInput, fontSize: F.xs }}>INJ</span>
               </div>
             );
@@ -697,13 +697,13 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                 background: isLeader ? "rgba(250,204,21,0.07)" : "transparent",
                 borderLeft: isLeader ? `2px solid rgba(250,204,21,0.5)` : "2px solid transparent",
               }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "3px 6px", lineHeight: 1.4, fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
-                  <span onClick={() => onPlayerClick?.(pr.name)} style={{ color: dimmed ? C.textMuted : pr.isSub ? C.textMuted : C.text, fontSize: F.xs, cursor: "pointer" }}>{displayName(pr.name, mob)}</span>
-                  {subOff != null && <span style={{ color: C.red, fontSize: F.micro }}>↓{subOff}'</span>}
-                  {subOn != null && <span style={{ color: C.green, fontSize: F.micro }}>↑{subOn}'</span>}
+                <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1, marginRight: 8 }}>
+                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "3px 6px", lineHeight: LH.tight, fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
+                  <button onClick={() => onPlayerClick?.(pr.name)} title={pr.name} style={{ ...TYPE.compact, color: pr.isSub ? C.textMuted : C.text, background: "none", border: "none", textAlign: "left", minWidth: 0, overflowWrap: "anywhere", cursor: "pointer" }}>{pr.name}</button>
+                  {subOff != null && <span style={{ ...TYPE.caption, color: C.lightRed, flexShrink: 0 }}>↓{subOff}'</span>}
+                  {subOn != null && <span style={{ ...TYPE.caption, color: C.green, flexShrink: 0 }}>↑{subOn}'</span>}
                 </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                   {ev.goalMinutes?.length > 0 && (
                     <span style={{ fontSize: F.xs }}>
                       {ev.goalMinutes.length === 1 ? "⚽" : `⚽×${ev.goalMinutes.length}`}
@@ -787,4 +787,3 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
 // ==================== LEAGUE TABLE SCREEN ====================
 
 // ==================== ARC STEP COMPLETION MODAL ====================
-

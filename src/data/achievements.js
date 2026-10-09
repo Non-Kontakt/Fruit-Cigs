@@ -458,7 +458,7 @@ export const ACHIEVEMENTS = [
   { id: "peoples_champion", name: "The People's Champion", desc: "Finish a season without fan sentiment ever dropping below 50", icon: "❤️" },
   { id: "tightrope_walker", name: "Tightrope Walker", desc: "Survive a board ultimatum", icon: "🎪" },
   { id: "cheating_death", name: "Cheating Death", desc: "Survive two ultimatums in one career", icon: "❤️‍🩹" },
-  { id: "flying_without_net", name: "Flying Without A Net", desc: "Reach the top division in Ironman mode", icon: "🕸️" },
+  { id: "flying_without_net", name: "Flying Without A Net", desc: "Reach the top division without being sacked", icon: "🕸️" },
 
   // === PRESTIGE & LEGENDS ===
   { id: "new_game_plus", name: "New Game Plus", desc: "Prestige for the first time", icon: "🔄" },
@@ -476,8 +476,8 @@ export const ACHIEVEMENTS = [
   { id: "ashes_to_ashes", name: "Ashes To Ashes", desc: "Have a career immortalised in the Museum", icon: "⚱️" },
   { id: "died_as_they_lived", name: "Died As They Lived", desc: "Get sacked the season after winning a title", icon: "🪦" },
   { id: "the_collection", name: "The Collection", desc: "Have three careers archived in the Museum", icon: "🏛️" },
-  { id: "double_down", name: "Burn The Boats", desc: "Prestige in Ironman mode", icon: "🔥" },
-  { id: "decade_of_danger", name: "Decade Of Danger", desc: "Complete ten seasons in one Ironman career", icon: "🗓️" },
+  { id: "double_down", name: "Burn The Boats", desc: "Prestige without being sacked", icon: "🔥" },
+  { id: "decade_of_danger", name: "Decade Of Danger", desc: "Complete ten seasons in one career", icon: "🗓️" },
   // === TRANSFER MARKET — incoming offers ===
   { id: "not_for_sale", name: "Not For Sale", desc: "Reject an offer for a player with 50+ appearances for you", icon: "🛡️" },
   { id: "daylight_robbery", name: "Daylight Robbery", desc: "Accept an offer worth double what you gave up", icon: "💰" },

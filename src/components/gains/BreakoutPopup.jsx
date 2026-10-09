@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { F, C, FONT, Z, EMOJI } from "../../data/tokens";
+import { F, C, FONT, Z, EMOJI, LH } from "../../data/tokens";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { SFX } from "../../utils/sfx.js";
@@ -151,7 +151,7 @@ export function BreakoutPopup({ breakouts, onDone, isOnHoliday }) {
         {/* Narrative */}
         <div style={{
           fontSize: F.sm, color: C.slate, marginBottom: 20,
-          lineHeight: 1.6, fontStyle: "italic",
+          lineHeight: LH.body, fontStyle: "italic",
           maxWidth: 380, margin: "0 auto 20px",
         }}>
           {bo.playerName.split(" ").pop()} {bo.trigger.narrative}

@@ -20,7 +20,8 @@ export function buildAIFiveASide(team) {
       .filter(p => !used.has(p.id) && slot.positions.includes(p.position))
       .sort((a, b) => getOverall(b) - getOverall(a));
     if (eligible.length > 0) {
-      picks.push(eligible[0]);
+      // Selection for this fixture supersedes the full-squad bench role.
+      picks.push({ ...eligible[0], isBench: false });
       used.add(eligible[0].id);
     }
   }
