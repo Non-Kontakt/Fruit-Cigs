@@ -24,11 +24,10 @@ repository administrators control those settings separately.
 
 - Every build generates a service worker with a content-addressed shell:
   HTML, JavaScript, CSS, icons, manifest and the existing pixel font.
-- The font subsets and Unicode ranges are bundled unchanged from the game's
-  existing Google Fonts stylesheet, with their SIL Open Font
-  License in `public/fonts/OFL.txt`. Source:
-  https://github.com/google/fonts/tree/main/ofl/pressstart2p
-  Stylesheet: https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap
+- Pixel Operator regular and bold are bundled locally as WOFF2, with the
+  author's CC0 license in `public/fonts/CC0-PixelOperator.txt`. Source:
+  https://www.dafont.com/pixel-operator.font
+  Both faces are included in the offline shell; no font CDN is required.
 - One successful online installation is required before offline launches.
   A missing critical asset rejects installation. Music is optional and
   cached on demand; uncached or ranged audio may remain unavailable offline.

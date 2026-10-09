@@ -382,6 +382,11 @@ test.describe("full-app flows", () => {
     const row = page.getByText(surname, { exact: false }).filter({ hasNotText: "selected" }).first();
     await expect(row).toBeVisible({ timeout: 5_000 });
 
+    // Measure after the row is in view, not before click's automatic scroll.
+    await page.evaluate(() => document.fonts.ready);
+    await row.scrollIntoViewIfNeeded();
+    await expect(row).toBeInViewport();
+
     const before = await row.boundingBox();
     const scrollBefore = await page.evaluate(() => window.scrollY);
 
