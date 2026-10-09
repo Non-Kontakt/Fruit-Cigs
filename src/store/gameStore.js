@@ -4,6 +4,7 @@ import { DEFAULT_FORMATION } from "../data/formations.js";
 import { initStoryArcs } from "../utils/arcs.js";
 import { emptyCompetitionStats } from "../utils/competitionStats.js";
 import { defaultClubFocuses } from "../data/clubFocuses.js";
+import { STARTER_PACKS } from "../data/cigPacks.js";
 
 /**
  * Core game state store — replaces the useState + useRef mirror pattern.
@@ -421,7 +422,7 @@ export const useGameStore = create((set, get) => ({
   startNewCareer: squad => {
     const activeProfileId = get().activeProfileId;
     const data = Object.fromEntries(Object.entries(useGameStore.getInitialState()).filter(([, value]) => typeof value !== "function"));
-    set({ ...structuredClone(data), activeProfileId, squad });
+    set({ ...structuredClone(data), activeProfileId, squad, gameMode: "ironman", unlockedPacks: new Set(STARTER_PACKS) });
   },
 
   setSquad: (val) => set(s => ({ squad: typeof val === "function" ? val(s.squad) : val })),

@@ -419,13 +419,13 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                 <div style={{ fontSize: F.md, color: C.text, marginBottom: 5 }}>💾 Auto-Save</div>
                 <div style={{ fontSize: mob ? F.xs : F.sm, color: C.slate }}>Save automatically after each match</div>
               </div>
-              <button onClick={() => setAutoSaveEnabled(!autoSaveEnabled)} style={{
+              {gameMode === "ironman" ? <span style={{ fontSize: F.xs, color: C.green }}>ALWAYS ON</span> : <button onClick={() => setAutoSaveEnabled(!autoSaveEnabled)} style={{
                 fontSize: F.md, padding: "6px 18px", cursor: "pointer",
                 fontFamily: FONT,
                 background: autoSaveEnabled ? "rgba(74,222,128,0.15)" : "rgba(239,68,68,0.1)",
                 border: autoSaveEnabled ? `1px solid ${C.green}` : `1px solid ${C.red}`,
                 color: autoSaveEnabled ? C.green : C.red,
-              }}>{autoSaveEnabled ? "ON" : "OFF"}</button>
+              }}>{autoSaveEnabled ? "ON" : "OFF"}</button>}
             </div>
 
             {/* Save Management */}
@@ -433,7 +433,6 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
               <div style={{ fontSize: mob ? F.xs : F.sm, color: C.bgInput, marginBottom: 12, letterSpacing: 1 }}>
                 SAVE MANAGEMENT {activeSaveSlot != null && <span style={{ color: C.slate }}>· SLOT {activeSaveSlot}</span>}
                 {activeProfileName && <span style={{ color: C.slate }}> · {activeProfileName}</span>}
-                {gameMode === "ironman" && <span style={{ color: C.lightRed, marginLeft: 8 }}>⚔ IRONMAN</span>}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {gameMode !== "ironman" && (

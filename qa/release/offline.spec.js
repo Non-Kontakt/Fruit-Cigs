@@ -4,16 +4,17 @@ test("built game starts offline with its font and preserves profile data on ?res
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("./");
-  await expect(page.getByRole("button", { name: /NEW PROFILE/ })).toBeVisible();
+  await expect(page.getByLabel("NAME YOUR CLUB")).toBeVisible();
   expect(await page.evaluate(() => window.__fc)).toBeUndefined();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
     localStorage.setItem("release-test", "keep");
   });
-  await page.getByRole("button", { name: /NEW PROFILE/ }).click();
-  await page.getByPlaceholder("Enter name...").fill("Offline QA");
-  await page.getByRole("button", { name: /CREATE PROFILE/ }).click();
-  await expect(page.getByText("SELECT SAVE SLOT", { exact: true })).toBeVisible();
+  await page.getByLabel("NAME YOUR CLUB").fill("Offline FC");
+  await page.getByText("YOUR MANAGER · OPTIONAL", { exact: true }).click();
+  await page.getByLabel("NAME YOUR MANAGER").fill("Offline QA");
+  await page.getByRole("button", { name: /NEW GAME/ }).click();
+  await expect(page.getByRole("button", { name: /BOOT ROOM/ })).toBeVisible();
 
   await context.setOffline(true);
   await page.goto("./?reset");
@@ -27,19 +28,13 @@ test("built game starts offline with its font and preserves profile data on ?res
 
 test("production settings have no debug cheats", async ({ page }) => {
   await page.goto("./");
-  await page.getByRole("button", { name: /NEW PROFILE/ }).click();
-  await page.getByPlaceholder("Enter name...").fill("Release QA");
-  await page.getByRole("button", { name: /CREATE PROFILE/ }).click();
-  await page.getByText("EMPTY SLOT", { exact: true }).first().click();
-  await page.getByText("CASUAL", { exact: true }).click();
-  await page.getByRole("button", { name: /CONFIRM CASUAL/ }).click();
-  await page.getByPlaceholder("e.g. Brian Clough").fill("QA Manager");
-  await page.getByRole("button", { name: /CONTINUE/ }).click();
   await page.getByPlaceholder("e.g. Denton FC").fill("Release FC");
   await page.getByRole("button", { name: /NEW GAME/ }).click();
   await page.getByRole("button", { name: /BOOT ROOM/ }).click();
   await page.getByRole("button", { name: /SETTINGS/ }).click();
   await expect(page.getByText("SAVE MANAGEMENT", { exact: false })).toBeVisible();
+  await expect(page.getByText("ALWAYS ON", { exact: true })).toBeVisible();
+  await expect(page.getByText("IRONMAN", { exact: false })).toHaveCount(0);
   await expect(page.getByText("Debug Tools", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /WIN LEAGUE/ })).toHaveCount(0);
   expect(await page.evaluate(() => window.__fc)).toBeUndefined();

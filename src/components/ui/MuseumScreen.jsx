@@ -67,7 +67,7 @@ export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" })
             {career?.teamName || "Unknown Club"}
           </div>
           <div style={{ fontSize: F.label, color: C.slate, marginBottom: 8, letterSpacing: 2 }}>
-            ⚔ IRONMAN · CAREER ARCHIVED
+            CAREER ARCHIVED
           </div>
           {archivedDate && (
             <div style={{ fontSize: F.label, color: "#334155" }}>{archivedDate}</div>

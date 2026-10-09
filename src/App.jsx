@@ -7,7 +7,7 @@ import { PLAYER_UNLOCK_ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "./data/achieveme
 import { LEAGUE_DEFS, NUM_TIERS } from "./data/leagues.js";
 import { ARC_TICKET_POOL, ARC_CATS, STORY_ARCS } from "./data/storyArcs.js";
 import { CIG_PACKS, ACH_TO_PACK } from "./data/cigPacks.js";
-import { checkPackUnlocks, isPackComplete } from "./utils/packUnlocks.js";
+import { checkPackUnlocks, earnedPackReveals, isPackComplete } from "./utils/packUnlocks.js";
 import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
 import { MSG } from "./data/messages.js";
 import { getModifier } from "./data/leagueModifiers.js";
@@ -71,7 +71,6 @@ import { PlayerPanel } from "./components/player/PlayerPanel.jsx";
 import { TacticsPanel } from "./components/player/TacticsPanel.jsx";
 import { Dashboard } from "./components/ui/Dashboard.jsx";
 import { ProfileSelectScreen } from "./components/ui/ProfileSelectScreen.jsx";
-import { ModeSelectScreen } from "./components/ui/ModeSelectScreen.jsx";
 import { ManagerIdentityScreen } from "./components/ui/ManagerIdentityScreen.jsx";
 import { SackingScreen } from "./components/ui/SackingScreen.jsx";
 import { MuseumScreen } from "./components/ui/MuseumScreen.jsx";
@@ -195,7 +194,6 @@ function FruitCigs() {
   const newspaperName = useGameStore(s => s.newspaperName);
   const reporterName = useGameStore(s => s.reporterName);
   const latestHeadline = useGameStore(s => s.latestHeadline);
-  const [nameInput, setNameInput] = useState("");
   const [initialSquad] = useState(() => {
     const sq = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
     useGameStore.getState().setSquad(sq);
@@ -207,7 +205,7 @@ function FruitCigs() {
     setSquad, setLeague, setCup, setMatchPending, setProcessing,
     setPendingSquad, setIsOnHoliday, setCalendarIndex, setSeasonCalendar,
     setSummerPhase, setFanSentiment, setBoardSentiment, setSentimentLog,
-    setActiveProfileId, setGameMode, setGameOver,
+    setActiveProfileId, setGameOver,
     setBoardWarnCount, setUltimatumActive, setUltimatumTarget,
     setUltimatumPtsEarned, setUltimatumGamesLeft, setUltimatumCupPending,
     setDoubleTrainingWeek, setTwelfthManActive,
@@ -511,7 +509,7 @@ function FruitCigs() {
       setUnlockedPacks(prev => { const n = new Set(prev); newPacks.forEach(id => n.add(id)); return n; });
       // Only show reveal modals after initial load settles (not on load/cascade)
       if (packRevealReady.current) {
-        setPackUnlockQueue(prev => [...prev, ...newPacks]);
+        setPackUnlockQueue(prev => [...prev, ...earnedPackReveals(newPacks)]);
       }
     }
   }, [unlockedAchievements, unlockedPacks, seasonNumber, leagueTier, prestigeLevel]);
@@ -590,8 +588,6 @@ function FruitCigs() {
   const [profileList, setProfileList] = useState([]); // [{ id, name, createdAt }]
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const gameMode = useGameStore(s => s.gameMode);
-  const [showModeSelect, setShowModeSelect] = useState(false);
-  const [showManagerSelect, setShowManagerSelect] = useState(false);
   const managerName = useGameStore(s => s.managerName);
   const managerAvatar = useGameStore(s => s.managerAvatar);
   const gameOver = useGameStore(s => s.gameOver);
@@ -1814,6 +1810,26 @@ function FruitCigs() {
     }));
   }, []);
 
+  const prepareNewCareer = slot => {
+    const freshSquad = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
+    useGameStore.getState().startNewCareer(freshSquad);
+    setSaveStatus(null);
+    setArchiveStatus(null);
+    setPendingPlayerUnlock(null);
+    setAchievementQueue([]);
+    setPackUnlockQueue([]);
+    completedPacksRef.current.clear();
+    setActiveSaveSlot(slot);
+  };
+
+  const confirmCareer = ({ teamName: club, managerName: name, managerAvatar: avatar }) => {
+    setManagerName(name);
+    setManagerAvatar(avatar);
+    setNewspaperName(generateNewspaperName(club));
+    setReporterName(generateReporterName());
+    setTeamName(club);
+  };
+
   // ===== EARLY RETURNS (after all hooks) =====
 
   // Loading
@@ -1829,7 +1845,24 @@ function FruitCigs() {
     );
   }
 
-  // Profile selection (shown before slot picker)
+  // A first career needs only the club name. Profiles remain available for
+  // returning/shared-device players; create the first one only on submit.
+  if (!activeProfileId && profileList.length === 0) {
+    return (
+      <ManagerIdentityScreen
+        generateName={generateManagerName}
+        onConfirm={async identity => {
+          const profile = await createProfile(identity.managerName);
+          setProfileList([{ id: profile.id, name: profile.name, createdAt: profile.createdAt }]);
+          setActiveProfileId(profile.id);
+          prepareNewCareer(1);
+          confirmCareer(identity);
+        }}
+      />
+    );
+  }
+
+  // Profile selection (shown before slot picker for existing profiles)
   if (!activeProfileId) {
     return (
       <ProfileSelectScreen
@@ -1919,18 +1952,7 @@ function FruitCigs() {
                         setActiveSaveSlot(null);
                       }
                     } else {
-                      // Empty slot: select it and show mode picker for new
-                      // career — which must not inherit the previous
-                      // career's identity from this session.
-                      const freshSquad = generateSquad().map(p => ({ ...p, seasonStartOvr: getOverall(p), seasonStartAttrs: { ...p.attrs } }));
-                      useGameStore.getState().startNewCareer(freshSquad);
-                      setSaveStatus(null);
-                      setArchiveStatus(null);
-                      setPendingPlayerUnlock(null);
-                      setAchievementQueue([]);
-                      setNameInput("");
-                      setActiveSaveSlot(slot);
-                      setShowModeSelect(true);
+                      prepareNewCareer(slot);
                     }
                   }}
                   onMouseEnter={e => { if (!unavailable) e.currentTarget.style.background = occupied ? "rgba(30,41,59,0.6)" : "rgba(30,41,59,0.3)"; }}
@@ -2014,103 +2036,13 @@ function FruitCigs() {
       );
     }
 
-    // Mode selection (for new empty slot)
-    if (showModeSelect) {
-      return (
-        <ModeSelectScreen
-          slotNumber={activeSaveSlot}
-          onSelect={(mode) => { setGameMode(mode); setShowModeSelect(false); setShowManagerSelect(true); }}
-          onBack={() => { setShowModeSelect(false); setActiveSaveSlot(null); }}
-        />
-      );
-    }
-
-    // Manager identity (between mode select and team name input)
-    if (showManagerSelect) {
-      return (
-        <ManagerIdentityScreen
-          slotNumber={activeSaveSlot}
-          generateName={generateManagerName}
-          onConfirm={({ managerName: mn, managerAvatar: ma }) => {
-            setManagerName(mn);
-            setManagerAvatar(ma);
-            setShowManagerSelect(false);
-          }}
-          onBack={() => { setShowManagerSelect(false); setShowModeSelect(true); }}
-        />
-      );
-    }
-
-    // New game name input (activeSaveSlot is set, mode chosen, but no teamName yet)
     return (
-      <div style={{
-        minHeight: "100vh", background: "#0a0a1a", color: C.text,
-        fontFamily: FONT,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: isMobile ? "16px" : 0,
-      }}>
-        <div style={{ textAlign: "center", maxWidth: 420, width: "90%" }}>
-          <div style={{
-            fontSize: F.h3, color: C.green, letterSpacing: 3, marginBottom: 8,
-            textShadow: "0 0 20px rgba(74,222,128,0.4)",
-          }}>
-            🚬 FRUIT CIGS
-          </div>
-          <div style={{ fontSize: F.sm, color: C.slate, marginBottom: 32 }}>
-            Save Slot {activeSaveSlot} · New Career
-          </div>
-
-          <div style={{ fontSize: F.md, color: C.textMuted, marginBottom: 12, letterSpacing: 1 }}>
-            NAME YOUR CLUB
-          </div>
-          <input
-            type="text"
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value.slice(0, 20))}
-            onKeyDown={e => { if (e.key === "Enter" && nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); setReporterName(generateReporterName()); } }}
-            placeholder="e.g. Denton FC"
-            autoFocus
-            style={{
-              width: "100%", padding: "14px 18px",
-              background: C.bg, border: `2px solid ${C.bgInput}`,
-              color: C.text, fontSize: F.lg,
-              fontFamily: FONT,
-              textAlign: "center", outline: "none",
-              marginBottom: 16,
-            }}
-            onFocus={e => e.target.style.borderColor = C.green}
-            onBlur={e => e.target.style.borderColor = C.bgInput}
-          />
-          <button
-            onClick={() => { if (nameInput.trim()) { setTeamName(nameInput.trim()); setNewspaperName(generateNewspaperName(nameInput.trim())); setReporterName(generateReporterName()); } }}
-            disabled={!nameInput.trim()}
-            style={{
-              width: "100%", padding: "16px",
-              background: nameInput.trim() ? "linear-gradient(180deg, #166534, #14532d)" : "rgba(30,41,59,0.3)",
-              border: nameInput.trim() ? `2px solid ${C.green}` : `1px solid ${C.bgCard}`,
-              color: nameInput.trim() ? C.green : C.bgInput,
-              fontFamily: FONT,
-              fontSize: F.lg, cursor: nameInput.trim() ? "pointer" : "default",
-              letterSpacing: 2,
-              marginBottom: 12,
-              animation: nameInput.trim() ? "glow 2s ease infinite" : "none",
-            }}
-          >
-            NEW GAME ▶
-          </button>
-          <button
-            onClick={() => setActiveSaveSlot(null)}
-            style={{
-              width: "100%", padding: "12px",
-              background: "none", border: `1px solid ${C.bgCard}`,
-              color: C.slate, fontFamily: FONT,
-              fontSize: F.sm, cursor: "pointer", letterSpacing: 1,
-            }}
-          >
-            ◀ BACK
-          </button>
-        </div>
-      </div>
+      <ManagerIdentityScreen
+        slotNumber={activeSaveSlot}
+        generateName={generateManagerName}
+        onConfirm={confirmCareer}
+        onBack={() => setActiveSaveSlot(null)}
+      />
     );
   }
 
@@ -2124,11 +2056,11 @@ function FruitCigs() {
           <div style={{ textAlign: "center", marginBottom: 32 }}>
             <div style={{ fontSize: "2em", marginBottom: 14 }}>📋</div>
             <div style={{ fontSize: "clamp(16px,4vw,22px)", color: C.lightRed, letterSpacing: 2, marginBottom: 10 }}>MUSEUM</div>
-            <div style={{ fontSize: "clamp(9px,2vw,11px)", color: C.slate, letterSpacing: 1 }}>ARCHIVED IRONMAN CAREERS</div>
+            <div style={{ fontSize: "clamp(9px,2vw,11px)", color: C.slate, letterSpacing: 1 }}>ARCHIVED CAREERS</div>
           </div>
           {entries.length === 0 ? (
             <div style={{ textAlign: "center", fontSize: "clamp(9px,2vw,11px)", color: C.slate, padding: "32px 0" }}>
-              No archived careers yet.<br /><br />Ironman careers are saved here<br />when the board sacks you.
+              No archived careers yet.<br /><br />Your careers are saved here<br />when the board sacks you.
             </div>
           ) : (
             entries.slice().reverse().map((entry, i) => {
@@ -6511,12 +6443,13 @@ function FruitCigs() {
       {achievementQueue.length > 0 && !isOnHoliday && (
         <AchievementToast
           key={achievementQueue[0] + "-" + achievementToastKeyRef.current}
-          achievement={achievementQueue[0]}
+          achievements={achievementQueue}
           muteSound={false}
-          sealedPack={!unlockedPacks.has(ACH_TO_PACK[achievementQueue[0]])}
-          onDone={() => {
+          sealedCount={achievementQueue.filter(id => !unlockedPacks.has(ACH_TO_PACK[id])).length}
+          onDone={acknowledged => {
             achievementToastKeyRef.current++;
-            setAchievementQueue(prev => prev.slice(1));
+            const shown = new Set(acknowledged);
+            setAchievementQueue(prev => prev.filter(id => !shown.has(id)));
           }}
         />
       )}

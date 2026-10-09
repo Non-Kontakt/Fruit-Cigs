@@ -30,6 +30,7 @@ export const FIXTURES = [
   { id: "squad-progress-improved", label: "Squad progress — most improved ranked view", clickText: "MOST IMPROVED" },
   { id: "cup-totc", label: "Cup — Team of the Cup (complete cup)", clickText: "TOTC" },
   { id: "achievement-toast", label: "Achievement — unlock toast (auto-dismiss)" },
+  { id: "achievement-batch", label: "Achievement — grouped card unlocks and late arrivals" },
   { id: "pack-reveal-banked", label: "Pack reveal — opening ceremony, 3 banked cards", settleMs: 4400 },
   { id: "pack-reveal-empty", label: "Pack reveal — opening ceremony, nothing banked", settleMs: 3400 },
   { id: "ticket-cards", label: "Scratch cards — full description, disabled card hides USE", clickText: "SCRATCH CARDS" },

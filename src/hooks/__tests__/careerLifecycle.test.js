@@ -5,6 +5,7 @@ import { useGainPopupHandler } from "../useGainPopupHandler.js";
 import { useSeasonEnd } from "../useSeasonEnd.js";
 import { generateSquad } from "../../utils/player.js";
 import { initLeague, initLeagueRosters, initCup, buildSeasonCalendar } from "../../utils/league.js";
+import { STARTER_PACKS } from "../../data/cigPacks.js";
 
 beforeEach(() => {
   const squad = generateSquad();
@@ -21,6 +22,9 @@ it("starts an isolated career without erasing the profile or carrying over pendi
   useGameStore.getState().startNewCareer(squad);
   const next = useGameStore.getState();
   expect(next.activeProfileId).toBe("profile");
+  expect(next.gameMode).toBe("ironman");
+  expect(next.unlockedPacks).toEqual(STARTER_PACKS);
+  expect(next.unlockedPacks).not.toBe(STARTER_PACKS);
   expect(next.careerId).toBeNull(); expect(next.squad).toBe(squad);
   expect(next.totalMatches).toBe(0); expect(next.pendingLeague).toBeNull();
   expect(next.pendingTrialAction).toBeNull(); expect(next.cardedPlayerIds.size).toBe(0);

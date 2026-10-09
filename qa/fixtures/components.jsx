@@ -368,6 +368,24 @@ function AchievementToastHarness() {
   return <AchievementToast achievement="champion" muteSound onDone={() => setDone(true)} />;
 }
 
+function AchievementBatchHarness() {
+  const [queue, setQueue] = useState(["first_win", "clean_sheet", "champion"]);
+  const [acknowledged, setAcknowledged] = useState([]);
+  return <>
+    <button onClick={() => setQueue(prev => [...prev, "season_10"])}>ADD LATE CARD</button>
+    <div data-testid="acknowledged-cards">{acknowledged.join(",")}</div>
+    {queue.length > 0 && <AchievementToast
+      key={queue[0]}
+      achievements={queue}
+      muteSound
+      onDone={ids => {
+        setAcknowledged(prev => [...prev, ...ids]);
+        setQueue(prev => prev.filter(id => !ids.includes(id)));
+      }}
+    />}
+  </>;
+}
+
 // --- Pack unlock reveal ------------------------------------------------------
 
 // Mounts the full ceremony (tear → deal → settle) and swaps in a marker div
@@ -751,6 +769,7 @@ const RENDERERS = {
     </div>
   ),
   "achievement-toast": () => <AchievementToastHarness />,
+  "achievement-batch": () => <AchievementBatchHarness />,
   "pack-reveal-banked": () => <PackUnlockRevealHarness banked />,
   "pack-reveal-empty": () => <PackUnlockRevealHarness banked={false} />,
   // Lands on the CIG PACKS tab; the spec clicks "SCRATCH CARDS" (registry.clickText).
