@@ -20,7 +20,12 @@ test("built game starts offline with its font and preserves profile data on ?res
   await page.goto("./?reset");
   await expect(page.getByText("Offline QA", { exact: true })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  expect(await page.evaluate(() => document.fonts.check('12px "Press Start 2P"'))).toBe(true);
+  for (const weight of [400, 700]) {
+    expect(await page.evaluate(async weight => {
+      const faces = await document.fonts.load(`${weight} 24px "Pixel Operator"`);
+      return faces.length === 1 && faces[0].status === "loaded";
+    }, weight)).toBe(true);
+  }
   expect(await page.evaluate(() => localStorage.getItem("release-test"))).toBe("keep");
   expect(await page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   expect(errors).toEqual([]);

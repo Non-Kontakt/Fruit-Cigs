@@ -41,7 +41,7 @@ for (const fx of FIXTURES) {
     // Screenshots are typography evidence — a fixture page silently falling
     // back to system fonts makes every visual review lie. Fail loudly instead.
     await page.waitForFunction(
-      () => document.fonts.check('12px "Press Start 2P"'),
+      () => document.fonts.check('400 24px "Pixel Operator"'),
       { timeout: 10_000 }
     );
 

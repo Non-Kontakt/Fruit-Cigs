@@ -1,14 +1,14 @@
 import { useRef, useState } from "react";
 
-import { C as TC, FONT } from "../../data/tokens";
+import { C as TC, F as TF, FONT, LH } from "../../data/tokens";
 import { ManagerAvatar, randomAvatar, FEATURE_COUNTS } from "./ManagerAvatar.jsx";
 
 const C = { ...TC, bg: "#0a0a1a", bgCard: "rgba(30,41,59,0.6)", bgInput: "#1e293b" };
 const F = {
-  xl: "clamp(13px,3vw,18px)",
-  lg: "clamp(10px,2.5vw,14px)",
-  md: "clamp(10px,2vw,11px)",
-  sm: "clamp(9px,1.5vw,10px)",
+  xl: TF.h3,
+  lg: TF.md,
+  md: TF.sm,
+  sm: TF.xs,
 };
 
 const FEATURE_ROWS = [
@@ -64,8 +64,8 @@ export function ManagerIdentityScreen({ slotNumber, onConfirm, onBack, generateN
     }}>
       <form onSubmit={handleContinue} style={{ textAlign: "center", maxWidth: 460, width: "100%" }}>
         <div style={{
-          fontSize: F.xl, color: C.green, letterSpacing: 2, marginBottom: 6,
-          textShadow: "0 0 20px rgba(74,222,128,0.4)", lineHeight: 1.4,
+          fontSize: F.xl, fontWeight: 700, color: C.green, letterSpacing: 2, marginBottom: 6,
+          textShadow: "0 0 20px rgba(74,222,128,0.4)", lineHeight: LH.tight,
         }}>
           🚬 FRUIT CIGS
         </div>
@@ -93,7 +93,7 @@ export function ManagerIdentityScreen({ slotNumber, onConfirm, onBack, generateN
         />
 
         <details style={{ textAlign: "left", marginBottom: 18, border: `1px solid ${C.bgInput}`, padding: 12 }}>
-          <summary style={{ fontSize: F.sm, color: C.textMuted, cursor: "pointer", lineHeight: 1.8, padding: "6px 0" }}>
+          <summary style={{ fontSize: F.sm, color: C.textMuted, cursor: "pointer", lineHeight: LH.prose, padding: "6px 0" }}>
             YOUR MANAGER · OPTIONAL
           </summary>
           <fieldset disabled={saving} style={{ border: 0, padding: "18px 0 0", margin: 0, minWidth: 0, textAlign: "center" }}>
@@ -193,10 +193,10 @@ export function ManagerIdentityScreen({ slotNumber, onConfirm, onBack, generateN
           </fieldset>
         </details>
 
-        <div style={{ fontSize: F.sm, color: C.textMuted, lineHeight: 1.8, marginBottom: 18 }}>
+        <div style={{ fontSize: F.sm, color: C.textMuted, lineHeight: LH.prose, marginBottom: 18 }}>
           Your career saves automatically.<br />If the board sacks you, it ends.
         </div>
-        {error && <div role="alert" style={{ color: C.lightRed, fontSize: F.sm, lineHeight: 1.8, marginBottom: 12 }}>{error}</div>}
+        {error && <div role="alert" style={{ color: C.lightRed, fontSize: F.sm, lineHeight: LH.prose, marginBottom: 12 }}>{error}</div>}
 
         <button
           type="submit"

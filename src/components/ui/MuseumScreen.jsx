@@ -1,14 +1,13 @@
-import { C as TC, FONT, EMOJI } from "../../data/tokens";
+import { C as TC, F as TF, FONT, EMOJI, LH } from "../../data/tokens";
 import { displayName } from "../../utils/player.js";
 import { useMobile } from "../../hooks/useMobile.js";
 
 const C = { ...TC, bg: "#06060f", dim: "#334155" };
-// Larger sizes — Press Start 2P needs room to breathe
 const F = {
-  hero: "clamp(20px,5vw,28px)",
-  title: "clamp(14px,3.5vw,18px)",
-  body: "clamp(11px,2.5vw,13px)",
-  label: "clamp(9px,2vw,11px)",
+  hero: `clamp(${TF.h3}px,5vw,${TF.h1}px)`,
+  title: `clamp(${TF.md}px,3.5vw,${TF.xl}px)`,
+  body: `clamp(${TF.sm}px,2.5vw,${TF.md}px)`,
+  label: `clamp(${TF.xs}px,2vw,${TF.sm}px)`,
 };
 
 function ordinal(n) {
@@ -63,7 +62,7 @@ export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" })
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 36, paddingBottom: 24, borderBottom: `1px solid ${C.dim}` }}>
           <div style={{ ...EMOJI, fontSize: "2.4em", marginBottom: 16 }}>📋</div>
-          <div style={{ fontSize: F.hero, color: C.red, letterSpacing: 2, marginBottom: 12, lineHeight: 1.4 }}>
+          <div style={{ fontSize: F.hero, color: C.red, letterSpacing: 2, marginBottom: 12, lineHeight: LH.tight }}>
             {career?.teamName || "Unknown Club"}
           </div>
           <div style={{ fontSize: F.label, color: C.slate, marginBottom: 8, letterSpacing: 2 }}>
@@ -96,13 +95,13 @@ export function MuseumScreen({ career, onClose, closeLabel = "RETURN TO MENU" })
             ))}
           </div>
           {ch.biggestWin && (
-            <div style={{ fontSize: F.label, color: C.textMuted, marginTop: 4, lineHeight: 2.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: F.label, color: C.textMuted, marginTop: 4, lineHeight: LH.prose, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Best win: <span style={{ color: C.green }}>{ch.biggestWin.score}</span> vs {ch.biggestWin.opponent}
               {ch.biggestWin.season ? ` (S${ch.biggestWin.season})` : ""}
             </div>
           )}
           {ch.worstDefeat && (
-            <div style={{ fontSize: F.label, color: C.textMuted, lineHeight: 2.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: F.label, color: C.textMuted, lineHeight: LH.prose, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Worst result: <span style={{ color: C.red }}>{ch.worstDefeat.score}</span> vs {ch.worstDefeat.opponent}
               {ch.worstDefeat.season ? ` (S${ch.worstDefeat.season})` : ""}
             </div>

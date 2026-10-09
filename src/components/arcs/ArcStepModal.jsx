@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getArcById } from "../../utils/arcs.js";
 import { SFX, BGM } from "../../utils/sfx.js";
-import { F, C, FONT, MODAL, Z, TEXT } from "../../data/tokens";
+import { F, C, FONT, MODAL, Z, TEXT, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday }) {
@@ -124,7 +124,7 @@ export function ArcStepModal({ notification, onDismiss, onViewArcs, isOnHoliday 
         {/* Narrative */}
         {narrative && (
           <div style={{
-            fontSize:mob?F.xs:F.sm, color:C.textMuted, lineHeight:1.8,
+            fontSize:mob?F.xs:F.sm, color:C.textMuted, lineHeight: LH.prose,
             marginBottom:12, fontStyle:"italic", padding:"0 10px",
           }}>
             "{narrative}"

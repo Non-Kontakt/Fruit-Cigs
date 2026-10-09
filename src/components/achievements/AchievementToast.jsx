@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ACHIEVEMENTS } from "../../data/achievements.js";
 import { SFX } from "../../utils/sfx.js";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 const AUTO_DISMISS_MS = 5000;
@@ -121,7 +121,7 @@ export function AchievementToast({ achievement, achievements, onDone, muteSound,
         display: "flex", alignItems: "flex-start", gap: mob ? 10 : 14,
       }}>
         <span style={{ fontSize: mob ? F.lg : F.h3, flexShrink: 0 }}>{ach.icon}</span>
-        <div role="status" aria-live="polite" aria-atomic="true" style={{ minWidth: 0, lineHeight: 1.7 }}>
+        <div role="status" aria-live="polite" aria-atomic="true" style={{ minWidth: 0, lineHeight: LH.body }}>
           <div style={{ fontSize: F.xs, color: C.gold, marginBottom: 8 }}>{grouped ? `${cards.length} CIG CARDS UNLOCKED` : "CIG CARD UNLOCKED"}</div>
           {cards.slice(0, 3).map(card => <div key={card.id} style={{ fontSize: F.sm, color: C.text, overflowWrap: "anywhere", marginBottom: grouped ? 4 : 0 }}>{card.name}</div>)}
           {cards.length > 3 && <div style={{ fontSize: F.xs, color: C.textMuted }}>+{cards.length - 3} more in your collection</div>}

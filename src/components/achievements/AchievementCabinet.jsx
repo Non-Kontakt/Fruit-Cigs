@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ATTRIBUTES } from "../../data/training.js";
-import { F, C, FONT, TEXT } from "../../data/tokens";
+import { F, C, FONT, TEXT, LH } from "../../data/tokens";
 import { ACHIEVEMENTS, UNLOCKABLE_PLAYERS } from "../../data/achievements.js";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { CUP_DEFS } from "../../data/cups.js";
@@ -144,12 +144,12 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                   <div style={{
                     fontSize: mob ? F.xs : F.sm,
                     color: hidden ? C.bgCard : won ? lg.color : C.bgInput,
-                    letterSpacing: 1, lineHeight: 1.5, marginBottom: 4,
+                    letterSpacing: 1, lineHeight: LH.body, marginBottom: 4,
                   }}>{hidden ? "???" : lg.shortName}</div>
                   <div style={{
                     fontSize: F.micro,
                     color: hidden ? "#0f172a" : won ? C.textDim : C.bgCard,
-                    lineHeight: 1.4,
+                    lineHeight: LH.tight,
                   }}>{hidden ? "???" : lg.name}</div>
                   {lg.wins > 1 && (
                     <div style={{
@@ -200,7 +200,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                   <div style={{
                     fontSize: mob ? F.xs : F.sm,
                     color: hidden ? C.bgCard : won ? cup.color : C.bgInput,
-                    letterSpacing: 1, lineHeight: 1.5,
+                    letterSpacing: 1, lineHeight: LH.body,
                   }}>{hidden ? "???" : cup.name}</div>
                   {cup.wins > 1 && (
                     <div style={{
@@ -310,7 +310,7 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
         <div>
           <div style={{ fontSize: F.xs, color: C.gold, letterSpacing: 2, marginBottom: 12 }}>🎟️ CONSUMABLE TICKETS</div>
           {(!tickets || tickets.length === 0) ? (
-            <div style={{ fontSize: F.xs, color: C.slate, padding: 16, textAlign: "center", lineHeight: 2 }}>
+            <div style={{ fontSize: F.xs, color: C.slate, padding: 16, textAlign: "center", lineHeight: LH.prose }}>
               No tickets. Earn more through Story Arcs and Achievements.
             </div>
           ) : (() => {
@@ -444,13 +444,13 @@ export function AchievementCabinet({ unlocked, unlockedPacks, achievementUnlockW
                                 <span style={{
                                   fontSize: F.micro, fontFamily: FONT,
                                   background: def.color, color: C.bg,
-                                  borderRadius: 6, padding: "1px 5px", lineHeight: 1.4, flexShrink: 0,
+                                  borderRadius: 6, padding: "1px 5px", lineHeight: LH.tight, flexShrink: 0,
                                 }}>x{count}</span>
                               )}
                             </div>
                             <div style={{
                               fontSize: F.micro, color: C.textDim,
-                              lineHeight: 1.7,
+                              lineHeight: LH.body,
                               fontStyle: disabledReason ? "italic" : "normal",
                             }}>{disabledReason || def.desc}</div>
                           </div>

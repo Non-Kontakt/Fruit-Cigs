@@ -20,26 +20,28 @@ export const C = {
 };
 
 export const F = {
-  micro: s(7),   // tiny decorative text, pitch player names
-  xs:    s(9),   // badges, timestamps, hints
-  sm:    s(11),  // small body, labels, secondary text
-  md:    s(13),  // standard body, table content
-  lg:    s(15),  // subheadings, emphasis
-  xl:    s(18),  // section headers
-  h3:    s(21),  // subsection titles
-  h2:    s(24),  // page/modal titles
-  h1:    s(28),  // hero titles
-  hero:  s(42),  // match scores
+  micro: s(16),  // fine print, pitch player names
+  xs:    s(20),  // badges, timestamps, hints
+  sm:    s(24),  // small body, labels, secondary text
+  md:    s(28),  // standard body, table content
+  lg:    s(32),  // subheadings, emphasis
+  xl:    s(36),  // section headers
+  h3:    s(40),  // subsection titles
+  h2:    s(48),  // page/modal titles
+  h1:    s(56),  // hero titles
+  hero:  s(80),  // match scores
+  label: s(20),
+  body:  s(24),
 };
 
-// Multiline text styles — Press Start 2P sets nearly solid; any small text
-// allowed to wrap needs explicit leading. Single-line labels/buttons stay
-// tight — apply these ONLY where wrapping is possible.
-// Usage: <div style={{ ...TEXT.xsMultiline, color: C.textMuted }}>
+// Pixel Operator has a smaller cap height than the previous display face.
+// Larger em sizes keep the letters readable; tight leading avoids taller rows.
+export const LH = { tight: 1, body: 1.1, prose: 1.2 };
+
 export const TEXT = {
-  microMultiline: { fontSize: F.micro, lineHeight: 1.7 },
-  xsMultiline: { fontSize: F.xs, lineHeight: 1.6 },
-  smMultiline: { fontSize: F.sm, lineHeight: 1.5 },
+  microMultiline: { fontSize: F.micro, lineHeight: LH.body },
+  xsMultiline: { fontSize: F.xs, lineHeight: LH.body },
+  smMultiline: { fontSize: F.sm, lineHeight: LH.body },
 };
 
 // Z-index layering — semantic layer names for consistent stacking
@@ -61,13 +63,12 @@ export const Z = {
   fullscreen: 9999,
 };
 
-// Pixel type carries the game's identity; supporting prose has its own scale.
-export const FONT = "'Press Start 2P', monospace";
-export const BODY_FONT = "'IBM Plex Sans', sans-serif";
+export const FONT = "'Pixel Operator', monospace";
+export const BODY_FONT = FONT;
 export const TYPE = {
-  body: { fontFamily: BODY_FONT, fontSize: s(16), lineHeight: 1.5 },
-  compact: { fontFamily: BODY_FONT, fontSize: s(14), lineHeight: 1.45 },
-  caption: { fontFamily: BODY_FONT, fontSize: s(12), lineHeight: 1.5 },
+  body: { fontFamily: FONT, fontSize: F.sm, fontWeight: 400, lineHeight: LH.body },
+  compact: { fontFamily: FONT, fontSize: F.xs, fontWeight: 400, lineHeight: LH.body },
+  caption: { fontFamily: FONT, fontSize: F.micro, fontWeight: 400, lineHeight: LH.body },
 };
 
 // Emoji style token — spread onto elements where emojis clip in tight containers

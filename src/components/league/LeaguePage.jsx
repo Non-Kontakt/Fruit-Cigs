@@ -7,7 +7,7 @@ import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { AITeamPanel } from "./AITeamPanel.jsx";
 import { QualChip } from "../ui/QualChip.jsx";
-import { F, C, FONT, TEXT } from "../../data/tokens";
+import { F, C, FONT, TEXT, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getTopScorers, getTopAssisters, getMostYellows, getMostReds, mergeStatsAcrossTiers, resolveDisplayIdentity } from "../../utils/competitionStats.js";
 
@@ -517,10 +517,10 @@ export function LeaguePage({ league, leagueResults, matchweekIndex, teamName, pl
             {renderTierChips()}
             <div style={{ textAlign: "center", marginTop: 18 }}>
               <div style={{ fontSize: mob ? F.lg : F.xl, color: C.gold, marginBottom: 14, letterSpacing: 1 }}>📊 LEAGUE STATS</div>
-              <div style={{ fontSize: F.md, color: C.textDim, marginBottom: 10, lineHeight: 1.6 }}>
+              <div style={{ fontSize: F.md, color: C.textDim, marginBottom: 10, lineHeight: LH.body }}>
                 Stats unavailable for this season.
               </div>
-              <div style={{ fontSize: F.sm, color: C.slate, lineHeight: 1.6, maxWidth: 460, margin: "0 auto" }}>
+              <div style={{ fontSize: F.sm, color: C.slate, lineHeight: LH.body, maxWidth: 460, margin: "0 auto" }}>
                 This save was loaded from an older version that didn't track player events.
                 Full league stats will resume from next season.
               </div>

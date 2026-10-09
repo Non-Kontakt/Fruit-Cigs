@@ -68,12 +68,12 @@ test("match commentary stays pixel-led and ratings use readable supporting type"
   await page.goto("qa.html?c=matchday-live");
   const box = page.getByTestId("commentary-box");
   await expect(box).toBeVisible();
-  expect(await box.evaluate(el => getComputedStyle(el).fontFamily)).toContain("Press Start 2P");
+  expect(await box.evaluate(el => getComputedStyle(el).fontFamily)).toContain("Pixel Operator");
   expect((await box.boundingBox()).height).toBeGreaterThanOrEqual(112);
   await page.getByRole("button", { name: "RATINGS", exact: true }).click();
   const player = page.getByRole("button", { name: /Vaughan/ }).first();
   await expect(player).toBeVisible();
-  expect(await player.evaluate(el => getComputedStyle(el).fontFamily)).toContain("IBM Plex Sans");
+  expect(await player.evaluate(el => getComputedStyle(el).fontFamily)).toContain("Pixel Operator");
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `qa/.artifacts/refinement/${testInfo.project.name}-ratings.png` });
 });

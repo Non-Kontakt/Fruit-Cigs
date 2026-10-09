@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useGameStore } from "../../store/gameStore.js";
 import { preparePlayerExchange } from "../../utils/playerExchange.js";
 import { LEAGUE_DEFS, NUM_TIERS } from "../../data/leagues.js";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOverall, relColor } from "../../utils/calc.js";
 import {
@@ -429,7 +429,7 @@ export function TransfersPage({
 
   return (
     <div style={{ fontFamily: FONT }}>
-      {tradeError && <div role="alert" style={{ color: C.red, fontSize: F.xs, lineHeight: 1.8 }}>{tradeError}</div>}
+      {tradeError && <div role="alert" style={{ color: C.red, fontSize: F.xs, lineHeight: LH.prose }}>{tradeError}</div>}
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {TABS.map(tab => (
@@ -749,7 +749,7 @@ export function TransfersPage({
             }}
           >
             <div style={{ fontSize: F.sm, color: C.gold, marginBottom: 12 }}>BOTH SLOTS FULL</div>
-            <div style={{ fontSize: F.xs, color: C.textMuted, marginBottom: 16, lineHeight: 1.8 }}>
+            <div style={{ fontSize: F.xs, color: C.textMuted, marginBottom: 16, lineHeight: LH.prose }}>
               You want to focus on <span style={{ color: C.green }}>{confirmFocus}</span>.
               Both slots are occupied. Which club should be replaced?
             </div>

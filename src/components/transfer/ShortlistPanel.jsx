@@ -1,5 +1,5 @@
 import React from "react";
-import { F, C, FONT, BTN } from "../../data/tokens";
+import { F, C, FONT, BTN, LH } from "../../data/tokens";
 import { getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { useMobile } from "../../hooks/useMobile.js";
@@ -17,7 +17,7 @@ export function ShortlistPanel({ shortlist, setShortlist, onPlayerClick, onTeamC
     return (
       <div style={{ padding: mob ? "32px 16px" : "48px 32px", textAlign: "center" }}>
         <div style={{ color: C.gold, fontSize: F.h3, marginBottom: 16 }}>☆</div>
-        <div style={{ color: C.textDim, fontSize: F.sm, lineHeight: 1.8 }}>
+        <div style={{ color: C.textDim, fontSize: F.sm, lineHeight: LH.prose }}>
           No shortlisted players.<br />
           Click ☆ on any player profile to add them.
         </div>

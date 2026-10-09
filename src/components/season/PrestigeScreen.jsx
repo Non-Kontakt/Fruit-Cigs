@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { F, C, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getOvrCap } from "../../utils/player.js";
 import { BGM } from "../../utils/sfx.js";
@@ -122,11 +122,11 @@ export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
         }}>
           <div style={{
             fontSize: mob ? F.hero : F.hero * 1.3,
-            fontWeight: 900,
+            fontWeight: 700,
             color: C.purple,
             letterSpacing: 6,
             animation: "textGlow 2s ease-in-out infinite",
-            fontFamily: "monospace",
+            fontFamily: FONT,
           }}>
             PRESTIGE {newPrestigeLevel}
           </div>
@@ -136,7 +136,7 @@ export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
             color: C.textMuted,
             textAlign: "center",
             maxWidth: mob ? 280 : 420,
-            lineHeight: 1.6,
+            lineHeight: LH.body,
             animation: "fadeSlideUp 1s ease-out 0.3s both",
           }}>
             You've conquered every league in this reality.
@@ -156,7 +156,7 @@ export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
             <span style={{ color: C.textMuted }}>OVR Ceiling</span>
             <span style={{ color: "#a78bfa", fontWeight: 700 }}>{oldCap}</span>
             <span style={{ color: C.textDim }}>→</span>
-            <span style={{ color: C.purple, fontWeight: 900, fontSize: mob ? F.xl : F.h3 }}>{newCap}</span>
+            <span style={{ color: C.purple, fontWeight: 700, fontSize: mob ? F.xl : F.h3 }}>{newCap}</span>
           </div>
         </div>
       )}
@@ -171,7 +171,7 @@ export function PrestigeScreen({ prestigeLevel, newPrestigeLevel, onDone }) {
             padding: mob ? "12px 28px" : "14px 36px",
             fontSize: mob ? F.md : F.lg,
             fontWeight: 700,
-            fontFamily: "monospace",
+            fontFamily: FONT,
             color: "#0f0f23",
             background: "linear-gradient(135deg, #a78bfa, #c084fc, #8b5cf6)",
             border: "none",

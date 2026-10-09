@@ -4,7 +4,7 @@ import { SFX, BGM } from "../../utils/sfx.js";
 import { hasLateEqualiser } from "../../utils/bgmMoments.js";
 import { AITeamPanel } from "../league/AITeamPanel.jsx";
 import { POSITION_ORDER } from "../../data/positions.js";
-import { F, C, FONT, Z, TYPE } from "../../data/tokens";
+import { F, C, FONT, Z, TYPE, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 import { ScorerStrip } from "./ScorerStrip.jsx";
 import { MatchCommentaryBox, deriveKit, neutralKit } from "./MatchCommentaryBox.jsx";
@@ -120,7 +120,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
       color: team.isPlayer ? C.green : C.text,
       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       display: "block", width: "100%", textAlign: align,
-      fontFamily: FONT, lineHeight: 1.5,
+      fontFamily: FONT, lineHeight: LH.body,
     };
     if (!clickable) return <div style={base} title={team.name}>{team.name}</div>;
     return (
@@ -477,7 +477,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
               "⚽ FULL TIME (PENS)"
             ) : finished ? "⚽ FULL TIME" : (
               <span style={{ animation: "pulse 1s ease infinite" }}>
-                <span style={{ lineHeight: 1.4, display: "inline-block" }}>⏱</span> {minute}'
+                <span style={{ lineHeight: LH.tight, display: "inline-block" }}>⏱</span> {minute}'
               </span>
             )}
           </div>
@@ -698,7 +698,7 @@ export function MatchResultScreen({ result, league, onDone, initialSpeed, onSpee
                 borderLeft: isLeader ? `2px solid rgba(250,204,21,0.5)` : "2px solid transparent",
               }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1, marginRight: 8 }}>
-                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "3px 6px", lineHeight: 1.4, fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
+                  <span style={{ background: getPosColor(getPos(pr)), color: C.bg, padding: "3px 6px", lineHeight: LH.tight, fontSize: F.micro, fontWeight: "bold", opacity: pr.isSub && subOn == null ? 0.4 : 1 }}>{getPos(pr)}</span>
                   <button onClick={() => onPlayerClick?.(pr.name)} title={pr.name} style={{ ...TYPE.compact, color: pr.isSub ? C.textMuted : C.text, background: "none", border: "none", textAlign: "left", minWidth: 0, overflowWrap: "anywhere", cursor: "pointer" }}>{pr.name}</button>
                   {subOff != null && <span style={{ ...TYPE.caption, color: C.lightRed, flexShrink: 0 }}>↓{subOff}'</span>}
                   {subOn != null && <span style={{ ...TYPE.caption, color: C.green, flexShrink: 0 }}>↑{subOn}'</span>}

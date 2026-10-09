@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { SFX } from "../../utils/sfx.js";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { pickRandom } from "../../utils/calc.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { buildSeasonEndSubtitle } from "../../utils/seasonEndMessage.js";
@@ -133,7 +133,7 @@ export function SeasonEndReveal({ info, retirees = [], onDone }) {
           padding: mob ? "22px 16px" : "35px 30px",
           marginBottom: mob ? 20 : 30,
         }}>
-          <div style={{ fontSize: mob ? F.sm : F.md, color: C.textMuted, lineHeight: 1.8, marginBottom: mob ? 16 : 23 }}>
+          <div style={{ fontSize: mob ? F.sm : F.md, color: C.textMuted, lineHeight: LH.prose, marginBottom: mob ? 16 : 23 }}>
             {subtitle}
           </div>
           {info.type !== "stayed" && (
@@ -158,7 +158,7 @@ export function SeasonEndReveal({ info, retirees = [], onDone }) {
                 marginTop: mob ? 18 : 24,
                 paddingTop: mob ? 16 : 22,
                 borderTop: `1px solid ${C.bgInput}`,
-                fontSize: mob ? F.xs : F.sm, color: C.textDim, lineHeight: 1.7,
+                fontSize: mob ? F.xs : F.sm, color: C.textDim, lineHeight: LH.body,
               }}>
                 <div style={{ color: C.textMuted, fontSize: F.xs, letterSpacing: 2, marginBottom: 10 }}>
                   DEPARTED

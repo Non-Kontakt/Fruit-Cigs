@@ -1,5 +1,5 @@
 import React from "react";
-import { F, C, FONT } from "../../data/tokens";
+import { F, C, FONT, LH } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
 import { displayName } from "../../utils/player.js";
 import { getPlayerValue, getTotalValue } from "../../utils/transfer.js";
@@ -35,7 +35,7 @@ export function OffersPanel({ offers, onAccept, onReject, onCounter, onPlayerCli
         <div style={{ fontSize: mob ? F.sm : F.md, color: C.bgInput, marginBottom: 12 }}>
           NO INCOMING OFFERS
         </div>
-        <div style={{ fontSize: F.xs, color: C.bgCard, lineHeight: 1.8 }}>
+        <div style={{ fontSize: F.xs, color: C.bgCard, lineHeight: LH.prose }}>
           Build relationships with clubs to receive trade proposals.
         </div>
       </div>

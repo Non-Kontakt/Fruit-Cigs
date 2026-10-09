@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { F, C, FONT, Z, BTN } from "../../data/tokens";
+import { F, C, FONT, Z, BTN, LH } from "../../data/tokens";
 import { getOverall, getAttrColor, getPosColor } from "../../utils/calc.js";
 import { evaluateTrade } from "../../utils/transfer.js";
 import { displayName } from "../../utils/player.js";
@@ -258,7 +258,7 @@ export function TradeProposal({
         background: "rgba(30,41,59,0.4)", border: `1px solid ${evaluation.quoteColor}33`,
         borderLeft: `3px solid ${evaluation.quoteColor}`,
       }}>
-        <div style={{ fontSize: F.sm, color: evaluation.quoteColor, lineHeight: 1.7 }}>
+        <div style={{ fontSize: F.sm, color: evaluation.quoteColor, lineHeight: LH.body }}>
           &ldquo;{evaluation.quote}&rdquo;
         </div>
         <div style={{ fontSize: F.micro, color: C.slate, marginTop: 6 }}>
@@ -267,7 +267,7 @@ export function TradeProposal({
       </div>
 
       {/* Confirm */}
-      {error && <div role="alert" style={{ color: C.red, fontSize: F.xs, lineHeight: 1.8 }}>{error}</div>}
+      {error && <div role="alert" style={{ color: C.red, fontSize: F.xs, lineHeight: LH.prose }}>{error}</div>}
       <button
         onClick={handleConfirm}
         disabled={!evaluation.acceptable || userOffer.length === 0 || userWant.length === 0}

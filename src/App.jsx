@@ -8,7 +8,7 @@ import { LEAGUE_DEFS, NUM_TIERS } from "./data/leagues.js";
 import { ARC_TICKET_POOL, ARC_CATS, STORY_ARCS } from "./data/storyArcs.js";
 import { CIG_PACKS, ACH_TO_PACK } from "./data/cigPacks.js";
 import { checkPackUnlocks, earnedPackReveals, isPackComplete } from "./utils/packUnlocks.js";
-import { F, C, FONT, BTN, MODAL, CARD, Z } from "./data/tokens";
+import { F, C, FONT, BTN, MODAL, CARD, Z, LH } from "./data/tokens";
 import { MSG } from "./data/messages.js";
 import { getModifier } from "./data/leagueModifiers.js";
 import { rand, getOverall, getAttrColor, getPosColor, getPositionTrainingWeeks, pickRandom } from "./utils/calc.js";
@@ -2033,7 +2033,7 @@ function FruitCigs() {
                 style={{
                   padding: "14px 28px", background: "none",
                   border: "1px solid #334155", color: C.slate,
-                  fontFamily: FONT, fontSize: "clamp(8px,1.8vw,10px)",
+                  fontFamily: FONT, fontSize: isMobile ? F.micro : F.xs,
                   cursor: "pointer", letterSpacing: 2,
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = "#94a3b8"}
@@ -2064,11 +2064,11 @@ function FruitCigs() {
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 32 }}>
             <div style={{ fontSize: "2em", marginBottom: 14 }}>📋</div>
-            <div style={{ fontSize: "clamp(16px,4vw,22px)", color: C.lightRed, letterSpacing: 2, marginBottom: 10 }}>MUSEUM</div>
-            <div style={{ fontSize: "clamp(9px,2vw,11px)", color: C.slate, letterSpacing: 1 }}>ARCHIVED CAREERS</div>
+            <div style={{ fontSize: isMobile ? F.lg : F.h3, color: C.lightRed, letterSpacing: 2, marginBottom: 10 }}>MUSEUM</div>
+            <div style={{ fontSize: isMobile ? F.micro : F.xs, color: C.slate, letterSpacing: 1 }}>ARCHIVED CAREERS</div>
           </div>
           {entries.length === 0 ? (
-            <div style={{ textAlign: "center", fontSize: "clamp(9px,2vw,11px)", color: C.slate, padding: "32px 0" }}>
+            <div style={{ textAlign: "center", fontSize: isMobile ? F.micro : F.xs, color: C.slate, padding: "32px 0" }}>
               No archived careers yet.<br /><br />Your careers are saved here<br />when the board sacks you.
             </div>
           ) : (
@@ -2094,15 +2094,15 @@ function FruitCigs() {
                     onClick={() => setViewingMuseumCareer(entry)}
                   >
                     <div>
-                      <div style={{ fontSize: "clamp(11px,2.5vw,13px)", color: "#f1f5f9", marginBottom: 6 }}>
+                      <div style={{ fontSize: isMobile ? F.sm : F.md, color: "#f1f5f9", marginBottom: 6 }}>
                         {entry.teamName || "Unknown Club"}
                       </div>
-                      <div style={{ fontSize: "clamp(8px,1.8vw,10px)", color: "#94a3b8", lineHeight: 1.8 }}>
+                      <div style={{ fontSize: isMobile ? F.micro : F.xs, color: "#94a3b8", lineHeight: LH.prose }}>
                         {seasons > 0 ? `${seasons} season${seasons !== 1 ? "s" : ""}` : "<1 season"} · Tier {entry.leagueTier || "?"}
                         {date ? ` · ${date}` : ""}
                       </div>
                     </div>
-                    <div style={{ fontSize: "clamp(10px,2.2vw,12px)", color: C.lightRed, flexShrink: 0 }}>VIEW ▶</div>
+                    <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.lightRed, flexShrink: 0 }}>VIEW ▶</div>
                   </div>
                   {/* Delete — fixed-width column, full card height, separated by border */}
                   <button
@@ -2116,7 +2116,7 @@ function FruitCigs() {
                       border: "none", borderLeft: "1px solid rgba(248,113,113,0.15)",
                       borderRadius: "0 3px 3px 0",
                       color: C.slate, fontFamily: FONT,
-                      fontSize: "clamp(9px,2vw,11px)", cursor: "pointer",
+                      fontSize: isMobile ? F.micro : F.xs, cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = C.lightRed; e.currentTarget.style.background = "rgba(248,113,113,0.1)"; }}
@@ -2133,7 +2133,7 @@ function FruitCigs() {
               style={{
                 padding: "14px 28px", background: "none",
                 border: "1px solid #334155", color: C.slate,
-                fontFamily: FONT, fontSize: "clamp(8px,1.8vw,10px)",
+                fontFamily: FONT, fontSize: isMobile ? F.micro : F.xs,
                 cursor: "pointer", letterSpacing: 2,
               }}
               onMouseEnter={e => e.currentTarget.style.color = "#94a3b8"}
@@ -2150,19 +2150,19 @@ function FruitCigs() {
               padding: "36px 44px", maxWidth: 420, width: "90%",
               boxShadow: "0 0 50px rgba(248,113,113,0.25), inset 0 0 80px rgba(0,0,0,0.6)",
             }}>
-              <div style={{ fontSize: "clamp(11px,2.5vw,14px)", color: C.lightRed, marginBottom: 16, letterSpacing: 2 }}>
+              <div style={{ fontSize: isMobile ? F.sm : F.md, color: C.lightRed, marginBottom: 16, letterSpacing: 2 }}>
                 🗑 DELETE CAREER?
               </div>
-              <div style={{ fontSize: "clamp(10px,2.2vw,12px)", color: "#f1f5f9", lineHeight: 2, marginBottom: 8 }}>
+              <div style={{ fontSize: isMobile ? F.xs : F.sm, color: "#f1f5f9", lineHeight: LH.prose, marginBottom: 8 }}>
                 {museumDeleteConfirm.teamName || "This career"}
               </div>
-              <div style={{ fontSize: "clamp(8px,1.8vw,10px)", color: "#94a3b8", lineHeight: 1.8, marginBottom: 28 }}>
+              <div style={{ fontSize: isMobile ? F.micro : F.xs, color: "#94a3b8", lineHeight: LH.prose, marginBottom: 28 }}>
                 This will permanently erase their legacy.<br />There is no undo.
               </div>
               <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
                 <button onClick={() => setMuseumDeleteConfirm(null)} style={{
                   ...BTN.primary, background: "rgba(74,222,128,0.08)",
-                  padding: "14px 26px", fontSize: "clamp(8px,1.8vw,10px)",
+                  padding: "14px 26px", fontSize: isMobile ? F.micro : F.xs,
                 }}>KEEP</button>
                 <button onClick={() => {
                   const key = museumDeleteConfirm.archivedAt;
@@ -2170,7 +2170,7 @@ function FruitCigs() {
                   setViewingMuseumList(prev => prev ? { ...prev, entries: prev.entries.filter(en => en.archivedAt !== key) } : prev);
                   setMuseumDeleteConfirm(null);
                 }} style={{
-                  ...BTN.danger, padding: "14px 26px", fontSize: "clamp(8px,1.8vw,10px)",
+                  ...BTN.danger, padding: "14px 26px", fontSize: isMobile ? F.micro : F.xs,
                 }}>DELETE</button>
               </div>
             </div>
@@ -2252,7 +2252,7 @@ function FruitCigs() {
       maxWidth: 1600,
       margin: "0 auto",
     }}>
-      {saveStatus === "error" && <div role="alert" style={{ padding: 12, border: `1px solid ${C.red}`, color: C.text, fontSize: F.sm, lineHeight: 1.8 }}>
+      {saveStatus === "error" && <div role="alert" style={{ padding: 12, border: `1px solid ${C.red}`, color: C.text, fontSize: F.sm, lineHeight: LH.prose }}>
         Save failed. Keep this page open until you retry or export your current career.
         <button onClick={saveGame} style={{ ...BTN.primary, margin: 8 }}>RETRY SAVE</button>
         <button onClick={exportSave} style={{ ...BTN.ghost, margin: 8 }}>EXPORT CURRENT CAREER</button>
@@ -2393,7 +2393,7 @@ function FruitCigs() {
                 // nowrap + ellipsis clips from the tail of the line, so the
                 // opponent already gets whatever space remains rather than
                 // splitting it evenly with the known-short parts.
-                <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: 1.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: isMobile ? F.sm : F.xl, color: C.text, letterSpacing: 0.5, lineHeight: LH.body, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {bannerMatch.isHome ? (
                     <>
                       <span style={{ color: C.green, fontWeight: "bold" }}>{teamName}</span>
@@ -2625,9 +2625,9 @@ function FruitCigs() {
         // length or whether it carries a badge (badges move to an
         // absolutely-positioned corner overlay so they never join the text
         // flow and force a wrap). Desktop keeps icons and badges inline.
-        const navIcon = (icon) => isMobile ? <span style={{ fontSize: F.sm, lineHeight: 1.2 }}>{icon}</span> : null;
+        const navIcon = (icon) => isMobile ? <span style={{ fontSize: F.xs, lineHeight: 1.2 }}>{icon}</span> : null;
         const navLabel = (label) => isMobile
-          ? <span style={{ fontSize: `clamp(${F.micro}px, 2.2vw, ${F.xs}px)`, lineHeight: 1.4, textAlign: "center", maxWidth: "100%" }}>{label}</span>
+          ? <span style={{ fontSize: `clamp(${F.micro}px, 2.2vw, ${F.xs}px)`, lineHeight: LH.tight, textAlign: "center", maxWidth: "100%" }}>{label}</span>
           : `${label}`;
         const navBadgeOverlay = (badges) => isMobile && badges
           ? <span style={{ position: "absolute", top: 2, right: 2, display: "flex", gap: 2 }}>{badges}</span>
@@ -3784,7 +3784,7 @@ function FruitCigs() {
           justifyContent: "space-between", gap: 12,
           fontFamily: FONT,
         }}>
-          <span style={{ fontSize: F.sm, color: C.green, lineHeight: 1.6 }}>
+          <span style={{ fontSize: F.sm, color: C.green, lineHeight: LH.body }}>
             🎓 Youth intake pending — {summerData.youthCandidates.length} graduates available. Release players if needed, then sign.
           </span>
           <button onClick={() => setShowYouthIntake(true)} style={{
@@ -4645,7 +4645,7 @@ function FruitCigs() {
                       <span style={{
                         position: "absolute", top: -6, right: -10, fontSize: F.micro,
                         background: getPosColor(player.position), color: C.bg, padding: "0px 2px",
-                        borderRadius: 1, fontWeight: "bold", lineHeight: 1.3,
+                        borderRadius: 1, fontWeight: "bold", lineHeight: LH.tight,
                       }}>{player.position}</span>
                     )}
                   </span>
@@ -6489,7 +6489,7 @@ function FruitCigs() {
             <div style={{ fontSize: isMobile ? F.xs : F.sm, color: C.red, marginBottom: 16, letterSpacing: 2 }}>
               🚫 SQUAD FULL
             </div>
-            <div style={{ fontSize: F.micro, color: C.text, lineHeight: 1.8, marginBottom: 24 }}>
+            <div style={{ fontSize: F.micro, color: C.text, lineHeight: LH.prose, marginBottom: 24 }}>
               Squad is full (25/25).
               <br />
               Release a player first to make room.

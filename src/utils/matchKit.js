@@ -3,7 +3,7 @@ import { C } from "../data/tokens";
 // Kit derivation for the matchday commentary box (#460).
 //
 // FC teams carry one colour; the box needs a two-colour pair whose normal
-// and inverted states are both legible in small Press Start 2P across a
+// and inverted states are both legible in pixel type across a
 // large hero surface. WCAG AA (4.5:1) proved too weak in practice, so the
 // contract is a minimum 7:1 MUTUAL contrast: the team hue is preserved and
 // the presentation shade is stepped lighter or darker until the pair

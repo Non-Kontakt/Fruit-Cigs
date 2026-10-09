@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { POS_COLORS, ALL_POSITIONS } from "../../data/positions.js";
 import { FORMATION_PRESETS } from "../../data/formations.js";
 import { detectFormationName, getEffectiveSlots } from "../../utils/formation.js";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 
 export function TacticsPanel({ formation, setFormation, startingXI, setStartingXI, squad, onClose, isMobile, slotAssignments, setSlotAssignments, markManualSlots }) {
   const [dragging, setDragging] = useState(null);
@@ -196,7 +196,7 @@ export function TacticsPanel({ formation, setFormation, startingXI, setStartingX
                   marginTop: 1, fontSize: F.xs, color: isOutOfPos ? C.amber : "#ffffffcc",
                   whiteSpace: "nowrap", textAlign: "center",
                   textShadow: "0 1px 3px rgba(0,0,0,0.9)", fontFamily: FONT,
-                  lineHeight: 1.4,
+                  lineHeight: LH.tight,
                 }}>
                   {player ? player.name.split(" ").pop().slice(0, 8) : "—"}
                   {isOutOfPos && player && <div style={{ fontSize: F.micro, color: "#f59e0b88" }}>({player.position})</div>}
@@ -269,7 +269,7 @@ export function TacticsPanel({ formation, setFormation, startingXI, setStartingX
         {/* Help text */}
         <div style={{
           padding: "10px 16px", fontSize: F.xs, color: C.slate, textAlign: "center",
-          borderTop: `1px solid ${C.bgCard}`, lineHeight: 1.6,
+          borderTop: `1px solid ${C.bgCard}`, lineHeight: LH.body,
         }}>
           DRAG DOTS TO REPOSITION · TAP DOT TO CHANGE ROLE / SWAP PLAYER
         </div>

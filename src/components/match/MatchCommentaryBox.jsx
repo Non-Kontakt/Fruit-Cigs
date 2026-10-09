@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { C, F, FONT } from "../../data/tokens";
+import { C, F, FONT, LH } from "../../data/tokens";
 
 // The matchday commentary box (#460): one box carries the whole narration,
 // wearing the featured side's colours — background versus contrast text,
@@ -31,8 +31,9 @@ export function comboxStyle([bg, fg], { inverted = false, mob = false } = {}) {
     background: inverted ? fg : bg,
     color: inverted ? bg : fg,
     fontFamily: FONT,
+    fontWeight: 700,
     fontSize: mob ? F.sm : F.md,
-    lineHeight: 1.6,
+    lineHeight: LH.body,
     overflow: "hidden",
   };
 }

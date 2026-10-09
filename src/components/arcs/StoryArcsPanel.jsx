@@ -3,7 +3,7 @@ import { ARC_CATS, ARC_CAT_LABELS } from "../../data/storyArcs.js";
 import { getOverall, getPosColor } from "../../utils/calc.js";
 import { getArcById, getArcsForCat, getValidTargets } from "../../utils/arcs.js";
 import { displayName } from "../../utils/player.js";
-import { F, C, FONT, EMOJI, TYPE } from "../../data/tokens";
+import { F, C, FONT, EMOJI, TYPE, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodigalSon, league, leagueTier, onAchievementCheck, week, seasonNumber }) {
@@ -184,7 +184,7 @@ export function StoryArcsPanel({ storyArcs, setStoryArcs, squad, setSquad, prodi
                     {noTargets && (
                       <div style={{
                         fontSize:mob?F.xs:F.sm, color:C.red, textAlign:"right",
-                        lineHeight:1.8, flexShrink:0,
+                        lineHeight: LH.prose, flexShrink:0,
                       }}>
                         Requires: {arc.targetDesc}
                       </div>

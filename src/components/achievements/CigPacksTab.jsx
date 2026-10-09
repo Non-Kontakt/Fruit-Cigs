@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { F, C, FONT, MODAL, Z, TEXT } from "../../data/tokens";
+import { F, C, FONT, MODAL, Z, TEXT, LH } from "../../data/tokens";
 import { CIG_PACKS, ACH_TO_PACK } from "../../data/cigPacks.js";
 import { ACHIEVEMENTS, PLAYER_UNLOCK_ACHIEVEMENTS } from "../../data/achievements.js";
 import { getAchievementProgress } from "../../data/achievementProgress.js";
@@ -21,11 +21,7 @@ const hexToRgb = (hex) => {
 const achById = {};
 ACHIEVEMENTS.forEach((a) => { achById[a.id] = a; });
 
-// View-toggle glyphs are built from CSS boxes rather than Unicode characters
-// — Press Start 2P doesn't carry glyphs like "▦" and silently falls back to
-// a generic filled square, which is why the grid/list pair used to read as
-// two identical blobs. Boxes side-step font coverage entirely and center
-// exactly inside the button's flex box with no font-metrics guesswork.
+// CSS boxes keep the grid/list icons independent of font glyph coverage.
 function GridGlyph({ color }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 6px)", gridTemplateRows: "repeat(2, 6px)", gap: 3 }}>
@@ -452,7 +448,7 @@ function UnlockedCard({ pack, index, mob, onClick }) {
         textShadow: `0 0 10px rgba(${rgb}, 0.4)`,
         position: "relative",
         zIndex: 1,
-        lineHeight: 1.4,
+        lineHeight: LH.tight,
       }}>
         {pack.name}
       </div>

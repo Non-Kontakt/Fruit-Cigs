@@ -369,7 +369,7 @@ export function PlayerSearch({
             <span style={{
               position: "absolute", top: -6, right: -6,
               background: C.green, color: "#0a0a1a",
-              fontSize: 8, fontFamily: FONT,
+              fontSize: F.micro, fontFamily: FONT,
               width: 16, height: 16, borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontWeight: "bold",

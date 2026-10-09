@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BGM, BGM_TRACKS } from "../../utils/sfx.js";
 import { StoryArcsPanel } from "../arcs/StoryArcsPanel.jsx";
 import { STORY_ARCS } from "../../data/storyArcs.js";
-import { F, C, FONT, MODAL, CARD, TYPE } from "../../data/tokens";
+import { F, C, FONT, MODAL, CARD, TYPE, LH } from "../../data/tokens";
 import { LEAGUE_DEFS } from "../../data/leagues.js";
 import { isMessageVisible, getUnreadCount, getVisibleMessages } from "../../utils/messageUtils.js";
 import { getChoiceButtonStyle, getChoiceResult } from "../../utils/inboxChoice.js";
@@ -159,7 +159,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                   }
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-                    <span style={{ fontSize: mob ? F.sm : F.md, lineHeight: 1.6, color: msg.color || C.blue }}>
+                    <span style={{ fontSize: mob ? F.sm : F.md, lineHeight: LH.body, color: msg.color || C.blue }}>
                       {msg.icon} {msg.title} {!msg.read && <span style={{ fontSize: F.micro, color: C.red, marginLeft: 5 }}>● NEW</span>}
                     </span>
                     <span style={{ ...TYPE.caption, color: C.textMuted, flexShrink: 0 }}>S{msg.season} W{msg.week}</span>
@@ -200,7 +200,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
                             if (onInboxChoice && onInboxChoice(msg, choice.value) === false) return;
                             setInboxMessages(prev => prev.map(m => m.id === msg.id ? { ...m, choiceResult: choice.value, read: true } : m));
                           }} style={{
-                            padding: mob ? "10px 17px" : "10px 24px", minHeight: 44, lineHeight: 1.5,
+                            padding: mob ? "10px 17px" : "10px 24px", minHeight: 44, lineHeight: LH.body,
                             fontSize: mob ? F.xs : F.sm,
                             fontFamily: FONT,
                             background: style.background,
@@ -804,7 +804,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             <div style={{
               fontSize: mob ? F.xs : F.sm,
               color: C.text,
-              lineHeight: 1.8,
+              lineHeight: LH.prose,
               marginBottom: 28,
             }}>
               Simulate to Matchweek {holidayConfirm.targetMD}?
@@ -865,7 +865,7 @@ export function BootRoom({ settings, save, debug, inbox, calendar, calendarIndex
             <div style={{
               fontSize: mob ? F.xs : F.sm,
               color: C.text,
-              lineHeight: 1.8,
+              lineHeight: LH.prose,
               marginBottom: 28,
             }}>
               Jump to {debugTierConfirm.name}?

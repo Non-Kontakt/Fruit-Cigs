@@ -6,7 +6,9 @@ const source = readFileSync("dist/sw.js", "utf8");
 const config = JSON.parse(source.match(/const CONFIG = (\{[^\n]+\});/)[1]);
 assert(config.assets.some(file => file.endsWith(".js")), "Offline shell is missing JavaScript");
 assert(config.assets.some(file => file.endsWith(".css")), "Offline shell is missing CSS");
-assert(config.assets.filter(file => file.endsWith(".woff2")).length === 5, "Offline shell is missing its font subsets");
+for (const font of ["PixelOperator.woff2", "PixelOperator-Bold.woff2"]) {
+  assert(config.assets.includes(`${config.base}fonts/${font}`), `Offline shell is missing ${font}`);
+}
 for (const file of config.assets) {
   assert(existsSync(path.join("dist", file.slice(config.base.length))), `Missing precache asset: ${file}`);
 }

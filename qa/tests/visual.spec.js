@@ -35,8 +35,8 @@ async function settleUntil(page, fn, { timeout = 15_000 } = {}) {
 
 const fontsReady = async () => {
   await Promise.all([
-    document.fonts.load('12px "Press Start 2P"'),
-    document.fonts.load('14px "IBM Plex Sans"'),
+    document.fonts.load('400 24px "Pixel Operator"'),
+    document.fonts.load('700 24px "Pixel Operator"'),
   ]);
   return true;
 };

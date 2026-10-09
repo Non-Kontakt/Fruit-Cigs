@@ -6,7 +6,7 @@ import { getNatFlag, getNatLabel, displayName } from "../../utils/player.js";
 import { getPlayerValue, getRelationshipTier } from "../../utils/transfer.js";
 import { Sparkline } from "../charts/Sparkline.jsx";
 import { ClubBadge } from "../ui/ClubBadge.jsx";
-import { F, C, FONT, Z } from "../../data/tokens";
+import { F, C, FONT, Z, LH } from "../../data/tokens";
 import { useMobile } from "../../hooks/useMobile.js";
 
 export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining, onClose, onRelease, tradeContext, onToggleShortlist, shortlist, ovrCap = 20, isAI = false, scoutedPlayers, retrainWeeksDelta = 0 }) {
@@ -76,11 +76,11 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
                   </span>
                 ))}
               </span>
-              <span style={{ color: C.text, fontSize: mob ? F.xl : F.h3 }}>{displayName(player.name, mob)}</span>
+              <span style={{ color: C.text, fontSize: mob ? F.xl : F.h3, fontWeight: 700 }}>{displayName(player.name, mob)}</span>
               {player.birthName && <span style={{ color: C.textDim, fontSize: F.xs, marginLeft: 6 }}>({player.birthName})</span>}
             </div>
             <div style={{ color: C.textDim, fontSize: mob ? F.xs : F.sm, display: "flex", alignItems: "center", flexWrap: "wrap", gap: mob ? 2 : 0 }}>
-              <span style={{ fontSize: F.xl, lineHeight: 1, marginRight: 5 }}>{getNatFlag(player.nationality)}</span> {getNatLabel(player.nationality)} · Age {player.age} · OVR {overall}<span style={{ display: "inline-flex", gap: 2, marginLeft: 5, verticalAlign: "middle" }}>{[0,1,2,3,4].map(i => <span key={i} style={{ display: "inline-block", width: 9, height: 9, background: i < ovrPips ? C.blue : C.bgCard, border: `1px solid ${C.bgInput}` }} />)}</span> · POT {displayedPotential}
+              <span style={{ fontSize: F.xs, lineHeight: 1, marginRight: 5 }}>{getNatFlag(player.nationality)}</span> {getNatLabel(player.nationality)} · Age {player.age} · OVR {overall}<span style={{ display: "inline-flex", gap: 2, marginLeft: 5, verticalAlign: "middle" }}>{[0,1,2,3,4].map(i => <span key={i} style={{ display: "inline-block", width: 9, height: 9, background: i < ovrPips ? C.blue : C.bgCard, border: `1px solid ${C.bgInput}` }} />)}</span> · POT {displayedPotential}
               {player.isTrial && (
                 <span style={{ color: C.green, marginLeft: 9, background: "rgba(74,222,128,0.15)", padding: "3px 10px", fontSize: F.sm, border: "1px solid #4ade8044" }}>
                   🌍 ON TRIAL · {player.trialWeeksLeft}w left
@@ -331,7 +331,7 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
               </div>
             ) : (
               <>
-                <div style={{ fontSize: F.micro, color: C.textDim, marginBottom: 10, lineHeight: 1.5 }}>
+                <div style={{ fontSize: F.micro, color: C.textDim, marginBottom: 10, lineHeight: LH.body }}>
                   Train to play in a new position without penalties. Cannot train stats while learning.
                   {player.learnedPositions && player.learnedPositions.length > 0 && (
                     <div style={{ marginTop: 7, color: C.green }}>
@@ -502,14 +502,14 @@ export function PlayerPanel({ player, onAssignTraining, onAssignPositionTraining
               textAlign: "center", boxShadow: "0 0 40px rgba(239,68,68,0.15)",
             }}>
               <div style={{ fontSize: F.lg, color: C.red, marginBottom: 18 }}>⚠️ RELEASE PLAYER</div>
-              <div style={{ fontSize: mob ? F.xs : F.sm, color: C.textMuted, marginBottom: 9, lineHeight: 1.8 }}>
+              <div style={{ fontSize: mob ? F.xs : F.sm, color: C.textMuted, marginBottom: 9, lineHeight: LH.prose }}>
                 Are you sure you want to release
               </div>
               <div style={{ fontSize: mob ? F.md : F.lg, color: C.text, marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
                 <span style={{ background: getPosColor(player.position), color: C.bg, padding: "3px 9px", fontSize: F.sm, fontWeight: "bold" }}>{player.position}</span>
                 {displayName(player.name, mob)}
               </div>
-              <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: 23, lineHeight: 1.8 }}>
+              <div style={{ fontSize: F.xs, color: C.textDim, marginBottom: 23, lineHeight: LH.prose }}>
                 This cannot be undone.
               </div>
               <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>

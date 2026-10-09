@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { F, C, FONT, Z, TYPE } from "../../data/tokens";
+import { F, C, FONT, Z, TYPE, LH } from "../../data/tokens";
 import { SFX } from "../../utils/sfx.js";
 import { useMobile } from "../../hooks/useMobile.js";
 import { getPackSurfaceBackground, makeTearClipPath } from "../../utils/packCeremony.js";
@@ -308,7 +308,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
             at 1 the glyph clips against the pack card's own edge. */}
         <div style={{
           fontSize: mob ? 48 : 56,
-          lineHeight: 1.3,
+          lineHeight: LH.tight,
           position: "relative",
           zIndex: 1,
           opacity: isRevealed ? 1 : 0.5,
@@ -337,7 +337,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
             : "none",
           animation: phase === "shown" && !reducedMotionRef.current ? "stampReveal 0.5s ease-out" : undefined,
           transition: reducedMotionRef.current ? "none" : "color 0.4s ease",
-          lineHeight: 1.4,
+          lineHeight: LH.tight,
         }}>
           {isRevealed ? pack.name : "???"}
         </div>
@@ -424,7 +424,7 @@ export function PackUnlockReveal({ pack, bankedIds = [], onDone, isOnHoliday, mu
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: mob ? 8 : 10,
+                    fontSize: F.micro,
                     color: `rgba(${rgb}, 0.7)`,
                   }}>?</div>
                 ))}

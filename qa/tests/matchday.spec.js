@@ -9,7 +9,7 @@ const T0 = new Date("2026-01-06T10:00:00.000Z");
 async function settleFonts(page) {
   const deadline = Date.now() + 15_000;
   for (;;) {
-    if (await page.evaluate(() => document.fonts.check('12px "Press Start 2P"'))) return;
+    if (await page.evaluate(() => document.fonts.check('400 24px "Pixel Operator"'))) return;
     if (Date.now() > deadline) throw new Error("fonts never settled");
     await new Promise((r) => setTimeout(r, 100));
   }
